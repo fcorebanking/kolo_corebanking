@@ -1,0 +1,488 @@
+<?php
+
+namespace App\Http\Controllers\ThirdParty;
+
+
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\CustomClasses\WebhookController;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+
+class SafehavenController extends WebhookController
+{
+
+    private $grantType;
+    private $clientAssertionType;
+    private $clientId;
+    private $ibsClientId;
+    private $sessionId;
+    private $clientAssertion;
+    private $baseUrl;
+    private $token;
+    private $sendingAccount;
+    private $debitAccount;
+
+    function __construct()
+    {
+        $this->token = "";
+        $this->ibsClientId = "";
+        $this->sessionId = "";
+        $this->sendingAccount = "0117187948";
+        $this->grantType = env('APP_MODE') == 'test' ? config('safehaven.grant_type_test') : config('safehaven.grant_type_live');
+        $this->clientAssertionType = env('APP_MODE') == 'test' ? config('safehaven.client_assertion_type_test') : config('safehaven.client_assertion_type_live');
+        $this->clientId = env('APP_MODE') == 'test' ? config('safehaven.client_id_test') : config('safehaven.client_id_live');
+        $this->clientAssertion = env('APP_MODE') == 'test' ? config('safehaven.client_assertion_test') : config('safehaven.client_assertion_live');
+        $this->baseUrl = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
+        $this->debitAccount = "0115361250";
+    }
+
+    public function getToken()
+    {
+
+        $body = [
+            'grant_type' => $this->grantType,
+            'client_assertion_type' => $this->clientAssertionType,
+            'client_id' => $this->clientId,
+            'client_assertion' => $this->clientAssertion
+        ];
+
+        logInfo($body, "Exchange cliient assertion");
+
+        try {
+            $response = $this->safehavenPostRequest("oauth2/token", $body);
+
+            if (isset($response["access_token"])) {
+                $this->token = $response["access_token"];
+
+                logInfo($this->token, "Safe Haven Access Token");
+
+                $this->ibsClientId = $response["ibs_client_id"];
+                return ['status' => true, 'message' => 'Token obtained successfully', 'data' => ['token' => $this->token]];
+            } else {
+                return ['status' => false, 'message' => 'Failed to login to safehaven'];
+            }
+        } catch (Exception $e) {
+
+            \logInfo($e->getMessage(), "Safehaven Login serror log");
+
+            return ['status' => false, 'message' => 'Server Error...'];
+        }
+    }
+
+
+    public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId)
+    {
+
+
+        $body = [
+            "autoSweepDetails" => [
+                "schedule" => "Instant",
+                "accountNumber" => $this->debitAccount
+            ],
+            "autoSweep" => "true",
+            "phoneNumber" => $phone,
+            "emailAddress" => $email,
+            "externalReference" => $customerReference,
+            "identityId" => $bvnId,
+            "identityNumber" => $bvn,
+            "identityType" => "BVN",
+            "otp" => $otp,
+            "callbackUrl" => "https://core.finova.ng/api/v1/transactions/safehaven-webhook"
+
+        ];
+
+        logInfo($body, "Safe Have request");
+
+        $endpoint = "accounts/v2/subaccount";
+
+        try {
+
+            $loginResult = $this->getToken();
+
+            if (!$loginResult['status']) {
+                return ['status' => false, 'message' => 'Failed to complete transfer'];
+            }
+
+            $createAccount = $this->safehavenPostRequest($endpoint, $body);
+
+            logInfo($createAccount, "Exchange cliient assertion");
+
+            if (isset($createAccount['statusCode'])) {
+                if ($createAccount['statusCode'] == "200") {
+                    return ['status' => true, 'message' => $createAccount['message'], 'data' => $createAccount['data']];
+                } else {
+                    return ['status' => false, 'message' => $createAccount['message'], 'data' => $createAccount];
+                }
+            } else {
+                return ['status' => false, 'message' => "Failed to Create Account... Please contact support", 'data' => $createAccount];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Safehaven Error");
+            return ['status' => false, 'message' => "Failed to Create Account... Please contact support"];
+        }
+    }
+
+
+    public function createVirtualAccountV2($firstName, $lastName, $email, $phone, $customerReference, $otp)
+    {
+
+        $body = [
+            "metadata" => [],
+            "autoSweepDetails" => [
+                "schedule" => "Instant",
+                "accountNumber" => $this->debitAccount
+            ],
+            "autoSweep" => true,
+            "firstName" => $firstName,
+            "lastName" => $lastName,
+            "phoneNumber" => $phone,
+            "identityType" => "BVN",
+            "autoSweep" => false,
+            "emailAddress" => $email,
+            "otp" => $otp,
+            "externalReference" => $customerReference,
+            "bvn" => "222222222",
+        ];
+
+        $endpoint = "accounts/subaccount";
+
+        try {
+
+            $loginResult = $this->getToken();
+
+            if (!$loginResult['status']) {
+                return ['status' => false, 'message' => 'Failed to complete transfer'];
+            }
+
+            $createAccount = $this->safehavenPostRequest($endpoint, $body);
+
+            logInfo($createAccount, "Exchange cliient assertion");
+
+            if (isset($createAccount['statusCode'])) {
+                if ($createAccount['statusCode'] == "200") {
+                    return ['status' => true, 'message' => $createAccount['message'], 'data' => $createAccount['data']];
+                } else {
+                    return ['status' => false, 'message' => $createAccount['message'], 'data' => $createAccount];
+                }
+            } else {
+                return ['status' => false, 'message' => "Failed to Create Account... Please contact support", 'data' => $createAccount];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Safehaven Error");
+            return ['status' => false, 'message' => "Failed to Create Account... Please contact support"];
+        }
+    }
+
+
+    public function bankTransfer($amount, $transactionReference, $description, $bankCode, $accountNumber, $sessionId)
+    {
+        $body = [
+            "amount" => floatval($amount),
+            "nameEnquiryReference" => $sessionId,
+            "debitAccountNumber" => $this->sendingAccount,
+            "narration" => $description,
+            "beneficiaryBankCode" => $bankCode,
+            "beneficiaryAccountNumber" => $accountNumber,
+            "saveBeneficiary" => false,
+            "paymentReference" => $transactionReference
+        ];
+
+        try {
+
+            $loginResult = $this->getToken();
+
+            if (!$loginResult['status']) {
+                return ['status' => false, 'message' => 'Failed to complete transfer'];
+            }
+
+            logInfo($body, "Safe haven transfer request body");
+
+            $response = $this->safehavenPostRequest('transfers', $body);
+
+            $result = $response;
+
+            logInfo($result, "Safehaven transfer response");
+
+            if (isset($result["responseCode"])) {
+                if ($result["responseCode"] == "00") {
+                    return [
+                        "status" => true,
+                        'message' => "Bank Transfer Successful",
+                        'data' => [
+                            'session_id' => $sessionId
+                        ]
+                    ];
+                } else {
+                    return ['status' => false, 'message' => 'Failed to complete transfer'];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Failed to complete transfer'];
+            }
+        } catch (Exception $e) {
+
+            logInfo($e->getMessage(), "Safehaven Transfer serror log");
+
+            return ['status' => false, 'message' => 'Server Error...Please contact support to resolve'];
+        }
+    }
+
+    public function getTransactionStatus($reference)
+    {
+        try {
+
+            $reference = urlencode($reference);
+
+            $loginSafehaven = $this->getToken();
+
+            if (!$loginSafehaven['status']) {
+                $loginSafehaven['status'] = "01";
+                return $loginSafehaven;
+            }
+
+            $body = [
+                "paymentReference" => $reference
+            ];
+
+            $result = $this->safehavenPostRequest("transfers/tqs", $body);
+
+            logInfo($result, "Safehaven Response");
+
+            if (isset($result["statusCode"])) {
+                if ($result["statusCode"] == 200) {
+                    if ($result["responseCode"] == "00") {
+                        return ['status' => "00", 'message' => 'Transaction verified successfully'];
+                    } else if ($result["responseCode"] == "97" || $result["responseCode"] == "91" || $result["responseCode"] == "61") {
+                        return ['status' => "02", 'message' => 'Transaction failed and has been reversed'];
+                    } else {
+                        return ['status' => "01", 'message' => $result['message']];
+                    }
+                } else {
+                    return ['status' => "01", 'message' => 'Failed to Verify Transaction'];
+                }
+            } else {
+                return ['status' => "03", 'message' => 'Failed to Verify Transaction'];
+            }
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), "Safehaven Login serror log");
+            return ['status' => "05", 'message' => 'Server Error...'];
+        }
+    }
+
+    public function verifyBVN($bvn)
+    {
+        $body = [
+            "type" => "BVN",
+            "async" => false,
+            "number" => $bvn,
+            "debitAccountNumber" => $this->debitAccount,
+        ];
+
+        $url = "identity/v2";
+
+
+        $loginResult = $this->getToken();
+
+        if (!$loginResult['status']) {
+            return ['status' => false, 'message' => 'Failed to connect to Server. Please contact support'];
+        }
+
+        try {
+            $response = $this->safehavenPostRequest($url, $body);
+
+            logInfo($response, "Safehaven response");
+
+            if (isset($response['statusCode'])) {
+                if ($response['statusCode'] == 200) {
+
+                    return [
+                        'status' => true,
+                        'message' => "BVN Verified Successfully",
+                        'data' => $response['data']
+                    ];
+                } else {
+                    return ['status' => false, 'message' => 'Failed to Verify BVN'];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Failed to Verify BVN'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Safehaven Error");
+
+            return ['status' => false, 'message' => 'Error verifying account'];
+        }
+    }
+
+    public function verifyAccount($bankCode, $accountNumber)
+    {
+        $body = [
+            "bankCode" => $bankCode,
+            "accountNumber" => $accountNumber
+        ];
+
+        $url = "transfers/name-enquiry";
+
+
+        $loginResult = $this->getToken();
+
+        if (!$loginResult['status']) {
+            return ['status' => false, 'message' => 'Failed to complete transfer'];
+        }
+
+        try {
+            $exhangeRate = $this->safehavenPostRequest($url, $body);
+
+            logInfo($exhangeRate, "Safehaven response");
+
+            if (isset($exhangeRate['responseCode'])) {
+                if ($exhangeRate['responseCode'] == '00') {
+
+                    $this->sessionId = $exhangeRate["data"]["sessionId"];
+
+                    return [
+                        'status' => true,
+                        'message' => "Account Verified Successfully",
+                        'data' => [
+                            'account_name' => $exhangeRate["data"]["accountName"],
+                            'bank_code' => $exhangeRate["data"]["bankCode"],
+                            'session_id' => $exhangeRate["data"]["sessionId"]
+                        ]
+                    ];
+                } else {
+                    return ['status' => false, 'message' => 'Failed to validate bank account'];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Failed to validate bank account'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Safehaven Error");
+
+            return ['status' => false, 'message' => 'Error validating bank account'];
+        }
+    }
+
+    public function verifyAccountFull($bankCode, $accountNumber)
+    {
+        $body = [
+            "bankCode" => $bankCode,
+            "accountNumber" => $accountNumber
+        ];
+
+        $url = "transfers/name-enquiry";
+
+
+        $loginResult = $this->getToken();
+
+        if (!$loginResult['status']) {
+            return ['status' => false, 'message' => 'Failed to complete transfer'];
+        }
+
+        try {
+            $exhangeRate = $this->safehavenPostRequest($url, $body);
+
+            logInfo($exhangeRate, "Safehaven response");
+
+            if (isset($exhangeRate['responseCode'])) {
+                if ($exhangeRate['responseCode'] == '00') {
+
+                    $this->sessionId = $exhangeRate["data"]["sessionId"];
+
+                    return [
+                        'status' => true,
+                        'message' => "Account Verified Successfully",
+                        'data' => [
+                            'account_name' => $exhangeRate["data"]["accountName"],
+                            'bank_code' => $exhangeRate["data"]["bankCode"],
+                            'bvn' => $exhangeRate["data"]["bvn"],
+                            'session_id' => $exhangeRate["data"]["sessionId"]
+                        ]
+                    ];
+                } else {
+                    return ['status' => false, 'message' => 'Failed to validate bank account'];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Failed to validate bank account'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Safehaven Error");
+
+            return ['status' => false, 'message' => 'Error validating bank account'];
+        }
+    }
+
+    public function getExchangeRate($exchangeAmount, $sourceCurrency, $destinationCurrency)
+    {
+        $body = ["amount" => $exchangeAmount, "destination_currency" => $sourceCurrency, "source_currency" => $destinationCurrency];
+        $url = "transfers/rates?amount=$exchangeAmount&destination_currency=$destinationCurrency&source_currency=$sourceCurrency";
+
+        logInfo("We are converting $exchangeAmount from $sourceCurrency to $destinationCurrency");
+        try {
+            $exhangeRate = $this->flutterWavePostRequest($url, $body);
+
+            logInfo($exhangeRate, "Exchange Rates");
+
+            if ($exhangeRate['status'] == 'success') {
+                $rate = $exhangeRate["data"]["rate"];
+                $amount = $exhangeRate["data"]["source"]["amount"];
+
+                $finalAmount = $amount;
+
+                return [
+                    'status' => true,
+                    'message' => "Exchange rate received",
+                    'data' => [
+                        'rate' => $rate,
+                        'amount' => $amount,
+                        'final_amount' => $finalAmount
+                    ]
+                ];
+            } else {
+                return ['status' => false, 'message' => 'Failed to get Exchange rates'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Flutterwave Error");
+
+            return ['status' => false, 'message' => 'Failed to get Exchange rates'];
+        }
+    }
+
+
+    public function verifyIncomingWebhook(Request $request)
+    {
+
+        $stringToEncrypt = config('safehaven.secret_key_live') . "|$request->paymentReference|$request->amountPaid|$request->paidOn|$request->transactionReference";
+
+        $hashed = hash("sha512", $stringToEncrypt);
+
+        if (strtolower($request->transactionHash) != $hashed) {
+            return ['status' => false, 'message' => "Failed to verify Transaction Hash"];
+        }
+
+        return ['status' => true, 'message' => 'Webhook Verify Success'];
+    }
+
+    public function safehavenPostRequest($endpoint, $body)
+    {
+        logInfo("$this->baseUrl$endpoint", "Complete url");
+        logInfo($this->safehavenHeader(), "Safe haven header");
+        $response = Http::withHeaders($this->safehavenHeader())->post("$this->baseUrl$endpoint", $body);
+        return $response->json();
+    }
+
+    public function safehavenGetRequest($endpoint)
+    {
+        $response = Http::withHeaders($this->safehavenHeader())->get("$this->baseUrl$endpoint");
+        return $response->json();
+    }
+
+    public function safehavenHeader()
+    {
+        $header = [
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer ' . $this->token,
+            'ClientID' => $this->ibsClientId
+        ];
+
+        return $header;
+    }
+}

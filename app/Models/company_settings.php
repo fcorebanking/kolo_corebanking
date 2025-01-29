@@ -1,0 +1,36 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class company_settings extends Model
+{
+
+    use HasFactory;
+    protected $fillable = [
+        'smsapi_id',
+        'allsms_state','target_saving_interest','target_saving_commission'
+    ];
+    public function plan()
+    {
+        return $this->belongsTo(plans::class,'plan_id','id');
+    }
+    public function company()
+    {
+        return $this->belongsTo(company::class,'company_id','id');
+    }
+    public function smsapi()
+    {
+        return $this->belongsTo(smsapi::class,'smsapi_id','id');
+    }
+    public function backdate()
+    {
+        return $this->hasOne(back_date_status::class,'id','back_date_status_id');
+    }
+    public function tellerOption()
+    {
+        return $this->hasOne(teller_option::class,'id','teller_option_id');
+    }
+}

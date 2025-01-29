@@ -1,0 +1,203 @@
+@extends('layouts.app')
+
+@section('content')
+<style>
+.px-md-5{
+    margin:5px;
+}
+.custom_active{
+    margin:5px;
+}
+
+</style>
+<div class="row invoice layout-top-spacing layout-spacing" id='printinvoice'>
+                    <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+
+                        <div class="doc-container">
+                            <div class="invoice-container">
+                                <div class="invoice-inbox">
+
+                                    <div id="ct" class="">
+
+                                        <div class="invoice-00001">
+                                            <div class="content-section">
+
+                                                <div class="inv--head-section inv--detail-section">
+
+                                                    <div class="row">
+
+                                                        <div class="col-sm-6 col-12 mr-auto">
+                                                            <div class="d-flex">
+
+                                                                <h3 class="in-heading align-self-center">.</h3>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-sm-6 text-sm-right">
+                                                                    </div>
+
+                                                        <div class="col-sm-6 align-self-center mt-3">
+                                                            <p class="inv-street-addr"></p>
+                                                            <h3 class="inv-customer-name">{{auth()->user()->company->company_name}} CallOver</h3>
+
+
+                                                        </div>
+                                                        <div class="col-sm-6 align-self-center mt-3 text-sm-right">
+
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+                                               <center>
+                                                   <div class='row container'>
+
+                                                        <div class='col-sm-6 col-md-2'>
+                                                            <label for='from'>from</label>
+                                                            <input type='date' class='form-control' id='from' ></div>
+                                                        <div class='col-sm-6 col-md-2'>
+                                                            <label for='to'>to</label>
+                                                            <input type='date' class='form-control' id='to' ></div>
+                                                            <div class='col-sm-6 col-md-2'>
+                                                                <label for='type'>Txn Type</label>
+                                                                <select id='type'  class='form-control type'>
+                                                                </select>
+                                                            </div>
+                                                        <div class='col-sm-6 col-md-2'>
+                                                            <label for='branch'>Branch</label>
+                                                            <select id='branch' class='form-control' onchange="renderStaff()">
+                                                                <option value='0'>Select Branch</option>
+                                                                <option value='0'>All</option>
+                                                                @foreach($branch as $branchdata)
+                                                                <option value='{{Crypt::encryptString($branchdata->id)}}'>{{$branchdata->branch_name}}</option>
+
+                                                                @endforeach
+
+                                                            </select>
+                                                        </div>
+                                                        <div class='col-sm-6 col-md-2'>
+                                                            <label for='initiator'>Search By</label>
+                                                            <select id='initiator'  class='form-control type'>
+                                                                <option value="createdby">Creator</option>
+                                                                <option value="officer">Officer</option>
+                                                            </select>
+                                                        </div>
+                                                        @if(cando('root|view-all-callover'))
+                                                        <div class='col-sm-6 col-md-2'>
+
+                                                            <label for='officer'>Staff</label>
+
+                                                            <select name="officer" id='officer' class="form-control">
+                                                            </select>
+
+                                                        </div>
+                                                        @else
+                                                            <input type='hidden' id='officer'>
+                                                        @endif
+                                                        <div class='col-sm-6 col-md-2'>
+
+                                                            <button onclick='searchrange_callover()' class='btn btn-primary custom_active' id='click-button'>Filter</button></div>
+
+                                                    </div>
+                                            </center>
+                                                <div class="inv--detail-section inv--customer-detail-section">
+
+
+
+                                                </div>
+                                                <h5>Transaction CallOver</h5>
+                                                <hr>
+
+                                                <div class="inv--product-table-section">
+                                                    <div class="table-responsive">
+                                                        <table id="html5-extension" class="table table-hover non-hover" style="width:100%">
+                                                            <thead>
+                                                                <th>#</th>
+                                                                <th>Created At</th>
+                                                                <th>Client</th>
+                                                                <th>Account No</th>
+                                                                <th>Description</th>
+                                                                <th>Tran. Type</th>
+                                                                <th>TXN No</th>
+                                                                <th>Product</th>
+                                                                <th>Acct Officer</th>
+                                                                <th>Debit{{auth()->user()->company->currency->symbol}}</th>
+                                                                <th>Credit{{auth()->user()->company->currency->symbol}}</th>
+                                                                <th>Balance Before{{auth()->user()->company->currency->symbol}}</th>
+                                                                <th>Balance After{{auth()->user()->company->currency->symbol}}</th>
+                                                                <th>Withdraw Charge</th>
+                                                                <th>Session</th>
+                                                                <th>Marketer</th>
+
+                                                            </thead>
+                                                            <tbody>
+
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+
+
+  <div class="modal fade" id="multiplemodal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Add Wallet</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+          <input type='hidden' name='userid' id='userid' >
+        <select name='saving_type' id='saving_type' class='form-control'>
+
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick='addwallet()'>Add new</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+    function renderStaff() {
+        $('select[name="officer"]').empty();
+        $branch = $('#branch').val();
+        $('select[name="officer"]').append('<option value="">Select Staff</option>')
+        $.ajax({
+            url: '/company/{{auth()->user()->company->short_name}}/branch/branch_staff/' + $branch,
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+
+                data.forEach(function (staff) {
+
+                    $('select[name="officer"]').append('<option value="' + staff.uuid + '">' + staff.first_name + ' ' + staff.last_name + '</option>')
+                });
+            }
+        });
+    }
+</script>
+@endsection
+
+
+
+
+
+

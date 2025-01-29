@@ -1,0 +1,54 @@
+.form-group label {
+    float: left;
+}
+
+label {
+    float: left;
+    color: #777777;
+}
+
+h6 {
+    float: left;
+}
+
+td {
+    align-content: flex-start;
+}
+
+#networkProvidersDiv {
+    display: none;
+}
+
+.leftSummaryDiv h6 {
+    float: left;
+}
+.validation-text {
+    float: left;
+}
+
+.leftSummaryDiv {
+    display: flex;
+    justify-content: center;
+    align-content: left;
+    flex-direction: column;
+}
+
+.bg-grey {
+    background-color: #eeeeee;
+}
+
+.rightSummaryDiv {
+    display: table;
+    overflow: hidden;
+}
+
+.summaryValues {
+    color: #525252;
+    font-weight: bold;
+    font-size: medium;
+}
+
+.rightSummaryItem {
+    display: table-cell;
+    vertical-align: middle;
+}

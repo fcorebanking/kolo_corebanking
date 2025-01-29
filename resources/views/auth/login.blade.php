@@ -1,0 +1,135 @@
+@extends('layouts.app')
+
+@section('content')
+
+<body class="form" style="margin-top: 0px;">
+
+    <div class="form-container">
+        <div class="form-form">
+            <div class="form-form-wrap">
+                <div class="form-container">
+                    <div class="form-content">
+
+                        {{-- <h1 class=""><a href="{{ url('/') }}"><span class="brand-name"><img src="logo/wbanew.png"></span></a> --}}
+                        <h1 class=""><a href="{{ url('/') }}"><span class="brand-name"><img src="{{asset('assets/images/finova_logo.png')}}" height="150" width="350"></span></a>
+
+                        </h1>
+                        
+                        <p class="signup-link">New? <a href="{{ url('register') }}">Create an account</a></p>
+
+
+                        @if ($message = Session::get('success'))
+                        <div class="alert alert-success mb-4" role="alert"> <button type="button" class="close" data-dismiss="alert" aria-label="Close"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x close" data-dismiss="alert">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg></button>
+                            {{$message}}
+                        </div>
+                        @endif
+                        @if ($message = Session::get('fail'))
+                        <div class="alert alert-warning mb-4" role="alert"> <button type="button" class="close" data-dismiss="alert" aria-label="Close"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x close" data-dismiss="alert">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg></button>
+                            {{$message}}
+                        </div>
+                        @endif
+                        @if (session('status') == 'two-factor-authentication-enabled')
+                        <div class="mb-4 font-medium text-sm">
+                            Please finish configuring two factor authentication below.
+                        </div>
+                        @endif
+
+                        <form method="POST" action="{{route('login')}}" class="text-left">
+                            {{ csrf_field() }}
+                            <div class="form">
+
+                                <div id="company-field" class="field-wrapper input">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-user">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    <input id="company_code" name="company_code" type="number" class="form-control @error('company_code') is-invalid @enderror" value="{{ old('company_code') }}" placeholder="company Code" required autocomplete="name" autofocus>
+
+                                    @error('company_code')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                    @enderror
+                                </div>
+                                <div id="username-field" class="field-wrapper input">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-user">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    <input id="username" name="username" type="text" class="form-control @error('username') is-invalid @enderror" value="{{ old('username') }}" placeholder="Username" required autocomplete="name" autofocus>
+
+                                    @error('username')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                    @enderror
+                                </div>
+
+                                <div id="password-field" class="field-wrapper input mb-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-lock">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                    <input id="password" name="password" type="password" placeholder="Password" class="form-control @error('password') is-invalid @enderror" name="password" required autocomplete="current-password">
+                                    @error('password')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                    @enderror
+                                </div>
+                                <div class="d-sm-flex justify-content-between">
+                                    <div class="field-wrapper toggle-pass">
+                                        <p class="d-inline-block">Show Password</p>
+                                        <label class="switch s-primary">
+                                            <input type="checkbox" id="toggle-password" class="d-none">
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                    <div class="field-wrapper">
+                                        <button type="submit" class="btn btn-primary" value="">Log In</button>
+                                    </div>
+
+                                </div>
+
+                                <div class="field-wrapper text-center keep-logged-in">
+                                    <div class="n-chk new-checkbox checkbox-outline-primary">
+                                        <label class="new-control new-checkbox checkbox-outline-primary">
+                                            <input type="checkbox" class="new-control-input">
+                                            <span class="new-control-indicator"></span>Keep me logged in
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="field-wrapper">
+                                    <a href="{{url('password/reset')}}" class="forgot-pass-link">Forgot
+                                        Password?</a>
+                                </div>
+
+                            </div>
+                        </form>
+
+                        <p class="terms-conditions">© {{date('Y')}} All Rights Reserved. <a href="/">{{env('APP_NAME')}}</a>
+                            <a href="javascript:void(0);">Cookie Preferences</a>, <a href="javascript:void(0);">Privacy</a>, and <a href="javascript:void(0);">Terms</a>.
+                        </p>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="form-image">
+            <div class="l-image">
+            </div>
+        </div>
+    </div>
+
+</body>
+
+
+
+@endsection

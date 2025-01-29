@@ -1,0 +1,27 @@
+{
+    "status": "success",
+    "message": "The process was completed successfully",
+    "data": {
+        "vnuban": "7199798428",
+        "bank_name": "Wema/Alat",
+        "bank_code": "000017",
+        "is_test": 0,
+        "id": 979843,
+        "merchantId": 256,
+        "status": "ACTIVE",
+        "currency": "NGN",
+        "used": 0,
+        "expires_on": null,
+        "use_frequency": 0,
+        "max_amount": 0,
+        "min_amount": 0,
+        "destination_nuban": "0697611222",
+        "destination_nuban_bank_code": "000014",
+        "account_name": "Akowe Panmun",
+        "account_email": "akowepanmun@gmail.com",
+        "account_mobile_number": "09032525252",
+        "account_reference": "Kafjjf488fkkl99r442oll542",
+        "updatedAt": "2021-12-22T11:05:39.000Z",
+        "createdAt": "2021-12-22T11:05:39.000Z"
+    }
+}

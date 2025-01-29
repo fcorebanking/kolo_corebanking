@@ -1,0 +1,114 @@
+@extends('layouts.app')
+
+@section('content')
+
+<div class='container-fluid'>
+<div class="row layout-top-spacing ">
+
+    <div class="col-xl-12 col-lg-12 col-sm-12  layout-spacing">
+        <button type="button" style="margin:10px;" class="btn btn-primary mb-2 mr-2" data-toggle="modal"
+            data-target="#exampleModal" onclick='pop_modal(0)'>
+            Add Esusu Product &nbsp<i class='fa fa-plus'></i>
+        </button>
+        <div class="widget-content widget-content-area br-6">
+            <div class="table-responsive mb-4 mt-4">
+                <span id='infobait'></span>
+                <table id="html5-extension" class="table table-hover non-hover" style="width:100%">
+                    <thead>
+                    <th>Name</th>
+                    <th>Min Rate</th>
+                    <th>Max Rate</th>
+                    <th>Circle Charge</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Overdraft Charge%</th>
+                    <th>Created At</th>
+                    <th>Action</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Esusu Product</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <form id='add-esusu-product'>
+                <input type="hidden" class="token" name="_token" value="<?php echo csrf_token(); ?>">
+                <input type="hidden" id="productid" >
+                <div class="modal-body">
+                    <div class="input-group mb-4">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="basic-addon7">Name</span>
+                        </div>
+                        <input type="text" class="form-control" id='esusu_type' name='esusu_type' aria-describedby="basic-addon3"
+                            placeholder="product 1..">
+                    </div>
+                    <div class="input-group mb-4">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Min. Rate</span>
+                        </div>
+                        <input type="text" class="form-control" id='min_rate' name='min_rate' aria-describedby="basic-addon3"
+                            placeholder="100..." value='0'>
+                    </div>
+                    {{-- new added --}}
+                    <div class="input-group mb-4">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Max. Rate</span>
+                        </div>
+                        <input type="text" class="form-control" name='max_rate' id='max_rate' aria-describedby="basic-addon3"
+                            placeholder="100..." value='0'>
+                    </div>
+                    <div class="input-group mb-4">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Status</span>
+                        </div>
+                        <select class="form-control" name='status' id='status'>
+                            <option value='active'>Active</option>
+                            <option value='disabled'>Disabled</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-4">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Circle-Out Charge%</span>
+                        </div>
+                        <input type="text" class="form-control" name='circle_charge'  id='circle_charge' aria-describedby="basic-addon3"
+                            placeholder="100..." value='0'>
+                    </div>
+                    <div class="input-group mb-4">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Duration</span>
+                        </div>
+                        <input type="text" class="form-control" id='duration' name='duration' aria-describedby="basic-addon3"
+                            placeholder="100..." value='0'>
+                    </div>
+                    <div class="input-group mb-4">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">OverDraft Charge%</span>
+                        </div>
+                        <input type="number"  max='100' class="form-control" id='overdraft_charge' name='overdraft_charge' aria-describedby="basic-addon3"
+                            placeholder="100..." value='0'>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" data-dismiss="modal"><i class="flaticon-cancel-12"></i> Discard</button>
+                    <button type="button" class="btn btn-primary" onclick='btnadd()'>Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+@endsection

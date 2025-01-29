@@ -1,0 +1,159 @@
+/* Shoutout to Maite Rosalie for the gold svg gradient which can be seen here below. */
+
+
+/* https://codepen.io/maiterosalie/pen/ppRRLV?q=gold+gradient&limit=all&type=type-pens */
+
+.myWrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.myBase {
+    background: #ccc;
+    height: 280px;
+    width: 440px;
+    border-radius: 15px;
+}
+
+.Inner-wrap {
+    background-color: #0c0014;
+    background-image: url("../../../wba_images/card.png");
+    background-size: auto 100%;
+    background-position: center;
+    position: relative;
+    display: flex;
+    height: 100%;
+    width: 100%;
+    border-radius: 13px;
+    padding: 20px 30px;
+    box-sizing: border-box;
+    color: #fff;
+}
+
+p {
+    margin: 0;
+    font-size: 2em;
+}
+
+
+/* Controls top right logo */
+
+.Logo {
+    position: absolute;
+    height: 80px;
+    width: 80px;
+    right: 0;
+    top: 0;
+    padding: inherit;
+    fill: #117aca;
+}
+
+
+/* Controls name size */
+
+.Logo-name {
+    transform: scale(.5);
+    margin-left: -75px;
+}
+
+.Card-number p {
+    text-align: center;
+}
+
+.Card-number {
+    display: flex;
+    width: 80%;
+    margin-left: 20px;
+    padding-top: 50px;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.9);
+    position: absolute;
+    bottom: 100px;
+}
+
+.Card-number ul {
+    padding-left: 40px;
+}
+
+.liClass {
+    list-style: none;
+    float: left;
+    padding: 0;
+    font-weight: bold;
+    margin: 0px 10px;
+    font-size: 1.8em;
+}
+
+#first-li {
+    margin-left: 0;
+}
+
+#last-li {
+    margin-right: 0;
+}
+
+.Expire {
+    position: absolute;
+    bottom: 60px;
+    font-size: .75em;
+    text-align: center;
+}
+
+.Expire h6 {
+    color: #fff;
+}
+
+.ExpireMain {
+    position: absolute;
+    bottom: 60px;
+    left: 42%;
+    font-size: .75em;
+    text-align: center;
+}
+
+.ExpireMain p {
+    font-size: 1.55em;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.Expire h5 {
+    font-weight: 400;
+    color: #aaa;
+    margin: 0;
+    /*   word-spacing: 9999999px; */
+    text-transform: uppercase;
+}
+
+.Expire p {
+    font-size: 1.55em;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.companyCardName h3 {
+    letter-spacing: 1.2;
+    text-transform: uppercase;
+    font-weight: 800;
+    font-size: 1.1em;
+    color: rgba(255, 255, 255, 0.85);
+    -webkit-text-stroke-width: 1px;
+    -webkit-text-stroke-color: black;
+}
+
+.companyCardName {
+    align-self: flex-end;
+    left: 8%;
+    letter-spacing: 1.5;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 1.45em;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.Visa {
+    width: 115px;
+    position: absolute;
+    bottom: -145px;
+    right: 0;
+    padding: inherit;
+}

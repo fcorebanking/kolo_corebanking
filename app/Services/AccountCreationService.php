@@ -134,7 +134,7 @@ class AccountCreationService
             //Providus Account creation
         } else if ($virtualAccount->bankCode == "090267") {
 
-            logInfo($virtualAccount->bankCode, "Kuda Bank Code in controller");
+            logInfo($virtualAccount->bankCode, "Kuda Bank Code in accountcreationservicer");
 
             $kudaController = new KudaController();
 

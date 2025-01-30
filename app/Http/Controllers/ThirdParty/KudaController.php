@@ -96,8 +96,8 @@ class KudaController extends WebhookController
 
     public function createAccount($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference)
     {
-        $body = [
-            "servicetype" => "ADMIN_CREATE_VIRTUAL_ACCOUNT",
+        /*  $body = [
+            "servicetype" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
             "requestref"  => $requestReference,
             "data"        => [
                 "email"             => $email,
@@ -106,7 +106,18 @@ class KudaController extends WebhookController
                 "firstName"         => $firstName,
                 "trackingReference" => $trackingReference,
             ],
+        ];*/
+        $body = [
+            "serviceType" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
+            "requestRef"  => $requestReference,
+            "Data"        => [
+                "Amount"        => 5000000,
+                "AccountName"   => "$firstName $lastName",
+                "IsPassThrough" => true,
+
+            ],
         ];
+
         $jsonBody = \json_encode($body);
 
         $requestBody = [
@@ -145,8 +156,8 @@ class KudaController extends WebhookController
                         'status'  => true,
                         'message' => "Account Created Successfully",
                         'data'    => [
-                            'account_number'         => $response['Data']['AccountNumber'],
-                            'virtual_account_number' => $response['Data']['AccountNumber'],
+                            'account_number'         => $response['data']['AccountNumber'],
+                            'virtual_account_number' => $response['data']['AccountNumber'],
                         ],
                     ];
                 }
@@ -318,8 +329,7 @@ class KudaController extends WebhookController
 
             \logInfo($requestBody, "Kuda Request body");
 
-            // $createAccountResponse = $this->kudaPostRequest($url, $requestBody);
-            $createAccountResponse = $this->kudaPostRequestUpdate($url, $requestBody);
+            $createAccountResponse = $this->kudaPostRequest($url, $requestBody);
 
             logInfo($createAccountResponse, "Kuda Verify Transaction Response");
 
@@ -474,12 +484,6 @@ class KudaController extends WebhookController
     public function kudaPostRequest($endpoint, $body)
     {
         $response = Http::withHeaders($this->kudaHeader())->post("$this->baseUrl $endpoint", $body);
-        return $response;
-    }
-
-    public function kudaPostRequestUpdate($endpoint, $body)
-    {
-        $response = Http::withHeaders($this->kudaHeader())->post("https://kuda-openapi.kuda.com/v2", $body);
         return $response;
     }
 

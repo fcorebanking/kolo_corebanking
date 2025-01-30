@@ -141,8 +141,8 @@ class AccountCreationService
             $requestReference  = generateTransactionReference();
             $trackingReference = generateTransactionReference();
 
-            logInfo($requestReference, "Kuda Bank Code in requestReference");
-            logInfo($trackingReference, "Kuda Bank Code in trackingReference");
+            // logInfo($requestReference, "Kuda Bank Code in requestReference");
+            // logInfo($trackingReference, "Kuda Bank Code in trackingReference");
 
             $createAccountResponse = $kudaController->createAccount($requestReference, $virtualAccount->email, $virtualAccount->phone, $virtualAccount->firstName, $virtualAccount->lastName, $trackingReference);
 

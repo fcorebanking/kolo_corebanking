@@ -8,6 +8,6 @@ return [
 
     //Live Variables
     'email_live'    => env('KUDA_EMAIL_LIVE', 'simtec247@gmail.com'),
-    'api_key_live'  => env('KUDA_API_KEY_LIVE', "dcQuJ0DF98gY13Nn4vGx"),
+    'api_key_live'  => env('KUDA_API_KEY_LIVE', "mBlDGKwSWQ8hyYj1vT4f"),
     'base_url_live' => env('KUDA_BASE_URL_LIVE', 'https://kuda-openapi-uat.kudabank.com/'),
 ];

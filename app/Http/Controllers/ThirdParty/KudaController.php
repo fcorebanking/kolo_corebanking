@@ -318,7 +318,8 @@ class KudaController extends WebhookController
 
             \logInfo($requestBody, "Kuda Request body");
 
-            $createAccountResponse = $this->kudaPostRequest($url, $requestBody);
+            // $createAccountResponse = $this->kudaPostRequest($url, $requestBody);
+            $createAccountResponse = $this->kudaPostRequestUpdate($url, $requestBody);
 
             logInfo($createAccountResponse, "Kuda Verify Transaction Response");
 
@@ -473,6 +474,12 @@ class KudaController extends WebhookController
     public function kudaPostRequest($endpoint, $body)
     {
         $response = Http::withHeaders($this->kudaHeader())->post("$this->baseUrl $endpoint", $body);
+        return $response;
+    }
+
+    public function kudaPostRequestUpdate($endpoint, $body)
+    {
+        $response = Http::withHeaders($this->kudaHeader())->post("https://kuda-openapi.kuda.com/v2", $body);
         return $response;
     }
 

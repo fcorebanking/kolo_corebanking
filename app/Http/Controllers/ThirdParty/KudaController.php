@@ -40,7 +40,7 @@ class KudaController extends WebhookController
 
         $header = ['Content-Type' => 'application/json'];
         try {
-            $response = Http::post($this->baseUrl . "v2/Account/GetToken", $body);
+            $response = Http::post($this->baseUrl . "v2.1Account/GetToken", $body);
 
             logInfo($response, "Kuda Bank Code in kuda controller body");
 

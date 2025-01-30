@@ -36,7 +36,7 @@ class KudaController extends WebhookController
             "apiKey" => $this->apiKey,
         ];
 
-       // logInfo($body, "Kuda Bank Code in kuda controller body");
+        // logInfo($body, "Kuda Bank Code in kuda controller body");
 
         $header = ['Content-Type' => 'application/json'];
         try {
@@ -112,6 +112,8 @@ class KudaController extends WebhookController
         $requestBody = [
             'data' => $jsonBody,
         ];
+
+        $requestBody = $jsonBody;
 
         $url = "v2/";
 

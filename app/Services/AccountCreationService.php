@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Services;
 
 use App\Http\Controllers\ThirdParty\AmuchaController;
@@ -18,22 +17,24 @@ class AccountCreationService
 {
     public function createVirtualAccount(VirtualAccountType $virtualAccount)
     {
-        $virtualAccountNumber = "";
-        $accountReference = "";
+        $virtualAccountNumber  = "";
+        $accountReference      = "";
         $createAccountResponse = "";
+
+        logInfo($virtualAccount->bankCode, "Kuda Bank Code");
 
         $allBanks = ["000023", "090267", "090287", "060001", "090286", "000017", "100003", "120001", "090325", "000013", "090110", '090551', '000003', '000001', '000012', '090645', "000003"];
 
-        if (!in_array($virtualAccount->bankCode, $allBanks)) {
+        if (! in_array($virtualAccount->bankCode, $allBanks)) {
             return [
-                'status' => false,
+                'status'  => false,
                 'message' => 'Selected Bank is not supported. Kindly select a supported Bank',
             ];
         }
 
         if ($virtualAccount->companyAccountCreationStatus != 1) {
             return [
-                'status' => false,
+                'status'  => false,
                 'message' => 'You are currently not allowed to create virtual accounts, you might have created several virtual accounts without usage or not in line with Policy.
 
                 Kindly click the previous, button below to change the account type to Internal account',
@@ -44,13 +45,13 @@ class AccountCreationService
 
             $providusController = new ProvidusController();
 
-            $accountName = $virtualAccount->accountType == 'coperate' ? $virtualAccount->companyName : $virtualAccount->firstName . ' ' . $virtualAccount->lastName;
+            $accountName           = $virtualAccount->accountType == 'coperate' ? $virtualAccount->companyName : $virtualAccount->firstName . ' ' . $virtualAccount->lastName;
             $createAccountResponse = $providusController->createAccount($accountName);
 
             if ($createAccountResponse['status']) {
 
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['account_number']);
-                $accountReference = $virtualAccountNumber;
+                $accountReference     = $virtualAccountNumber;
 
                 $checkVirtualAccount = User::where('virtual_account', $virtualAccountNumber)->first();
 
@@ -65,13 +66,13 @@ class AccountCreationService
 
             $requestReference = generateTransactionReference();
 
-            $accountName = $virtualAccount->accountType == 'coperate' ? $virtualAccount->companyName : $virtualAccount->firstName . ' ' . $virtualAccount->lastName;
+            $accountName           = $virtualAccount->accountType == 'coperate' ? $virtualAccount->companyName : $virtualAccount->firstName . ' ' . $virtualAccount->lastName;
             $createAccountResponse = $assetMatrixController->createAccountInternal();
 
             if ($createAccountResponse['status']) {
 
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['account_number']);
-                $accountReference = $virtualAccountNumber;
+                $accountReference     = $virtualAccountNumber;
 
                 $checkVirtualAccount = User::where('virtual_account', $virtualAccountNumber)->first();
 
@@ -93,7 +94,7 @@ class AccountCreationService
             if ($createAccountResponse['status']) {
 
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['account_number']);
-                $accountReference = $virtualAccountNumber;
+                $accountReference     = $virtualAccountNumber;
 
                 $checkVirtualAccount = User::where('virtual_account', $virtualAccountNumber)->first();
 
@@ -104,12 +105,11 @@ class AccountCreationService
             //Providus Account creation
         } else if ($virtualAccount->bankCode == '090286') {
 
-
-            if (!isset($virtualAccount->otp)) {
+            if (! isset($virtualAccount->otp)) {
                 return $createAccountResponse = ['status' => false, 'message' => "Kindly enter your OTP to proceed"];
             }
 
-            if (!isset($virtualAccount->bvnId)) {
+            if (! isset($virtualAccount->bvnId)) {
                 return $createAccountResponse = ['status' => false, 'message' => "Kindly enter your BVN Id to proceed"];
             }
 
@@ -130,7 +130,7 @@ class AccountCreationService
 
             if ($createAccountResponse['status']) {
 
-                $accountReference = $requestReference;
+                $accountReference     = $requestReference;
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['accountNumber']);
             }
             //Providus Account creation
@@ -138,7 +138,7 @@ class AccountCreationService
 
             $kudaController = new KudaController();
 
-            $requestReference = generateTransactionReference();
+            $requestReference  = generateTransactionReference();
             $trackingReference = generateTransactionReference();
 
             $createAccountResponse = $kudaController->createAccount($requestReference, $virtualAccount->email, $virtualAccount->phone, $virtualAccount->firstName, $virtualAccount->lastName, $trackingReference);
@@ -158,19 +158,15 @@ class AccountCreationService
             //     $gtbController->createCompanyVirtualAccount($virtualAccount->companyName, $virtualAccount->bvn, $virtualAccount->phone, $virtualAccount->firstName) :
             //     $gtbController->createVirtualAccount($virtualAccount->firstName, $virtualAccount->lastName, $virtualAccount->dob, $virtualAccount->gender, $virtualAccount->bvn, $virtualAccount->email, $virtualAccount->phone, $virtualAccount->address, $requestReference);
 
-
             // $accountReference = $requestReference;
             // if ($createAccountResponse['status']) {
             //     $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['virtual_account_number']);
             // }
 
-
             $baniController = new BaniController();
-
 
             $accountName = $virtualAccount->accountType == 'coperate' ? $virtualAccount->companyName : $virtualAccount->firstName . ' ' . $virtualAccount->lastName;
             // $createAccountResponse = $providusController->createAccount($accountName);
-
 
             $requestReference = generateTransactionReference();
 
@@ -198,7 +194,7 @@ class AccountCreationService
             $createAccountResponse = $baniController->createAccount($virtualAccount->firstName, $virtualAccount->lastName, $virtualAccount->phone, $virtualAccount->address, $virtualAccount->email, $bankName, $virtualAccount->bvn);
 
             if ($createAccountResponse['status']) {
-                $accountReference = $requestReference;
+                $accountReference     = $requestReference;
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['virtual_account_number']);
             }
         } else if ($virtualAccount->bankCode == "090110") {
@@ -228,7 +224,7 @@ class AccountCreationService
             if ($createAccountResponse['status']) {
 
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['account_number']);
-                $accountReference = $virtualAccountNumber;
+                $accountReference     = $virtualAccountNumber;
 
                 $checkVirtualAccount = User::where('virtual_account', $virtualAccountNumber)->first();
 
@@ -239,7 +235,7 @@ class AccountCreationService
         } else if ($virtualAccount->bankCode == '090551') {
 
             $fairmoneyController = new FairMoneyController();
-            $accountReference = rand(1000000000, 9999999999) . "";
+            $accountReference    = rand(1000000000, 9999999999) . "";
 
             $accountName = $virtualAccount->accountType == 'coperate' ? $virtualAccount->companyName : $virtualAccount->firstName . ' ' . $virtualAccount->lastName;
 
@@ -252,7 +248,7 @@ class AccountCreationService
             }
         } else {
 
-            $wovenController = new WovenController();
+            $wovenController  = new WovenController();
             $requestReference = generateAccountReference();
             $accountReference = $requestReference;
 
@@ -265,17 +261,17 @@ class AccountCreationService
             }
         }
 
-        if (!$createAccountResponse['status']) {
+        if (! $createAccountResponse['status']) {
             return $createAccountResponse;
         }
 
         return [
-            'status' => true,
+            'status'  => true,
             'message' => 'Account Created Successfully',
-            'data' => [
-                'virtual_account' => $virtualAccountNumber,
-                'account_reference' => $accountReference
-            ]
+            'data'    => [
+                'virtual_account'   => $virtualAccountNumber,
+                'account_reference' => $accountReference,
+            ],
         ];
     }
 

@@ -21,8 +21,6 @@ class AccountCreationService
         $accountReference      = "";
         $createAccountResponse = "";
 
-        logInfo($virtualAccount->bankCode, "Kuda Bank Code");
-
         $allBanks = ["000023", "090267", "090287", "060001", "090286", "000017", "100003", "120001", "090325", "000013", "090110", '090551', '000003', '000001', '000012', '090645', "000003"];
 
         if (! in_array($virtualAccount->bankCode, $allBanks)) {
@@ -136,10 +134,15 @@ class AccountCreationService
             //Providus Account creation
         } else if ($virtualAccount->bankCode == "090267") {
 
+            logInfo($virtualAccount->bankCode, "Kuda Bank Code in controller");
+
             $kudaController = new KudaController();
 
             $requestReference  = generateTransactionReference();
             $trackingReference = generateTransactionReference();
+
+            logInfo($requestReference, "Kuda Bank Code in requestReference");
+            logInfo($trackingReference, "Kuda Bank Code in trackingReference");
 
             $createAccountResponse = $kudaController->createAccount($requestReference, $virtualAccount->email, $virtualAccount->phone, $virtualAccount->firstName, $virtualAccount->lastName, $trackingReference);
 

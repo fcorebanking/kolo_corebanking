@@ -1,27 +1,27 @@
 @php
 
-    $page_name = ($page_name)??'contact_us';
-    $has_scrollspy = ($has_scrollspy)??false;
-    $alt_menu = ($alt_menu)??'';
-   
-   
+    $page_name = $page_name ?? 'contact_us';
+    $has_scrollspy = $has_scrollspy ?? false;
+    $alt_menu = $alt_menu ?? '';
+
 @endphp
-@if(!isset($page_menu))
-    {{$page_menu = ''}}
- @endif
-@if(!isset($menu_category))
-    {{$menu_category = ''}}
- @endif
+@if (!isset($page_menu))
+    {{ $page_menu = '' }}
+@endif
+@if (!isset($menu_category))
+    {{ $menu_category = '' }}
+@endif
 
 @include('inc.function')
 @php
-if($page_menu == "wired_banking_onboarding_setup_page") {
-            $page_menu = "Finova Setup Page";
-            }
+    if ($page_menu == 'wired_banking_onboarding_setup_page') {
+        $page_menu = 'Finova Setup Page';
+    }
 
 @endphp
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -31,22 +31,31 @@ if($page_menu == "wired_banking_onboarding_setup_page") {
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
 
-    <title>{{setTitle($page_menu) }}</title>
+    <title>{{ setTitle($page_menu) }}</title>
 
-    <link rel="icon" type="image/x-icon" href="{{asset('storage/img/favicon.ico')}}"/>
+    <link rel="icon" type="image/x-icon" href="{{ asset('storage/img/favicon.ico') }}" />
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.gstatic.com">
+    @php
+        $page_menu == 'wired_banking_onboarding_setup_page';
+    @endphp
 
     <!-- Styles -->
     @livewireStyles
     @include('inc.styles')
 </head>
-<body {{ ($has_scrollspy) ? scrollspy($scrollspy_offset) : '' }} class=" {{ ($alt_menu) ? 'alt-menu' : '' }} {{ ($page_name ?? '' === 'error404') ? 'error404 text-center' : '' }} {{ ($page_name ?? '' === 'error500') ? 'error500 text-center' : '' }} {{ ($page_name ?? '' === 'error503') ? 'error503 text-center' : '' }} {{ ($page_name ?? '' === 'maintenence') ? 'maintanence text-center' : '' }}">
+
+<body {{ $has_scrollspy ? scrollspy($scrollspy_offset) : '' }}
+    class=" {{ $alt_menu ? 'alt-menu' : '' }} {{ $page_name ?? '' === 'error404' ? 'error404 text-center' : '' }} {{ $page_name ?? '' === 'error500' ? 'error500 text-center' : '' }} {{ $page_name ?? '' === 'error503' ? 'error503 text-center' : '' }} {{ $page_name ?? '' === 'maintenence' ? 'maintanence text-center' : '' }}">
 
     <!-- BEGIN LOADER -->
-    <div id="load_screen"> <div class="loader"> <div class="loader-content">
-        <div class="spinner-grow align-self-center"></div>
-    </div></div></div>
+    <div id="load_screen">
+        <div class="loader">
+            <div class="loader-content">
+                <div class="spinner-grow align-self-center"></div>
+            </div>
+        </div>
+    </div>
     <!--  END LOADER -->
 
     @include('inc.navbar')
@@ -100,4 +109,5 @@ if($page_menu == "wired_banking_onboarding_setup_page") {
         });
     </script>
 </body>
+
 </html>

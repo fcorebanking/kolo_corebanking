@@ -302,8 +302,8 @@
                                             <button type="button" class="btn btn-primary float-left" id="backstep1"
                                                 value="">Prev</button>
 
-                                            <button type="submit" id="submitBtn" disabled
-                                                class="btn btn-primary float-right" value="">Submit</button>
+                                            <button type="submit" id="submitBtn" class="btn btn-primary float-right"
+                                                value="">Submit</button>
                                         </div>
                                     </div>
                                 </div>

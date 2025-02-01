@@ -1003,7 +1003,7 @@
         <script>
             showRemittaStatus(
                 {{ isset(auth()->user()->company->setting->activate_remitta) ? auth()->user()->company->setting->activate_remitta : 0 }}
-                )
+            )
         </script>
     @break
 
@@ -1598,8 +1598,8 @@
             <script src="{{ asset('plugins/sweetalerts/sweetalert2.min.js') }}"></script>
             <script src="{{ asset('plugins/sweetalerts/custom-sweetalert.js') }}"></script>
         @endif
+        @php dd($page_menu)  @endphp
         @if ($page_menu == 'wired_banking_onboarding_setup_page')
-            @php dd($page_menu)  @endphp
             <script src="{{ asset('assets/js/company/register.js') }}"></script>
 
             <script src="{{ asset('plugins/sweetalerts/sweetalert2.min.js') }}"></script>

@@ -13,12 +13,7 @@
 @endif
 
 @include('inc.function')
-@php
-    if ($page_menu == 'wired_banking_onboarding_setup_page') {
-        $page_menu = 'Finova Setup Page';
-    }
 
-@endphp
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
@@ -36,9 +31,6 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('storage/img/favicon.ico') }}" />
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.gstatic.com">
-    @php
-        $page_menu == 'wired_banking_onboarding_setup_page';
-    @endphp
 
     <!-- Styles -->
     @livewireStyles

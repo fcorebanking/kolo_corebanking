@@ -1598,7 +1598,7 @@
             <script src="{{ asset('plugins/sweetalerts/sweetalert2.min.js') }}"></script>
             <script src="{{ asset('plugins/sweetalerts/custom-sweetalert.js') }}"></script>
         @endif
-        @php dd($page_menu)  @endphp
+        {{--   @php dd($page_menu)  @endphp --}}
         @if ($page_menu == 'Finova Setup Page')
             <script src="{{ asset('assets/js/company/register.js') }}"></script>
 

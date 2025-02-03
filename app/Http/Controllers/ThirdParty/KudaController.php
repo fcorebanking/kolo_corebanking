@@ -489,7 +489,8 @@ class KudaController extends WebhookController
     }
     public function kudaPostRequestUpdate($endpoint, $body)
     {
-        $response = Http::withHeaders($this->kudaHeader())->post("$endpoint", $body);
+        logInfo($endpoint, "Kuda Endpoint");
+        $response = Http::withHeaders($this->kudaHeader())->post($endpoint, $body);
         return $response;
     }
 

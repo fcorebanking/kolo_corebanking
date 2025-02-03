@@ -492,7 +492,10 @@ class KudaController extends WebhookController
         logInfo($endpoint, "Kuda Endpoint");
         logInfo($this->kudaHeader(), "Kuda Header");
         logInfo($body, "Kuda Process Endpoint Body");
-        $response = Http::withHeaders($this->kudaHeader())->post($endpoint, $body);
+        $response = Http::withHeaders([
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . $this->token, // Example
+        ])->post($endpoint, $body);
         return $response;
     }
 

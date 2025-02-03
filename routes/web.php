@@ -43,6 +43,15 @@ use PragmaRX\Google2FALaravel\Support\Authenticator;
 |
 */
 
+Route::post('/test-kuda', function () {
+    Auth::logout();
+    Session::flush();
+
+(new Authenticator(request()))->logout();
+
+    return Redirect::to('/login');
+});
+
 Route::get('/view-reversable', [App\Http\Controllers\UtilityController::class, 'reverseCron']);
 // Route::get('/importLedger', [App\Http\Controllers\TestController::class, 'calculatePrincipalPayment']);
 // Route::get('/importLedgerSetting', [App\Http\Controllers\TestController::class, 'settingsImport']);

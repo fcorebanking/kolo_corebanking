@@ -118,15 +118,13 @@ class KudaController extends WebhookController
             ],
         ];
 
-        $jsonBody = json_encode($body);
+        //  $jsonBody = json_encode($body);
 
-        /* $requestBody = [
+        $requestBody = [
             'data' => $jsonBody,
-        ];*/
+        ];
 
-        $requestBody = $jsonBody;
-
-        $url = "v2.1/";
+        //  $url = "v2.1/";
         $url = "https://kuda-openapi.kuda.com/v2.1";
 
         try {
@@ -150,7 +148,7 @@ class KudaController extends WebhookController
                 if (! $createAccountResponse["status"]) {
                     return [
                         'status'  => false,
-                        'message' => $response["Message"],
+                        'message' => $createAccountResponse["message"],
                     ];
                 } else {
                     return [
@@ -184,13 +182,13 @@ class KudaController extends WebhookController
                 "trackingReference" => $trackingReference,
             ],
         ];
-        $jsonBody = \json_encode($body);
+        // $jsonBody = \json_encode($body);
 
         $requestBody = [
             'data' => $jsonBody,
         ];
 
-        $url = "v2/";
+        $url = "https://kuda-openapi.kuda.com/v2.1";
 
         try {
 
@@ -202,18 +200,18 @@ class KudaController extends WebhookController
 
             \logInfo($requestBody, "Kuda Request body");
 
-            $createAccountResponse = $this->kudaPostRequest($url, $requestBody);
+            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
 
             logInfo($createAccountResponse, "Kuda Create Account Response");
 
             if ($createAccountResponse->successful()) {
 
-                $response = $this->sanitizeResponse($createAccountResponse['data']);
+                //  $response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if (! $response["Status"]) {
+                if (! $createAccountResponse["status"]) {
                     return [
                         'status'  => false,
-                        'message' => $response["Message"],
+                        'message' => $createAccountResponse["message"],
                     ];
                 } else {
                     return [
@@ -246,13 +244,13 @@ class KudaController extends WebhookController
                 "isRequestFromVirtualAccount" => "true",
             ],
         ];
-        $jsonBody = \json_encode($body);
+        //    $jsonBody = \json_encode($body);
 
         $requestBody = [
             'data' => $jsonBody,
         ];
 
-        $url = "v2/";
+        $url = "https://kuda-openapi.kuda.com/v2.1";
 
         try {
 
@@ -264,28 +262,28 @@ class KudaController extends WebhookController
 
             \logInfo($requestBody, "Kuda Request body");
 
-            $createAccountResponse = $this->kudaPostRequest($url, $requestBody);
+            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
 
             logInfo($createAccountResponse, "Kuda Verify Account Response");
 
             if ($createAccountResponse->successful()) {
 
-                $response = $this->sanitizeResponse($createAccountResponse['data']);
+                //$response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if (! $response["Status"]) {
+                if (! $createAccountResponse["status"]) {
                     return [
                         'status'  => false,
-                        'message' => $response["Message"],
+                        'message' => $createAccountResponse["message"],
                     ];
                 } else {
                     return [
                         'status'  => true,
                         'message' => "Account Verified Successfully",
                         'data'    => [
-                            'account_name'      => $response["Data"]["BeneficiaryName"],
-                            'bank_code'         => $response["Data"]["BeneficiaryBankCode"],
+                            'account_name'      => $createAccountResponse["data"]["BeneficiaryName"],
+                            'bank_code'         => $createAccountResponse["data"]["BeneficiaryBankCode"],
                             'request_reference' => $requestReference,
-                            'session_id'        => $response["Data"]["SessionID"],
+                            'session_id'        => $createAccountResponsee["data"]["SessionID"],
                         ],
                     ];
                 }
@@ -312,13 +310,13 @@ class KudaController extends WebhookController
                 "transactionRequestReference" => $transactionReference,
             ],
         ];
-        $jsonBody = \json_encode($body);
+        //   $jsonBody = \json_encode($body);
 
         $requestBody = [
             'data' => $jsonBody,
         ];
 
-        $url = "v2.1/";
+        $url = "https://kuda-openapi.kuda.com/v2.1";
 
         try {
 
@@ -330,36 +328,36 @@ class KudaController extends WebhookController
 
             \logInfo($requestBody, "Kuda Request body");
 
-            $createAccountResponse = $this->kudaPostRequest($url, $requestBody);
+            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
 
             logInfo($createAccountResponse, "Kuda Verify Transaction Response");
 
             if ($createAccountResponse->successful()) {
 
-                $response = $this->sanitizeResponse($createAccountResponse['data']);
+                //$response = $this->sanitizeResponse($createAccountResponse['data']);
 
                 if (! $response["Status"]) {
-                    if ($response["ResponseCode"] == "-4" || $response["ResponseCode"] == "-2" || $response["ResponseCode"] == "-1") {
+                    if ($createAccountResponse["responseCode"] == "-4" || $createAccountResponse["responseCode"] == "-2" || $createAccountResponse["responseCode"] == "-1") {
                         return [
                             'status'  => "02",
                             'message' => "Your transaction has been found and as well reversed successfully",
                         ];
-                    } else if ($response["ResponseCode"] == "k25") {
+                    } else if ($createAccountResponse["responseCode"] == "k25") {
                         return [
                             'status'  => "03",
-                            'message' => $response["Message"],
+                            'message' => $createAccountResponse["message"],
                         ];
                     } else {
                         return [
                             'status'  => "04",
-                            'message' => $response["Message"],
+                            'message' => $createAccountResponse["message"],
                         ];
                     }
                 } else {
                     return [
                         'status'  => "00",
-                        'message' => "Transaction Verified Successfully (Session ID: " . $response["SessionID"] . ")",
-                        'data'    => $response["Data"],
+                        'message' => "Transaction Verified Successfully (Session ID: " . $createAccountResponse["sessionID"] . ")",
+                        'data'    => $createAccountResponse["data"],
                     ];
                 }
             } else {
@@ -429,13 +427,13 @@ class KudaController extends WebhookController
             ];
         }
 
-        $jsonBody = \json_encode($body);
+        // $jsonBody = \json_encode($body);
 
         $requestBody = [
             'data' => $jsonBody,
         ];
 
-        $url = "v2.1/";
+        $url = "https://kuda-openapi.kuda.com/v2.1";
 
         try {
 
@@ -447,21 +445,21 @@ class KudaController extends WebhookController
 
             \logInfo($requestBody, "Kuda Request body");
 
-            $createAccountResponse = $this->kudaPostRequest($url, $requestBody);
+            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
 
             logInfo($createAccountResponse, "Kuda Bank Transfer Response");
 
             if ($createAccountResponse->successful()) {
 
-                $response = $this->sanitizeResponse($createAccountResponse['data']);
+                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if ($response['ResponseCode'] == "-2") {
+                if ($response['responseCode'] == "-2") {
 
                     $newType = $type == 1 ? 15 : 1;
                     $this->bankTransfer($requestReference, $accountNumber, $bankCode, $sessionId, $amount, $accountName, $description, $newType);
                 }
 
-                if (! $response["Status"]) {
+                if (! $createAccountResponse["status"]) {
                     return [
                         'status'  => true,
                         'message' => "Bank Transfer Processing",

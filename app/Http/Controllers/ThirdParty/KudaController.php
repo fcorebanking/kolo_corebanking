@@ -139,7 +139,7 @@ class KudaController extends WebhookController
 
             \logInfo($requestBody, "Kuda Request body");
 
-            $createAccountResponse = $this->kudaPostRequestUpdate($url, $jsonBody);
+            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
 
             logInfo($createAccountResponse, "Kuda Create Account Response");
 
@@ -492,10 +492,7 @@ class KudaController extends WebhookController
         logInfo($endpoint, "Kuda Endpoint");
         logInfo($this->kudaHeader(), "Kuda Header");
         logInfo($body, "Kuda Process Endpoint Body");
-        $response = Http::withHeaders([
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'Bearer ' . $this->token, // Example
-        ])->post($endpoint, $body);
+        $response = Http::withHeaders($this->kudaHeader())->post($endpoint, $body);
         return $response;
     }
 

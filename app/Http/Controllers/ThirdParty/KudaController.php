@@ -120,9 +120,9 @@ class KudaController extends WebhookController
 
         $jsonBody = \json_encode($body);
 
-        $requestBody = [
+        /* $requestBody = [
             'data' => $jsonBody,
-        ];
+        ];*/
 
         $requestBody = $jsonBody;
 

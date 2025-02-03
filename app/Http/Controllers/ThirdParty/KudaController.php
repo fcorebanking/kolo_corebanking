@@ -157,8 +157,8 @@ class KudaController extends WebhookController
                         'status'  => true,
                         'message' => "Account Created Successfully",
                         'data'    => [
-                            'account_number'         => $createAccountResponse['data']['AccountNumber'],
-                            'virtual_account_number' => $createAccountResponse['data']['AccountNumber'],
+                            'account_number'         => $createAccountResponse['data']['accountNumber'],
+                            'virtual_account_number' => $createAccountResponse['data']['accountNumber'],
                         ],
                     ];
                 }

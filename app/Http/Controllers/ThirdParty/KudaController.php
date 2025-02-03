@@ -145,9 +145,9 @@ class KudaController extends WebhookController
 
             if ($createAccountResponse->successful()) {
 
-                $response = $this->sanitizeResponse($createAccountResponse['data']);
+                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if (! $response["Status"]) {
+                if (! $response["status"]) {
                     return [
                         'status'  => false,
                         'message' => $response["Message"],
@@ -489,8 +489,6 @@ class KudaController extends WebhookController
     }
     public function kudaPostRequestUpdate($endpoint, $body)
     {
-        logInfo($endpoint, "Kuda Endpoint");
-        logInfo($this->kudaHeader(), "Kuda Header");
         logInfo(json_encode($body), "Kuda Process Endpoint Body");
         $response = Http::withHeaders($this->kudaHeader())->post($endpoint, $body);
         return $response;

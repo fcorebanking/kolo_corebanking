@@ -118,7 +118,7 @@ class KudaController extends WebhookController
             ],
         ];
 
-        //  $jsonBody = json_encode($body);
+        $jsonBody = json_encode($body);
 
         $requestBody = [
             'data' => $jsonBody,
@@ -182,7 +182,7 @@ class KudaController extends WebhookController
                 "trackingReference" => $trackingReference,
             ],
         ];
-        // $jsonBody = \json_encode($body);
+        $jsonBody = \json_encode($body);
 
         $requestBody = [
             'data' => $jsonBody,
@@ -244,7 +244,7 @@ class KudaController extends WebhookController
                 "isRequestFromVirtualAccount" => "true",
             ],
         ];
-        //    $jsonBody = \json_encode($body);
+        $jsonBody = \json_encode($body);
 
         $requestBody = [
             'data' => $jsonBody,
@@ -310,7 +310,7 @@ class KudaController extends WebhookController
                 "transactionRequestReference" => $transactionReference,
             ],
         ];
-        //   $jsonBody = \json_encode($body);
+        $jsonBody = \json_encode($body);
 
         $requestBody = [
             'data' => $jsonBody,
@@ -427,7 +427,7 @@ class KudaController extends WebhookController
             ];
         }
 
-        // $jsonBody = \json_encode($body);
+        $jsonBody = \json_encode($body);
 
         $requestBody = [
             'data' => $jsonBody,

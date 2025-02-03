@@ -147,7 +147,7 @@ class KudaController extends WebhookController
 
                 //    $response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if (! $response["status"]) {
+                if (! $createAccountResponse["status"]) {
                     return [
                         'status'  => false,
                         'message' => $response["Message"],
@@ -157,8 +157,8 @@ class KudaController extends WebhookController
                         'status'  => true,
                         'message' => "Account Created Successfully",
                         'data'    => [
-                            'account_number'         => $response['data']['AccountNumber'],
-                            'virtual_account_number' => $response['data']['AccountNumber'],
+                            'account_number'         => $createAccountResponse['data']['AccountNumber'],
+                            'virtual_account_number' => $createAccountResponse['data']['AccountNumber'],
                         ],
                     ];
                 }

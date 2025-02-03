@@ -143,7 +143,7 @@ class AccountCreationService
 
             logInfo($requestReference, "Kuda Bank Code in requestReference");
             logInfo($trackingReference, "Kuda Bank Code in trackingReference");
-            logInfo($virtualAccount, "Kuda Bank Virtual account");
+            logInfo(json_encode($virtualAccount), "Kuda Bank Virtual account");
 
             $createAccountResponse = $kudaController->createAccount($requestReference, $virtualAccount->email, $virtualAccount->phone, $virtualAccount->firstName, $virtualAccount->lastName, $trackingReference);
 

@@ -111,14 +111,14 @@ class KudaController extends WebhookController
             "serviceType" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
             "requestRef"  => $requestReference,
             "data"        => [
-                "Amount"        => 5000000,
+                "Amount"        => 50000000,
                 "AccountName"   => "$firstName $lastName",
                 "IsPassThrough" => true,
 
             ],
         ];
 
-        $jsonBody = \json_encode($body);
+        $jsonBody = json_encode($body);
 
         /* $requestBody = [
             'data' => $jsonBody,
@@ -139,7 +139,7 @@ class KudaController extends WebhookController
 
             \logInfo($requestBody, "Kuda Request body");
 
-            $createAccountResponse = $this->kudaPostRequestUpdate($url, $requestBody);
+            $createAccountResponse = $this->kudaPostRequestUpdate($url, $jsonBody);
 
             logInfo($createAccountResponse, "Kuda Create Account Response");
 

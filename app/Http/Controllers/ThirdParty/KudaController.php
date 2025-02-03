@@ -318,7 +318,7 @@ class KudaController extends WebhookController
             'data' => $jsonBody,
         ];
 
-        $url = "v2/";
+        $url = "v2.1/";
 
         try {
 
@@ -435,7 +435,7 @@ class KudaController extends WebhookController
             'data' => $jsonBody,
         ];
 
-        $url = "v2/";
+        $url = "v2.1/";
 
         try {
 

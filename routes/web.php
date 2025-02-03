@@ -1,33 +1,29 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\ClosingBalanceController;
-
 use App\Http\Controllers\Auth\ResetPasswordController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\ClosingBalanceController;
+use App\Http\Controllers\ExternalloanController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\ExternalloanController;
-use App\Http\Livewire\CashFlowComponent;
-use App\Http\Livewire\LedgerAccount;
-use App\Http\Livewire\ProfitAndLossComponent;
-use App\Http\Livewire\LedgerAccountList;
-use App\Http\Livewire\LedgerAccountEdit;
-use App\Http\Livewire\LedgerGeneral;
-use App\Http\Livewire\TrialBalance;
-use App\Http\Livewire\LedgerSettingsComponent;
-use App\Http\Livewire\LedgerDetails;
-use App\Http\Livewire\KYCForm;
-
+use App\Http\Controllers\UserController;
 use App\Http\Livewire\BulkTransactionComponent;
+use App\Http\Livewire\CashFlowComponent;
 use App\Http\Livewire\CustomerSavingComponent;
-use App\Services\CryptMcrypt;
-
+use App\Http\Livewire\KYCForm;
+use App\Http\Livewire\LedgerAccount;
+use App\Http\Livewire\LedgerAccountEdit;
+use App\Http\Livewire\LedgerAccountList;
+use App\Http\Livewire\LedgerDetails;
+use App\Http\Livewire\LedgerGeneral;
+use App\Http\Livewire\LedgerSettingsComponent;
+use App\Http\Livewire\ProfitAndLossComponent;
+use App\Http\Livewire\TrialBalance;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use PragmaRX\Google2FALaravel\Support\Authenticator;
@@ -43,15 +39,6 @@ use PragmaRX\Google2FALaravel\Support\Authenticator;
 |
 */
 
-Route::post('/test-kuda', function () {
-    Auth::logout();
-    Session::flush();
-
-(new Authenticator(request()))->logout();
-
-    return Redirect::to('/login');
-});
-
 Route::get('/view-reversable', [App\Http\Controllers\UtilityController::class, 'reverseCron']);
 // Route::get('/importLedger', [App\Http\Controllers\TestController::class, 'calculatePrincipalPayment']);
 // Route::get('/importLedgerSetting', [App\Http\Controllers\TestController::class, 'settingsImport']);
@@ -64,12 +51,12 @@ Route::get('customer-saving-product-callback', [App\Http\Controllers\Customersav
 Route::get('/kyc-form', KYCForm::class)->name('kyc-form');
 
 Route::get('stripe-payment', [App\Http\Controllers\StripeController::class, 'index']);
-Route::post('stripe-payment', [App\Http\Controllers\StripeController::class, 'stripePost'])->name('stripe.post');  //action="{{ route('stripe.post') }}"
+Route::post('stripe-payment', [App\Http\Controllers\StripeController::class, 'stripePost'])->name('stripe.post'); //action="{{ route('stripe.post') }}"
 Route::get('stripe-success', [App\Http\Controllers\StripeController::class, 'success']);
 Route::get('stripe-fail', [App\Http\Controllers\StripeController::class, 'fail']);
 
 Route::get('admin-stripe-payment', [App\Http\Controllers\adminstripeController::class, 'index']);
-Route::post('admin-stripe-payment', [App\Http\Controllers\adminstripeController::class, 'stripePost'])->name('stripeadmin.post');  //action="{{ route('stripe.post') }}"
+Route::post('admin-stripe-payment', [App\Http\Controllers\adminstripeController::class, 'stripePost'])->name('stripeadmin.post'); //action="{{ route('stripe.post') }}"
 Route::get('admin-stripe-success', [App\Http\Controllers\adminstripeController::class, 'success']);
 Route::get('admin-stripe-fail', [App\Http\Controllers\adminstripeController::class, 'fail']);
 
@@ -77,21 +64,18 @@ Route::get('admin-company-wallet-webhook', [App\Http\Controllers\CompanyWalletTX
 Route::post('admin-company-wallet-topup', [App\Http\Controllers\CompanyWalletTXNController::class, 'topup']);
 Route::post('admin-company-wallet-add', [App\Http\Controllers\CompanyWalletTXNController::class, 'addWallet']);
 
-
-
-
 Route::get('/logout', function () {
     Auth::logout();
     Session::flush();
 
-(new Authenticator(request()))->logout();
+    (new Authenticator(request()))->logout();
 
     return Redirect::to('/login');
 });
 Route::get('storage/{filename}', function ($filename) {
-    $path = storage_path('app/public/'.$filename);
+    $path = storage_path('app/public/' . $filename);
 
-    if (!file_exists($path)) {
+    if (! file_exists($path)) {
         abort(404);
     }
 
@@ -113,7 +97,6 @@ Route::post('remitta/mandate/ipn-wba-xvh-2222', [App\Http\Controllers\Remitasala
 Route::get('testingshit', [App\Http\Controllers\TestController::class, 'calculatePrincipalPayment']);
 //
 Route::get('/company/change-currency-to-company-default', [App\Http\Controllers\CustomerController::class, 'resetWBCurrency']);
-
 
 Route::get('/resetStatement', [App\Http\Controllers\UserReportController::class, 'resetStatement']);
 Route::get('/sms-API', [App\Http\Controllers\CompanyController::class, 'smsAPI']);
@@ -152,10 +135,10 @@ Auth::routes();
 
 Route::get('/email/verify', function () {
 
-    $userAccount = \auth()->user();
+    $userAccount      = \auth()->user();
     $verificationHash = \generateAPIKey(12);
 
-    $userAccount->updated_at = Carbon::now();
+    $userAccount->updated_at        = Carbon::now();
     $userAccount->verification_hash = $verificationHash;
     $userAccount->save();
 
@@ -168,13 +151,12 @@ Route::get('/email/verify', function () {
 
     if (\auth()->user()->email_verified_at != null) {
 
-
         $otpCode = \generateOtp();
 
         $userAccount = auth()->user();
 
         $userAccount->otp = $otpCode;
-        $date = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
+        $date             = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
 
         $userAccount->otp_expiration_date = $date;
         $userAccount->save();
@@ -188,13 +170,13 @@ Route::get('/email/verify', function () {
     $sendSms = sendEmail("Account Activation Email", $msg, $userAccount);
 
     $data = [
-        'category_name' => 'auth',
-        'page_name' => 'auth_default',
-        'has_scrollspy' => 0,
+        'category_name'    => 'auth',
+        'page_name'        => 'auth_default',
+        'has_scrollspy'    => 0,
         'scrollspy_offset' => '',
-        'page_menu' => 'Verify Email',
-        'alt_menu' => '',
-        'isReferenceValid' => false
+        'page_menu'        => 'Verify Email',
+        'alt_menu'         => '',
+        'isReferenceValid' => false,
     ];
 
     return view('auth.verify')->with($data);
@@ -203,7 +185,6 @@ Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $requ
     $request->fulfill();
     return redirect('/home');
 })->middleware(['auth', 'signed'])->name('verification.verify');
-
 
 Route::get('/security/2factor', [App\Http\Controllers\LoginController::class, 'sendOTP'])->middleware('auth');
 Route::post('/security/2factor', [App\Http\Controllers\LoginController::class, 'verifyOTP'])->middleware('auth');
@@ -296,17 +277,17 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                             Route::get('/', CustomerSavingComponent::class);
                         });
                         Route::prefix('competition')->name('competition.')->group(function () {
-                        Route::get('/', [App\Http\Controllers\TalentShowSettingsController::class, 'index']);
-                        Route::post('/', [App\Http\Controllers\TalentShowSettingsController::class, 'store']);
-                        Route::get('/category', [App\Http\Controllers\TalentCategoryController::class, 'index']);
-                        Route::post('/category', [App\Http\Controllers\TalentCategoryController::class, 'store']);
-                        Route::post('/category/{id}', [App\Http\Controllers\TalentCategoryController::class, 'update']);
-                        Route::get('/talents', [App\Http\Controllers\TalentsController::class, 'index'])->name('talents_page');
-                        Route::put('/talents/{id}/{status}', [App\Http\Controllers\TalentsController::class, 'setStatus'])->name('talents_status');
-                        Route::put('/talents/{id}', [App\Http\Controllers\TalentsController::class, 'resetVote']);
+                            Route::get('/', [App\Http\Controllers\TalentShowSettingsController::class, 'index']);
+                            Route::post('/', [App\Http\Controllers\TalentShowSettingsController::class, 'store']);
+                            Route::get('/category', [App\Http\Controllers\TalentCategoryController::class, 'index']);
+                            Route::post('/category', [App\Http\Controllers\TalentCategoryController::class, 'store']);
+                            Route::post('/category/{id}', [App\Http\Controllers\TalentCategoryController::class, 'update']);
+                            Route::get('/talents', [App\Http\Controllers\TalentsController::class, 'index'])->name('talents_page');
+                            Route::put('/talents/{id}/{status}', [App\Http\Controllers\TalentsController::class, 'setStatus'])->name('talents_status');
+                            Route::put('/talents/{id}', [App\Http\Controllers\TalentsController::class, 'resetVote']);
 
-                        Route::get('/votes', [App\Http\Controllers\TalentsController::class, 'votePage'])->name('votes_page');
-                        Route::post('/talent', [App\Http\Controllers\TalentsController::class, 'addTalent']);
+                            Route::get('/votes', [App\Http\Controllers\TalentsController::class, 'votePage'])->name('votes_page');
+                            Route::post('/talent', [App\Http\Controllers\TalentsController::class, 'addTalent']);
 
                         });
 
@@ -343,49 +324,48 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::post('/coinremitter/edit-setting/{id}', [App\Http\Controllers\CoinremitterCoinController::class, 'editSetting']);
                         Route::delete('/coinremitter/delete-setting/{id}', [App\Http\Controllers\CoinremitterCoinController::class, 'destroySetting']);
 
-
-                        // expenses
-                        Route::get('/{company_name}/expenses/type', [App\Http\Controllers\ExpenseTypeController::class, 'index']);    //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
+                                                                                                                                   // expenses
+                        Route::get('/{company_name}/expenses/type', [App\Http\Controllers\ExpenseTypeController::class, 'index']); //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
                         Route::get('/{company_name}/expenses/main', [App\Http\Controllers\ExpensesController::class, 'index']);    //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
 
-                        Route::get('/expenses/table', [App\Http\Controllers\ExpenseTypeController::class, 'ajax_view']);    //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
-                        Route::post('/expenses/store', [App\Http\Controllers\ExpenseTypeController::class, 'storeType']);    //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
-                        Route::post('/expenses/update', [App\Http\Controllers\ExpenseTypeController::class, 'update']);    //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
+                        Route::get('/expenses/table', [App\Http\Controllers\ExpenseTypeController::class, 'ajax_view']);  //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
+                        Route::post('/expenses/store', [App\Http\Controllers\ExpenseTypeController::class, 'storeType']); //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
+                        Route::post('/expenses/update', [App\Http\Controllers\ExpenseTypeController::class, 'update']);   //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
 
-                        Route::post('/expenses-type/edit/{id}', [App\Http\Controllers\ExpenseTypeController::class, 'edit']);    //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
-                        Route::post('/expenses/store-expenses', [App\Http\Controllers\ExpensesController::class, 'storeType']);    //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
-                        Route::post('/expenses/update-expenses', [App\Http\Controllers\ExpensesController::class, 'update']);    //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
-                        Route::delete('/expenses/destroy/{id}', [App\Http\Controllers\ExpensesController::class, 'destroy']);    //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
-                        Route::get('/expenses/expenses-table', [App\Http\Controllers\ExpensesController::class, 'ajax_view']);    //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
-                        Route::post('/expenses/edit/{id}', [App\Http\Controllers\ExpensesController::class, 'edit']);    //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
+                        Route::post('/expenses-type/edit/{id}', [App\Http\Controllers\ExpenseTypeController::class, 'edit']);   //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
+                        Route::post('/expenses/store-expenses', [App\Http\Controllers\ExpensesController::class, 'storeType']); //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
+                        Route::post('/expenses/update-expenses', [App\Http\Controllers\ExpensesController::class, 'update']);   //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
+                        Route::delete('/expenses/destroy/{id}', [App\Http\Controllers\ExpensesController::class, 'destroy']);   //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
+                        Route::get('/expenses/expenses-table', [App\Http\Controllers\ExpensesController::class, 'ajax_view']);  //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
+                        Route::post('/expenses/edit/{id}', [App\Http\Controllers\ExpensesController::class, 'edit']);           //='hhhhh'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ', [App\Http\Controllers\CompanyController::class, 'index'])->name('home');
                         Route::delete('/expenses/delete/{id}', [App\Http\Controllers\ExpensesController::class, 'destroy']);    //='hhhhh'
 
-                        Route::get('/{company_name}/expenses/pending', [App\Http\Controllers\ExpensesController::class, 'viewpending']);    //='hhhhh'
+                        Route::get('/{company_name}/expenses/pending', [App\Http\Controllers\ExpensesController::class, 'viewpending']); //='hhhhh'
                         Route::get('/{company_name}/expenses/reject', [App\Http\Controllers\ExpensesController::class, 'viewreject']);
-                        Route::post('/expenses/approve/{id}', [App\Http\Controllers\ExpensesController::class, 'approve']);    //='hhhhh'
-                        Route::post('/expenses/reject/{id}', [App\Http\Controllers\ExpensesController::class, 'reject']);    //='hhhhh'
+                        Route::post('/expenses/approve/{id}', [App\Http\Controllers\ExpensesController::class, 'approve']); //='hhhhh'
+                        Route::post('/expenses/reject/{id}', [App\Http\Controllers\ExpensesController::class, 'reject']);   //='hhhhh'
 
                         //Income
 
-                        Route::get('/{company_name}/income/type', [App\Http\Controllers\OtherIncomeTypeController::class, 'index']);    //='hhhhh'
-                        Route::get('/{company_name}/income/main', [App\Http\Controllers\OtherIncomeController::class, 'index']);    //='hhhhh'
-                        Route::get('/{company_name}/income/pending', [App\Http\Controllers\OtherIncomeController::class, 'viewpending']);    //='hhhhh'
-                        Route::get('/{company_name}/income/reject', [App\Http\Controllers\OtherIncomeController::class, 'viewreject']);    //='hhhhh'
+                        Route::get('/{company_name}/income/type', [App\Http\Controllers\OtherIncomeTypeController::class, 'index']);      //='hhhhh'
+                        Route::get('/{company_name}/income/main', [App\Http\Controllers\OtherIncomeController::class, 'index']);          //='hhhhh'
+                        Route::get('/{company_name}/income/pending', [App\Http\Controllers\OtherIncomeController::class, 'viewpending']); //='hhhhh'
+                        Route::get('/{company_name}/income/reject', [App\Http\Controllers\OtherIncomeController::class, 'viewreject']);   //='hhhhh'
 
-                        Route::get('/income-type/table', [App\Http\Controllers\OtherIncomeTypeController::class, 'ajax_view']);    //='hhhhh'
-                        Route::post('/income/store', [App\Http\Controllers\OtherIncomeTypeController::class, 'storeType']);    //='hhhhh'
-                        Route::post('/income/update', [App\Http\Controllers\OtherIncomeTypeController::class, 'update']);    //='hhhhh'
+                        Route::get('/income-type/table', [App\Http\Controllers\OtherIncomeTypeController::class, 'ajax_view']); //='hhhhh'
+                        Route::post('/income/store', [App\Http\Controllers\OtherIncomeTypeController::class, 'storeType']);     //='hhhhh'
+                        Route::post('/income/update', [App\Http\Controllers\OtherIncomeTypeController::class, 'update']);       //='hhhhh'
                         Route::post('/income-type/edit/{id}', [App\Http\Controllers\OtherIncomeTypeController::class, 'edit']);
 
-                        //='hhhhh'
-                        Route::post('/income/store-income', [App\Http\Controllers\OtherIncomeController::class, 'storeType']);    //='hhhhh'
-                        Route::post('/income/update-income', [App\Http\Controllers\OtherIncomeController::class, 'update']);    //='hhhhh'
-                        Route::delete('/income/destroy/{id}', [App\Http\Controllers\OtherIncomeController::class, 'destroy']);    //='hhhhh'
-                        Route::get('/income/income-table', [App\Http\Controllers\OtherIncomeController::class, 'ajax_view']);    //='hhhhh'
-                        Route::post('/income/edit/{id}', [App\Http\Controllers\OtherIncomeController::class, 'edit']);    //='hhhhh'
-                        Route::delete('/income/delete/{id}', [App\Http\Controllers\OtherIncomeController::class, 'destroy']);    //='hhhhh'
-                        Route::post('/income/approve/{id}', [App\Http\Controllers\OtherIncomeController::class, 'approve']);    //='hhhhh'
-                        Route::post('/income/reject/{id}', [App\Http\Controllers\OtherIncomeController::class, 'reject']);    //='hhhhh'
+                                                                                                                               //='hhhhh'
+                        Route::post('/income/store-income', [App\Http\Controllers\OtherIncomeController::class, 'storeType']); //='hhhhh'
+                        Route::post('/income/update-income', [App\Http\Controllers\OtherIncomeController::class, 'update']);   //='hhhhh'
+                        Route::delete('/income/destroy/{id}', [App\Http\Controllers\OtherIncomeController::class, 'destroy']); //='hhhhh'
+                        Route::get('/income/income-table', [App\Http\Controllers\OtherIncomeController::class, 'ajax_view']);  //='hhhhh'
+                        Route::post('/income/edit/{id}', [App\Http\Controllers\OtherIncomeController::class, 'edit']);         //='hhhhh'
+                        Route::delete('/income/delete/{id}', [App\Http\Controllers\OtherIncomeController::class, 'destroy']);  //='hhhhh'
+                        Route::post('/income/approve/{id}', [App\Http\Controllers\OtherIncomeController::class, 'approve']);   //='hhhhh'
+                        Route::post('/income/reject/{id}', [App\Http\Controllers\OtherIncomeController::class, 'reject']);     //='hhhhh'
 
                         //loan
                         Route::get('/{company_name}/loan/product', [App\Http\Controllers\LoanController::class, 'index']);
@@ -464,8 +444,8 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         //remitta
                         Route::get('remitta/salary-history', [App\Http\Controllers\RemitasalaryhistoryController::class, 'index']);
                         Route::post('remitta/salaryajaxGet', [App\Http\Controllers\RemitasalaryhistoryController::class, 'ajaxGet']);
-                        Route::get('remitta/salaryhistory',  [App\Http\Controllers\RemitasalaryhistoryController::class, 'getSalaryHistory']);
-                        Route::post('remitta/post-notification',  [App\Http\Controllers\RemitasalaryhistoryController::class, 'postNotification']);
+                        Route::get('remitta/salaryhistory', [App\Http\Controllers\RemitasalaryhistoryController::class, 'getSalaryHistory']);
+                        Route::post('remitta/post-notification', [App\Http\Controllers\RemitasalaryhistoryController::class, 'postNotification']);
                         Route::get('remitta/mandate/{id}', [App\Http\Controllers\RemitasalaryhistoryController::class, 'RemitaMandate']);
                         Route::get('remitta/mandate/stop/reference', [App\Http\Controllers\RemitasalaryhistoryController::class, 'StopMandate']);
                         Route::get('remitta/mandate/payment/history', [App\Http\Controllers\RemitasalaryhistoryController::class, 'RemitaMandatePayment']);
@@ -576,10 +556,6 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::post('/esusu/overdraft-esusu-wallet', [App\Http\Controllers\EsusuController::class, 'overdraft']);
                         Route::post('/esusu/reset-esusu-wallet', [App\Http\Controllers\EsusuController::class, 'reset']);
 
-
-
-
-
                         //Savings
                         Route::get('/{company_name}/product/savings', [App\Http\Controllers\SavingsController::class, 'index'])->name('savings_indexs');
                         Route::get('/{company_name}/product/fetch_savings', [App\Http\Controllers\SavingsController::class, 'fetch_ajax_product'])->name('fetch_ajax_product');
@@ -596,7 +572,7 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/saving/view-pending', [App\Http\Controllers\SavingsController::class, 'display_pending']);
                         Route::post('/saving/post-pending-saving', [App\Http\Controllers\SavingsController::class, 'post_pending_saving']);
                         Route::post('/saving/view-pending-saving-details/{id}', [App\Http\Controllers\SavingsController::class, 'viewTXNDetails']); //
-                        Route::post('/saving/single-approval', [App\Http\Controllers\SavingsController::class, 'singleApproval']); //
+                        Route::post('/saving/single-approval', [App\Http\Controllers\SavingsController::class, 'singleApproval']);                  //
 
                         //Investment product
                         Route::get('/{company_name}/product/investment', [App\Http\Controllers\InvestmentController::class, 'index'])->name('investment');
@@ -608,7 +584,6 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::delete('/investment-booking/{id}', [App\Http\Controllers\InvestmentController::class, 'removeInvestment'])->name('delete_investment');
 
                         Route::get('/investmentDataProduct', [App\Http\Controllers\InvestmentController::class, 'fetchInvestmentProduct'])->name('fetchInvestmentProduct');
-
 
                         Route::put('/makeinvestment', [App\Http\Controllers\InvestmentController::class, 'makeinvestment'])->name('makeinvestment');
                         Route::put('{company_name}/update-investment', [App\Http\Controllers\InvestmentController::class, 'updateInvestment'])->name('updateinvestment');
@@ -640,7 +615,6 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                             Route::post('/deactivate-activate', [App\Http\Controllers\POSController::class, 'deactivateActivate'])->middleware('log.route');
                         });
 
-
                         Route::get('/all-restriction', [App\Http\Controllers\CustomerRestrictionController::class, 'ajax_view']);
 
                         Route::get('/{company_name}/pending-entry', [App\Http\Controllers\CustomerController::class, 'pending_entry']);
@@ -662,8 +636,6 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/{company_name}/opening/get-table', [App\Http\Controllers\CompanyOpeningclosingtimeController::class, 'show'])->name('show');
                         Route::put('/{company_name}/opening/save', [App\Http\Controllers\CompanyOpeningclosingtimeController::class, 'store'])->name('save');
                         Route::post('/{company_name}/opening/delete/{id}', [App\Http\Controllers\CompanyOpeningclosingtimeController::class, 'destroy'])->name('destroy');
-
-
 
                         //Staff Permission
                         Route::get('/{company_name}/role', [App\Http\Controllers\StaffpermissionController::class, 'index'])->name('index');
@@ -711,12 +683,12 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/{company_name}/user-statement', [App\Http\Controllers\UserReportController::class, 'main'])->name('main');
                         Route::get('/{company_name}/user-dom', [App\Http\Controllers\UserReportController::class, 'dom'])->name('dom');
                         Route::get('/{company_name}/transaction-reversal', [App\Http\Controllers\UserReportController::class, 'reversal_statement']); //reversal
-                        Route::get('/{company_name}/callover-report', [App\Http\Controllers\UserReportController::class, 'callover_report']); //callover
-                        Route::get('/callover-report-data', [App\Http\Controllers\UserReportController::class, 'ajax_generate_callover']); //callover
-                        Route::get('/staff-transaction', [App\Http\Controllers\UserReportController::class, 'staff_txn_table']); //callover
-                        Route::get('/reset-teller-Balance', [App\Http\Controllers\UserReportController::class, 'resetTellerwallet']); //callover
+                        Route::get('/{company_name}/callover-report', [App\Http\Controllers\UserReportController::class, 'callover_report']);         //callover
+                        Route::get('/callover-report-data', [App\Http\Controllers\UserReportController::class, 'ajax_generate_callover']);            //callover
+                        Route::get('/staff-transaction', [App\Http\Controllers\UserReportController::class, 'staff_txn_table']);                      //callover
+                        Route::get('/reset-teller-Balance', [App\Http\Controllers\UserReportController::class, 'resetTellerwallet']);                 //callover
 
-                        Route::get('/{company_name}/end-of-day', [App\Http\Controllers\UserReportController::class, 'end_of_day']); //end of day report
+                        Route::get('/{company_name}/end-of-day', [App\Http\Controllers\UserReportController::class, 'end_of_day']);          //end of day report
                         Route::get('/end-of-day-datatable', [App\Http\Controllers\UserReportController::class, 'ajax_generate_end_of_day']); //end of day report
 
                         Route::get('/{company_name}/user-statement/{id}', [App\Http\Controllers\UserReportController::class, 'statement'])->name('statement');
@@ -789,7 +761,6 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
 
                         Route::post('/{company_name}/card-management/fund-withdraw-virtual-card', [App\Http\Controllers\CardController::class, 'fundWithdrawVirtualCard'])->name('fund-withdraw-virtual-card')->middleware('log.route');
 
-
                         Route::get('/{company_name}/customer/create_account', [App\Http\Controllers\CustomerController::class, 'create_account_page'])->name('create_accountx');
                         // Route::post('/reset_psw/{id}', [App\Http\Controllers\CustomerController::class, 'resetUserPSW'])->name('resetUserPSW');
                         Route::post('/verify-customer-info/bvn-info', [App\Http\Controllers\CustomerController::class, 'verify_customer_profile_bvn'])->name('verify_customer_profile_bvn');
@@ -809,16 +780,13 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/{company_name}/customer/customer_accounts/{uuid}', [App\Http\Controllers\CustomerController::class, 'getCustomerAccounts'])->name('get_customer_accounts');
                         Route::put('/customer/saving-product/{id}', [App\Http\Controllers\CustomerController::class, 'changeproduct'])->name('changeproduct');
 
-
                         //Physical Card APIs
                         Route::post('/{company_name}/customer/create-physical-card', [App\Http\Controllers\CustomerController::class, 'createPhysicalCard'])->name('create-physical-card')->middleware("log.route");
                         Route::post('/{company_name}/customer/add-physical-card', [App\Http\Controllers\CustomerController::class, 'addPhysicalCard'])->name('add-physical-card');
                         Route::post('/{company_name}/customer/fund-physical-card', [App\Http\Controllers\CustomerController::class, 'fundPhysicalCard'])->name('fund-physical-card');
                         Route::post('/{company_name}/customer/get-physical-card-balance', [App\Http\Controllers\CustomerController::class, 'getPhysicalCardBalance'])->name('get-physical-card-balance');
 
-
                         Route::get('/{company_name}/customer/customer-delete', [App\Http\Controllers\CustomerController::class, 'customer_delete'])->name('customer_delete');
-
 
                         Route::post('/customer/delete-restore-account-batch', [App\Http\Controllers\CustomerController::class, 'send_batch_delete_restore_account']);
                         Route::post('/customer/trash-single-account/{id}', [App\Http\Controllers\CustomerController::class, 'trash']);
@@ -862,8 +830,6 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/fetch_txn_type', [App\Http\Controllers\UserReportController::class, 'txn_type_Datalist']);
                     Route::get('/userDataSelectStaff', [App\Http\Controllers\CompanyController::class, 'select2Staff']); //select user wb_account_details //account type
 
-
-
                     //Restrict User
                     Route::put('/restrictUser', [App\Http\Controllers\CustomerController::class, 'RestrictCustomer'])->name('RestrictCustomer');
                     Route::post('/removerestriction', [App\Http\Controllers\CustomerController::class, 'RemoveRestrictCustomer'])->name('RemoveRestrictCustomer');
@@ -893,7 +859,6 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
 
                     Route::post('/settings/transfer-staff-branch/{page}', [App\Http\Controllers\CompanySettingsController::class, 'Transfer']);
 
-
                     Route::post('/company/setting/save-domain', [App\Http\Controllers\CompanySettingsController::class, 'setDomain']);
                     Route::post('/company/save-savings-type', [App\Http\Controllers\CustomerController::class, 'add_account'])->middleware('log.route');
                     Route::get('/company/replace-bank/{accountId}', [App\Http\Controllers\CustomerController::class, 'replace_account'])->middleware('log.route');
@@ -915,7 +880,6 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::post('/company/customer/unblock-all-dom', [App\Http\Controllers\DomAccountController::class, 'unblockAll']);
                 });
 
-
                 Route::prefix('company')->name('company.')->group(function () {
                     Route::get('/{company_name}/settings/show-payment-link', [App\Http\Controllers\CompanySettingsController::class, 'showPaymentLink'])->name('show-payment-link');
                     Route::post('/{company_name}/settings/show-payment-link-page', [App\Http\Controllers\CompanySettingsController::class, 'showPaymentLinkPage'])->name('show-payment-link-page');
@@ -930,7 +894,6 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::post('/{company_name}/settings/ajax-change-sms', [App\Http\Controllers\CompanySettingsController::class, 'sms_swap']);
 
                     Route::post('/{company_name}/settings/update_all-sms-state/{id}', [App\Http\Controllers\CompanySettingsController::class, 'sms_allSMS']);
-
 
                     Route::group(['middleware' => 'check_plan'], function () {
                         Route::get('/{company_name}/staff-profile', [App\Http\Controllers\ProfileController::class, 'index'])->name('staff-profile');
@@ -963,9 +926,8 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
 
                         Route::post('/{company_name}/staff/ajax_updatestaff', [App\Http\Controllers\CompanyController::class, 'ajax_update_staff'])->name('ajax_update_staff');
                         Route::get('/returnAllBranchAndStaff', [App\Http\Controllers\CompanyController::class, 'returnAllBranchAndStaff'])->name('returnAllBranchAndStaff');
-                    });//
+                    }); //
                 });
-
 
                 //Route::group(['middleware' => 'role:Company'], function () {
 
@@ -982,14 +944,7 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                 });
                 //});
 
-
-
                 // $this->middleware
-
-
-
-
-
 
                 // Route::get('/dashboard', function () {
                 //     // $category_name = '';
@@ -1004,18 +959,16 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                 //     return view('dashboard2')->with($data);
                 // });
 
-
-
                 // APPS
                 Route::prefix('apps')->group(function () {
                     Route::get('/calendar', function () {
                         // $category_name = 'calendar';
                         $data = [
-                            'category_name' => 'apps',
-                            'page_name' => 'calendar',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'apps',
+                            'page_name'        => 'calendar',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 1,
+                            'alt_menu'         => 1,
                         ];
                         // $pageName = 'calendar';
                         return view('pages.apps.apps_calendar')->with($data);
@@ -1023,11 +976,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/chat', function () {
                         // $category_name = 'chat';
                         $data = [
-                            'category_name' => 'apps',
-                            'page_name' => 'chat',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'apps',
+                            'page_name'        => 'chat',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 1,
+                            'alt_menu'         => 1,
                         ];
                         // $pageName = 'chat';
                         return view('pages.apps.apps_chat')->with($data);
@@ -1035,11 +988,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/contacts', function () {
                         // $category_name = 'contacts';
                         $data = [
-                            'category_name' => 'apps',
-                            'page_name' => 'contacts',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'apps',
+                            'page_name'        => 'contacts',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 1,
+                            'alt_menu'         => 1,
                         ];
                         // $pageName = 'contacts';
                         return view('pages.apps.apps_contacts')->with($data);
@@ -1047,11 +1000,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/invoice', function () {
                         // $category_name = 'invoice';
                         $data = [
-                            'category_name' => 'apps',
-                            'page_name' => 'invoice',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'apps',
+                            'page_name'        => 'invoice',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 1,
+                            'alt_menu'         => 1,
                         ];
                         // $pageName = 'invoice';
                         return view('pages.apps.apps_invoice')->with($data);
@@ -1059,11 +1012,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/mailbox', function () {
                         // $category_name = 'mailbox';
                         $data = [
-                            'category_name' => 'apps',
-                            'page_name' => 'mailbox',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'apps',
+                            'page_name'        => 'mailbox',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 1,
+                            'alt_menu'         => 1,
                         ];
                         // $pageName = 'mailbox';
                         return view('pages.apps.apps_mailbox')->with($data);
@@ -1071,23 +1024,23 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/notes', function () {
                         // $category_name = 'notes';
                         $data = [
-                            'category_name' => 'apps',
-                            'page_name' => 'notes',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'apps',
+                            'page_name'        => 'notes',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 1,
+                            'alt_menu'         => 1,
                         ];
                         // $pageName = 'notes';
                         return view('pages.apps.apps_notes')->with($data);
                     });
                     Route::get('/scrumboard', function () {
                         $category_name = 'scrumboard';
-                        $data = [
-                            'category_name' => 'apps',
-                            'page_name' => 'scrumboard',
-                            'has_scrollspy' => 0,
+                        $data          = [
+                            'category_name'    => 'apps',
+                            'page_name'        => 'scrumboard',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 1,
+                            'alt_menu'         => 1,
                         ];
                         // $pageName = 'scrumboard';
                         return view('pages.apps.apps_scrumboard')->with($data);
@@ -1095,11 +1048,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/todoList', function () {
                         // $category_name = 'todo-list';
                         $data = [
-                            'category_name' => 'apps',
-                            'page_name' => 'todo-list',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'apps',
+                            'page_name'        => 'todo-list',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 1,
+                            'alt_menu'         => 1,
                         ];
                         // $pageName = 'todo-list';
                         return view('pages.apps.apps_todoList')->with($data);
@@ -1111,11 +1064,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/lockscreen_boxed', function () {
                         // $category_name = 'auth';
                         $data = [
-                            'category_name' => 'auth',
-                            'page_name' => 'auth_boxed',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'auth',
+                            'page_name'        => 'auth_boxed',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
                         ];
                         // $pageName = 'auth_boxed';
                         return view('pages.authentication.auth_lockscreen_boxed')->with($data);
@@ -1123,11 +1076,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/lockscreen', function () {
                         // $category_name = 'auth';
                         $data = [
-                            'category_name' => 'auth',
-                            'page_name' => 'auth_default',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'auth',
+                            'page_name'        => 'auth_default',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
                         ];
                         // $pageName = 'auth_default';
                         return view('pages.authentication.auth_lockscreen')->with($data);
@@ -1135,11 +1088,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/login_boxed', function () {
                         // $category_name = 'auth';
                         $data = [
-                            'category_name' => 'auth',
-                            'page_name' => 'auth_boxed',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'auth',
+                            'page_name'        => 'auth_boxed',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
                         ];
                         // $pageName = 'auth_boxed';
                         return view('pages.authentication.auth_login_boxed')->with($data);
@@ -1148,11 +1101,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/pass_recovery_boxed', function () {
                         // $category_name = 'auth';
                         $data = [
-                            'category_name' => 'auth',
-                            'page_name' => 'auth_boxed',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'auth',
+                            'page_name'        => 'auth_boxed',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
                         ];
                         // $pageName = 'auth_boxed';
                         return view('pages.authentication.auth_pass_recovery_boxed')->with($data);
@@ -1160,11 +1113,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/pass_recovery', function () {
                         // $category_name = 'auth';
                         $data = [
-                            'category_name' => 'auth',
-                            'page_name' => 'auth_default',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'auth',
+                            'page_name'        => 'auth_default',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
                         ];
                         // $pageName = 'auth_default';
                         return view('pages.authentication.auth_pass_recovery')->with($data);
@@ -1172,11 +1125,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/register_boxed', function () {
                         // $category_name = 'auth';
                         $data = [
-                            'category_name' => 'auth',
-                            'page_name' => 'auth_boxed',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'auth',
+                            'page_name'        => 'auth_boxed',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
                         ];
                         // $pageName = 'auth_boxed';
                         return view('pages.authentication.auth_register_boxed')->with($data);
@@ -1184,29 +1137,28 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/register', function () {
                         // $category_name = 'auth';
                         $data = [
-                            'category_name' => 'auth',
-                            'page_name' => 'auth_default',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'auth',
+                            'page_name'        => 'auth_default',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
-                            'custom_page_name' => "Finova Setup Page"
+                            'alt_menu'         => 0,
+                            'custom_page_name' => "Finova Setup Page",
                         ];
                         // $pageName = 'auth_default';
                         return view('pages.authentication.auth_register')->with($data);
                     });
                 });
 
-
                 // Charts
                 // Route::prefix('charts')->group(function () {
                 Route::get('/charts', function () {
                     // $category_name = 'chart';
                     $data = [
-                        'category_name' => 'charts',
-                        'page_name' => 'charts',
-                        'has_scrollspy' => 1,
+                        'category_name'    => 'charts',
+                        'page_name'        => 'charts',
+                        'has_scrollspy'    => 1,
                         'scrollspy_offset' => 140,
-                        'alt_menu' => 0,
+                        'alt_menu'         => 0,
 
                     ];
                     // $pageName = 'charts';
@@ -1214,17 +1166,16 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                 });
                 // });
 
-
                 // Components
                 Route::prefix('components')->group(function () {
                     Route::get('/accordions', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'accordions',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'accordions',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'accordion';
@@ -1233,11 +1184,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/blockui', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'blockui',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'blockui',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'blockui';
@@ -1246,11 +1197,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/carousel', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'bootstrap_carousel',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'bootstrap_carousel',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'bootstrap_carousel';
@@ -1259,11 +1210,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/cards', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'cards',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'cards',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'cards';
@@ -1272,11 +1223,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/countdown', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'countdown',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'countdown',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'countdown';
@@ -1285,11 +1236,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/counter', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'counter',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'counter',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'counter';
@@ -1298,11 +1249,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/lightbox', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'lightbox',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'components',
+                            'page_name'        => 'lightbox',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'lightbox';
@@ -1311,11 +1262,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/list_group', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'list_group',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'list_group',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'list_group';
@@ -1324,11 +1275,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/media_object', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'media_object',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'media_object',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'media_object';
@@ -1337,11 +1288,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/modals', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'modals',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'modals',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'modal';
@@ -1350,11 +1301,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/pricing_tables', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'pricing_table',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'components',
+                            'page_name'        => 'pricing_table',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'pricing_table';
@@ -1363,11 +1314,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/session_timeout', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'session_timeout',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'session_timeout',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'session_timeout';
@@ -1376,11 +1327,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/notifications', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'notifications',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'notifications',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'snackbar';
@@ -1389,11 +1340,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/sweet_alerts', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'sweet_alerts',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'sweet_alerts',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'sweetalert';
@@ -1402,11 +1353,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/tabs', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'tabs',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'tabs',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'tabs';
@@ -1415,11 +1366,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/timeline', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'components',
-                            'page_name' => 'timeline',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'components',
+                            'page_name'        => 'timeline',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'timeline';
@@ -1427,17 +1378,16 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     });
                 });
 
-
                 // Drag and Drop
                 // Route::prefix('drag_n_drop')->group(function () {
                 Route::get('/drag_and_drop', function () {
                     // $category_name = '';
                     $data = [
-                        'category_name' => 'drag_n_drop',
-                        'page_name' => 'drag_n_drop',
-                        'has_scrollspy' => 0,
+                        'category_name'    => 'drag_n_drop',
+                        'page_name'        => 'drag_n_drop',
+                        'has_scrollspy'    => 0,
                         'scrollspy_offset' => '',
-                        'alt_menu' => 0,
+                        'alt_menu'         => 0,
 
                     ];
                     // $pageName = 'drag_n_drop';
@@ -1445,17 +1395,16 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                 });
                 // });
 
-
                 // Elements
                 Route::prefix('elements')->group(function () {
                     Route::get('/alerts', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'alerts',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'alerts',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'alerts';
@@ -1464,11 +1413,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/avatars', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'avatars',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'avatars',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'avatars';
@@ -1477,11 +1426,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/badges', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'badges',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'badges',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'badges';
@@ -1490,11 +1439,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/breadcrumbs', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'breadcrumbs',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'breadcrumbs',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'breadcrumbs';
@@ -1503,11 +1452,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/button_group', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'button_group',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'button_group',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'buttons_group';
@@ -1516,11 +1465,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/buttons', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'buttons',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'buttons',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'buttons';
@@ -1529,11 +1478,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/color_library', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'color_library',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'color_library',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'color_library';
@@ -1542,11 +1491,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/dropdown', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'dropdown',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'dropdown',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'dropdown';
@@ -1555,11 +1504,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/infobox', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'infobox',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'infobox',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'infobox';
@@ -1568,11 +1517,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/jumbotron', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'jumbotron',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'jumbotron',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'jumbotron';
@@ -1581,11 +1530,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/loaders', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'loaders',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'loaders',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'loader';
@@ -1594,11 +1543,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/pagination', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'pagination',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'pagination',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'pagination';
@@ -1607,11 +1556,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/popovers', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'popovers',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'popovers',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'popovers';
@@ -1620,11 +1569,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/progress_bar', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'progress_bar',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'progress_bar',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'progress_bar';
@@ -1633,11 +1582,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/search', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'search',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'search',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'search';
@@ -1646,11 +1595,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/tooltips', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'tooltips',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'tooltips',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'tooltips';
@@ -1659,11 +1608,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/treeview', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'treeview',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'treeview',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'treeview';
@@ -1672,11 +1621,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/typography', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'elements',
-                            'page_name' => 'typography',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'elements',
+                            'page_name'        => 'typography',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'typography';
@@ -1689,11 +1638,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                 Route::get('/font_icons', function () {
                     // $category_name = 'fonticons';
                     $data = [
-                        'category_name' => 'fonticons',
-                        'page_name' => 'font_icons',
-                        'has_scrollspy' => 1,
+                        'category_name'    => 'fonticons',
+                        'page_name'        => 'font_icons',
+                        'has_scrollspy'    => 1,
                         'scrollspy_offset' => 140,
-                        'alt_menu' => 0,
+                        'alt_menu'         => 0,
 
                     ];
                     // $pageName = 'fonticons';
@@ -1706,11 +1655,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/basic', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'basic',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'basic',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'bootstrap_basic';
@@ -1719,11 +1668,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/bootstrap_select', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'bootstrap_select',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'bootstrap_select',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'bootstrap_select';
@@ -1732,11 +1681,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/touchspin', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'touchspin',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'touchspin',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'bootstrap_touchspin';
@@ -1745,11 +1694,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/checkbox_radio', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'checkbox_radio',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'checkbox_radio',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'checkbox_radio';
@@ -1758,11 +1707,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/clipboard', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'clipboard',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'clipboard',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'clipboard';
@@ -1771,11 +1720,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/date_range_picker', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'date_range_picker',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'date_range_picker',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'date_range_picker';
@@ -1784,11 +1733,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/file_upload', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'file_upload',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'file_upload',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'fileupload';
@@ -1797,11 +1746,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/input_group', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'input_group',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'input_group',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'input_group_basic';
@@ -1810,11 +1759,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/input_mask', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'input_mask',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'input_mask',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'input_mask';
@@ -1823,11 +1772,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/layouts', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'layouts',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'layouts',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'layouts';
@@ -1836,11 +1785,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/markdown_editor', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'markdown',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'markdown',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'markdown';
@@ -1849,11 +1798,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/maxlength', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'maxlength',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'maxlength',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'maxlength';
@@ -1862,11 +1811,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/quill_editor', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'quill',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'quill',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'quill';
@@ -1875,11 +1824,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/select2', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'select2',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'select2',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'select2';
@@ -1888,11 +1837,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/switches', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'switches',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'switches',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'switches';
@@ -1901,11 +1850,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/typeahead', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'typeahead',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'typeahead',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'typeahead';
@@ -1914,11 +1863,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/validation', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'validation',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'validation',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'validation';
@@ -1927,11 +1876,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/wizards', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'forms',
-                            'page_name' => 'wizards',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'forms',
+                            'page_name'        => 'wizards',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 100,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'wizard';
@@ -1943,28 +1892,27 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                 Route::get('/maps', function () {
                     // $category_name = '';
                     $data = [
-                        'category_name' => 'maps',
-                        'page_name' => 'maps',
-                        'has_scrollspy' => 1,
+                        'category_name'    => 'maps',
+                        'page_name'        => 'maps',
+                        'has_scrollspy'    => 1,
                         'scrollspy_offset' => 140,
-                        'alt_menu' => 0,
+                        'alt_menu'         => 0,
 
                     ];
                     // $pageName = 'maps';
                     return view('pages.maps.map_jvector')->with($data);
                 });
 
-
                 // Pages
                 Route::prefix('pages')->group(function () {
                     Route::get('/coming_soon', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'pages',
-                            'page_name' => 'coming_soon',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'pages',
+                            'page_name'        => 'coming_soon',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'coming_soon';
@@ -1973,11 +1921,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/contact_us_form', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'pages',
-                            'page_name' => 'contact_us',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'pages',
+                            'page_name'        => 'contact_us',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'contact_us';
@@ -1986,11 +1934,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/error_404', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'pages',
-                            'page_name' => 'error404',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'pages',
+                            'page_name'        => 'error404',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'error404';
@@ -1999,11 +1947,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/error_500', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'pages',
-                            'page_name' => 'error500',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'pages',
+                            'page_name'        => 'error500',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'error500';
@@ -2012,11 +1960,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/error_503', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'pages',
-                            'page_name' => 'error503',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'pages',
+                            'page_name'        => 'error503',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'error503';
@@ -2025,11 +1973,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/faq', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'pages',
-                            'page_name' => 'faq',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'pages',
+                            'page_name'        => 'faq',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'faq';
@@ -2038,11 +1986,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/faq2', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'pages',
-                            'page_name' => 'faq2',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'pages',
+                            'page_name'        => 'faq2',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'faq2';
@@ -2051,11 +1999,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/helpdesk', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'pages',
-                            'page_name' => 'helpdesk',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'pages',
+                            'page_name'        => 'helpdesk',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'helpdesk';
@@ -2064,11 +2012,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/maintenence', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'pages',
-                            'page_name' => 'maintenence',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'pages',
+                            'page_name'        => 'maintenence',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'maintenence';
@@ -2077,11 +2025,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/privacy_policy', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'pages',
-                            'page_name' => 'privacy',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'pages',
+                            'page_name'        => 'privacy',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'privacy';
@@ -2094,11 +2042,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/collapsible', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'starter_kits',
-                            'page_name' => 'alt_menu',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'starter_kits',
+                            'page_name'        => 'alt_menu',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 1,
+                            'alt_menu'         => 1,
 
                         ];
                         // $pageName = 'alt_menu';
@@ -2107,11 +2055,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/blank_page', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'starter_kits',
-                            'page_name' => 'blank_page',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'starter_kits',
+                            'page_name'        => 'blank_page',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'blank_page';
@@ -2120,11 +2068,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/boxed', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'starter_kits',
-                            'page_name' => 'boxed',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'starter_kits',
+                            'page_name'        => 'boxed',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'boxed';
@@ -2133,11 +2081,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/breadcrumbs', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'starter_kits',
-                            'page_name' => 'breadcrumb',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'starter_kits',
+                            'page_name'        => 'breadcrumb',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'breadcrumb';
@@ -2145,17 +2093,16 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     });
                 });
 
-
                 // Tables
                 Route::prefix('tables')->group(function () {
                     Route::get('/bootstrap_basic', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'bootstrap_basic_table',
-                            'page_name' => 'bootstrap_basic_table',
-                            'has_scrollspy' => 1,
+                            'category_name'    => 'bootstrap_basic_table',
+                            'page_name'        => 'bootstrap_basic_table',
+                            'has_scrollspy'    => 1,
                             'scrollspy_offset' => 140,
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'bootstrap_basic_table';
@@ -2165,11 +2112,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/alternative_pagination', function () {
                             // $category_name = '';
                             $data = [
-                                'category_name' => 'datatable',
-                                'page_name' => 'alternative_pagination',
-                                'has_scrollspy' => 0,
+                                'category_name'    => 'datatable',
+                                'page_name'        => 'alternative_pagination',
+                                'has_scrollspy'    => 0,
                                 'scrollspy_offset' => '',
-                                'alt_menu' => 0,
+                                'alt_menu'         => 0,
 
                             ];
                             // $pageName = 'alternative_pagination';
@@ -2178,11 +2125,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/basic-light', function () {
                             // $category_name = '';
                             $data = [
-                                'category_name' => 'datatable',
-                                'page_name' => 'basic-light',
-                                'has_scrollspy' => 0,
+                                'category_name'    => 'datatable',
+                                'page_name'        => 'basic-light',
+                                'has_scrollspy'    => 0,
                                 'scrollspy_offset' => '',
-                                'alt_menu' => 0,
+                                'alt_menu'         => 0,
 
                             ];
                             // $pageName = 'basic-light';
@@ -2191,11 +2138,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/basic', function () {
                             // $category_name = '';
                             $data = [
-                                'category_name' => 'datatable',
-                                'page_name' => 'basic',
-                                'has_scrollspy' => 0,
+                                'category_name'    => 'datatable',
+                                'page_name'        => 'basic',
+                                'has_scrollspy'    => 0,
                                 'scrollspy_offset' => '',
-                                'alt_menu' => 0,
+                                'alt_menu'         => 0,
 
                             ];
                             // $pageName = 'basic';
@@ -2204,11 +2151,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/custom', function () {
                             // $category_name = '';
                             $data = [
-                                'category_name' => 'datatable',
-                                'page_name' => 'custom',
-                                'has_scrollspy' => 0,
+                                'category_name'    => 'datatable',
+                                'page_name'        => 'custom',
+                                'has_scrollspy'    => 0,
                                 'scrollspy_offset' => '',
-                                'alt_menu' => 0,
+                                'alt_menu'         => 0,
 
                             ];
                             // $pageName = 'custom';
@@ -2217,11 +2164,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/html5', function () {
                             // $category_name = '';
                             $data = [
-                                'category_name' => 'datatable',
-                                'page_name' => 'html5',
-                                'has_scrollspy' => 0,
+                                'category_name'    => 'datatable',
+                                'page_name'        => 'html5',
+                                'has_scrollspy'    => 0,
                                 'scrollspy_offset' => '',
-                                'alt_menu' => 0,
+                                'alt_menu'         => 0,
 
                             ];
                             // $pageName = 'html5';
@@ -2230,11 +2177,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/live_dom_ordering', function () {
                             // $category_name = '';
                             $data = [
-                                'category_name' => 'datatable',
-                                'page_name' => 'live_dom_ordering',
-                                'has_scrollspy' => 0,
+                                'category_name'    => 'datatable',
+                                'page_name'        => 'live_dom_ordering',
+                                'has_scrollspy'    => 0,
                                 'scrollspy_offset' => '',
-                                'alt_menu' => 0,
+                                'alt_menu'         => 0,
 
                             ];
                             // $pageName = 'live_dom_ordering';
@@ -2243,11 +2190,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/miscellaneous', function () {
                             // $category_name = '';
                             $data = [
-                                'category_name' => 'datatable',
-                                'page_name' => 'miscellaneous',
-                                'has_scrollspy' => 0,
+                                'category_name'    => 'datatable',
+                                'page_name'        => 'miscellaneous',
+                                'has_scrollspy'    => 0,
                                 'scrollspy_offset' => '',
-                                'alt_menu' => 0,
+                                'alt_menu'         => 0,
 
                             ];
                             // $pageName = 'miscellaneous';
@@ -2256,11 +2203,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/multi-column_ordering', function () {
                             // $category_name = '';
                             $data = [
-                                'category_name' => 'datatable',
-                                'page_name' => 'multi-column_ordering',
-                                'has_scrollspy' => 0,
+                                'category_name'    => 'datatable',
+                                'page_name'        => 'multi-column_ordering',
+                                'has_scrollspy'    => 0,
                                 'scrollspy_offset' => '',
-                                'alt_menu' => 0,
+                                'alt_menu'         => 0,
 
                             ];
                             // $pageName = 'multi-column_ordering';
@@ -2269,11 +2216,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/multiple_tables', function () {
                             // $category_name = '';
                             $data = [
-                                'category_name' => 'datatable',
-                                'page_name' => 'multiple_tables',
-                                'has_scrollspy' => 0,
+                                'category_name'    => 'datatable',
+                                'page_name'        => 'multiple_tables',
+                                'has_scrollspy'    => 0,
                                 'scrollspy_offset' => '',
-                                'alt_menu' => 0,
+                                'alt_menu'         => 0,
 
                             ];
                             // $pageName = 'multiple_tables';
@@ -2282,11 +2229,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/ordering_sorting', function () {
                             // $category_name = '';
                             $data = [
-                                'category_name' => 'datatable',
-                                'page_name' => 'ordering_sorting',
-                                'has_scrollspy' => 0,
+                                'category_name'    => 'datatable',
+                                'page_name'        => 'ordering_sorting',
+                                'has_scrollspy'    => 0,
                                 'scrollspy_offset' => '',
-                                'alt_menu' => 0,
+                                'alt_menu'         => 0,
 
                             ];
                             // $pageName = 'ordering_sorting';
@@ -2295,11 +2242,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/range_search', function () {
                             // $category_name = '';
                             $data = [
-                                'category_name' => 'datatable',
-                                'page_name' => 'range_search',
-                                'has_scrollspy' => 0,
+                                'category_name'    => 'datatable',
+                                'page_name'        => 'range_search',
+                                'has_scrollspy'    => 0,
                                 'scrollspy_offset' => '',
-                                'alt_menu' => 0,
+                                'alt_menu'         => 0,
 
                             ];
                             // $pageName = 'range_search';
@@ -2313,11 +2260,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/account_settings', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'users',
-                            'page_name' => 'account_settings',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'users',
+                            'page_name'        => 'account_settings',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0,
+                            'alt_menu'         => 0,
 
                         ];
                         // $pageName = 'account_settings';
@@ -2326,11 +2273,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                     Route::get('/profile', function () {
                         // $category_name = '';
                         $data = [
-                            'category_name' => 'users',
-                            'page_name' => 'profile',
-                            'has_scrollspy' => 0,
+                            'category_name'    => 'users',
+                            'page_name'        => 'profile',
+                            'has_scrollspy'    => 0,
                             'scrollspy_offset' => '',
-                            'alt_menu' => 0
+                            'alt_menu'         => 0,
                         ];
                         // $pageName = 'profile';
                         return view('pages.users.user_profile')->with($data);
@@ -2341,11 +2288,11 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                 Route::get('/widgets', function () {
                     // $category_name = '';
                     $data = [
-                        'category_name' => 'widgets',
-                        'page_name' => 'widgets',
-                        'has_scrollspy' => 0,
+                        'category_name'    => 'widgets',
+                        'page_name'        => 'widgets',
+                        'has_scrollspy'    => 0,
                         'scrollspy_offset' => '',
-                        'alt_menu' => 0,
+                        'alt_menu'         => 0,
 
                     ];
                     // $pageName = 'widgets';
@@ -2355,16 +2302,15 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
         });
     });
 
-
     Route::get('/loging', function () {
         // $category_name = 'auth';
         $data = [
-            'category_name' => 'auth',
-            'page_name' => 'auth_default',
-            'page_menu' => 'login_to_wired_banking_lite',
-            'has_scrollspy' => 0,
+            'category_name'    => 'auth',
+            'page_name'        => 'auth_default',
+            'page_menu'        => 'login_to_wired_banking_lite',
+            'has_scrollspy'    => 0,
             'scrollspy_offset' => '',
-            'alt_menu' => 0,
+            'alt_menu'         => 0,
         ];
         // $pageName = 'auth_default';
         return view('auth.login')->with($data);
@@ -2381,13 +2327,11 @@ Route::get('/resend-email/{verification_hash}', [App\Http\Controllers\Auth\Regis
 Route::get('/ma-resend-email', [App\Http\Controllers\Auth\RegisterController::class, 'mainResendEmil'])->middleware('auth')->name('main-resend');
 Route::get('/transaction/type', [App\Http\Controllers\TransactionController::class, 'transactionListType']);
 
-
 Route::get('/company/customer-registration/{company_reference}', [App\Http\Controllers\PublicTransactionController::class, 'customerRegistration'])->name('customer-registration');
 Route::post('/company/process-customer-registration', [App\Http\Controllers\PublicTransactionController::class, 'create_customer_account'])->name('customer-registration-public')->middleware("log.route");
 Route::get('/transaction/payment-link/{company_reference}', [App\Http\Controllers\PublicTransactionController::class, 'paymentLink'])->name('payment-link');
 Route::post('/transaction/initiate-payment-link', [App\Http\Controllers\PublicTransactionController::class, 'initiatePaymentLink'])->name('initiate-payment-link');
 Route::get('/transaction/verify-fund-wallet', [App\Http\Controllers\PublicTransactionController::class, 'verifyFundWallet'])->name('verify-fund-wallet');
-
 
 //Route::post('register/', 'Auth\RegisterController@create')->name('register');
 Route::post('companyregister', [RegisterController::class, 'create'])->name('company-register');

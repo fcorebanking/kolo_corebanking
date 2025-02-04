@@ -336,7 +336,7 @@ class KudaController extends WebhookController
 
                 //$response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if (! $response["Status"]) {
+                if (! $createAccountResponse["status"]) {
                     if ($createAccountResponse["responseCode"] == "-4" || $createAccountResponse["responseCode"] == "-2" || $createAccountResponse["responseCode"] == "-1") {
                         return [
                             'status'  => "02",

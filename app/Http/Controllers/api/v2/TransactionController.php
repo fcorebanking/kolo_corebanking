@@ -1348,7 +1348,7 @@ class TransactionController extends Controller
     public function cyberpayWebhook(Request $request)
     {
         $transactionId = generateTransactionReference();
-
+        logInfo($request->all(), "Kuda Web Hook Request body");
         try {
 
             if ($request->paymentStatus == "Successful") {
@@ -1397,6 +1397,8 @@ class TransactionController extends Controller
     public function kudaWebhook(Request $request)
     {
         $transactionId = generateTransactionReference();
+
+
 
         if ($request->transactionType != "Credit") {
             return \response()->json(['status' => false, 'message' => 'Transaction is not a Credit Transaction']);

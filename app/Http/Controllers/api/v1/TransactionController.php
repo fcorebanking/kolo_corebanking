@@ -1821,7 +1821,11 @@ class TransactionController extends Controller
     public function kudaWebhook(Request $request)
     {
 
+        logInfo($request->all(), "Kuda Web Hook Request body");
+
         $kudaController = new KudaController();
+
+
 
         if ($request->transactionType != "Credit") {
             return \response()->json(['status' => false, 'message' => 'Transaction is not a Credit Transaction']);

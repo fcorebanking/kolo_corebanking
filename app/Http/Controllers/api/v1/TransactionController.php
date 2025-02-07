@@ -3308,10 +3308,11 @@ class TransactionController extends Controller
                     $customerCharge = $companySettings->max_bank_transfer_charge;
 
                     if ($currentRequest['data']['transaction']['type' == "topup"]) {
-
-                    } else {
-                        $debitCustomer = debitPOSTerminalWithCharge($userPOS->id, $currentRequest['data']['transaction']['amount'], $customerCharge, $charge, $user);
+                        $theCharge      = 0;
+                        $customerCharge = 0;
                     }
+
+                    $debitCustomer = debitPOSTerminalWithCharge($userPOS->id, $currentRequest['data']['transaction']['amount'], $customerCharge, $charge, $user);
 
                     if (! $debitCustomer['status']) {
 

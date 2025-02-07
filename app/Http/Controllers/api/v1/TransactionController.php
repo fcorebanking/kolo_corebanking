@@ -3231,6 +3231,8 @@ class TransactionController extends Controller
 
                 $userPOS = AgentTerminal::where('terminal_code', $currentRequest['data']['terminal']['serialNo'])->first();
 
+                logInfo(json_encode($userPOS), "Agent Terminal response");
+
                 if (! $userPOS) {
                     if ($currentRequest['action_type'] == "pre-balance-check-auth") {
                         return response()->json(["status" => false, 'message' => "Invalid POS terminal Code"]);

@@ -1,21 +1,21 @@
 <?php
-
 namespace App\Http\Controllers\api\v1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\CustomClasses\WebhookController;
 use App\Http\Controllers\ThirdParty\AmuchaController;
 use App\Http\Controllers\ThirdParty\AssetMatrixController;
 use App\Http\Controllers\ThirdParty\BaniController;
 use App\Http\Controllers\ThirdParty\CgateController;
 use App\Http\Controllers\ThirdParty\CyberpayControllelr;
 use App\Http\Controllers\ThirdParty\FairMoneyController;
-use App\Http\Controllers\ThirdParty\FlutterwaveController;
 use App\Http\Controllers\ThirdParty\GTBController;
 use App\Http\Controllers\ThirdParty\KudaBusinessController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\MonnifyController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
+use App\Http\Controllers\ThirdParty\SafehavenController;
+use App\Http\Controllers\ThirdParty\TryluxController;
+use App\Http\Controllers\ThirdParty\Trylux\TryluxPayload;
 use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Http\Controllers\ThirdParty\WovenController;
@@ -25,39 +25,30 @@ use App\Models\banks;
 use App\Models\Company;
 use App\Models\company_settings;
 use App\Models\company_wallet;
-use App\Models\transactions;
-use App\Models\User;
-use App\Models\CustomerRestrictionLog;
 use App\Models\GtbWebhook;
 use App\Models\loan;
 use App\Models\Mandate;
 use App\Models\MandateLog;
 use App\Models\PreferredEbankingPartner;
-use App\Models\StaffWallet;
+use App\Models\savings_product;
+use App\Models\transactions;
 use App\Models\UnusedProvidusAccounts;
-use App\Models\user_wallet;
+use App\Models\User;
 use App\Models\UserCard;
-use App\Models\wb_account_details;
+use App\Models\user_wallet;
 use App\Models\WbaCharge;
-use App\Models\WbaCompanyCharge;
+use App\Models\wb_account_details;
 use App\Models\WebhookLog;
 use App\Models\WovenWebhook;
-use App\Models\BranchWallet;
 use App\Services\ebanking\BankTransferType;
 use App\Services\ebanking\EbankingService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
-use Webhook;
-use App\Http\Controllers\ThirdParty\SafehavenController;
-use App\Http\Controllers\ThirdParty\TryluxController;
-use App\Models\BankTransferInformation;
-use App\Models\savings_product;
-use App\Http\Controllers\ThirdParty\Trylux\TryluxPayload;
-use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
@@ -65,7 +56,7 @@ class TransactionController extends Controller
     private $flutterwaveSecretKey;
     private $baseUrl;
 
-    function __construct()
+    public function __construct()
     {
 
         $this->baseUrl = url('/');
@@ -75,14 +66,13 @@ class TransactionController extends Controller
     {
 
         $validation = Validator::make($request->all(), [
-            "bank_code" => 'required',
+            "bank_code"      => 'required',
             "account_number" => 'required|numeric|gt:0',
         ]);
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => "Bank code and account number is required");
+            $ra = ["status" => false, "message" => "Bank code and account number is required"];
             return response()->json($ra, 406);
         }
-
 
         $preferredEbankingPartner = PreferredEbankingPartner::all();
 
@@ -90,14 +80,14 @@ class TransactionController extends Controller
 
         $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->account_number);
 
-        if (!$bankAccount['status']) {
+        if (! $bankAccount['status']) {
             return response()->json($bankAccount, 400);
         }
 
         $bank_name = "";
 
         if (isset($bankAccount["data"]["bank_code"])) {
-            $bank = banks::where('bank_code', $bankAccount["data"]["bank_code"])->first();
+            $bank      = banks::where('bank_code', $bankAccount["data"]["bank_code"])->first();
             $bank_name = $bank->bank_name;
         } else {
             $bank_name = $bankAccount['data']['bank_name'];
@@ -110,18 +100,18 @@ class TransactionController extends Controller
         $myAccountName = explode(" ", $accountName);
 
         $firstName = strlen($myAccountName[0]) < 3 ? $myAccountName[1] : $myAccountName[0];
-        $lastName = count($myAccountName) > 2 ? (strlen($myAccountName[2]) < 3 ? $myAccountName[1] : $myAccountName[2]) : (count($myAccountName) > 1 ? $myAccountName[1] : "");
+        $lastName  = count($myAccountName) > 2 ? (strlen($myAccountName[2]) < 3 ? $myAccountName[1] : $myAccountName[2]) : (count($myAccountName) > 1 ? $myAccountName[1] : "");
 
         return response()->json(
             [
-                'status' => true,
+                'status'  => true,
                 'message' => "Account Verified Successfully",
-                'data' => [
+                'data'    => [
                     'first_name' => $firstName,
-                    'last_name' => $lastName,
-                    'bank_name' => $bank_name
+                    'last_name'  => $lastName,
+                    'bank_name'  => $bank_name,
 
-                ]
+                ],
             ]
         );
     }
@@ -129,31 +119,31 @@ class TransactionController extends Controller
     {
         try {
             $validation = Validator::make($request->all(), [
-                "bank_code" => 'required',
+                "bank_code"      => 'required',
                 "account_number" => 'required|numeric|gt:0',
-                "ApiKey" => 'required',
+                "ApiKey"         => 'required',
             ]);
             $header = $request->header('ApiKey');
             if ($validation->fails()) {
-                $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+                $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
                 return response()->json($ra, 406);
             }
             if ($request->ApiKey != "enter key") {
-                $ra = array("status" => false, "message" => "Invalid API key provided");
+                $ra = ["status" => false, "message" => "Invalid API key provided"];
                 return response()->json($ra, 400);
             }
 
             $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
 
-            if (!$bank) {
+            if (! $bank) {
                 return response()->json(["status" => 0, 'message' => "Invalid bank code"], 400);
             }
 
             $preferredEbankingPartner = PreferredEbankingPartner::all();
 
-            $ebankingService = new EbankingService($preferredEbankingPartner);
-            $bankTransferType = new BankTransferType();
-            $bankTransferType->bankCode = $request->bank_code;
+            $ebankingService                 = new EbankingService($preferredEbankingPartner);
+            $bankTransferType                = new BankTransferType();
+            $bankTransferType->bankCode      = $request->bank_code;
             $bankTransferType->shortBankCode = $bank->short_code;
 
             return $ebankingService->verifyAccountNumberFull($request->bank_code, $request->account_number);
@@ -181,14 +171,14 @@ class TransactionController extends Controller
     public function creditDebitCustomerAccount(Request $request)
     {
         $validation = Validator::make($request->all(), [
-            "type" => 'required|in:credit,debit',
+            "type"           => 'required|in:credit,debit',
             "account_number" => 'required|numeric|gt:0',
-            "amount" => 'required|numeric|gt:0',
-            "description" => 'required|string'
+            "amount"         => 'required|numeric|gt:0',
+            "description"    => 'required|string',
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -200,7 +190,7 @@ class TransactionController extends Controller
 
         $userAccount = wb_account_details::where('virtual_accnum', $request->account_number)->first();
 
-        if (!$userAccount) {
+        if (! $userAccount) {
             return response()->json(['status' => false, 'message' => 'Invalid account number'], 400);
         }
 
@@ -212,7 +202,7 @@ class TransactionController extends Controller
 
         $customerBalance = $request->type == "debit" ? debitCustomerOnly($userAccount->id, $request->amount, $userAccount->user) : creditCustomerOnly($userAccount->id, $request->amount);
 
-        if (!$customerBalance['status']) {
+        if (! $customerBalance['status']) {
             return response()->json($customerBalance, 400);
         }
 
@@ -221,30 +211,30 @@ class TransactionController extends Controller
         $transactionId = generate_txnID();
 
         $transaction = transactions::create([
-            "branch_id" => $userAccount->user->branch_id,
-            "account_id" => $userAccount->id,
-            "description" => $request->description,
-            "balance_before" => $customerBalance['balance_before'],
-            "balance_after" => $customerBalance['balance_after'],
-            "amount" => $request->amount,
-            "transaction_reference" => $transactionId,
+            "branch_id"              => $userAccount->user->branch_id,
+            "account_id"             => $userAccount->id,
+            "description"            => $request->description,
+            "balance_before"         => $customerBalance['balance_before'],
+            "balance_after"          => $customerBalance['balance_after'],
+            "amount"                 => $request->amount,
+            "transaction_reference"  => $transactionId,
             "transaction_remarks_id" => 2,
-            "transaction_type_id" => $transactionType,
-            "credit_debit_type_id" => $request->type == "debit" ? 2 : 1,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => $userAccount->user_id
+            "transaction_type_id"    => $transactionType,
+            "credit_debit_type_id"   => $request->type == "debit" ? 2 : 1,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $userAccount->user_id,
         ]);
 
         $message = $request->type == "debit" ? "Customer Debited Successfully" : "Customer Credited Successfully";
 
         if ($companyWallet) {
             return response()->json([
-                'status' => true,
+                'status'  => true,
                 'message' => $message,
-                'data' => [
-                    'balance' => $customerBalance['balance_after'],
-                    'transaction_id' => $transactionId
-                ]
+                'data'    => [
+                    'balance'        => $customerBalance['balance_after'],
+                    'transaction_id' => $transactionId,
+                ],
             ]);
         } else {
             return response()->json(['status' => false, 'message' => 'Failed to completed transaction'], 400);
@@ -255,13 +245,13 @@ class TransactionController extends Controller
     {
 
         $validation = Validator::make($request->all(), [
-            "amount" => "required|gt:0",
-            "destination_account" => "required",
-            "bank_code" => "required",
-            "transaction_reference" => "sometimes|string"
+            "amount"                => "required|gt:0",
+            "destination_account"   => "required",
+            "bank_code"             => "required",
+            "transaction_reference" => "sometimes|string",
         ]);
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -292,10 +282,10 @@ class TransactionController extends Controller
                 return response()->json($checkAllowedTransaction);
             }
 
-            $transactionId =  generateTransactionReference();
+            $transactionId = generateTransactionReference();
 
             if ($request->has('transaction_reference')) {
-                $transactionId = $request->transaction_reference;
+                $transactionId           = $request->transaction_reference;
                 $checkAllowedTransaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
 
                 if ($checkAllowedTransaction) {
@@ -304,8 +294,8 @@ class TransactionController extends Controller
             }
             $adminUser = User::where('company_id', $company->id)->first();
 
-            $ledger_cr = null;
-            $ledger_dr = null;
+            $ledger_cr       = null;
+            $ledger_dr       = null;
             $ledger_Settings = get_CR_DR_TXN_Type_Ledger(8, $adminUser->company_id);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
@@ -314,7 +304,7 @@ class TransactionController extends Controller
 
             $customerBalance = debitCompanyWithCharge($adminUser->company_id, $request->amount, $chargeAmount, $adminUser);
 
-            if (!$customerBalance['status']) {
+            if (! $customerBalance['status']) {
                 return response()->json($customerBalance, 400);
             }
 
@@ -323,35 +313,34 @@ class TransactionController extends Controller
             $myDescription = $adminUser->first_name . " " . $adminUser->last_name . " / " . $adminUser->company->company_name . '/' . $bank->bank_name;
 
             $transaction = transactions::create([
-                "balance_before" => 0,
-                "amount" => 0,
-                "balance_after" => 0,
-                "description" => $myDescription,
-                "branch_id" => $adminUser->branch_id,
-                "company_id"  => $adminUser->company_id,
+                "balance_before"         => 0,
+                "amount"                 => 0,
+                "balance_after"          => 0,
+                "description"            => $myDescription,
+                "branch_id"              => $adminUser->branch_id,
+                "company_id"             => $adminUser->company_id,
                 "company_balance_before" => $customerBalance['balance_before'],
-                "company_balance_after" => $customerBalance['charge_balance_after'],
-                "company_amount" => $request->amount + $chargeAmount,
-                "company_id" => $company->id,
-                "transaction_reference" => $transactionId,
+                "company_balance_after"  => $customerBalance['charge_balance_after'],
+                "company_amount"         => $request->amount + $chargeAmount,
+                "company_id"             => $company->id,
+                "transaction_reference"  => $transactionId,
                 "transaction_remarks_id" => 1,
-                "transaction_type_id" => 8,
-                "credit_debit_type_id" => 2,
-                "created_date"  => date('Y-m-d'),
-                "created_by" => $adminUser->id,
-                "ledger_cr" => $ledger_cr,
-                "ledger_dr" => $ledger_dr
+                "transaction_type_id"    => 8,
+                "credit_debit_type_id"   => 2,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => $adminUser->id,
+                "ledger_cr"              => $ledger_cr,
+                "ledger_dr"              => $ledger_dr,
             ]);
 
             DB::commit();
 
-
             $preferredEbankingPartner = PreferredEbankingPartner::all();
-            $ebankingService = new EbankingService($preferredEbankingPartner);
+            $ebankingService          = new EbankingService($preferredEbankingPartner);
 
             $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
 
-            if (!$bankAccount['status']) {
+            if (! $bankAccount['status']) {
                 $bankAccount['status'] = 0;
                 return response()->json($bankAccount);
             }
@@ -361,14 +350,13 @@ class TransactionController extends Controller
             $transaction->description = $myDescription;
             $transaction->save();
 
-
-            $bankTransferType = new BankTransferType();
-            $bankTransferType->bankCode = $request->bank_code;
-            $bankTransferType->shortBankCode = $bank->short_code;
-            $bankTransferType->accountNumber = $request->destination_account;
-            $bankTransferType->description = isset($request->description) ? $request->description : "BM";
-            $bankTransferType->amount = $request->amount;
-            $bankTransferType->transactionReference =  $transaction->transaction_reference;
+            $bankTransferType                       = new BankTransferType();
+            $bankTransferType->bankCode             = $request->bank_code;
+            $bankTransferType->shortBankCode        = $bank->short_code;
+            $bankTransferType->accountNumber        = $request->destination_account;
+            $bankTransferType->description          = isset($request->description) ? $request->description : "BM";
+            $bankTransferType->amount               = $request->amount;
+            $bankTransferType->transactionReference = $transaction->transaction_reference;
 
             $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
 
@@ -394,20 +382,16 @@ class TransactionController extends Controller
             $transaction->transaction_remarks_id = 2;
             $transaction->save();
 
-
-
-
-
             return response()->json(
                 [
-                    "status" => true,
+                    "status"  => true,
                     'message' => "Wallet to Bank Transfer Successful",
-                    'data' => [
-                        'balance_before' => $customerBalance['balance_before'],
-                        'balance' => $customerBalance['charge_balance_after'],
-                        'balance_after' => $customerBalance['charge_balance_after'],
-                        'transaction_reference' => $transactionId
-                    ]
+                    'data'    => [
+                        'balance_before'        => $customerBalance['balance_before'],
+                        'balance'               => $customerBalance['charge_balance_after'],
+                        'balance_after'         => $customerBalance['charge_balance_after'],
+                        'transaction_reference' => $transactionId,
+                    ],
                 ]
             );
         } catch (Exception $e) {
@@ -420,11 +404,11 @@ class TransactionController extends Controller
     {
 
         $validation = Validator::make($request->all(), [
-            "account_number" => "required"
+            "account_number" => "required",
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -436,7 +420,7 @@ class TransactionController extends Controller
 
         $userAccount = wb_account_details::where('virtual_accnum', $request->account_number)->first();
 
-        if (!$userAccount) {
+        if (! $userAccount) {
             return response()->json(['status' => false, 'message' => 'User account not found'], 400);
         }
 
@@ -463,17 +447,16 @@ class TransactionController extends Controller
         return response()->json(["status" => true, 'message' => "KYC Information updated successfullly"]);
     }
 
-
     public function processSafeHavenVerifyAndReverseTransaction(Request $request, $transactionReference)
     {
 
-        if (!$transactionReference) {
+        if (! $transactionReference) {
             return response()->json(['status' => 0, 'message' => "Transaction reference is required"]);
         }
 
         $transaction = transactions::where('transaction_reference', $transactionReference)->first();
 
-        if (!$transaction) {
+        if (! $transaction) {
             return response()->json(['status' => 0, 'message' => "Invalid Transaction reference"]);
         }
 
@@ -481,7 +464,7 @@ class TransactionController extends Controller
             return response()->json(['status' => 0, 'message' => "This transaction is not a bank transfer"]);
         }
 
-        $startingDate = Carbon::parse('2022-12-15 00:00:00');
+        $startingDate    = Carbon::parse('2022-12-15 00:00:00');
         $transactionDate = Carbon::parse($transaction->created_at);
 
         if ($startingDate->gt($transactionDate)) {
@@ -497,14 +480,14 @@ class TransactionController extends Controller
         }
 
         $affliateCustomerCharge = 0;
-        $affliateCompanyCharge = 0;
-        $whoToCredit = $transaction->account_id == null ? 'company' : 'both';
+        $affliateCompanyCharge  = 0;
+        $whoToCredit            = $transaction->account_id == null ? 'company' : 'both';
 
-        $childTransaction = transactions::where('parent_transaction_id',  $transaction->id)->first();
+        $childTransaction = transactions::where('parent_transaction_id', $transaction->id)->first();
 
         if ($childTransaction) {
             $affliateCustomerCharge = $childTransaction->amount;
-            $affliateCompanyCharge = $childTransaction->company_amount;
+            $affliateCompanyCharge  = $childTransaction->company_amount;
         }
 
         $kudaController = new KudaController();
@@ -514,15 +497,15 @@ class TransactionController extends Controller
         $verifyTransaction = $kudaController->verifyTransaction($transactionReference);
 
         if ($verifyTransaction['status'] == "03") {
-            $partnerType = "kuda_business";
+            $partnerType            = "kuda_business";
             $kudaBusinessController = new KudaBusinessController();
-            $verifyTransaction = $kudaBusinessController->verifyTransaction($transactionReference);
+            $verifyTransaction      = $kudaBusinessController->verifyTransaction($transactionReference);
         }
 
         if ($verifyTransaction['status'] == "03") {
-            $partnerType = "safehaven";
+            $partnerType         = "safehaven";
             $safeHavenController = new SafehavenController();
-            $verifyTransaction = $safeHavenController->getTransactionStatus($transactionReference);
+            $verifyTransaction   = $safeHavenController->getTransactionStatus($transactionReference);
         }
 
         if ($verifyTransaction['status'] == "03") {
@@ -549,31 +532,31 @@ class TransactionController extends Controller
 
                 if ($partnerType == "safehaven" || $partnerType == "others") {
                     $totalCustomerAmount = $transaction->company_amount + $affliateCustomerCharge;
-                    $totalCompanyAmount = $transaction->company_amount + $affliateCompanyCharge;
+                    $totalCompanyAmount  = $transaction->company_amount + $affliateCompanyCharge;
                 } else if ($partnerType != "safehaven") {
                     $totalCustomerAmount = $transaction->amount + $affliateCustomerCharge;
-                    $totalCompanyAmount = $transaction->amount + $affliateCompanyCharge;
+                    $totalCompanyAmount  = $transaction->amount + $affliateCompanyCharge;
                 }
 
-                debitReversal($transactionReference, $transaction->account_id, $transaction->company_id, $totalCustomerAmount,  $totalCompanyAmount, $whoToCredit);
-            } else $verifyTransaction['status'] = 0;
+                debitReversal($transactionReference, $transaction->account_id, $transaction->company_id, $totalCustomerAmount, $totalCompanyAmount, $whoToCredit);
+            } else {
+                $verifyTransaction['status'] = 0;
+            }
 
             logInfo($verifyTransaction, "Verify Transaction Res");
             return response()->json($verifyTransaction);
         }
     }
 
-
-
     public function verifyBankAccountFullname(Request $request)
     {
 
         $validation = Validator::make($request->all(), [
-            "bank_code" => 'required',
+            "bank_code"      => 'required',
             "account_number" => 'required|numeric|gt:0',
         ]);
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => "Bank code and account number is required");
+            $ra = ["status" => false, "message" => "Bank code and account number is required"];
             return response()->json($ra, 406);
         }
 
@@ -583,7 +566,7 @@ class TransactionController extends Controller
 
         $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->account_number);
 
-        if (!$bankAccount['status']) {
+        if (! $bankAccount['status']) {
             $bankAccount['status'] = 0;
             return response()->json($bankAccount);
         }
@@ -591,13 +574,13 @@ class TransactionController extends Controller
         $bank_name = "";
 
         if (isset($bankAccount["data"]["bank_code"])) {
-            $bank = banks::where('bank_code', $bankAccount["data"]["bank_code"])->first();
+            $bank                             = banks::where('bank_code', $bankAccount["data"]["bank_code"])->first();
             $bankAccount['data']['bank_name'] = $bank->bank_name;
         } else {
             $bank_name = $bankAccount['data']['bank_name'];
         }
 
-        $bankAccount['status'] = 1;
+        $bankAccount['status']            = 1;
         $bankAccount['data']['bank_name'] = $bank_name;
         return response()->json($bankAccount);
     }
@@ -606,51 +589,49 @@ class TransactionController extends Controller
     {
 
         $validation = Validator::make($request->all(), [
-            "bet_company" => 'required',
+            "bet_company"    => 'required',
             "bet_account_id" => 'required',
         ]);
 
         return response()->json(
             [
-                'status' => true,
+                'status'  => true,
                 'message' => "This service is not available at the moment",
             ]
         );
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
-        $isDemo = env('APP_MODE');
+        $isDemo         = env('APP_MODE');
         $apiExchangeKey = env("API_SERVER_EXCHANGE_KEY");
 
         $url = "/validate_bet_account.php?bet_company=$request->bet_company&bet_account=$request->bet_account_id&is_demo=$isDemo&api_exchange_key=$apiExchangeKey";
 
         $betAccount = postRequest([], [], $url);
 
-
-
         if ($betAccount['success']) {
 
             return response()->json(
                 [
-                    'status' => true,
+                    'status'  => true,
                     'message' => "Account Verified Successfully",
-                    'data' => [
+                    'data'    => [
                         'customer_name' => $betAccount['data']['firstName'] . " " . $betAccount['data']['lastName'],
-                        'bet_company' =>  $betAccount['data']['provider']
+                        'bet_company'   => $betAccount['data']['provider'],
 
-                    ]
+                    ],
                 ]
             );
         } else {
 
             return response()->json(
                 [
-                    'status' => false,
+                    'status'  => false,
                     'message' => "Failed to verify bet account",
-                    'data' => $betAccount
+                    'data'    => $betAccount,
                 ],
                 400
             );
@@ -667,27 +648,27 @@ class TransactionController extends Controller
         if ($providusAccounts) {
             foreach ($providusAccounts as $providusAccount) {
                 // transactions::where('account_id', $providusAccount)->where('created_at', '<', Carbon::now()->subMonths(2))->;
-                $fundingTransaction =  transactions::where('account_id', $providusAccount->id)->where('transaction_type_id', '=', 6)->first();
+                $fundingTransaction = transactions::where('account_id', $providusAccount->id)->where('transaction_type_id', '=', 6)->first();
 
-                if (!$fundingTransaction) {
+                if (! $fundingTransaction) {
 
                     $oldProvidusAccount = $providusAccount->virtual_accnum;
 
                     $assetMatrixController = new AssetMatrixController();
-                    $assetMatrixAccount = $assetMatrixController->generateAndVerifyAssetMatrixAccount();
+                    $assetMatrixAccount    = $assetMatrixController->generateAndVerifyAssetMatrixAccount();
 
                     logInfo($assetMatrixAccount, "New Account Generated");
 
                     $providusAccount->virtual_accnum = $assetMatrixAccount['data']['virtual_account'];
-                    $providusAccount->acc_reference = $assetMatrixAccount['data']['account_reference'];
-                    $providusAccount->bankid = 25;
+                    $providusAccount->acc_reference  = $assetMatrixAccount['data']['account_reference'];
+                    $providusAccount->bankid         = 25;
 
                     $response['data'][] = "Providus Account with Account ID: $providusAccount->id changed from $oldProvidusAccount to $providusAccount->virtual_accnum";
 
                     UnusedProvidusAccounts::where('account_number', $oldProvidusAccount)->update(
                         [
                             'assigned_status' => 1,
-                            'account_number' => $assetMatrixAccount['data']['virtual_account']
+                            'account_number'  => $assetMatrixAccount['data']['virtual_account'],
                         ]
                     );
                 }
@@ -706,14 +687,14 @@ class TransactionController extends Controller
 
         $response = ['status' => true, 'message' => "Providus unused accounts found"];
 
-        $providusAccounts =  UnusedProvidusAccounts::where('assigned_status', '1')->get();
+        $providusAccounts = UnusedProvidusAccounts::where('assigned_status', '1')->get();
 
         if ($providusAccounts) {
             foreach ($providusAccounts as $providusAccount) {
                 // transactions::where('account_id', $providusAccount)->where('created_at', '<', Carbon::now()->subMonths(2))->;
-                $fundingTransaction =  wb_account_details::where('virtual_accnum', $providusAccount->account_number)->first();
+                $fundingTransaction = wb_account_details::where('virtual_accnum', $providusAccount->account_number)->first();
 
-                if (!$fundingTransaction) {
+                if (! $fundingTransaction) {
                     $providusAccount->assigned_status = 0;
                     $providusAccount->save();
                 } else {
@@ -729,7 +710,7 @@ class TransactionController extends Controller
     {
         $response = ['status' => true, 'message' => "Providus unused accounts found"];
 
-        $assetMatrixAccounts =  wb_account_details::select('user_id')->distinct()->where('bankid', '25')->get();
+        $assetMatrixAccounts = wb_account_details::select('user_id')->distinct()->where('bankid', '25')->get();
 
         if ($assetMatrixAccounts) {
             $response['data']['count'] = count($assetMatrixAccounts);
@@ -738,7 +719,7 @@ class TransactionController extends Controller
 
                 $newAssetMatrix = wb_account_details::where('user_id', $assetMatrixAccount->user_id)->first();
 
-                $userAccount =  User::where('id', $newAssetMatrix->user_id)->first();
+                $userAccount = User::where('id', $newAssetMatrix->user_id)->first();
 
                 $oldAccount = $userAccount->virtual_account;
 
@@ -765,23 +746,22 @@ class TransactionController extends Controller
     {
 
         $validation = Validator::make($request->all(), [
-            "bet_company" => 'required',
+            "bet_company"    => 'required',
             "bet_account_id" => 'required',
-            "amount" => 'required|numeric|gt:0|min:100'
+            "amount"         => 'required|numeric|gt:0|min:100',
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
         // return response()->json(['status' => false, 'message' => 'This service is not available at the moment'], 400);
 
-
         $reference = generateAccountReference();
 
         $transactionPinValidation = validatePinCheckCustomerBalance(auth()->user()->pin, $request->amount);
-        if (!$transactionPinValidation['status']) {
+        if (! $transactionPinValidation['status']) {
             return response()->json($transactionPinValidation, 400);
         }
 
@@ -796,111 +776,109 @@ class TransactionController extends Controller
 
         $validateTransferAmount = $this->validateTransfer($request->amount);
 
-        if (!$validateTransferAmount['status']) {
+        if (! $validateTransferAmount['status']) {
             return \response()->json($validateTransferAmount, 400);
         }
 
-        $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->amount, $companySettings->bills_payment_charge, $wbaCharge);
-        $ledger_cr = null;
-        $ledger_dr = null;
+        $debitCustomer   = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->amount, $companySettings->bills_payment_charge, $wbaCharge);
+        $ledger_cr       = null;
+        $ledger_dr       = null;
         $ledger_Settings = get_CR_DR_TXN_Type_Ledger(52, \auth()->user()->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
         $transaction = transactions::create([
-            "balance_before" => $debitCustomer['balance_before'],
-            "amount" => $request->amount,
-            "balance_after" => $debitCustomer["balance_after"],
-            "account_id" => $transactionPinValidation['account_id'],
-            "company_id" => \auth()->user()->company_id,
-            "branch_id" => auth()->user()->branch_id,
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $request->amount,
+            "balance_after"          => $debitCustomer["balance_after"],
+            "account_id"             => $transactionPinValidation['account_id'],
+            "company_id"             => \auth()->user()->company_id,
+            "branch_id"              => auth()->user()->branch_id,
             "company_balance_before" => $debitCustomer["company_balance_before"],
-            "company_amount" => $debitCustomer["company_amount"],
-            "company_balance_after" => $debitCustomer["company_balance_after"],
-            "description" => "Bet Account Topup worth $request->amount",
-            "transaction_reference" => $reference,
+            "company_amount"         => $debitCustomer["company_amount"],
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "description"            => "Bet Account Topup worth $request->amount",
+            "transaction_reference"  => $reference,
             "transaction_remarks_id" => 1,
-            "transaction_type_id" => 52,
-            "credit_debit_type_id" => 2,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_cr" => $ledger_cr,
-            "ledger_dr" => $ledger_dr
+            "transaction_type_id"    => 52,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
         ]);
 
         $transactionChargeId = \generate_txnID();
-        $ledger_cr = null;
-        $ledger_dr = null;
-        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(51, \auth()->user()->company_id);
+        $ledger_cr           = null;
+        $ledger_dr           = null;
+        $ledger_Settings     = get_CR_DR_TXN_Type_Ledger(51, \auth()->user()->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
         // Save Charges to transaction table
         $transaction = transactions::create([
-            "balance_before" => $debitCustomer['charge_balance_before'],
-            "amount" =>  $companySettings->bills_payment_charge,
-            "balance_after" => $debitCustomer["charge_balance_after"],
-            "account_id" => $transactionPinValidation['account_id'],
-            "company_id" => \auth()->user()->company_id,
-            "branch_id" => auth()->user()->branch_id,
+            "balance_before"         => $debitCustomer['charge_balance_before'],
+            "amount"                 => $companySettings->bills_payment_charge,
+            "balance_after"          => $debitCustomer["charge_balance_after"],
+            "account_id"             => $transactionPinValidation['account_id'],
+            "company_id"             => \auth()->user()->company_id,
+            "branch_id"              => auth()->user()->branch_id,
             "company_balance_before" => $debitCustomer["company_charge_balance_before"],
-            "company_amount" => $wbaCharge,
-            "company_balance_after" => $debitCustomer["company_charge_balance_after"],
-            "description" => "Charge for Bet Account Topup",
-            "transaction_reference" => $transactionChargeId,
-            "parent_transaction_id" => $reference,
+            "company_amount"         => $wbaCharge,
+            "company_balance_after"  => $debitCustomer["company_charge_balance_after"],
+            "description"            => "Charge for Bet Account Topup",
+            "transaction_reference"  => $transactionChargeId,
+            "parent_transaction_id"  => $reference,
             "transaction_remarks_id" => 1,
-            "transaction_type_id" => 51,
-            "credit_debit_type_id" => 2,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_cr" => $ledger_cr,
-            "ledger_dr" => $ledger_dr
+            "transaction_type_id"    => 51,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
         ]);
 
-        $isDemo = env("APP_MODE");
+        $isDemo         = env("APP_MODE");
         $apiExchangeKey = env("API_SERVER_EXCHANGE_KEY");
 
         $body = [
-            "amount" => $request->amount,
-            "bet_account_id" => $request->bet_account_id,
-            "bet_company" => $request->bet_company,
-            "reference" => $reference,
-            "is_demo" => $isDemo,
-            "api_exchange_key" => $apiExchangeKey
+            "amount"           => $request->amount,
+            "bet_account_id"   => $request->bet_account_id,
+            "bet_company"      => $request->bet_company,
+            "reference"        => $reference,
+            "is_demo"          => $isDemo,
+            "api_exchange_key" => $apiExchangeKey,
         ];
 
         $url = "/topup_bet_account.php";
 
         $betAccount = postRequest([], $body, $url);
 
-
-
         if ($betAccount['success']) {
 
             return response()->json(
                 [
-                    'status' => true,
+                    'status'  => true,
                     'message' => "Successfully Topup Bet Account",
-                    'data' => [
-                        'status' => $betAccount['success'],
-                        'order_no' =>  $betAccount['data']['orderNo'],
-                        'reference' => $betAccount['data']['reference'],
+                    'data'    => [
+                        'status'        => $betAccount['success'],
+                        'order_no'      => $betAccount['data']['orderNo'],
+                        'reference'     => $betAccount['data']['reference'],
                         'error_message' => $betAccount['data']['status'],
-                        'balance' => $debitCustomer["charge_balance_after"]
+                        'balance'       => $debitCustomer["charge_balance_after"],
 
-                    ]
+                    ],
                 ]
             );
         } else {
 
             return response()->json(
                 [
-                    'status' => false,
+                    'status'  => false,
                     'message' => "Failed to Topup bet account",
-                    'data' => $betAccount
+                    'data'    => $betAccount,
                 ],
                 400
             );
@@ -910,12 +888,11 @@ class TransactionController extends Controller
     public function verifyWalletAccount(Request $request)
     {
 
-
         $validation = Validator::make($request->all(), [
             "account_number" => 'required',
         ]);
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
         if ($request->account_number == \auth()->user()->virtual_account) {
@@ -938,21 +915,21 @@ class TransactionController extends Controller
 
             return response()->json(
                 [
-                    'status' => true,
+                    'status'  => true,
                     'message' => "Account Verified Successfully",
-                    'data' => [
+                    'data'    => [
                         'first_name' => $wbAccount->user->first_name,
-                        'last_name' => $wbAccount->user->last_name,
-                        'bank_name' => $wbAccount->bank->bank_name
+                        'last_name'  => $wbAccount->user->last_name,
+                        'bank_name'  => $wbAccount->bank->bank_name,
 
-                    ]
+                    ],
                 ]
             );
         } else {
 
             return response()->json(
                 [
-                    'status' => false,
+                    'status'  => false,
                     'message' => "Failed to verify Wallet account",
                 ],
                 400
@@ -965,16 +942,16 @@ class TransactionController extends Controller
         $description = $request->description;
 
         $validation = Validator::make($request->all(), [
-            "final_amount" => "required|numeric|gt:0",
+            "final_amount"          => "required|numeric|gt:0",
             "transaction_reference" => "required",
-            "destination_account" => "required",
-            "receipient_name" => "required|string",
-            "bank_code" => "required",
-            "transaction_pin" => "required|numeric|gt:0",
+            "destination_account"   => "required",
+            "receipient_name"       => "required|string",
+            "bank_code"             => "required",
+            "transaction_pin"       => "required|numeric|gt:0",
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -984,7 +961,7 @@ class TransactionController extends Controller
 
         $validateSavingsProduct = $this->accountProductCharges($request->final_amount);
 
-        if (!$validateSavingsProduct['status']) {
+        if (! $validateSavingsProduct['status']) {
             return \response()->json($validateSavingsProduct, 400);
         }
 
@@ -1005,7 +982,7 @@ class TransactionController extends Controller
         DB::beginTransaction();
 
         $transactionPinValidation = validatePinCheckCustomerBalance($request->transaction_pin, $totalAmount);
-        if (!$transactionPinValidation['status']) {
+        if (! $transactionPinValidation['status']) {
             return response()->json($transactionPinValidation, 400);
         }
 
@@ -1035,7 +1012,7 @@ class TransactionController extends Controller
 
                     $validateTransferAmount = $this->validateTransfer($request->final_amount);
 
-                    if (!$validateTransferAmount['status']) {
+                    if (! $validateTransferAmount['status']) {
                         return \response()->json($validateTransferAmount, 400);
                     }
 
@@ -1047,29 +1024,28 @@ class TransactionController extends Controller
 
                     $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
 
-                    if (!$debitCustomer["status"]) {
+                    if (! $debitCustomer["status"]) {
                         return \response()->json($debitCustomer);
                     }
 
-                    $accountId =  $debitCustomer['account_id'];
-                    $customerBalanceBefore = $debitCustomer['balance_before'];
-                    $customerBalanceAfter = $debitCustomer['balance_after'];
+                    $accountId                   = $debitCustomer['account_id'];
+                    $customerBalanceBefore       = $debitCustomer['balance_before'];
+                    $customerBalanceAfter        = $debitCustomer['balance_after'];
                     $customerChargeBalanceBefore = $debitCustomer['charge_balance_before'];
-                    $customerChargeBalanceAfter = $debitCustomer['charge_balance_after'];
+                    $customerChargeBalanceAfter  = $debitCustomer['charge_balance_after'];
 
-                    $companyBalanceBefore = $debitCustomer['company_balance_before'];
-                    $companyAmount = $debitCustomer['company_amount'];
-                    $companyBalanceAfter = $debitCustomer['company_balance_after'];
+                    $companyBalanceBefore       = $debitCustomer['company_balance_before'];
+                    $companyAmount              = $debitCustomer['company_amount'];
+                    $companyBalanceAfter        = $debitCustomer['company_balance_after'];
                     $companyChargeBalanceBefore = $debitCustomer['company_charge_balance_before'];
-                    $companyChargeBalanceAfter = $debitCustomer['company_charge_balance_after'];
-
+                    $companyChargeBalanceAfter  = $debitCustomer['company_charge_balance_after'];
 
                     $preferredEbankingPartner = PreferredEbankingPartner::all();
-                    $ebankingService = new EbankingService($preferredEbankingPartner);
+                    $ebankingService          = new EbankingService($preferredEbankingPartner);
 
                     $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
 
-                    if (!$bankAccount['status']) {
+                    if (! $bankAccount['status']) {
                         $bankAccount['status'] = false;
                         return response()->json($bankAccount);
                     }
@@ -1081,22 +1057,20 @@ class TransactionController extends Controller
 
                     $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
 
-                    $newdescription =  $newdescription . "/" . $request->receipient_name . "/" . $request->destination_account . " - " . $bank->bank_name;
-
+                    $newdescription = $newdescription . "/" . $request->receipient_name . "/" . $request->destination_account . " - " . $bank->bank_name;
 
                     $gatewayDescription = $currentUser->first_name . " " . $currentUser->last_name . " / " . $currentUser->company->company_name;
-                    $myDescription = "You transferred funds to " . $bankAccount['data']['account_name'] . "/" . $request->destination_account . " / " . $bank->bank_name . " / " . $currentUser->company->company_name;
+                    $myDescription      = "You transferred funds to " . $bankAccount['data']['account_name'] . "/" . $request->destination_account . " / " . $bank->bank_name . " / " . $currentUser->company->company_name;
 
                     $transaction->description = $myDescription;
 
                     $transaction->balance_before = $customerBalanceBefore;
-                    $transaction->amount = $request->final_amount + $charge;
-                    $transaction->balance_after = $customerChargeBalanceAfter;
-
+                    $transaction->amount         = $request->final_amount + $charge;
+                    $transaction->balance_after  = $customerChargeBalanceAfter;
 
                     $transaction->company_balance_before = $companyBalanceBefore;
-                    $transaction->company_amount = $request->final_amount + $wbaCharge;;
-                    $transaction->company_balance_after = $companyChargeBalanceAfter;
+                    $transaction->company_amount         = $request->final_amount + $wbaCharge;
+                    $transaction->company_balance_after  = $companyChargeBalanceAfter;
 
                     $transaction->save();
 
@@ -1131,17 +1105,17 @@ class TransactionController extends Controller
                     //     "ledger_dr" => $ledger_dr
                     // ]);
 
-                    $myDescription =  auth()->user()->first_name . " " . auth()->user()->last_name . " / " . \auth()->user()->company->company_name;
+                    $myDescription = auth()->user()->first_name . " " . auth()->user()->last_name . " / " . \auth()->user()->company->company_name;
                     // $myDescription .= $request->description == "" ? "" : $request->description;
                     DB::commit();
 
-                    $bankTransferType = new BankTransferType();
-                    $bankTransferType->bankCode = $request->bank_code;
-                    $bankTransferType->shortBankCode = $bank->short_code;
-                    $bankTransferType->accountNumber = $request->destination_account;
-                    $bankTransferType->description = $gatewayDescription;
-                    $bankTransferType->amount = $request->final_amount;
-                    $bankTransferType->transactionReference =  $transaction->transaction_reference;
+                    $bankTransferType                       = new BankTransferType();
+                    $bankTransferType->bankCode             = $request->bank_code;
+                    $bankTransferType->shortBankCode        = $bank->short_code;
+                    $bankTransferType->accountNumber        = $request->destination_account;
+                    $bankTransferType->description          = $gatewayDescription;
+                    $bankTransferType->amount               = $request->final_amount;
+                    $bankTransferType->transactionReference = $transaction->transaction_reference;
 
                     $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
 
@@ -1167,13 +1141,12 @@ class TransactionController extends Controller
                     $transaction->transaction_remarks_id = 2;
                     $transaction->save();
 
-
                     return response()->json([
-                        "status" => true,
+                        "status"  => true,
                         'message' => "Wallet to Bank Transfer Successful",
-                        'data' => [
-                            'balance' => $debitCustomer['charge_balance_after']
-                        ]
+                        'data'    => [
+                            'balance' => $debitCustomer['charge_balance_after'],
+                        ],
                     ]);
                 } else {
                     return response()->json(["status" => false, 'message' => "Insufficient Balance"], 400);
@@ -1188,21 +1161,21 @@ class TransactionController extends Controller
     {
 
         $validation = Validator::make($request->all(), [
-            "amount" => "required|numeric|gt:0",
+            "amount"                => "required|numeric|gt:0",
             "transaction_reference" => "required",
-            "destination_account" => "required",
-            "receipient_name" => "required|string",
-            "bank_code" => "required|string",
-            "api_key" => "required|string"
+            "destination_account"   => "required",
+            "receipient_name"       => "required|string",
+            "bank_code"             => "required|string",
+            "api_key"               => "required|string",
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
         if ($request->api_key != "enter your key") {
-            $ra = array("status" => false, "message" => "Invalid API key provided");
+            $ra = ["status" => false, "message" => "Invalid API key provided"];
             return response()->json($ra, 400);
         }
 
@@ -1213,7 +1186,7 @@ class TransactionController extends Controller
 
         $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
 
-        if (!$bank) {
+        if (! $bank) {
             return response()->json(["status" => false, 'message' => "Invalid bank code"], 400);
         }
 
@@ -1221,12 +1194,12 @@ class TransactionController extends Controller
 
         $ebankingService = new EbankingService($preferredEbankingPartner);
 
-        $bankTransferType = new BankTransferType();
-        $bankTransferType->bankCode = $request->bank_code;
-        $bankTransferType->shortBankCode = $bank->short_code;
-        $bankTransferType->accountNumber = $request->destination_account;
-        $bankTransferType->description = $newdescription;
-        $bankTransferType->amount = $request->amount;
+        $bankTransferType                       = new BankTransferType();
+        $bankTransferType->bankCode             = $request->bank_code;
+        $bankTransferType->shortBankCode        = $bank->short_code;
+        $bankTransferType->accountNumber        = $request->destination_account;
+        $bankTransferType->description          = $newdescription;
+        $bankTransferType->amount               = $request->amount;
         $bankTransferType->transactionReference = $request->transaction_reference;
 
         $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
@@ -1234,7 +1207,7 @@ class TransactionController extends Controller
         if ($bankTransfer['status'] == "01") {
 
             $bankTransfer['message'] = "Unable to restrieve customer name, Funds has been reversed, try again later or use another bank";
-            $bankTransfer['status'] = false;
+            $bankTransfer['status']  = false;
 
             return response()->json($bankTransfer, 400);
         }
@@ -1248,17 +1221,17 @@ class TransactionController extends Controller
     {
         $validation = Validator::make($request->all(), [
             "account_number" => "required",
-            "bank_code" => "required|string",
-            "ApiKey" => "required|string"
+            "bank_code"      => "required|string",
+            "ApiKey"         => "required|string",
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
         if ($request->ApiKey != "enter your key") {
-            $ra = array("status" => false, "message" => "Invalid API key provided");
+            $ra = ["status" => false, "message" => "Invalid API key provided"];
             return response()->json($ra, 400);
         }
 
@@ -1268,7 +1241,7 @@ class TransactionController extends Controller
 
         $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->account_number);
 
-        if (!$bankAccount['status']) {
+        if (! $bankAccount['status']) {
             $bankAccount['status'] = 0;
             return response()->json($bankAccount);
         }
@@ -1276,7 +1249,7 @@ class TransactionController extends Controller
         $bank_name = "";
 
         if (isset($bankAccount["data"]["bank_code"])) {
-            $bank = banks::where('bank_code', $bankAccount["data"]["bank_code"])->first();
+            $bank                             = banks::where('bank_code', $bankAccount["data"]["bank_code"])->first();
             $bankAccount['data']['bank_name'] = $bank->bank_name;
         } else {
             $bank_name = $bankAccount['data']['bank_name'];
@@ -1288,33 +1261,33 @@ class TransactionController extends Controller
 
     public function walletTransfer(Request $request)
     {
-        $description = $request->description;
-        $transactionId =  generateTransactionReference();
-        $validation = Validator::make($request->all(), [
+        $description   = $request->description;
+        $transactionId = generateTransactionReference();
+        $validation    = Validator::make($request->all(), [
             "transaction_reference" => "required|string",
-            "destination_account" => "required|numeric",
-            "transaction_pin" => "required|numeric|gt:0"
+            "destination_account"   => "required|numeric",
+            "transaction_pin"       => "required|numeric|gt:0",
         ]);
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
         if ($request->final_amount == null) {
-            $ra = array("status" => false, "message" => "Please enter amount");
+            $ra = ["status" => false, "message" => "Please enter amount"];
             return response()->json($ra, 406);
         }
         $wbAccount = wb_account_details::where('virtual_accnum', $request->destination_account)->first();
-        if (!$wbAccount) {
-            $ra = array("status" => false, "message" => "Beneficiary not found!");
+        if (! $wbAccount) {
+            $ra = ["status" => false, "message" => "Beneficiary not found!"];
             return response()->json($ra, 406);
         }
         $sourceWbAccount = wb_account_details::where(['user_id' => auth()->user()->id, 'currency_id' => $wbAccount->currency_id])->first();
-        if (!$sourceWbAccount) {
-            $ra = array("status" => false, "message" => "Beneficiary currency doesn not match any of your wallet!");
+        if (! $sourceWbAccount) {
+            $ra = ["status" => false, "message" => "Beneficiary currency doesn not match any of your wallet!"];
             return response()->json($ra, 406);
         }
         $transactionPinValidation = validatePinCheckCustomerBalance($request->transaction_pin, $request->final_amount, $sourceWbAccount->id);
-        if (!$transactionPinValidation['status']) {
+        if (! $transactionPinValidation['status']) {
             return response()->json($transactionPinValidation, 400);
         }
         $transaction = transactions::where(['transaction_reference' => $request->transaction_reference, 'amount' => $request->final_amount])->first();
@@ -1323,7 +1296,7 @@ class TransactionController extends Controller
                 return response()->json(["status" => false, 'message' => "Transaction has already been completed"], 409);
             } else {
                 $customerBalance = $this->checkCustomerBalance($request->final_amount, $sourceWbAccount->id);
-                if (!$customerBalance['status']) {
+                if (! $customerBalance['status']) {
                     return response()->json($customerBalance, 400);
                 }
                 if ($wbAccount) {
@@ -1336,10 +1309,10 @@ class TransactionController extends Controller
                     }
                     if (\checkcustomerrestriction($wbAccount->user_id, 1)) {
                         return response()->json(["status" => false, 'message' => "Destinaion account is not allowed to recieve payment at the moment"], 400);
-                    };
+                    }
                     $validateTransferAmount = $this->validateTransfer($request->final_amount);
 
-                    if (!$validateTransferAmount['status']) {
+                    if (! $validateTransferAmount['status']) {
                         return \response()->json($validateTransferAmount, 400);
                     }
                     if (\checkcustomerrestriction(\auth()->user()->id, '2')) {
@@ -1350,31 +1323,31 @@ class TransactionController extends Controller
                     if ($debitCustomer['status']) {
                         $creditCustomer = user_wallet::where('wb_account_detail_id', $wbAccount->id)->first();
                         // $creditCustomer = \creditCustomerOnly("1", "1000");
-                        $myDescription = "You received payment from " . \auth()->user()->first_name . " - " . $request->description;
+                        $myDescription       = "You received payment from " . \auth()->user()->first_name . " - " . $request->description;
                         $debitTransactionRef = \generate_txnID();
-                        $ledger_cr = null;
-                        $ledger_dr = null;
-                        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(32, \auth()->user()->company_id);
+                        $ledger_cr           = null;
+                        $ledger_dr           = null;
+                        $ledger_Settings     = get_CR_DR_TXN_Type_Ledger(32, \auth()->user()->company_id);
                         if ($ledger_Settings) {
                             $ledger_cr = $ledger_Settings->ledger_cr;
                             $ledger_dr = $ledger_Settings->ledger_dr;
                         }
                         $creditTransaction = transactions::create([
-                            "balance_before" => $creditCustomer->balance,
-                            "amount" => $request->final_amount,
-                            "balance_after" => $creditCustomer->balance + $request->final_amount,
-                            "account_id" => $wbAccount->id,
-                            "description" => $myDescription,
-                            "branch_id" => $wbAccount->user->branch_id,
-                            "transaction_reference" => $debitTransactionRef,
-                            "parent_transaction_id" => $transactionId,
+                            "balance_before"         => $creditCustomer->balance,
+                            "amount"                 => $request->final_amount,
+                            "balance_after"          => $creditCustomer->balance + $request->final_amount,
+                            "account_id"             => $wbAccount->id,
+                            "description"            => $myDescription,
+                            "branch_id"              => $wbAccount->user->branch_id,
+                            "transaction_reference"  => $debitTransactionRef,
+                            "parent_transaction_id"  => $transactionId,
                             "transaction_remarks_id" => 2,
-                            "transaction_type_id" => 32,
-                            "credit_debit_type_id" => 1,
-                            "created_date"  => date('Y-m-d'),
-                            "created_by" => auth()->user()->id,
-                            "ledger_cr" => $ledger_cr,
-                            "ledger_dr" => $ledger_dr,
+                            "transaction_type_id"    => 32,
+                            "credit_debit_type_id"   => 1,
+                            "created_date"           => date('Y-m-d'),
+                            "created_by"             => auth()->user()->id,
+                            "ledger_cr"              => $ledger_cr,
+                            "ledger_dr"              => $ledger_dr,
                         ]);
                         $creditCustomer->balance += $request->final_amount;
                         $creditCustomer->save();
@@ -1398,16 +1371,16 @@ class TransactionController extends Controller
     public function initiateTransaction(Request $request)
     {
 
-        $transactionId =  generateTransactionReference();
+        $transactionId = generateTransactionReference();
 
         $validation = Validator::make($request->all(), [
-            "final_amount" => "required|numeric|gt:0",
+            "final_amount"     => "required|numeric|gt:0",
             "transaction_type" => "required|numeric|gt:0",
-            "description" => "string"
+            "description"      => "string",
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -1423,53 +1396,51 @@ class TransactionController extends Controller
         if ($request->final_amount > 0) {
 
             if ($request->transaction_type == 3) {
-                $companyName = auth()->user()->company->company_name;
-                $ledger_cr = null;
-                $ledger_dr = null;
+                $companyName     = auth()->user()->company->company_name;
+                $ledger_cr       = null;
+                $ledger_dr       = null;
                 $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
                 if ($ledger_Settings) {
                     $ledger_cr = $ledger_Settings->ledger_cr;
                     $ledger_dr = $ledger_Settings->ledger_dr;
                 }
                 $transaction = transactions::create([
-                    "balance_before" => auth()->user()->company->wallet->balance,
-                    "amount" => $request->amount,
-                    "description" => "Funding Admin Wallet",
-                    "transaction_reference" => $transactionId,
-                    "branch_id" => \auth()->user()->branch_id,
+                    "balance_before"         => auth()->user()->company->wallet->balance,
+                    "amount"                 => $request->amount,
+                    "description"            => "Funding Admin Wallet",
+                    "transaction_reference"  => $transactionId,
+                    "branch_id"              => \auth()->user()->branch_id,
                     "transaction_remarks_id" => 6,
-                    "company_id"  => auth()->user()->company_id,
-                    "transaction_type_id" => $request->transaction_type,
-                    "credit_debit_type_id" => 1,
-                    "created_date"  => date('Y-m-d'),
-                    "created_by" => auth()->user()->id,
-                    "ledger_cr" => $ledger_cr,
-                    "ledger_dr" => $ledger_dr,
+                    "company_id"             => auth()->user()->company_id,
+                    "transaction_type_id"    => $request->transaction_type,
+                    "credit_debit_type_id"   => 1,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => auth()->user()->id,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
                 ]);
 
                 $header = ['Authorization' => 'Bearer ' . $this->flutterwaveSecretKey];
-                $body = [
-                    "tx_ref" => $transactionId,
-                    "amount" => $request->amount,
-                    "currency" => auth()->user()->company->currency->code,
-                    "redirect_url" => $this->baseUrl . "/" . "company/" . auth()->user()->company->short_name . "/transaction/verify-fund-wallet",
+                $body   = [
+                    "tx_ref"          => $transactionId,
+                    "amount"          => $request->amount,
+                    "currency"        => auth()->user()->company->currency->code,
+                    "redirect_url"    => $this->baseUrl . "/" . "company/" . auth()->user()->company->short_name . "/transaction/verify-fund-wallet",
                     "payment_options" => "card",
-                    "customer" => [
-                        "email" => Auth()->user()->email,
+                    "customer"        => [
+                        "email"       => Auth()->user()->email,
                         "phonenumber" => Auth()->user()->phone,
-                        "name" => Auth()->user()->first_name . ' ' . Auth()->user()->last_name
+                        "name"        => Auth()->user()->first_name . ' ' . Auth()->user()->last_name,
                     ],
-                    "customizations" => [
-                        "title" => "Funding WBA Wallet",
+                    "customizations"  => [
+                        "title"       => "Funding WBA Wallet",
                         "description" => "Fund Wired Banking Wallet",
-                        "logo" => "https://wiredbanking.ng/img/logo/logo-dark.png"
-                    ]
+                        "logo"        => "https://wiredbanking.ng/img/logo/logo-dark.png",
+                    ],
                 ];
                 $url = 'https://api.flutterwave.com/v3/payments';
 
                 $jsonData = \postRequest($header, $body, $url);
-
-
 
                 // {"status":"success","message":"Hosted Link","data":{"link":"https:\/\/ravemodal-dev.herokuapp.com\/v3\/hosted\/pay\/79d6b15bf0bcb701e77d"}}
                 return response()->json(["status" => true, "transactionId" => $transactionId, 'link' => $jsonData['data']['link'], 'message' => " " . generateTransactionReference()]);
@@ -1481,41 +1452,41 @@ class TransactionController extends Controller
 
                     if (auth()->user()->company->wallet->balance >= $request->final_amount) {
 
-                        $charge = 0;
-                        $ledger_cr = null;
-                        $ledger_dr = null;
+                        $charge          = 0;
+                        $ledger_cr       = null;
+                        $ledger_dr       = null;
                         $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
                         if ($ledger_Settings) {
                             $ledger_cr = $ledger_Settings->ledger_cr;
                             $ledger_dr = $ledger_Settings->ledger_dr;
                         }
                         $transaction = transactions::create([
-                            "balance_before" => auth()->user()->company->wallet->balance,
-                            "amount" => $request->final_amount,
-                            "description" => $description,
-                            "transaction_reference" => $transactionId,
-                            "branch_id" => \auth()->user()->branch_id,
-                            "company_id"  => auth()->user()->company_id,
+                            "balance_before"         => auth()->user()->company->wallet->balance,
+                            "amount"                 => $request->final_amount,
+                            "description"            => $description,
+                            "transaction_reference"  => $transactionId,
+                            "branch_id"              => \auth()->user()->branch_id,
+                            "company_id"             => auth()->user()->company_id,
                             "transaction_remarks_id" => 6,
-                            "transaction_type_id" => $request->transaction_type,
-                            "credit_debit_type_id" => 2,
-                            "created_date"  => date('Y-m-d'),
-                            "created_by" => auth()->user()->id,
-                            "ledger_cr" => $ledger_cr,
-                            "ledger_dr" => $ledger_dr,
+                            "transaction_type_id"    => $request->transaction_type,
+                            "credit_debit_type_id"   => 2,
+                            "created_date"           => date('Y-m-d'),
+                            "created_by"             => auth()->user()->id,
+                            "ledger_cr"              => $ledger_cr,
+                            "ledger_dr"              => $ledger_dr,
                         ]);
 
                         return response()->json(
                             [
-                                "status" => true,
+                                "status"  => true,
                                 'message' => "Transaction initialized",
-                                'data' => [
-                                    'charge' => $charge,
-                                    'transactionId' => $transaction->id,
+                                'data'    => [
+                                    'charge'            => $charge,
+                                    'transactionId'     => $transaction->id,
                                     'transactionTypeId' => $request->transaction_type,
-                                    'exchangeAmount' => $request->final_amount,
-                                    'total' => $request->finalAmount
-                                ]
+                                    'exchangeAmount'    => $request->final_amount,
+                                    'total'             => $request->finalAmount,
+                                ],
                             ]
                         );
                     } else {
@@ -1526,25 +1497,25 @@ class TransactionController extends Controller
                 }
             } else if ($request->transaction_type == 8 || $request->transaction_type == 19) {
 
-                $amount = 0;
+                $amount      = 0;
                 $totalAmount = 0;
-                $charge = 834;
+                $charge      = 834;
 
                 if ($request->transaction_type == 19) {
                     $description = $description ?? "Mobile Money Transfer";
                     $totalAmount = $request->finalAmount;
-                    $amount = $request->finalAmount;
+                    $amount      = $request->finalAmount;
                 } else if ($request->transaction_type == 8) {
 
                     $validateSavingsProduct = $this->accountProductCharges($request->final_amount);
 
-                    if (!$validateSavingsProduct['status']) {
+                    if (! $validateSavingsProduct['status']) {
                         return \response()->json($validateSavingsProduct, 400);
                     }
 
                     $charge = $validateSavingsProduct['data']['charge'];
 
-                    $amount = $request->final_amount;
+                    $amount      = $request->final_amount;
                     $totalAmount = $request->final_amount + $charge;
                     $description = $description ?? "You sent money to $request->receipient_name via Bank Transfer";
                 }
@@ -1553,7 +1524,7 @@ class TransactionController extends Controller
 
                 $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount);
 
-                if (!$customerBalance['status']) {
+                if (! $customerBalance['status']) {
                     return response()->json($customerBalance, 400);
                 }
 
@@ -1563,72 +1534,70 @@ class TransactionController extends Controller
 
                 $validateTransferAmount = $this->validateTransfer($request->final_amount);
 
-                if (!$validateTransferAmount['status']) {
+                if (! $validateTransferAmount['status']) {
                     return \response()->json($validateTransferAmount, 400);
                 }
-                $ledger_cr = null;
-                $ledger_dr = null;
+                $ledger_cr       = null;
+                $ledger_dr       = null;
                 $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
                 if ($ledger_Settings) {
                     $ledger_cr = $ledger_Settings->ledger_cr;
                     $ledger_dr = $ledger_Settings->ledger_dr;
                 }
                 $transaction = transactions::create([
-                    "balance_before" => $customerBalance['balance'],
-                    "amount" => $amount,
-                    "account_id" => $customerBalance['account_id'],
-                    "description" => $description,
-                    "branch_id" => \auth()->user()->branch_id,
+                    "balance_before"         => $customerBalance['balance'],
+                    "amount"                 => $amount,
+                    "account_id"             => $customerBalance['account_id'],
+                    "description"            => $description,
+                    "branch_id"              => \auth()->user()->branch_id,
                     "company_balance_before" => $customerBalance['company_balance'],
-                    "company_amount" => $amount,
-                    "system_description" => auth()->user()->company->company_name . " - " . auth()->user()->first_name . " sent money to " . $request->receipient_name,
-                    "company_id"  => auth()->user()->company_id,
-                    "transaction_reference" => $transactionId,
+                    "company_amount"         => $amount,
+                    "system_description"     => auth()->user()->company->company_name . " - " . auth()->user()->first_name . " sent money to " . $request->receipient_name,
+                    "company_id"             => auth()->user()->company_id,
+                    "transaction_reference"  => $transactionId,
                     "transaction_remarks_id" => 6,
-                    "transaction_type_id" => $request->transaction_type,
-                    "credit_debit_type_id" => 2,
-                    "created_date"  => date('Y-m-d'),
-                    "created_by" => auth()->user()->id,
-                    "ledger_cr" => $ledger_cr,
-                    "ledger_dr" => $ledger_dr,
+                    "transaction_type_id"    => $request->transaction_type,
+                    "credit_debit_type_id"   => 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => auth()->user()->id,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
                 ]);
 
                 return response()->json(
                     [
-                        "status" => true,
+                        "status"  => true,
                         'message' => "Transaction initialized",
-                        'data' => [
-                            'charge' => $charge,
+                        'data'    => [
+                            'charge'                => $charge,
                             'transaction_reference' => $transactionId,
-                            'transactionTypeId' => $request->transaction_type,
-                            'transfer_amount' => $amount,
-                            'total' => $totalAmount
-                        ]
+                            'transactionTypeId'     => $request->transaction_type,
+                            'transfer_amount'       => $amount,
+                            'total'                 => $totalAmount,
+                        ],
                     ]
                 );
-
 
                 // return response()->json(["status" => false, 'message' => "Insufficient Balance ", 'data' => $userWallet->balance], 400);
             } else if ($request->transaction_type == 4) {
 
-                $amount = 0;
+                $amount      = 0;
                 $totalAmount = 0;
 
-                $amount = $request->final_amount;
+                $amount      = $request->final_amount;
                 $totalAmount = $request->final_amount;
-                $name = isset($request->receipient_name) ? $request->receipient_name : "N/A";
+                $name        = isset($request->receipient_name) ? $request->receipient_name : "N/A";
                 $description = "You sent payment to $name $request->description";
 
                 $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount);
 
-                if (!$customerBalance['status']) {
+                if (! $customerBalance['status']) {
                     return response()->json($customerBalance, 400);
                 }
 
                 if (\checkcustomerrestriction(\auth()->user()->id, '2')) {
                     return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
                 }
-
 
                 if ($request->destination_account == \auth()->user()->virtual_account) {
                     return response()->json(["status" => false, 'message' => "Cannot transfer to self"], 409);
@@ -1638,49 +1607,48 @@ class TransactionController extends Controller
 
                 $validateTransferAmount = $this->validateTransfer($request->final_amount);
 
-                if (!$validateTransferAmount['status']) {
+                if (! $validateTransferAmount['status']) {
                     return \response()->json($validateTransferAmount, 400);
                 }
-                $ledger_cr = null;
-                $ledger_dr = null;
+                $ledger_cr       = null;
+                $ledger_dr       = null;
                 $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
                 if ($ledger_Settings) {
                     $ledger_cr = $ledger_Settings->ledger_cr;
                     $ledger_dr = $ledger_Settings->ledger_dr;
                 }
                 $transaction = transactions::create([
-                    "balance_before" => $customerBalance['balance'],
-                    "amount" => $totalAmount,
-                    "account_id" => $customerBalance['account_id'],
-                    "description" => $description,
-                    "transaction_reference" => $transactionId,
+                    "balance_before"         => $customerBalance['balance'],
+                    "amount"                 => $totalAmount,
+                    "account_id"             => $customerBalance['account_id'],
+                    "description"            => $description,
+                    "transaction_reference"  => $transactionId,
                     "company_balance_before" => $customerBalance["company_balance"],
-                    "company_amount" => 0,
-                    "company_id"  => auth()->user()->company_id,
+                    "company_amount"         => 0,
+                    "company_id"             => auth()->user()->company_id,
                     "transaction_remarks_id" => 6,
-                    "branch_id" => \auth()->user()->branch_id,
-                    "transaction_type_id" => $request->transaction_type,
-                    "credit_debit_type_id" => 2,
-                    "created_date"  => date('Y-m-d'),
-                    "created_by" => auth()->user()->id,
-                    "ledger_cr" => $ledger_cr,
-                    "ledger_dr" => $ledger_dr,
+                    "branch_id"              => \auth()->user()->branch_id,
+                    "transaction_type_id"    => $request->transaction_type,
+                    "credit_debit_type_id"   => 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => auth()->user()->id,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
                 ]);
 
                 return response()->json(
                     [
-                        "status" => true,
+                        "status"  => true,
                         'message' => "Transaction initialized",
-                        'data' => [
-                            'charge' => $charge,
+                        'data'    => [
+                            'charge'                => $charge,
                             'transaction_reference' => $transactionId,
-                            'transactionTypeId' => $request->transaction_type,
-                            'transfer_amount' => $amount,
-                            'total' => $totalAmount
-                        ]
+                            'transactionTypeId'     => $request->transaction_type,
+                            'transfer_amount'       => $amount,
+                            'total'                 => $totalAmount,
+                        ],
                     ]
                 );
-
 
                 // return response()->json(["status" => false, 'message' => "Insufficient Balance ", 'data' => $userWallet->balance], 400);
             } else {
@@ -1693,8 +1661,7 @@ class TransactionController extends Controller
 
     public function wovenWebhook(Request $request)
     {
-        $transactionId =  generateTransactionReference();
-
+        $transactionId = generateTransactionReference();
 
         if ($request->transaction_type != "TRANSFER") {
             return;
@@ -1706,9 +1673,7 @@ class TransactionController extends Controller
 
         $verifyPaymentResponse = $wovenController->verifyWovenTransaction($request->unique_reference);
 
-
-
-        if (!$verifyPaymentResponse['status']) {
+        if (! $verifyPaymentResponse['status']) {
             return response()->json($verifyPaymentResponse, 400);
         }
 
@@ -1718,15 +1683,15 @@ class TransactionController extends Controller
         }
 
         $wovenController->transactionReference = $request->unique_reference;
-        $wovenController->wbaCharge = getWbaTransferCharges(3, $verifyPaymentResponse['data']['amount']);
-        $wovenController->virtualAccount = $request->nuban;
-        $wovenController->amount = $verifyPaymentResponse['data']['amount'];
-        $wovenController->webhookType = 'woven';
-        $wovenController->description = "You received Funds from $request->source_account_name";
-        $wovenController->transactionDate = date('Y-m-d');
-        $wovenController->accountReference = $request->transaction_date;
-        $wovenController->request = $request;
-        $wovenController->fromTempWebhook = 'false';
+        $wovenController->wbaCharge            = getWbaTransferCharges(3, $verifyPaymentResponse['data']['amount']);
+        $wovenController->virtualAccount       = $request->nuban;
+        $wovenController->amount               = $verifyPaymentResponse['data']['amount'];
+        $wovenController->webhookType          = 'woven';
+        $wovenController->description          = "You received Funds from $request->source_account_name";
+        $wovenController->transactionDate      = date('Y-m-d');
+        $wovenController->accountReference     = $request->transaction_date;
+        $wovenController->request              = $request;
+        $wovenController->fromTempWebhook      = 'false';
 
         $handleWebhook = $wovenController->handleWebhook();
         return response()->json($handleWebhook, $handleWebhook['httpCode']);
@@ -1734,22 +1699,22 @@ class TransactionController extends Controller
 
     public function cyberpayWebhook(Request $request)
     {
-        $transactionId =  generateTransactionReference();
+        $transactionId = generateTransactionReference();
 
         try {
             $webhookLog = WebhookLog::where('unique_reference', $request->PaymentReference)->first();
 
-            if (!$webhookLog) {
+            if (! $webhookLog) {
                 WebhookLog::create([
-                    'webhook_type' => 'cyberpay',
-                    'body' => json_encode($request->all()),
-                    'unique_reference' => $request->PaymentReference
+                    'webhook_type'     => 'cyberpay',
+                    'body'             => json_encode($request->all()),
+                    'unique_reference' => $request->PaymentReference,
                 ]);
             }
 
             $mandate = Mandate::where('mandate_code', $request->MandateCode)->first();
 
-            if (!$mandate) {
+            if (! $mandate) {
                 return response()->json(['status' => false, "message" => "Invalid Mandate code Provided"]);
             }
 
@@ -1763,51 +1728,51 @@ class TransactionController extends Controller
 
             $verifyPaymentResponse = $cyberpayController->verifyMandateStatus($request->MandateCode);
 
-            if (!$verifyPaymentResponse['status']) {
+            if (! $verifyPaymentResponse['status']) {
                 return response()->json($verifyPaymentResponse, 400);
             }
 
             MandateLog::create([
-                "mandate_id" => $mandate->id,
-                'payment_reference' => $request->PaymentReference,
-                'marchant_ref' => $request->MarchantRef,
+                "mandate_id"           => $mandate->id,
+                'payment_reference'    => $request->PaymentReference,
+                'marchant_ref'         => $request->MarchantRef,
                 'response_description' => $request->ResponseDescription,
-                'amount' => $request->Amount / 100,
-                'narration' => $request->Narration,
-                'charge' => $request->Charge / 100,
-                'payment_status' => $request->PaymentStatus,
-                'payment_date' => $request->PaymentDate,
+                'amount'               => $request->Amount / 100,
+                'narration'            => $request->Narration,
+                'charge'               => $request->Charge / 100,
+                'payment_status'       => $request->PaymentStatus,
+                'payment_date'         => $request->PaymentDate,
             ]);
 
             if ($request->ResponseCode == "00") {
 
-                $companyAmount = $request->Amount / 100;
-                $creditCompany = creditCompanyWithCharge($mandate->user->company->id, $companyAmount, 0);
-                $ledger_cr = null;
-                $ledger_dr = null;
+                $companyAmount   = $request->Amount / 100;
+                $creditCompany   = creditCompanyWithCharge($mandate->user->company->id, $companyAmount, 0);
+                $ledger_cr       = null;
+                $ledger_dr       = null;
                 $ledger_Settings = get_CR_DR_TXN_Type_Ledger(100, $mandate->user->company_id);
                 if ($ledger_Settings) {
                     $ledger_cr = $ledger_Settings->ledger_cr;
                     $ledger_dr = $ledger_Settings->ledger_dr;
                 }
                 $transaction = transactions::create([
-                    "balance_before" => 0,
-                    "amount" => 0,
-                    "balance_after" => 0,
-                    "company_amount" => $companyAmount,
+                    "balance_before"         => 0,
+                    "amount"                 => 0,
+                    "balance_after"          => 0,
+                    "company_amount"         => $companyAmount,
                     'company_balance_before' => $creditCompany['balance_before'],
-                    'company_balance_after' => $creditCompany['balance_after'],
-                    "description" => "Payment received for mandate deduction $request->MandateCode",
-                    "system_description" => "Payment received for mandate deductin with NIBBS $request->MandateCode",
-                    "transaction_reference" => $request->PaymentReference,
+                    'company_balance_after'  => $creditCompany['balance_after'],
+                    "description"            => "Payment received for mandate deduction $request->MandateCode",
+                    "system_description"     => "Payment received for mandate deductin with NIBBS $request->MandateCode",
+                    "transaction_reference"  => $request->PaymentReference,
                     "transaction_remarks_id" => 2,
-                    "company_id" => $mandate->user->company_id,
-                    "transaction_type_id" =>  100,
-                    "credit_debit_type_id" => 1,
-                    "created_date"  => date('Y-m-d'),
-                    "created_by" => $mandate->user->id,
-                    "ledger_cr" => $ledger_cr,
-                    "ledger_dr" => $ledger_dr,
+                    "company_id"             => $mandate->user->company_id,
+                    "transaction_type_id"    => 100,
+                    "credit_debit_type_id"   => 1,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => $mandate->user->id,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
                 ]);
             }
 
@@ -1825,21 +1790,19 @@ class TransactionController extends Controller
 
         $kudaController = new KudaController();
 
-
-
         if ($request->transactionType != "Credit") {
             return \response()->json(['status' => false, 'message' => 'Transaction is not a Credit Transaction']);
         }
 
         $kudaController->transactionReference = $request->transactionReference;
-        $kudaController->wbaCharge = getWbaTransferCharges(2, $request->amount / 100);
-        $kudaController->virtualAccount = $request->accountNumber;
-        $kudaController->amount = $request->amount;
-        $kudaController->webhookType = 'kuda';
-        $kudaController->description = "You received Funds from $request->senderName";
-        $kudaController->transactionDate = date('Y-m-d');
-        $kudaController->request = $request;
-        $kudaController->fromTempWebhook = 'false';
+        $kudaController->wbaCharge            = getWbaTransferCharges(2, $request->amount / 100);
+        $kudaController->virtualAccount       = $request->accountNumber;
+        $kudaController->amount               = $request->amount;
+        $kudaController->webhookType          = 'kuda';
+        $kudaController->description          = "You received Funds from $request->senderName";
+        $kudaController->transactionDate      = date('Y-m-d');
+        $kudaController->request              = $request;
+        $kudaController->fromTempWebhook      = 'false';
 
         $handleWebhook = $kudaController->handleWebhook();
 
@@ -1851,40 +1814,40 @@ class TransactionController extends Controller
         try {
 
             $providusController = new ProvidusController();
-            
+
             //remove providus verification
-            
+
             $verifyWebhook = $providusController->verifyIncomingWebhook($request);
 
-            if (!$verifyWebhook['status']) {
+            if (! $verifyWebhook['status']) {
                 return response()->json($verifyWebhook, 400);
             }
 
             $verifyTransaction = $providusController->verifyProvidusTransaction($request->settlementId);
 
-            if (!$verifyTransaction["status"]) {
+            if (! $verifyTransaction["status"]) {
                 return response()->json($verifyTransaction, 400);
             }
 
             //remove providus verification
 
             $providusController->transactionReference = $request->settlementId;
-            $providusController->wbaCharge = getWbaTransferCharges(9, $request->transactionAmount);
-            $providusController->virtualAccount = $request->accountNumber;
-            $providusController->amount = $request->transactionAmount;
-            $providusController->webhookType = 'providus';
-            $providusController->description = "You received Funds from $request->sourceAccountName";
-            $providusController->transactionDate = date('Y-m-d');
-            $providusController->request = $request;
-            $providusController->fromTempWebhook = 'false';
+            $providusController->wbaCharge            = getWbaTransferCharges(9, $request->transactionAmount);
+            $providusController->virtualAccount       = $request->accountNumber;
+            $providusController->amount               = $request->transactionAmount;
+            $providusController->webhookType          = 'providus';
+            $providusController->description          = "You received Funds from $request->sourceAccountName";
+            $providusController->transactionDate      = date('Y-m-d');
+            $providusController->request              = $request;
+            $providusController->fromTempWebhook      = 'false';
 
             $handleWebhook = $providusController->handleWebhook();
 
             return response()->json($handleWebhook);
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Laravel Error");
-            
-         return ['responseCode' => "02",  "requestSuccessful" => true, 'sessionId' => $request->sessionId, 'responseMessage' => "rejected transaction"];
+
+            return ['responseCode' => "02", "requestSuccessful" => true, 'sessionId' => $request->sessionId, 'responseMessage' => "rejected transaction"];
 
             // return response()->json(['status' => false, 'message' => "FAiled to handled"], 400);
         }
@@ -1895,21 +1858,21 @@ class TransactionController extends Controller
         $gtbController = new GTBController();
         $verifyWebhook = $gtbController->verifyIncomingWebhook($request);
 
-        if (!$verifyWebhook['status']) {
+        if (! $verifyWebhook['status']) {
             response()->json($verifyWebhook, 400);
         }
 
         $gtbController->insertIntoWebhookTable($request);
 
         $gtbController->transactionReference = $request->transaction_reference;
-        $gtbController->wbaCharge = getWbaTransferCharges(8, $request->principal_amount);
-        $gtbController->virtualAccount = $request->virtual_account_number;
-        $gtbController->amount = $request->principal_amount;
-        $gtbController->webhookType = 'gtb';
-        $gtbController->description = "You received Funds from " . $gtbController->getSenderName($request->remarks);
-        $gtbController->transactionDate = $request->transaction_date;
-        $gtbController->request = $request;
-        $gtbController->fromTempWebhook = 'false';
+        $gtbController->wbaCharge            = getWbaTransferCharges(8, $request->principal_amount);
+        $gtbController->virtualAccount       = $request->virtual_account_number;
+        $gtbController->amount               = $request->principal_amount;
+        $gtbController->webhookType          = 'gtb';
+        $gtbController->description          = "You received Funds from " . $gtbController->getSenderName($request->remarks);
+        $gtbController->transactionDate      = $request->transaction_date;
+        $gtbController->request              = $request;
+        $gtbController->fromTempWebhook      = 'false';
 
         $handleWebhook = $gtbController->handleWebhook();
 
@@ -1920,21 +1883,21 @@ class TransactionController extends Controller
     {
 
         $vpayController = new VPayController();
-        $verifyWebhook = $vpayController->verifyIncomingWebhook($request);
+        $verifyWebhook  = $vpayController->verifyIncomingWebhook($request);
 
-        if (!$verifyWebhook['status']) {
+        if (! $verifyWebhook['status']) {
             response()->json($verifyWebhook, 400);
         }
 
         $vpayController->transactionReference = $request->reference;
-        $vpayController->wbaCharge = getWbaTransferCharges(7, $request->amount);
-        $vpayController->virtualAccount = $request->account_number;
-        $vpayController->amount = $request->amount;
-        $vpayController->webhookType = 'vpay';
-        $vpayController->description = "You received Funds from $request->originator_account_name";
-        $vpayController->transactionDate = $request->timestamp;
-        $vpayController->request = $request;
-        $vpayController->fromTempWebhook = 'false';
+        $vpayController->wbaCharge            = getWbaTransferCharges(7, $request->amount);
+        $vpayController->virtualAccount       = $request->account_number;
+        $vpayController->amount               = $request->amount;
+        $vpayController->webhookType          = 'vpay';
+        $vpayController->description          = "You received Funds from $request->originator_account_name";
+        $vpayController->transactionDate      = $request->timestamp;
+        $vpayController->request              = $request;
+        $vpayController->fromTempWebhook      = 'false';
 
         $handleWebhook = $vpayController->handleWebhook();
 
@@ -1945,14 +1908,13 @@ class TransactionController extends Controller
     {
 
         $fairmoneyController = new FairMoneyController();
-        $verifyWebhook = $fairmoneyController->verifyIncomingWebhook($request);
+        $verifyWebhook       = $fairmoneyController->verifyIncomingWebhook($request);
 
-        if (!$verifyWebhook['status']) {
+        if (! $verifyWebhook['status']) {
             return response()->json($verifyWebhook, 400);
         }
 
         $currentRequest = $request->all();
-
 
         if (isset($currentRequest['eventType'])) {
             if ($currentRequest['eventType'] == "Fund Transfer") {
@@ -1964,20 +1926,19 @@ class TransactionController extends Controller
             return response()->json(['status' => false, 'meesage' => 'Transaction not approved'], 400);
         }
 
-
         if ($currentRequest['EventType'] != "Virtual Account Funding") {
             return response()->json(['status' => false, 'meesage' => 'Event Not virtual account funding'], 400);
         }
 
         $fairmoneyController->transactionReference = $currentRequest["Data"]["TransactionReference"];
-        $fairmoneyController->wbaCharge = getWbaTransferCharges(34, $currentRequest["Data"]["Amount"]);
-        $fairmoneyController->virtualAccount = $currentRequest["Data"]["CustomerAccountNumber"];
-        $fairmoneyController->amount = $currentRequest["Data"]["Amount"];
-        $fairmoneyController->webhookType = 'fairmoney';
-        $fairmoneyController->description = $currentRequest["Data"]["Narration"];
-        $fairmoneyController->transactionDate = $currentRequest["Data"]["TransactionDate"];
-        $fairmoneyController->request = $request;
-        $fairmoneyController->fromTempWebhook = 'false';
+        $fairmoneyController->wbaCharge            = getWbaTransferCharges(34, $currentRequest["Data"]["Amount"]);
+        $fairmoneyController->virtualAccount       = $currentRequest["Data"]["CustomerAccountNumber"];
+        $fairmoneyController->amount               = $currentRequest["Data"]["Amount"];
+        $fairmoneyController->webhookType          = 'fairmoney';
+        $fairmoneyController->description          = $currentRequest["Data"]["Narration"];
+        $fairmoneyController->transactionDate      = $currentRequest["Data"]["TransactionDate"];
+        $fairmoneyController->request              = $request;
+        $fairmoneyController->fromTempWebhook      = 'false';
 
         $handleWebhook = $fairmoneyController->handleWebhook();
 
@@ -1990,9 +1951,9 @@ class TransactionController extends Controller
     {
 
         $baniController = new BaniController();
-        $verifyWebhook = $baniController->verifyIncomingWebhook($request);
+        $verifyWebhook  = $baniController->verifyIncomingWebhook($request);
 
-        if (!$verifyWebhook['status']) {
+        if (! $verifyWebhook['status']) {
             return response()->json($verifyWebhook, 400);
         }
 
@@ -2030,7 +1991,6 @@ class TransactionController extends Controller
         //     ),
         //   ),
 
-
         $currentRequest = $request->all();
 
         if ($currentRequest['event'] != "payin_bank_transfer") {
@@ -2042,14 +2002,14 @@ class TransactionController extends Controller
         }
 
         $baniController->transactionReference = $currentRequest["data"]["transaction_ref"];
-        $baniController->wbaCharge = getWbaTransferCharges(35, $currentRequest["data"]["pay_amount"]);
-        $baniController->virtualAccount = $currentRequest["data"]["holder_account_number"];
-        $baniController->amount = $currentRequest["data"]["pay_amount"];
-        $baniController->webhookType = 'bani';
-        $baniController->description = $currentRequest['data']['narration'];
-        $baniController->transactionDate = $currentRequest["data"]["pub_date"];
-        $baniController->request = $request;
-        $baniController->fromTempWebhook = 'false';
+        $baniController->wbaCharge            = getWbaTransferCharges(35, $currentRequest["data"]["pay_amount"]);
+        $baniController->virtualAccount       = $currentRequest["data"]["holder_account_number"];
+        $baniController->amount               = $currentRequest["data"]["pay_amount"];
+        $baniController->webhookType          = 'bani';
+        $baniController->description          = $currentRequest['data']['narration'];
+        $baniController->transactionDate      = $currentRequest["data"]["pub_date"];
+        $baniController->request              = $request;
+        $baniController->fromTempWebhook      = 'false';
 
         $handleWebhook = $baniController->handleWebhook();
 
@@ -2082,16 +2042,15 @@ class TransactionController extends Controller
         //     return $forwardWebhookResponse;
         // }
 
-
         $baniController->transactionReference = $currentRequest["data"]["transaction"]['transactionId'];
-        $baniController->wbaCharge = getWbaTransferCharges(37, $currentRequest["data"]["transaction"]["transactionAmount"]);
-        $baniController->virtualAccount = $currentRequest["data"]["transaction"]["aliasAccountNumber"];
-        $baniController->amount = $currentRequest["data"]["transaction"]["transactionAmount"];
-        $baniController->webhookType = 'amucha';
-        $baniController->description = "you received payment from " . $currentRequest["data"]["customer"]["billerId"];
-        $baniController->transactionDate = $currentRequest["data"]["transaction"]["time"];
-        $baniController->request = $request;
-        $baniController->fromTempWebhook = 'false';
+        $baniController->wbaCharge            = getWbaTransferCharges(37, $currentRequest["data"]["transaction"]["transactionAmount"]);
+        $baniController->virtualAccount       = $currentRequest["data"]["transaction"]["aliasAccountNumber"];
+        $baniController->amount               = $currentRequest["data"]["transaction"]["transactionAmount"];
+        $baniController->webhookType          = 'amucha';
+        $baniController->description          = "you received payment from " . $currentRequest["data"]["customer"]["billerId"];
+        $baniController->transactionDate      = $currentRequest["data"]["transaction"]["time"];
+        $baniController->request              = $request;
+        $baniController->fromTempWebhook      = 'false';
 
         $handleWebhook = $baniController->handleWebhook();
 
@@ -2105,9 +2064,9 @@ class TransactionController extends Controller
         $currentRequest = $request->all();
 
         $amuchaController = new AmuchaController();
-        $verifyWebhook = $amuchaController->verifyTransaction($transactionReference);
+        $verifyWebhook    = $amuchaController->verifyTransaction($transactionReference);
 
-        if (!$verifyWebhook['status']) {
+        if (! $verifyWebhook['status']) {
             return response()->json($verifyWebhook, 400);
         }
         return response()->json($verifyWebhook);
@@ -2118,9 +2077,9 @@ class TransactionController extends Controller
         $currentRequest = $request->all();
 
         $amuchaController = new AmuchaController();
-        $verifyWebhook = $amuchaController->transferFunds($request->amount, $request->receiver_account_id, $request->merchant_ref, $request->account_id);
+        $verifyWebhook    = $amuchaController->transferFunds($request->amount, $request->receiver_account_id, $request->merchant_ref, $request->account_id);
 
-        if (!$verifyWebhook['status']) {
+        if (! $verifyWebhook['status']) {
             return response()->json($verifyWebhook, 400);
         }
         return response()->json($verifyWebhook);
@@ -2131,9 +2090,9 @@ class TransactionController extends Controller
         $currentRequest = $request->all();
 
         $amuchaController = new AmuchaController();
-        $verifyWebhook = $amuchaController->assignTerminal($request->serial_number, $request->terminal_label, $request->account_id);
+        $verifyWebhook    = $amuchaController->assignTerminal($request->serial_number, $request->terminal_label, $request->account_id);
 
-        if (!$verifyWebhook['status']) {
+        if (! $verifyWebhook['status']) {
             return response()->json($verifyWebhook, 400);
         }
         return response()->json($verifyWebhook);
@@ -2144,9 +2103,9 @@ class TransactionController extends Controller
         $currentRequest = $request->all();
 
         $amuchaController = new AmuchaController();
-        $verifyWebhook = $amuchaController->unassignTerminal($request->serial_number, $request->terminal_label);
+        $verifyWebhook    = $amuchaController->unassignTerminal($request->serial_number, $request->terminal_label);
 
-        if (!$verifyWebhook['status']) {
+        if (! $verifyWebhook['status']) {
             return response()->json($verifyWebhook, 400);
         }
         return response()->json($verifyWebhook);
@@ -2157,9 +2116,9 @@ class TransactionController extends Controller
         $currentRequest = $request->all();
 
         $amuchaController = new AmuchaController();
-        $verifyWebhook = $amuchaController->registerCustomer($request->account_ref, $request->phone_number, $request->email, $request->bvn, $request->pin, $request->account_name, $request->call_back_url, $request->expiry_date);
+        $verifyWebhook    = $amuchaController->registerCustomer($request->account_ref, $request->phone_number, $request->email, $request->bvn, $request->pin, $request->account_name, $request->call_back_url, $request->expiry_date);
 
-        if (!$verifyWebhook['status']) {
+        if (! $verifyWebhook['status']) {
             return response()->json($verifyWebhook, 400);
         }
         return response()->json($verifyWebhook);
@@ -2171,26 +2130,26 @@ class TransactionController extends Controller
         $safeHavenController = new SafehavenController();
         // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
 
-        if (!$request['type'] != "transfer") {
+        if (! $request['type'] != "transfer") {
             response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
         }
 
         $currentRequest = $request->all();
 
         $safeHavenController->transactionReference = $currentRequest['data']['settlementId'];
-        $safeHavenController->wbaCharge = getWbaTransferCharges(38, $currentRequest['data']['amount']);
-        $safeHavenController->virtualAccount = $currentRequest['data']['creditAccountNumber'];
-        $safeHavenController->amount = $currentRequest['data']['amount'];
-        $safeHavenController->webhookType = 'safehaven';
-        $safeHavenController->senderName = $currentRequest['data']['debitAccountName'];
-        $safeHavenController->description = "You received Funds from" . $currentRequest['data']['debitAccountName'];
-        $safeHavenController->transactionDate = $currentRequest['data']['createdAt'];
-        $safeHavenController->request = $request;
-        $safeHavenController->fromTempWebhook = 'false';
+        $safeHavenController->wbaCharge            = getWbaTransferCharges(38, $currentRequest['data']['amount']);
+        $safeHavenController->virtualAccount       = $currentRequest['data']['creditAccountNumber'];
+        $safeHavenController->amount               = $currentRequest['data']['amount'];
+        $safeHavenController->webhookType          = 'safehaven';
+        $safeHavenController->senderName           = $currentRequest['data']['debitAccountName'];
+        $safeHavenController->description          = "You received Funds from" . $currentRequest['data']['debitAccountName'];
+        $safeHavenController->transactionDate      = $currentRequest['data']['createdAt'];
+        $safeHavenController->request              = $request;
+        $safeHavenController->fromTempWebhook      = 'false';
 
         $handleWebhook = $safeHavenController->handleWebhook();
 
-        $httpCode = !isset($handleWebhook['httpCode']) ? 400 : 200;
+        $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
 
         return response()->json($handleWebhook, $httpCode);
     }
@@ -2199,12 +2158,12 @@ class TransactionController extends Controller
     {
 
         $validation = Validator::make($request->all(), [
-            "serial_number" => 'required|string',
-            "transaction_type" => 'required|string'
+            "serial_number"    => 'required|string',
+            "transaction_type" => 'required|string',
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -2212,8 +2171,8 @@ class TransactionController extends Controller
 
         $terminal = AgentTerminal::where('terminal_code', $request->serial_number)->first();
 
-        if (!$terminal) {
-            $terminalResponse  = forwardRequestToAM("services-webhook", $request->all());
+        if (! $terminal) {
+            $terminalResponse = forwardRequestToAM("services-webhook", $request->all());
             return $terminalResponse;
         }
 
@@ -2232,8 +2191,8 @@ class TransactionController extends Controller
     public function transferPosFunds(Request $request)
     {
         $validation = Validator::make($request->all(), [
-            "serial_number" => 'required|string',
-            "transaction_amount" => 'required|numeric|gt:0'
+            "serial_number"      => 'required|string',
+            "transaction_amount" => 'required|numeric|gt:0',
         ]);
 
         if ($validation->fails()) {
@@ -2244,7 +2203,7 @@ class TransactionController extends Controller
 
         $userPos = AgentTerminal::where('terminal_code', $request->serial_number)->first();
 
-        if (!$userPos) {
+        if (! $userPos) {
             return response()->json(['status' => false, 'message' => 'Invalid POS Serial number']);
         }
 
@@ -2261,62 +2220,61 @@ class TransactionController extends Controller
         $creditCustomerAndCompany = creditCustomerAndCompanyPOSAmountWithCharge($user->accounts[0]->id, $userPos->terminal_code, auth()->user()->company_id, $request->transaction_amount, 0, 0, $user);
 
         logInfo($creditCustomerAndCompany, "Credit Customer and Company POS");
-        $ledger_cr = null;
-        $ledger_dr = null;
+        $ledger_cr       = null;
+        $ledger_dr       = null;
         $ledger_Settings = get_CR_DR_TXN_Type_Ledger(100, $user->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
         $transaction = transactions::create([
-            "balance_before" => $creditCustomerAndCompany['pos_balance_before'],
-            "amount" => $request->transaction_amount,
-            "balance_after" => $creditCustomerAndCompany['pos_balance_after'],
-            "description" => "POS Wallet Debit - $userPos->terminal_code to credit Savings wallet",
-            "transaction_reference" => $transactionRef,
-            "account_id" => $user->accounts[0]->id,
+            "balance_before"         => $creditCustomerAndCompany['pos_balance_before'],
+            "amount"                 => $request->transaction_amount,
+            "balance_after"          => $creditCustomerAndCompany['pos_balance_after'],
+            "description"            => "POS Wallet Debit - $userPos->terminal_code to credit Savings wallet",
+            "transaction_reference"  => $transactionRef,
+            "account_id"             => $user->accounts[0]->id,
             "company_balance_before" => 0,
-            "company_amount" => 0,
-            "company_balance_after" => 0,
+            "company_amount"         => 0,
+            "company_balance_after"  => 0,
             "transaction_remarks_id" => 2,
-            "transaction_type_id" => 69,
-            "credit_debit_type_id" => 2,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_dr" => $ledger_dr,
-            "ledger_cr" => $ledger_cr
+            "transaction_type_id"    => 69,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_dr"              => $ledger_dr,
+            "ledger_cr"              => $ledger_cr,
         ]);
 
         $companyTransactionRef = generate_txnID();
-        $ledger_cr = null;
-        $ledger_dr = null;
-        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(100, auth()->user()->company_id);
+        $ledger_cr             = null;
+        $ledger_dr             = null;
+        $ledger_Settings       = get_CR_DR_TXN_Type_Ledger(100, auth()->user()->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
         $transaction = transactions::create([
-            "balance_before" => $creditCustomerAndCompany['balance_before'],
-            "amount" => $request->transaction_amount,
-            "balance_after" => $creditCustomerAndCompany['balance_after'],
-            "description" => "Received payment from POS Terminal - $userPos->terminal_code. the sum of $request->transaction_amount",
-            "transaction_reference" => $companyTransactionRef,
-            "account_id" => $user->accounts[0]->id,
-            "company_id" => auth()->user()->company_id,
+            "balance_before"         => $creditCustomerAndCompany['balance_before'],
+            "amount"                 => $request->transaction_amount,
+            "balance_after"          => $creditCustomerAndCompany['balance_after'],
+            "description"            => "Received payment from POS Terminal - $userPos->terminal_code. the sum of $request->transaction_amount",
+            "transaction_reference"  => $companyTransactionRef,
+            "account_id"             => $user->accounts[0]->id,
+            "company_id"             => auth()->user()->company_id,
             "company_balance_before" => $creditCustomerAndCompany['company_balance_before'],
-            "company_amount" => $request->transaction_amount,
-            "company_balance_after" => $creditCustomerAndCompany['company_balance_after'],
+            "company_amount"         => $request->transaction_amount,
+            "company_balance_after"  => $creditCustomerAndCompany['company_balance_after'],
             "transaction_remarks_id" => 2,
-            "transaction_type_id" => 74,
-            "credit_debit_type_id" => 1,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_dr" => $ledger_dr,
-            "ledger_cr" => $ledger_cr
+            "transaction_type_id"    => 74,
+            "credit_debit_type_id"   => 1,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_dr"              => $ledger_dr,
+            "ledger_cr"              => $ledger_cr,
         ]);
 
         sendSMS($user->accounts[0]->id, "Credit Amt:$request->transaction_amount TXNcharge:0 Desc: POS Wallet Credit - $userPos->terminal_code Avail Bal:$userPos->balance Date:" . date('Y-m-d') . " Ref:$transactionRef", false, true, 'Credit Transaction');
-
 
         return response()->json(['status' => true, 'message' => 'POS Terminal Debited Successfully']);
     }
@@ -2327,18 +2285,18 @@ class TransactionController extends Controller
 
         $tryluxPayload = new TryluxPayload();
 
-        $tryluxPayload->pan = $request->pan;
-        $tryluxPayload->stan = $request->stan;
-        $tryluxPayload->amount = $request->amount;
-        $tryluxPayload->rrn = $request->rrn;
-        $tryluxPayload->iccData = $request->icc_data;
-        $tryluxPayload->trackData = $request->track_data;
-        $tryluxPayload->postDataCode = $request->post_data_code;
-        $tryluxPayload->cardExpDate = $request->card_exp_date;
+        $tryluxPayload->pan            = $request->pan;
+        $tryluxPayload->stan           = $request->stan;
+        $tryluxPayload->amount         = $request->amount;
+        $tryluxPayload->rrn            = $request->rrn;
+        $tryluxPayload->iccData        = $request->icc_data;
+        $tryluxPayload->trackData      = $request->track_data;
+        $tryluxPayload->postDataCode   = $request->post_data_code;
+        $tryluxPayload->cardExpDate    = $request->card_exp_date;
         $tryluxPayload->sequenceNumber = $request->sequence_number;
-        $tryluxPayload->pin = $request->pin;
-        $tryluxPayload->acquiringCode = $request->acquiring_code;
-        $tryluxPayload->accountType = $request->account_type;
+        $tryluxPayload->pin            = $request->pin;
+        $tryluxPayload->acquiringCode  = $request->acquiring_code;
+        $tryluxPayload->accountType    = $request->account_type;
 
         $response = $tryluxController->resdTransaction($tryluxPayload);
 
@@ -2351,18 +2309,18 @@ class TransactionController extends Controller
 
         $tryluxPayload = new TryluxPayload();
 
-        $tryluxPayload->pan = $request->pan;
-        $tryluxPayload->stan = $request->stan;
-        $tryluxPayload->amount = $request->amount;
-        $tryluxPayload->rrn = $request->rrn;
-        $tryluxPayload->iccData = $request->icc_data;
-        $tryluxPayload->trackData = $request->track_data;
-        $tryluxPayload->postDataCode = $request->post_data_code;
-        $tryluxPayload->cardExpDate = $request->card_exp_date;
+        $tryluxPayload->pan            = $request->pan;
+        $tryluxPayload->stan           = $request->stan;
+        $tryluxPayload->amount         = $request->amount;
+        $tryluxPayload->rrn            = $request->rrn;
+        $tryluxPayload->iccData        = $request->icc_data;
+        $tryluxPayload->trackData      = $request->track_data;
+        $tryluxPayload->postDataCode   = $request->post_data_code;
+        $tryluxPayload->cardExpDate    = $request->card_exp_date;
         $tryluxPayload->sequenceNumber = $request->sequence_number;
-        $tryluxPayload->pin = $request->pin;
-        $tryluxPayload->acquiringCode = $request->acquiring_code;
-        $tryluxPayload->accountType = $request->account_type;
+        $tryluxPayload->pin            = $request->pin;
+        $tryluxPayload->acquiringCode  = $request->acquiring_code;
+        $tryluxPayload->accountType    = $request->account_type;
 
         $response = $tryluxController->retryTransaction($tryluxPayload);
 
@@ -2375,19 +2333,19 @@ class TransactionController extends Controller
 
         $tryluxPayload = new TryluxPayload();
 
-        $tryluxPayload->pan = $request->pan;
-        $tryluxPayload->stan = $request->stan;
-        $tryluxPayload->amount = $request->amount;
-        $tryluxPayload->rrn = $request->rrn;
-        $tryluxPayload->iccData = $request->icc_data;
-        $tryluxPayload->trackData = $request->track_data;
-        $tryluxPayload->postDataCode = $request->post_data_code;
-        $tryluxPayload->cardExpDate = $request->card_exp_date;
+        $tryluxPayload->pan            = $request->pan;
+        $tryluxPayload->stan           = $request->stan;
+        $tryluxPayload->amount         = $request->amount;
+        $tryluxPayload->rrn            = $request->rrn;
+        $tryluxPayload->iccData        = $request->icc_data;
+        $tryluxPayload->trackData      = $request->track_data;
+        $tryluxPayload->postDataCode   = $request->post_data_code;
+        $tryluxPayload->cardExpDate    = $request->card_exp_date;
         $tryluxPayload->sequenceNumber = $request->sequence_number;
-        $tryluxPayload->pin = $request->pin;
-        $tryluxPayload->terminalId = $request->terminal_id;
-        $tryluxPayload->acquiringCode = $request->acquiring_code;
-        $tryluxPayload->accountType = $request->account_type;
+        $tryluxPayload->pin            = $request->pin;
+        $tryluxPayload->terminalId     = $request->terminal_id;
+        $tryluxPayload->acquiringCode  = $request->acquiring_code;
+        $tryluxPayload->accountType    = $request->account_type;
 
         $response = $tryluxController->cardBalance($tryluxPayload);
 
@@ -2400,10 +2358,9 @@ class TransactionController extends Controller
 
         $tryluxPayload = new TryluxPayload();
 
-        $tryluxPayload->stan = $request->stan;
-        $tryluxPayload->serialNumber = $request->serial_number;
+        $tryluxPayload->stan            = $request->stan;
+        $tryluxPayload->serialNumber    = $request->serial_number;
         $tryluxPayload->onlyAccountInfo = $request->only_account_info;
-
 
         $response = $tryluxController->resdNetworkManagement($tryluxPayload);
 
@@ -2423,8 +2380,7 @@ class TransactionController extends Controller
 
     public function servicesWebhook(Request $request)
     {
-        $transactionId =  generateTransactionReference();
-
+        $transactionId = generateTransactionReference();
 
         // return response()->json(['status' => false, 'message' => 'Service Disabled Temporarily']);
 
@@ -2461,12 +2417,12 @@ class TransactionController extends Controller
 
             WebhookLog::create([
                 'webhook_type' => 'errandpay',
-                'body' => json_encode($request->all())
+                'body'         => json_encode($request->all()),
             ]);
 
             $terminal = AgentTerminal::where('terminal_code', $request->SerialNumber)->first();
 
-            if (!$terminal) {
+            if (! $terminal) {
                 return response()->json(['status' => false, 'message' => "Invalid Terminal Serial Number"], 400);
             }
 
@@ -2474,13 +2430,13 @@ class TransactionController extends Controller
 
             $customerAmount = $originalAmount;
 
-            $customer = $terminal->agent;
+            $customer  = $terminal->agent;
             $companyId = $terminal->agent->company_id;
-            $branchId = $terminal->agent->branch->id;
+            $branchId  = $terminal->agent->branch->id;
             $accountId = $terminal->agent->wb_account_details[0]->id;
 
             $customerCharge = 0;
-            $companyCharge = 0;
+            $companyCharge  = 0;
 
             if ($request->PostingType == "Cr") {
 
@@ -2497,7 +2453,7 @@ class TransactionController extends Controller
             }
 
             if ($request->TransactionType == "FundTransfer") {
-                $customerCharge = getWbaTransferCharges(1, $request->Amount);
+                $customerCharge    = getWbaTransferCharges(1, $request->Amount);
                 $companyCommission = 2;
             }
 
@@ -2505,130 +2461,130 @@ class TransactionController extends Controller
 
             $transactionType = $request->TransactionType == "CashOut" ? 63 : ($request->TransactionType == "FundTransfer" ? 65 : 64);
 
-            $description = "";
+            $description        = "";
             $companyDescription = "";
 
             if ($request->TransactionType == "CashOut") {
-                $description = "You recieved payment from POS Terminal: $terminal->terminal_code";
+                $description        = "You recieved payment from POS Terminal: $terminal->terminal_code";
                 $companyDescription = "You recieved commission from POS Terminal - $terminal->terminal_code payment received";
-                $systemDescription = "Payment received from POS Terminal: $terminal->terminal_code, Amount: $originalAmount";
+                $systemDescription  = "Payment received from POS Terminal: $terminal->terminal_code, Amount: $originalAmount";
 
                 $systemDescription = "Card Details Masked PAN: " . $currentRequest["AdditionalDetails"]["MaskedPAN"] . " Exp Date: " . $currentRequest["AdditionalDetails"]["CardExpiry"];
                 $systemDescription .= " TerminalID " . $currentRequest["AdditionalDetails"]["TerminalID"];
             } else if ($request->TransactionType == "FundTransfer") {
-                $description = "Funds transfer via termial: $terminal->terminal_code";
+                $description        = "Funds transfer via termial: $terminal->terminal_code";
                 $companyDescription = "Funds transfer commission via terminal - $terminal->terminal_code";
-                $systemDescription = "Funds Transferred via POS Terminal: $terminal->terminal_code, Amount: $originalAmount";
+                $systemDescription  = "Funds Transferred via POS Terminal: $terminal->terminal_code, Amount: $originalAmount";
 
                 $systemDescription = "Terminal ID: $terminal->terminal_code, Card Details Destination Acc. Name: " . $currentRequest["AdditionalDetails"]["DestinationAccountName"] . " Destination Account Number: " . $currentRequest["AdditionalDetails"]["DestinationAccountNumber"];
                 $systemDescription .= " Destination Bank Name " . $currentRequest["AdditionalDetails"]["DestinationBankName"];
             } else if ($request->TransactionType == "BillsPayment") {
-                $customerCharge = 0;
+                $customerCharge        = 0;
                 $initialCustomerCharge = 0;
-                $description = "You paid bills via termial: $terminal->terminal_code";
-                $companyCommission = 0;
+                $description           = "You paid bills via termial: $terminal->terminal_code";
+                $companyCommission     = 0;
 
                 $systemDescription = "You purchased " . $currentRequest["AdditionalDetails"]["BillCategory"] . " from " . $currentRequest["AdditionalDetails"]["BillService"];
                 $systemDescription .= " for " . $currentRequest["AdditionalDetails"]["Beneficiary"];
             }
 
             $creditCustomer = $request->PostingType == "Cr" ? creditPOSTerminal($terminal->terminal_code, $originalAmount, $customerCharge, $initialCustomerCharge, $companyId)
-                : \debitCustomerAndCompanyPOSWithChargeAndCommission($accountId, $terminal->terminal_code, $companyId, $originalAmount, $customerCharge, $companyCommission);
-            $ledger_cr = null;
-            $ledger_dr = null;
+            : \debitCustomerAndCompanyPOSWithChargeAndCommission($accountId, $terminal->terminal_code, $companyId, $originalAmount, $customerCharge, $companyCommission);
+            $ledger_cr       = null;
+            $ledger_dr       = null;
             $ledger_Settings = get_CR_DR_TXN_Type_Ledger($transactionType, $customer->company_id);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
             }
             $transaction = transactions::create([
-                "balance_before" => $creditCustomer['pos_balance_before'],
-                "amount" => $creditCustomer['pos_amount'],
-                "balance_after" => $creditCustomer['pos_balance_after'],
-                "company_amount" => 0,
+                "balance_before"         => $creditCustomer['pos_balance_before'],
+                "amount"                 => $creditCustomer['pos_amount'],
+                "balance_after"          => $creditCustomer['pos_balance_after'],
+                "company_amount"         => 0,
                 'company_balance_before' => 0,
-                'company_balance_after' => 0,
-                "description" => $description,
-                "branch_id" => $branchId,
-                "account_id" => $accountId,
-                "system_description" => $systemDescription,
-                "transaction_reference" => $request->TransactionReference,
+                'company_balance_after'  => 0,
+                "description"            => $description,
+                "branch_id"              => $branchId,
+                "account_id"             => $accountId,
+                "system_description"     => $systemDescription,
+                "transaction_reference"  => $request->TransactionReference,
                 "transaction_remarks_id" => 2,
-                "transaction_type_id" =>  $transactionType,
-                "credit_debit_type_id" => $request->PostingType == "Cr" ? 1 : 2,
-                "created_date"  => date('Y-m-d'),
-                "created_by" => $customer->id,
-                "ledger_dr" => $ledger_dr,
-                "ledger_cr" => $ledger_cr,
+                "transaction_type_id"    => $transactionType,
+                "credit_debit_type_id"   => $request->PostingType == "Cr" ? 1 : 2,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => $customer->id,
+                "ledger_dr"              => $ledger_dr,
+                "ledger_cr"              => $ledger_cr,
             ]);
 
             if ($creditCustomer['company_amount'] > 0) {
 
                 $chargeTransactionRef = generate_txnID();
-                $ledger_cr = null;
-                $ledger_dr = null;
-                $ledger_Settings = get_CR_DR_TXN_Type_Ledger(70, $customer->company_id);
+                $ledger_cr            = null;
+                $ledger_dr            = null;
+                $ledger_Settings      = get_CR_DR_TXN_Type_Ledger(70, $customer->company_id);
                 if ($ledger_Settings) {
                     $ledger_cr = $ledger_Settings->ledger_cr;
                     $ledger_dr = $ledger_Settings->ledger_dr;
                 }
                 $transaction = transactions::create([
-                    "balance_before" => 0,
-                    "amount" => 0,
-                    "balance_after" => 0,
-                    "company_amount" => $creditCustomer['company_amount'],
+                    "balance_before"         => 0,
+                    "amount"                 => 0,
+                    "balance_after"          => 0,
+                    "company_amount"         => $creditCustomer['company_amount'],
                     'company_balance_before' => $creditCustomer['company_balance_before'],
-                    'company_balance_after' => $creditCustomer['company_balance_after'],
-                    "description" => $companyDescription,
-                    "company_id" => $companyId,
-                    "branch_id" => $branchId,
-                    "transaction_reference" => $chargeTransactionRef,
+                    'company_balance_after'  => $creditCustomer['company_balance_after'],
+                    "description"            => $companyDescription,
+                    "company_id"             => $companyId,
+                    "branch_id"              => $branchId,
+                    "transaction_reference"  => $chargeTransactionRef,
                     "transaction_remarks_id" => 2,
-                    "transaction_type_id" =>  70,
-                    "credit_debit_type_id" => $request->PostingType == "Cr" ? 1 : 2,
-                    "created_date"  => date('Y-m-d'),
-                    "created_by" => $customer->id,
-                    "ledger_dr" => $ledger_dr,
-                    "ledger_cr" => $ledger_cr,
+                    "transaction_type_id"    => 70,
+                    "credit_debit_type_id"   => $request->PostingType == "Cr" ? 1 : 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => $customer->id,
+                    "ledger_dr"              => $ledger_dr,
+                    "ledger_cr"              => $ledger_cr,
                 ]);
             }
 
             if ($request->TransactionType != "FundTransfer") {
 
                 if ($customerCharge > 0) {
-                    $ledger_cr = null;
-                    $ledger_dr = null;
+                    $ledger_cr       = null;
+                    $ledger_dr       = null;
                     $ledger_Settings = get_CR_DR_TXN_Type_Ledger(76, $customer->company_id);
                     if ($ledger_Settings) {
                         $ledger_cr = $ledger_Settings->ledger_cr;
                         $ledger_dr = $ledger_Settings->ledger_dr;
                     }
                     $transaction = transactions::create([
-                        "balance_before" => $creditCustomer['pos_charge_balance_before'],
-                        "amount" => $customerCharge,
-                        "company_amount" => 0,
-                        "balance_after" => $creditCustomer['pos_charge_balance_after'],
+                        "balance_before"         => $creditCustomer['pos_charge_balance_before'],
+                        "amount"                 => $customerCharge,
+                        "company_amount"         => 0,
+                        "balance_after"          => $creditCustomer['pos_charge_balance_after'],
                         'company_balance_before' => 0,
-                        'company_balance_after' => 0,
-                        "description" => "Charge from POS payment received from Terminal - $terminal->terminal_code",
-                        "branch_id" => $branchId,
-                        "account_id" => $accountId,
-                        "parent_transaction_id" => $transaction->id,
-                        "transaction_reference" => $transactionId,
+                        'company_balance_after'  => 0,
+                        "description"            => "Charge from POS payment received from Terminal - $terminal->terminal_code",
+                        "branch_id"              => $branchId,
+                        "account_id"             => $accountId,
+                        "parent_transaction_id"  => $transaction->id,
+                        "transaction_reference"  => $transactionId,
                         "transaction_remarks_id" => 2,
-                        "transaction_type_id" => 76,
-                        "credit_debit_type_id" => 2,
-                        "created_date"  => date('Y-m-d'),
-                        "created_by" => $customer->id,
-                        "ledger_dr" => $ledger_dr,
-                        "ledger_cr" => $ledger_cr,
+                        "transaction_type_id"    => 76,
+                        "credit_debit_type_id"   => 2,
+                        "created_date"           => date('Y-m-d'),
+                        "created_by"             => $customer->id,
+                        "ledger_dr"              => $ledger_dr,
+                        "ledger_cr"              => $ledger_cr,
                     ]);
                 }
             }
 
             $balanceAfter = $creditCustomer['pos_charge_balance_after'];
-            $desc = "You recieved payment from POS Terminal";
-            $currentDate = Carbon::now();
+            $desc         = "You recieved payment from POS Terminal";
+            $currentDate  = Carbon::now();
 
             $message = "Credit Amt:$originalAmount Desc: $desc Avail Bal:$balanceAfter Date:$currentDate Ref:$request->settlementId";
 
@@ -2645,8 +2601,7 @@ class TransactionController extends Controller
 
     public function errandPayFundsTransferWebhook(Request $request)
     {
-        $transactionId =  generateTransactionReference();
-
+        $transactionId = generateTransactionReference();
 
         try {
 
@@ -2679,12 +2634,12 @@ class TransactionController extends Controller
 
             WebhookLog::create([
                 'webhook_type' => 'errandpay',
-                'body' => json_encode($request->all())
+                'body'         => json_encode($request->all()),
             ]);
 
             $terminal = AgentTerminal::where('terminal_code', $request->SerialNumber)->first();
 
-            if (!$terminal) {
+            if (! $terminal) {
                 return response()->json(['status' => false, 'message' => "Invalid Terminal Id"], 400);
             }
 
@@ -2692,9 +2647,9 @@ class TransactionController extends Controller
 
             $customerAmount = $originalAmount;
 
-            $customer = $terminal->agent;
+            $customer  = $terminal->agent;
             $companyId = $terminal->agent->company->id;
-            $branchId = $terminal->agent->branch->id;
+            $branchId  = $terminal->agent->branch->id;
             $accountId = $terminal->agent->wb_account_details[0]->id;
 
             // Get Errandpay POS WBA Charges
@@ -2707,64 +2662,63 @@ class TransactionController extends Controller
             $customerCharge = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
             $customerAmount -= $customerCharge;
 
-            $creditCustomer = \creditCustomerAndCompanyPOSAmountWithCharge($accountId, $terminal->terminal_code, $companyId, $originalAmount, $customerCharge, $companyCharge);
-            $ledger_cr = null;
-            $ledger_dr = null;
+            $creditCustomer  = \creditCustomerAndCompanyPOSAmountWithCharge($accountId, $terminal->terminal_code, $companyId, $originalAmount, $customerCharge, $companyCharge);
+            $ledger_cr       = null;
+            $ledger_dr       = null;
             $ledger_Settings = get_CR_DR_TXN_Type_Ledger(68, $companyId);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
             }
             $transaction = transactions::create([
-                "balance_before" => $creditCustomer['balance_before'],
-                "amount" => $originalAmount,
-                "balance_after" => $creditCustomer['balance_after'],
-                "description" => "You Received funds via POS Terminal",
-                "company_id" => $companyId,
-                "branch_id" => $branchId,
-                "account_id" => $accountId,
-                "transaction_reference" => $request->TransactionReference,
+                "balance_before"         => $creditCustomer['balance_before'],
+                "amount"                 => $originalAmount,
+                "balance_after"          => $creditCustomer['balance_after'],
+                "description"            => "You Received funds via POS Terminal",
+                "company_id"             => $companyId,
+                "branch_id"              => $branchId,
+                "account_id"             => $accountId,
+                "transaction_reference"  => $request->TransactionReference,
                 "transaction_remarks_id" => 2,
-                "transaction_type_id" => 68,
-                "credit_debit_type_id" => 1,
-                "created_date"  => date('Y-m-d'),
-                "created_by" => 1,
-                "ledger_cr" => $ledger_cr,
-                "ledger_dr" => $ledger_dr,
+                "transaction_type_id"    => 68,
+                "credit_debit_type_id"   => 1,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => 1,
+                "ledger_cr"              => $ledger_cr,
+                "ledger_dr"              => $ledger_dr,
             ]);
-            $ledger_cr = null;
-            $ledger_dr = null;
+            $ledger_cr       = null;
+            $ledger_dr       = null;
             $ledger_Settings = get_CR_DR_TXN_Type_Ledger(27, $companyId);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
             }
             $chargeTransaction = transactions::create([
-                "balance_before" => $creditCustomer['charge_balance_before'],
-                "amount" => $customerCharge,
-                "company_amount" => $companyCharge,
-                "balance_after" => $creditCustomer['charge_balance_after'],
+                "balance_before"         => $creditCustomer['charge_balance_before'],
+                "amount"                 => $customerCharge,
+                "company_amount"         => $companyCharge,
+                "balance_after"          => $creditCustomer['charge_balance_after'],
                 'company_balance_before' => $creditCustomer['company_charge_balance_before'],
-                'company_balance_after' => $creditCustomer['company_charge_balance_after'],
-                "description" => "Charge from payment received",
-                "company_id" => $companyId,
-                "branch_id" => $branchId,
-                "account_id" => $accountId,
-                "parent_transaction_id" => $transaction->id,
-                "transaction_reference" => $transactionId,
+                'company_balance_after'  => $creditCustomer['company_charge_balance_after'],
+                "description"            => "Charge from payment received",
+                "company_id"             => $companyId,
+                "branch_id"              => $branchId,
+                "account_id"             => $accountId,
+                "parent_transaction_id"  => $transaction->id,
+                "transaction_reference"  => $transactionId,
                 "transaction_remarks_id" => 2,
-                "transaction_type_id" => 27,
-                "credit_debit_type_id" => 2,
-                "created_date"  => date('Y-m-d'),
-                "created_by" => 1,
-                "ledger_cr" => $ledger_cr,
-                "ledger_dr" => $ledger_dr,
+                "transaction_type_id"    => 27,
+                "credit_debit_type_id"   => 2,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => 1,
+                "ledger_cr"              => $ledger_cr,
+                "ledger_dr"              => $ledger_dr,
             ]);
 
-
             $balanceAfter = $creditCustomer['charge_balance_after'];
-            $desc = "You Received funds via POS Terminal";
-            $currentDate = Carbon::now();
+            $desc         = "You Received funds via POS Terminal";
+            $currentDate  = Carbon::now();
 
             $message = "Credit Amt:" . $creditCustomer['charge_balance_after'] . " Desc:$desc Avail Bal:$balanceAfter Date:$currentDate Ref:$request->TransactionReference";
 
@@ -2779,8 +2733,7 @@ class TransactionController extends Controller
 
     public function errandPayBillsPaymentWebhook(Request $request)
     {
-        $transactionId =  generateTransactionReference();
-
+        $transactionId = generateTransactionReference();
 
         try {
 
@@ -2813,12 +2766,12 @@ class TransactionController extends Controller
 
             WebhookLog::create([
                 'webhook_type' => 'errandpay',
-                'body' => json_encode($request->all())
+                'body'         => json_encode($request->all()),
             ]);
 
             $terminal = AgentTerminal::where('terminal_code', $request->SerialNumber)->first();
 
-            if (!$terminal) {
+            if (! $terminal) {
                 return response()->json(['status' => false, 'message' => "Invalid Terminal Id"], 400);
             }
 
@@ -2826,9 +2779,9 @@ class TransactionController extends Controller
 
             $customerAmount = $originalAmount;
 
-            $customer = $terminal->agent;
+            $customer  = $terminal->agent;
             $companyId = $terminal->agent->company->id;
-            $branchId = $terminal->agent->branch->id;
+            $branchId  = $terminal->agent->branch->id;
             $accountId = $terminal->agent->wb_account_details[0]->id;
 
             // Get Errandpay WBA Charges
@@ -2850,100 +2803,100 @@ class TransactionController extends Controller
                 }
             }
 
-            $creditCustomer = \debitCustomerAndCompanyWithCharge($accountId, $companyId, $originalAmount, $customerCharge, $companyCharge);
-            $ledger_cr = null;
-            $ledger_dr = null;
+            $creditCustomer  = \debitCustomerAndCompanyWithCharge($accountId, $companyId, $originalAmount, $customerCharge, $companyCharge);
+            $ledger_cr       = null;
+            $ledger_dr       = null;
             $ledger_Settings = get_CR_DR_TXN_Type_Ledger(6, $companyId);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
             }
             $transaction = transactions::create([
-                "balance_before" => $creditCustomer['balance_before'],
-                "amount" => $originalAmount,
-                "company_amount" => $originalAmount,
-                "balance_after" => $creditCustomer['balance_after'],
+                "balance_before"         => $creditCustomer['balance_before'],
+                "amount"                 => $originalAmount,
+                "company_amount"         => $originalAmount,
+                "balance_after"          => $creditCustomer['balance_after'],
                 'company_balance_before' => $creditCustomer['company_balance_before'],
-                'company_balance_after' => $creditCustomer['company_balance_after'],
-                "description" => "You Paid Bill using POS Terminal",
-                "company_id" => $companyId,
-                "branch_id" => $branchId,
-                "account_id" => $accountId,
-                "transaction_reference" => $request->TransactionReference,
+                'company_balance_after'  => $creditCustomer['company_balance_after'],
+                "description"            => "You Paid Bill using POS Terminal",
+                "company_id"             => $companyId,
+                "branch_id"              => $branchId,
+                "account_id"             => $accountId,
+                "transaction_reference"  => $request->TransactionReference,
                 "transaction_remarks_id" => 2,
-                "transaction_type_id" => 6,
-                "credit_debit_type_id" => 1,
-                "created_date"  => date('Y-m-d'),
-                "created_by" => 1,
-                "ledger_cr" => $ledger_cr,
-                "ledger_dr" => $ledger_dr,
+                "transaction_type_id"    => 6,
+                "credit_debit_type_id"   => 1,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => 1,
+                "ledger_cr"              => $ledger_cr,
+                "ledger_dr"              => $ledger_dr,
             ]);
 
             if ($customerCharge > 0) {
-                $ledger_cr = null;
-                $ledger_dr = null;
+                $ledger_cr       = null;
+                $ledger_dr       = null;
                 $ledger_Settings = get_CR_DR_TXN_Type_Ledger(27, $companyId);
                 if ($ledger_Settings) {
                     $ledger_cr = $ledger_Settings->ledger_cr;
                     $ledger_dr = $ledger_Settings->ledger_dr;
                 }
                 $transaction = transactions::create([
-                    "balance_before" => $creditCustomer['charge_balance_before'],
-                    "amount" => $customerCharge,
-                    "company_amount" => $companyCharge,
-                    "balance_after" => $creditCustomer['charge_balance_after'],
+                    "balance_before"         => $creditCustomer['charge_balance_before'],
+                    "amount"                 => $customerCharge,
+                    "company_amount"         => $companyCharge,
+                    "balance_after"          => $creditCustomer['charge_balance_after'],
                     'company_balance_before' => $creditCustomer['company_charge_balance_before'],
-                    'company_balance_after' => $creditCustomer['company_charge_balance_after'],
-                    "description" => "Charge from payment received",
-                    "company_id" => $companyId,
-                    "branch_id" => $branchId,
-                    "account_id" => $accountId,
-                    "parent_transaction_id" => $transaction->id,
-                    "transaction_reference" => $transactionId,
+                    'company_balance_after'  => $creditCustomer['company_charge_balance_after'],
+                    "description"            => "Charge from payment received",
+                    "company_id"             => $companyId,
+                    "branch_id"              => $branchId,
+                    "account_id"             => $accountId,
+                    "parent_transaction_id"  => $transaction->id,
+                    "transaction_reference"  => $transactionId,
                     "transaction_remarks_id" => 2,
-                    "transaction_type_id" => 27,
-                    "credit_debit_type_id" => 2,
-                    "created_date"  => date('Y-m-d'),
-                    "created_by" => 1,
-                    "ledger_cr" => $ledger_cr,
-                    "ledger_dr" => $ledger_dr,
+                    "transaction_type_id"    => 27,
+                    "credit_debit_type_id"   => 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => 1,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
                 ]);
             } else {
                 if ($companyCharge > 0) {
-                    $ledger_cr = null;
-                    $ledger_dr = null;
+                    $ledger_cr       = null;
+                    $ledger_dr       = null;
                     $ledger_Settings = get_CR_DR_TXN_Type_Ledger(27, $companyId);
                     if ($ledger_Settings) {
                         $ledger_cr = $ledger_Settings->ledger_cr;
                         $ledger_dr = $ledger_Settings->ledger_dr;
                     }
                     $transaction = transactions::create([
-                        "balance_before" => $creditCustomer['company_charge_balance_before'],
+                        "balance_before"         => $creditCustomer['company_charge_balance_before'],
                         "company_balance_before" => $creditCustomer['company_charge_balance_before'],
-                        "amount" => $companyCharge,
-                        "company_amount" => $companyCharge,
-                        "balance_after" => $creditCustomer['company_charge_balance_after'],
-                        "company_balance_after" => $creditCustomer['company_charge_balance_after'],
-                        "description" => "Charge from Terminal payment",
-                        "company_id" => $companyId,
-                        "branch_id" => $branchId,
-                        "account_id" => $accountId,
-                        "parent_transaction_id" => $transaction->id,
-                        "transaction_reference" => $transactionId,
+                        "amount"                 => $companyCharge,
+                        "company_amount"         => $companyCharge,
+                        "balance_after"          => $creditCustomer['company_charge_balance_after'],
+                        "company_balance_after"  => $creditCustomer['company_charge_balance_after'],
+                        "description"            => "Charge from Terminal payment",
+                        "company_id"             => $companyId,
+                        "branch_id"              => $branchId,
+                        "account_id"             => $accountId,
+                        "parent_transaction_id"  => $transaction->id,
+                        "transaction_reference"  => $transactionId,
                         "transaction_remarks_id" => 2,
-                        "transaction_type_id" => 27,
-                        "credit_debit_type_id" => 2,
-                        "created_date"  => date('Y-m-d'),
-                        "created_by" => 1,
-                        "ledger_cr" => $ledger_cr,
-                        "ledger_dr" => $ledger_dr,
+                        "transaction_type_id"    => 27,
+                        "credit_debit_type_id"   => 2,
+                        "created_date"           => date('Y-m-d'),
+                        "created_by"             => 1,
+                        "ledger_cr"              => $ledger_cr,
+                        "ledger_dr"              => $ledger_dr,
                     ]);
                 }
             }
 
             $balanceAfter = $creditCustomer['charge_balance_after'];
-            $desc = "You recieved payment from POS Terminal";
-            $currentDate = Carbon::now();
+            $desc         = "You recieved payment from POS Terminal";
+            $currentDate  = Carbon::now();
 
             $message = "Debit Amt:$originalAmount Desc: $desc Avail Bal:$balanceAfter Date:$currentDate Ref:$request->settlementId";
 
@@ -2960,9 +2913,9 @@ class TransactionController extends Controller
     {
 
         $monnifyController = new MonnifyController();
-        $verifyWebhook = $monnifyController->verifyIncomingWebhook($request);
+        $verifyWebhook     = $monnifyController->verifyIncomingWebhook($request);
 
-        if (!$verifyWebhook['status']) {
+        if (! $verifyWebhook['status']) {
             response()->json($verifyWebhook, 400);
         }
 
@@ -2974,15 +2927,15 @@ class TransactionController extends Controller
         }
 
         $monnifyController->transactionReference = $request->reference;
-        $monnifyController->wbaCharge = getWbaTransferCharges(10, $transactionStatus['data']['amount_paid']);
-        $monnifyController->virtualAccount = $request->account_number;
-        $monnifyController->amount = $transactionStatus['data']['amount_paid'];
-        $monnifyController->webhookType = 'monnify';
-        $monnifyController->description = "You received Funds from " . $request->accountDetails['accountName'];
-        $monnifyController->transactionDate = date('Y-m-d');
-        $monnifyController->accountReference = $request->product['reference'];
-        $monnifyController->request = $request;
-        $monnifyController->fromTempWebhook = 'false';
+        $monnifyController->wbaCharge            = getWbaTransferCharges(10, $transactionStatus['data']['amount_paid']);
+        $monnifyController->virtualAccount       = $request->account_number;
+        $monnifyController->amount               = $transactionStatus['data']['amount_paid'];
+        $monnifyController->webhookType          = 'monnify';
+        $monnifyController->description          = "You received Funds from " . $request->accountDetails['accountName'];
+        $monnifyController->transactionDate      = date('Y-m-d');
+        $monnifyController->accountReference     = $request->product['reference'];
+        $monnifyController->request              = $request;
+        $monnifyController->fromTempWebhook      = 'false';
 
         $handleWebhook = $monnifyController->handleWebhook();
 
@@ -2993,12 +2946,12 @@ class TransactionController extends Controller
     {
 
         $cgateController = new CgateController();
-        $verifyWebhook = $cgateController->verifyIncomingWebhook($request);
+        $verifyWebhook   = $cgateController->verifyIncomingWebhook($request);
 
         $newResponse = $verifyWebhook;
 
         if ($verifyWebhook['status'] != "00") {
-            return  response()->json(['ResponseCode' => "01", 'ResponseMessage' => $newResponse['message']], 400);
+            return response()->json(['ResponseCode' => "01", 'ResponseMessage' => $newResponse['message']], 400);
         }
 
         //Verify Transaction status from monnify
@@ -3008,14 +2961,14 @@ class TransactionController extends Controller
         // }
 
         $cgateController->transactionReference = $request->paymentReference;
-        $cgateController->wbaCharge = getWbaTransferCharges(28, $request->amount);
-        $cgateController->virtualAccount = $request->customerRef;
-        $cgateController->amount = $request->amount;
-        $cgateController->webhookType = 'cgate';
-        $cgateController->description = "You received the sum of $request->amount via USSD, Sender: " . $request->mobileNumber . " with reference $request->paymentReference";
-        $cgateController->transactionDate = $request->transactionDate;
-        $cgateController->request = $request;
-        $cgateController->fromTempWebhook = 'false';
+        $cgateController->wbaCharge            = getWbaTransferCharges(28, $request->amount);
+        $cgateController->virtualAccount       = $request->customerRef;
+        $cgateController->amount               = $request->amount;
+        $cgateController->webhookType          = 'cgate';
+        $cgateController->description          = "You received the sum of $request->amount via USSD, Sender: " . $request->mobileNumber . " with reference $request->paymentReference";
+        $cgateController->transactionDate      = $request->transactionDate;
+        $cgateController->request              = $request;
+        $cgateController->fromTempWebhook      = 'false';
 
         $handleWebhook = $cgateController->handleWebhook();
 
@@ -3023,12 +2976,11 @@ class TransactionController extends Controller
 
         if ($handleWebhook['status'] == "00") {
             $newResponse = ['ResponseCode' => "00", 'ResponseMessage' => 'Successful'];
-            $httpCode = isset($handleWebhook['httpCode']) ? $handleWebhook['httpCode'] : 200;
+            $httpCode    = isset($handleWebhook['httpCode']) ? $handleWebhook['httpCode'] : 200;
         } else {
             $newResponse = ['ResponseCode' => "01", 'ResponseMessage' => $newResponse['message']];
-            $httpCode = isset($handleWebhook['httpCode']) ? $handleWebhook['httpCode'] : 400;
+            $httpCode    = isset($handleWebhook['httpCode']) ? $handleWebhook['httpCode'] : 400;
         }
-
 
         return response()->json($newResponse, $httpCode);
     }
@@ -3041,19 +2993,19 @@ class TransactionController extends Controller
 
         $verifyWebhook = $assetMatrixController->verifyTransaction($request->sessionId);
 
-        if (!$verifyWebhook['status']) {
+        if (! $verifyWebhook['status']) {
             return response()->json($verifyWebhook, 400);
         }
 
         $assetMatrixController->transactionReference = $request->sessionId;
-        $assetMatrixController->wbaCharge = getWbaTransferCharges(6, $request->amount);
-        $assetMatrixController->virtualAccount = $request->accountNumber;
-        $assetMatrixController->amount = $request->amount;
-        $assetMatrixController->webhookType = 'assetmatrix';
-        $assetMatrixController->description = "You received the sum of $request->amount from " . $request->sourceAccountName;
-        $assetMatrixController->transactionDate = date("Y-m-d");
-        $assetMatrixController->request = $request;
-        $assetMatrixController->fromTempWebhook = 'false';
+        $assetMatrixController->wbaCharge            = getWbaTransferCharges(6, $request->amount);
+        $assetMatrixController->virtualAccount       = $request->accountNumber;
+        $assetMatrixController->amount               = $request->amount;
+        $assetMatrixController->webhookType          = 'assetmatrix';
+        $assetMatrixController->description          = "You received the sum of $request->amount from " . $request->sourceAccountName;
+        $assetMatrixController->transactionDate      = date("Y-m-d");
+        $assetMatrixController->request              = $request;
+        $assetMatrixController->fromTempWebhook      = 'false';
 
         $handleWebhook = $assetMatrixController->handleWebhook();
 
@@ -3063,12 +3015,12 @@ class TransactionController extends Controller
     public function flutterwaveWebhook(Request $request)
     {
 
-        $transactionId =  generateTransactionReference();
+        $transactionId = generateTransactionReference();
 
         // If you specified a secret hash, check for the signature
         $secretHash = env('APP_MODE') == 'live' ? env('FLUTTERWAVE_SECRET_HASH_LIVE') : env('FLUTTERWAVE_SECRET_HASH_TEST');
-        $signature = $request->header('verif-hash');
-        if (!$signature || ($signature !== $secretHash)) {
+        $signature  = $request->header('verif-hash');
+        if (! $signature || ($signature !== $secretHash)) {
             // This request isn't from Flutterwave; discard
             abort(401);
         }
@@ -3107,19 +3059,17 @@ class TransactionController extends Controller
     public function getAllTransactions(Request $request)
     {
 
-
         $validation = Validator::make($request->all(), [
             "start_date" => 'date',
-            "end_date" => 'date',
+            "end_date"   => 'date',
         ]);
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
-
         $perPage = $request->input('limit', 10);
-        if (!is_numeric($perPage)) {
+        if (! is_numeric($perPage)) {
             $perPage = 10;
         }
 
@@ -3144,18 +3094,18 @@ class TransactionController extends Controller
     public function getUserTransactions(Request $request)
     {
         $validation = Validator::make($request->all(), [
-            "start_date" => 'date',
-            "end_date" => 'date',
-            "virtual_account" => 'required|numeric|digits:10',
+            "start_date"       => 'date',
+            "end_date"         => 'date',
+            "virtual_account"  => 'required|numeric|digits:10',
             "transaction_type" => 'required|string|in:credit,debit',
         ]);
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
         $perPage = $request->input('limit', 10);
-        if (!is_numeric($perPage)) {
+        if (! is_numeric($perPage)) {
             $perPage = 10;
         }
 
@@ -3165,7 +3115,7 @@ class TransactionController extends Controller
 
         $user = User::where(['virtual_account' => $request->virtual_account, 'company_id' => $checkApiKey->company_id])->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['status' => false, 'message' => 'Invalid Virtual Account passed']);
         }
 
@@ -3194,15 +3144,14 @@ class TransactionController extends Controller
         }
     }
 
-
     public function getExchangeRates(Request $request)
     {
         $validation = Validator::make($request->all(), [
             "countryCurrency" => 'required',
-            "exchangeAmount" => 'required|gt:0',
+            "exchangeAmount"  => 'required|gt:0',
         ]);
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => "Currency Code and Exchange amount is required");
+            $ra = ["status" => false, "message" => "Currency Code and Exchange amount is required"];
             return response()->json($ra, 406);
         }
 
@@ -3250,19 +3199,19 @@ class TransactionController extends Controller
         //     if (!$exhangeRate['status']) {
         //         return response()->json(["status" => 0, 'message' => "Failed to Exchange rate"], 400);
         //     }
-            return response()->json(
-                [
-                    'status' => 1,
-                    'message' => "Exchange rate received",
-                    'data' => [
-                        'rate' => 1600,
-                        'amount' => 1600,
-                        'charge' => 0,
-                        'final_amount' => 1600,
-                        'available_balance' => auth()->user()->company->wallet->balance
-                    ]
-                ]
-            );
+        return response()->json(
+            [
+                'status'  => 1,
+                'message' => "Exchange rate received",
+                'data'    => [
+                    'rate'              => 1600,
+                    'amount'            => 1600,
+                    'charge'            => 0,
+                    'final_amount'      => 1600,
+                    'available_balance' => auth()->user()->company->wallet->balance,
+                ],
+            ]
+        );
         // } catch (Exception $e) {
 
         //     return response()->json(["status" => 0, 'message' => "Failed to Verify Account"], 400);
@@ -3271,36 +3220,33 @@ class TransactionController extends Controller
     public function getTerminalBalance(Request $request)
     {
 
-            $currentRequest = $request->all();
-            
-            if (isset($currentRequest['data']['transaction']['type']) && $currentRequest['data']['transaction']['type'] == 'vact_transfer') {
-                $amuchaResponse = $this->amuchaWebhook($request);
-            }
-            
-            try {
-                if (isset($currentRequest['action_type'])) {
+        $currentRequest = $request->all();
 
+        if (isset($currentRequest['data']['transaction']['type']) && $currentRequest['data']['transaction']['type'] == 'vact_transfer') {
+            $amuchaResponse = $this->amuchaWebhook($request);
+        }
+
+        try {
+            if (isset($currentRequest['action_type'])) {
 
                 $userPOS = AgentTerminal::where('terminal_code', $currentRequest['data']['terminal']['serialNo'])->first();
 
-                if (!$userPOS) {
+                if (! $userPOS) {
                     if ($currentRequest['action_type'] == "pre-balance-check-auth") {
                         return response()->json(["status" => false, 'message' => "Invalid POS terminal Code"]);
                     } else if ($currentRequest['action_type'] == "pre-payout-auth") {
                         return response()->json(['data' => [
                             'transaction' => [
                                 'shouldActionProceed' => false,
-                                'reasonCode' => '03'
-                            ]
+                                'reasonCode'          => '03',
+                            ],
                         ]]);
                     }
                 }
 
                 $user = $userPOS->agent;
 
-
                 if ($user->pin != $currentRequest['data']['terminal']['pin']) {
-
 
                     if ($currentRequest['action_type'] == "pre-balance-check-auth") {
                         return $response = response()->json(["status" => "INVALID_PIN", 'message' => "Invalid authentication"]);
@@ -3308,8 +3254,8 @@ class TransactionController extends Controller
                         return response()->json(['data' => [
                             'transaction' => [
                                 'shouldActionProceed' => false,
-                                'reasonCode' => '05'
-                            ]
+                                'reasonCode'          => '05',
+                            ],
                         ]]);
                     }
                 }
@@ -3321,10 +3267,10 @@ class TransactionController extends Controller
                     return response()->json([
                         "data" => [
                             "user" => [
-                                "balance" => number_format($userPOS->balance, 2, '.', ''),
-                                "currency" => "NGN"
-                            ]
-                        ]
+                                "balance"  => number_format($userPOS->balance, 2, '.', ''),
+                                "currency" => "NGN",
+                            ],
+                        ],
                     ]);
                 } else if ($currentRequest['action_type'] == "pre-payout-auth") {
 
@@ -3334,11 +3280,10 @@ class TransactionController extends Controller
                         return response()->json(['data' => [
                             'transaction' => [
                                 'shouldActionProceed' => false,
-                                'reasonCode' => '02'
-                            ]
+                                'reasonCode'          => '02',
+                            ],
                         ]]);
                     }
-
 
                     $transaction = transactions::where('transaction_reference', $currentRequest['data']['transaction']['rrn'])->first();
 
@@ -3346,38 +3291,41 @@ class TransactionController extends Controller
                         return response()->json(['data' => [
                             'transaction' => [
                                 'shouldActionProceed' => false,
-                                'reasonCode' => '01'
-                            ]
+                                'reasonCode'          => '01',
+                            ],
                         ]]);
                     }
 
-                    
                     $charge = $currentRequest['data']['transaction']["type"] == "transfer" ? 25 : 25;
 
                     $customerAmount = $currentRequest['data']['transaction']['amount'];
-                    
+
                     $theCharge = $companySettings->min_bank_transfer_charge_or_percentage;
 
                     // $customerCharge = ($companySettings->min_bank_transfer_charge_or_percentage * 0.01) * $currentRequest['data']['transaction']['amount'];
                     $customerCharge = $companySettings->max_bank_transfer_charge;
 
-                    $debitCustomer = debitPOSTerminalWithCharge($userPOS->id,$currentRequest['data']['transaction']['amount'], $customerCharge, $charge, $user);
-                    
-                    if (!$debitCustomer['status']) {
+                    if ($currentRequest['data']['transaction']['type' == "topup"]) {
+
+                    } else {
+                        $debitCustomer = debitPOSTerminalWithCharge($userPOS->id, $currentRequest['data']['transaction']['amount'], $customerCharge, $charge, $user);
+                    }
+
+                    if (! $debitCustomer['status']) {
 
                         if ($debitCustomer['responseCode'] == 0) {
                             return response()->json(['data' => [
                                 'transaction' => [
                                     'shouldActionProceed' => false,
-                                    'reasonCode' => '07'
-                                ]
+                                    'reasonCode'          => '07',
+                                ],
                             ]]);
                         } else if ($debitCustomer['responseCode'] == 1) {
                             return response()->json(['data' => [
                                 'transaction' => [
                                     'shouldActionProceed' => false,
-                                    'reasonCode' => '01'
-                                ]
+                                    'reasonCode'          => '01',
+                                ],
                             ]]);
                         }
                     }
@@ -3390,29 +3338,29 @@ class TransactionController extends Controller
                         $currentRequest['data']['transaction']['billerAccountName'];
 
                     transactions::create([
-                        "balance_before" => $debitCustomer['balance_before'],
-                        "amount" => $debitCustomer['amount'],
-                        "balance_after" => $debitCustomer['balance_after'],
-                        "account_id" => $customerAccount->id,
-                        "description" => $description,
-                        "branch_id" => $user->branch_id,
+                        "balance_before"         => $debitCustomer['balance_before'],
+                        "amount"                 => $debitCustomer['amount'],
+                        "balance_after"          => $debitCustomer['balance_after'],
+                        "account_id"             => $customerAccount->id,
+                        "description"            => $description,
+                        "branch_id"              => $user->branch_id,
                         "company_balance_before" => $debitCustomer['company_balance_before'],
-                        "company_amount" => $debitCustomer['company_amount'],
-                        "company_balance_after" => $debitCustomer['company_balance_after'],
-                        "company_id" => $user->company_id,
-                        "transaction_reference" => $currentRequest['data']['transaction']['rrn'],
+                        "company_amount"         => $debitCustomer['company_amount'],
+                        "company_balance_after"  => $debitCustomer['company_balance_after'],
+                        "company_id"             => $user->company_id,
+                        "transaction_reference"  => $currentRequest['data']['transaction']['rrn'],
                         "transaction_remarks_id" => 2,
-                        "transaction_type_id" => 124,
-                        "credit_debit_type_id" => 2,
-                        "created_date"  => date('Y-m-d'),
-                        "created_by" => $customerAccount->id
+                        "transaction_type_id"    => 124,
+                        "credit_debit_type_id"   => 2,
+                        "created_date"           => date('Y-m-d'),
+                        "created_by"             => $customerAccount->id,
                     ]);
 
                     return response()->json(['data' => [
                         'transaction' => [
                             'shouldActionProceed' => true,
-                            'reasonCode' => '00'
-                        ]
+                            'reasonCode'          => '00',
+                        ],
                     ]]);
                 }
             } else if (isset($currentRequest['event_type'])) {
@@ -3422,7 +3370,7 @@ class TransactionController extends Controller
 
                         $userPOS = AgentTerminal::where('terminal_code', $currentRequest['data']['transaction']['terminalSerialNumber'])->first();
 
-                        if (!$userPOS) {
+                        if (! $userPOS) {
                             return response()->json(['status' => '00', 'message' => 'Invalid POS Serial Number']);
                         }
 
@@ -3435,131 +3383,123 @@ class TransactionController extends Controller
                         $user = $userPOS->agent;
 
                         $companySettings = company_settings::where('company_id', $user->company_id)->first();
-                        
-                        
+
                         $description = "WirelessPay miniPos - " . $currentRequest['data']['transaction']["transactionId"] . " " .
                             $currentRequest['data']['transaction']['type'] . " " .
                             $currentRequest['data']['transaction']['transactionAmount'] . " " .
                             $currentRequest['data']['transaction']['terminalSerialNumber'] . " " .
                             $currentRequest['data']['transaction']['rrn'];
 
-                    // $posSetting = $terminal->agent->company->setting->pos_setting;
+                        // $posSetting = $terminal->agent->company->setting->pos_setting;
 
-                    // logInfo($posSetting, "My POS Setting is...");
-                    
-                    $originalAmount = $currentRequest['data']['transaction']['transactionAmount'];
-                    $customerAccount = $user->wb_account_details[0];
-                    $accountId = $customerAccount->id;
-                    $branchId = $user->branch->id;
-                    $companyId = $user->company_id;
-                    
-                    $companyCharge = getWbaTransferCharges(39, $originalAmount);
+                        // logInfo($posSetting, "My POS Setting is...");
 
+                        $originalAmount  = $currentRequest['data']['transaction']['transactionAmount'];
+                        $customerAccount = $user->wb_account_details[0];
+                        $accountId       = $customerAccount->id;
+                        $branchId        = $user->branch->id;
+                        $companyId       = $user->company_id;
 
-                    if ($companySettings->pos_setting == 2) {
+                        $companyCharge = getWbaTransferCharges(39, $originalAmount);
 
-                        $posCreditDebitType = false;
-                        
+                        if ($companySettings->pos_setting == 2) {
 
-                        $charge = 0;
+                            $posCreditDebitType = false;
 
-                        $customerAmount = $currentRequest['data']['transaction']['transactionAmount'];
-                        
-                        $theCharge = $companySettings->additional_pos_charge_percent;
-    
-                        $customerCharge = ($companySettings->additional_pos_charge_percent/100) * $customerAmount;
-                        $customerCharge = $initialCustomerCharge = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
-                        $customerCharge += $charge;
-                        $customerAmount -= $customerCharge;
-                        
-                        $creditCustomer = creditCustomerOnly($customerAccount->id, $originalAmount, $customerCharge);
+                            $charge = 0;
 
-                        logInfo($creditCustomer, "POS Credit customer Only");
+                            $customerAmount = $currentRequest['data']['transaction']['transactionAmount'];
 
-                        if (!$creditCustomer['status']) {
-                            return response()->json($creditCustomer, 400);
+                            $theCharge = $companySettings->additional_pos_charge_percent;
+
+                            $customerCharge = ($companySettings->additional_pos_charge_percent / 100) * $customerAmount;
+                            $customerCharge = $initialCustomerCharge = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
+                            $customerCharge += $charge;
+                            $customerAmount -= $customerCharge;
+
+                            $creditCustomer = creditCustomerOnly($customerAccount->id, $originalAmount, $customerCharge);
+
+                            logInfo($creditCustomer, "POS Credit customer Only");
+
+                            if (! $creditCustomer['status']) {
+                                return response()->json($creditCustomer, 400);
+                            }
+
+                            $transactionType = 109;
+
+                            logInfo($creditCustomer, "POS Credit customer Only");
+
+                            $transaction = transactions::create([
+                                "branch_id"              => $branchId,
+                                "account_id"             => $accountId,
+                                "description"            => "You Received funds via POS Terminal: " . $userPOS->terminal_code,
+                                "balance_before"         => $creditCustomer['balance_before'],
+                                "balance_after"          => $creditCustomer['pos_charge_balance_after'],
+                                "amount"                 => $originalAmount + $customerCharge,
+                                "transaction_reference"  => $currentRequest['data']['transaction']['rrn'],
+                                "transaction_remarks_id" => 2,
+                                "transaction_type_id"    => $transactionType,
+                                "credit_debit_type_id"   => 1,
+                                "created_date"           => date('Y-m-d'),
+                                "created_by"             => $customer->id,
+                            ]);
+                        } else {
+
+                            $charge         = $currentRequest['data']['transaction']["type"] == "transfer" ? 0 : 0;
+                            $customerAmount = $currentRequest['data']['transaction']['transactionAmount'];
+
+                            $customerCharge = ($companySettings->additional_pos_charge_percent / 100) * $customerAmount;
+                            $customerCharge = $initialCustomerCharge = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
+                            $customerCharge += $charge;
+                            $customerAmount -= $customerCharge;
+
+                            $creditCustomer = creditPOSTerminal($userPOS->terminal_code, $originalAmount, $customerCharge, $companyCharge, $companyId);
+
+                            logInfo($creditCustomer, "Credit terminal log");
+
+                            $transaction = transactions::create([
+                                "balance_before"         => $creditCustomer['pos_balance_before'],
+                                "amount"                 => $creditCustomer['pos_amount'],
+                                "balance_after"          => $creditCustomer['pos_charge_balance_after'],
+                                "company_amount"         => $creditCustomer['company_amount'],
+                                'company_balance_before' => $creditCustomer['company_balance_before'],
+                                'company_balance_after'  => $creditCustomer['company_balance_after'],
+                                "description"            => $description,
+                                "branch_id"              => $branchId,
+                                "company_id"             => $companyId,
+                                "account_id"             => $accountId,
+                                "system_description"     => $description,
+                                "transaction_reference"  => $currentRequest['data']['transaction']['rrn'],
+                                "transaction_remarks_id" => 2,
+                                "transaction_type_id"    => 63,
+                                "credit_debit_type_id"   => 1,
+                                "created_date"           => date('Y-m-d'),
+                                "created_by"             => $user->id,
+                            ]);
                         }
-
-                        $transactionType = 109;
-                        
-                        logInfo($creditCustomer, "POS Credit customer Only");
-
-
-                        $transaction = transactions::create([
-                            "branch_id" => $branchId,
-                            "account_id" => $accountId,
-                            "description" => "You Received funds via POS Terminal: " . $userPOS->terminal_code,
-                            "balance_before" => $creditCustomer['balance_before'],
-                            "balance_after" => $creditCustomer['pos_charge_balance_after'],
-                            "amount" => $originalAmount + $customerCharge,
-                            "transaction_reference" => $currentRequest['data']['transaction']['rrn'],
-                            "transaction_remarks_id" => 2,
-                            "transaction_type_id" => $transactionType,
-                            "credit_debit_type_id" => 1,
-                            "created_date"  => date('Y-m-d'),
-                            "created_by" => $customer->id
-                        ]);
-                    }else {
-                        
-                        $charge = $currentRequest['data']['transaction']["type"] == "transfer" ? 0 : 0;
-                        $customerAmount = $currentRequest['data']['transaction']['transactionAmount'];
-
-                        $customerCharge = ($companySettings->additional_pos_charge_percent/100) * $customerAmount;
-                        $customerCharge = $initialCustomerCharge = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
-                        $customerCharge += $charge;
-                        $customerAmount -= $customerCharge;
-
-                        $creditCustomer = creditPOSTerminal($userPOS->terminal_code, $originalAmount, $customerCharge, $companyCharge, $companyId);
-                        
-                        logInfo($creditCustomer, "Credit terminal log");
-                        
-                        $transaction = transactions::create([
-                            "balance_before" => $creditCustomer['pos_balance_before'],
-                            "amount" => $creditCustomer['pos_amount'],
-                            "balance_after" => $creditCustomer['pos_charge_balance_after'],
-                            "company_amount" => $creditCustomer['company_amount'],
-                            'company_balance_before' => $creditCustomer['company_balance_before'],
-                            'company_balance_after' => $creditCustomer['company_balance_after'],
-                            "description" => $description,
-                            "branch_id" => $branchId,
-                            "company_id" => $companyId,
-                            "account_id" => $accountId,
-                            "system_description" => $description,
-                            "transaction_reference" => $currentRequest['data']['transaction']['rrn'],
-                            "transaction_remarks_id" => 2,
-                            "transaction_type_id" => 63,
-                            "credit_debit_type_id" => 1,
-                            "created_date"  => date('Y-m-d'),
-                            "created_by" => $user->id
-                        ]);
-                    }
-                
-                        
 
                         // if ($companySettings->pos_setting == 2) {
                         //     return response()->json(['status' => '00', 'message' => 'Cannot process this transaction']);
                         // }
 
                         // $customerAccount = $user->wb_account_details[0];
-                        
+
                         // $charge = 0;
 
                         // $customerAmount = $currentRequest['data']['transaction']['amount'];
-                        
+
                         // $theCharge = $companySettings->additional_pos_charge_percent;
-    
+
                         // $customerCharge = $companySettings->additional_pos_charge_percent * $request->Amount;
                         // $customerCharge = $initialCustomerCharge = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
                         // $customerCharge += $charge;
                         // $customerAmount -= $customerCharge;
-                        
 
                         // $debitCustomer = creditCustomerOnly($customerAccount->id, $currentRequest['data']['transaction']['transactionAmount'], $customerCharge);
 
                         // if (!$debitCustomer['status']) {
                         //     return response()->json($debitCustomer);
                         // }
-
 
                         // transactions::create([
                         //     "balance_before" => $debitCustomer['balance_before'],
@@ -3592,16 +3532,16 @@ class TransactionController extends Controller
     public function processOrder(Request $request)
     {
         $validation = Validator::make($request->all(), [
-            "amount" => 'required|numeric|gt:0',
+            "amount"         => 'required|numeric|gt:0',
             "card_exp_month" => 'required|numeric|gt:0',
-            "card_exp_year" => 'required|numeric|gt:0',
-            "card_number" => 'required|numeric|gt:0',
-            "cvv" => 'required|numeric|gt:0',
-            "card_pin" => 'required|numeric',
+            "card_exp_year"  => 'required|numeric|gt:0',
+            "card_number"    => 'required|numeric|gt:0',
+            "cvv"            => 'required|numeric|gt:0',
+            "card_pin"       => 'required|numeric',
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -3611,7 +3551,7 @@ class TransactionController extends Controller
 
             $processOrderResult = $amuchaController->processOrder($request->amount, $request->cvv, $request->card_exp_month, $request->card_exp_year, $request->card_number, $request->card_pin);
 
-            if (!$processOrderResult['status']) {
+            if (! $processOrderResult['status']) {
                 return response()->json($processOrderResult, 400);
             }
 
@@ -3626,12 +3566,12 @@ class TransactionController extends Controller
     {
         $validation = Validator::make($request->all(), [
             "order_reference" => 'required|string',
-            "transaction_id" => 'required|string',
-            "otp" => 'required|numeric',
+            "transaction_id"  => 'required|string',
+            "otp"             => 'required|numeric',
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -3641,7 +3581,7 @@ class TransactionController extends Controller
 
             $verifyCardPinResult = $amuchaController->verifyCardOtp($request->otp, $request->order_reference, $request->transaction_id);
 
-            if (!$verifyCardPinResult['status']) {
+            if (! $verifyCardPinResult['status']) {
                 return response()->json($verifyCardPinResult, 400);
             }
 
@@ -3659,7 +3599,7 @@ class TransactionController extends Controller
 
         if ($amount > 0) {
             $selectedwb_wallet = $selectedwallet ?? auth()->user()->accounts->first()->id;
-            $userWallet = user_wallet::where('wb_account_detail_id', $selectedwb_wallet)->first();
+            $userWallet        = user_wallet::where('wb_account_detail_id', $selectedwb_wallet)->first();
 
             if ($userWallet->balance >= $amount) {
                 $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->accounts->first()->id, 'balance' => $userWallet->balance];
@@ -3688,11 +3628,11 @@ class TransactionController extends Controller
                 if ($companyWallet->balance >= $amount) {
 
                     $response = [
-                        "status" => true,
-                        'message' => "Amount is Valid",
-                        'account_id' => auth()->user()->accounts->first()->id,
-                        'balance' => $userWallet->balance,
-                        'company_balance' => $companyWallet->balance
+                        "status"          => true,
+                        'message'         => "Amount is Valid",
+                        'account_id'      => auth()->user()->accounts->first()->id,
+                        'balance'         => $userWallet->balance,
+                        'company_balance' => $companyWallet->balance,
                     ];
                 } else {
                     $response = ["status" => false, 'message' => "Switcher Error... Please contact support $companyWallet->balance $amount"];
@@ -3739,11 +3679,11 @@ class TransactionController extends Controller
         }
 
         if (strlen($request->customerRef) == 5) {
-            $accountCode = (int)$request->customerRef;
+            $accountCode = (int) $request->customerRef;
 
             $adminUser = company_wallet::where('company_id', $accountCode)->first();
 
-            if (!$adminUser) {
+            if (! $adminUser) {
 
                 // $forwardRequest = forwardRequestToWirelesspay('user/ussd/create', $request->all());
 
@@ -3751,24 +3691,24 @@ class TransactionController extends Controller
             }
 
             $response = [
-                'responseCode' => "00",
-                "customerName" => $adminUser->company->company_name,
-                "displayMessage" => $adminUser->company->company_name
+                'responseCode'   => "00",
+                "customerName"   => $adminUser->company->company_name,
+                "displayMessage" => $adminUser->company->company_name,
             ];
         } else {
             $loanRecord = loan::where('ref', $request->customerRef)->first();
 
-            if (!$loanRecord) {
+            if (! $loanRecord) {
 
                 $adminUser = wb_account_details::where('virtual_accnum', $request->customerRef)->first();
 
-                if (!$adminUser) {
+                if (! $adminUser) {
                     return response()->json(["status" => "01", 'message' => "Invalid Customer Reference"], 400);
                 }
 
                 return response()->json([
-                    'responseCode' => "00",
-                    "customerName" => $adminUser->user->first_name . " " . $adminUser->user->last_name,
+                    'responseCode'   => "00",
+                    "customerName"   => $adminUser->user->first_name . " " . $adminUser->user->last_name,
                     "displayMessage" => $adminUser->user->first_name . " " . $adminUser->user->last_name,
                 ]);
             }
@@ -3776,15 +3716,15 @@ class TransactionController extends Controller
             $amount = $loanRecord->loan_status_id == 10 ? 0.0 : ($loanRecord->EachRepayment <= $loanRecord->loanBalance ? $loanRecord->EachRepayment : $loanRecord->loanBalance);
 
             $response = [
-                'responseCode' => "00",
-                "customerName" => "Loan with " . $loanRecord->user->company->company_name,
-                "displayMessage" => "Loan with " . $loanRecord->user->company->company_name,
-                "amount" => $amount . "",
-                "subMerchantName" => null,
+                'responseCode'      => "00",
+                "customerName"      => "Loan with " . $loanRecord->user->company->company_name,
+                "displayMessage"    => "Loan with " . $loanRecord->user->company->company_name,
+                "amount"            => $amount . "",
+                "subMerchantName"   => null,
                 "passBackReference" => null,
-                "billerCode" => null,
-                "billerPrefix" => null,
-                "traceId" => null
+                "billerCode"        => null,
+                "billerPrefix"      => null,
+                "traceId"           => null,
             ];
         }
 
@@ -3812,7 +3752,7 @@ class TransactionController extends Controller
 
     public function vtPassRequestId()
     {
-        $result = '';
+        $result     = '';
         $dateString = \str_replace("-", "", Carbon::now()->format('Y-m-d H:i:s'));
         $dateString = \str_replace(" ", "", $dateString);
         $dateString = \str_replace(":", "", $dateString);
@@ -3824,10 +3764,13 @@ class TransactionController extends Controller
     {
         $transaction = transactions::where('transaction_reference', $transactionId)->first();
 
-        if ($updateBalance) $transaction->balance_after = $balance;
+        if ($updateBalance) {
+            $transaction->balance_after = $balance;
+        }
+
         $transaction->transaction_remarks_id = 2;
-        $transaction->updated_at = Carbon::now();
-        $transaction->modified_by = auth()->user()->id;
+        $transaction->updated_at             = Carbon::now();
+        $transaction->modified_by            = auth()->user()->id;
         $transaction->save();
     }
 
@@ -3836,13 +3779,13 @@ class TransactionController extends Controller
         $transaction = transactions::where('transaction_reference', $transactionId)->first();
 
         if ($updateBalance) {
-            $transaction->balance_after = $customerBalance;
+            $transaction->balance_after         = $customerBalance;
             $transaction->company_balance_after = $companyBalance;
         }
 
         $transaction->transaction_remarks_id = 2;
-        $transaction->updated_at = Carbon::now();
-        $transaction->modified_by = auth()->user()->id;
+        $transaction->updated_at             = Carbon::now();
+        $transaction->modified_by            = auth()->user()->id;
         $transaction->save();
     }
 
@@ -3882,15 +3825,13 @@ class TransactionController extends Controller
         return $response;
     }
 
-
     public function validateTransfer($amount)
     {
         $companySettings = company_settings::where('company_id', \auth()->user()->company_id)->first();
-        $accountTier = auth()->user()->tier;
-        $wbaAccount = auth()->user()->accounts->first();
+        $accountTier     = auth()->user()->tier;
+        $wbaAccount      = auth()->user()->accounts->first();
 
-
-        if (!$companySettings) {
+        if (! $companySettings) {
             return ["status" => false, 'message' => "Contact support to resolve advanced settings"];
         }
 
@@ -3903,7 +3844,7 @@ class TransactionController extends Controller
 
         $accoountProduct = savings_product::where('id', $wbaAccount->account_product_id)->first();
 
-        if (!$accoountProduct) {
+        if (! $accoountProduct) {
             return ["status" => false, 'message' => "Savings Product does not exist"];
         }
 
@@ -3916,7 +3857,7 @@ class TransactionController extends Controller
         }
 
         // $sum = transactions::where(['transaction_remarks_id' => '2', 'account_id' => $wbAccount->id])->whereDate('created_at', Carbon::today())->sum('amount');
-        $sum = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => auth()->user()->accounts->first()->id])->where('transaction_type_id', '<>', '27')->whereDate('created_at', Carbon::today())->count();
+        $sum      = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => auth()->user()->accounts->first()->id])->where('transaction_type_id', '<>', '27')->whereDate('created_at', Carbon::today())->count();
         $dailySum = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => $wbaAccount->id])->where('transaction_type_id', '<>', '27')->whereDate('created_at', Carbon::today())->sum('amount');
 
         $lastTransaction = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => $wbaAccount->id])->whereDate('created_at', Carbon::today())->orderBy('id', 'DESC')->first();
@@ -3943,7 +3884,7 @@ class TransactionController extends Controller
 
         $accoountProduct = savings_product::where('id', $wbaAccount->account_product_id)->first();
 
-        if (!$accoountProduct) {
+        if (! $accoountProduct) {
             return ["status" => false, 'message' => "Savings Product does not exist"];
         }
 
@@ -3979,21 +3920,19 @@ class TransactionController extends Controller
     public function buyAirtime(Request $request)
     {
 
-
         $transactionId = $this->vtPassRequestId();
 
         $validation = Validator::make($request->all(), [
-            "final_amount" => "required|numeric|gt:0",
-            "phone_number" => "required|numeric|gt:0",
+            "final_amount"     => "required|numeric|gt:0",
+            "phone_number"     => "required|numeric|gt:0",
             "network_provider" => "required|string",
-            "transaction_pin" => "required|numeric|gt:0|digits:4",
+            "transaction_pin"  => "required|numeric|gt:0|digits:4",
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
-
 
         $checkAllowedTransaction = checkCompanyAllowedTransactionStatus(auth()->user()->company_id);
 
@@ -4007,7 +3946,7 @@ class TransactionController extends Controller
         }
 
         $transactionPinValidation = validatePinCheckCustomerBalance($request->transaction_pin, $request->final_amount);
-        if (!$transactionPinValidation['status']) {
+        if (! $transactionPinValidation['status']) {
             return response()->json($transactionPinValidation, 400);
         }
 
@@ -4017,7 +3956,7 @@ class TransactionController extends Controller
 
         $validateTransferAmount = $this->validateTransfer($request->final_amount);
 
-        if (!$validateTransferAmount['status']) {
+        if (! $validateTransferAmount['status']) {
             return \response()->json($validateTransferAmount, 400);
         }
 
@@ -4025,66 +3964,66 @@ class TransactionController extends Controller
 
         $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0, 0.01);
 
-        if (!$debitCustomer['status']) {
+        if (! $debitCustomer['status']) {
             return response()->json($debitCustomer, 400);
         }
 
-        $ledger_cr = null;
-        $ledger_dr = null;
+        $ledger_cr       = null;
+        $ledger_dr       = null;
         $ledger_Settings = get_CR_DR_TXN_Type_Ledger(11, auth()->user()->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
         $transaction = transactions::create([
-            "balance_before" => $debitCustomer['balance_before'],
-            "amount" => $request->final_amount,
-            "account_id" => $accountId,
-            "balance_after" => $debitCustomer["balance_after"],
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $request->final_amount,
+            "account_id"             => $accountId,
+            "balance_after"          => $debitCustomer["balance_after"],
             "company_balance_before" => $debitCustomer["company_balance_before"],
-            "company_balance_after" => $debitCustomer["company_balance_after"],
-            "company_amount" => $debitCustomer["company_amount"],
-            "company_id" => auth()->user()->company_id,
-            "branch_id" => auth()->user()->branch_id,
-            "account_id" => $transactionPinValidation['account_id'],
-            "description" => "Purchase of Airtime worth $request->final_amount for $request->phone_number",
-            "transaction_reference" => $transactionId,
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "company_amount"         => $debitCustomer["company_amount"],
+            "company_id"             => auth()->user()->company_id,
+            "branch_id"              => auth()->user()->branch_id,
+            "account_id"             => $transactionPinValidation['account_id'],
+            "description"            => "Purchase of Airtime worth $request->final_amount for $request->phone_number",
+            "transaction_reference"  => $transactionId,
             "transaction_remarks_id" => 1,
-            "transaction_type_id" => 11,
-            "credit_debit_type_id" => 2,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_cr" => $ledger_cr,
-            "ledger_dr" => $ledger_dr
+            "transaction_type_id"    => 11,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
         ]);
 
         $cashbackTransactionId = \generate_txnID();
-        $ledger_cr = null;
-        $ledger_dr = null;
-        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(66, auth()->user()->company_id);
+        $ledger_cr             = null;
+        $ledger_dr             = null;
+        $ledger_Settings       = get_CR_DR_TXN_Type_Ledger(66, auth()->user()->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
         $transaction = transactions::create([
-            "balance_before" => $debitCustomer['cashback_balance_before'],
-            "amount" => $debitCustomer["customer_cashback"],
-            "account_id" => $debitCustomer["customer_cashback"] > 0 ? $accountId : NULL,
-            "balance_after" => $debitCustomer["cashback_balance_after"],
+            "balance_before"         => $debitCustomer['cashback_balance_before'],
+            "amount"                 => $debitCustomer["customer_cashback"],
+            "account_id"             => $debitCustomer["customer_cashback"] > 0 ? $accountId : null,
+            "balance_after"          => $debitCustomer["cashback_balance_after"],
             "company_balance_before" => $debitCustomer["company_cashback_balance_before"],
-            "company_balance_after" => $debitCustomer["company_cashback_balance_after"],
-            "company_amount" => $debitCustomer["company_cashback"],
-            "description" => "Cashback on Airtime Purcahse",
-            "branch_id" => auth()->user()->branch_id,
-            "company_id" => auth()->user()->company_id,
-            "transaction_reference" => $cashbackTransactionId,
+            "company_balance_after"  => $debitCustomer["company_cashback_balance_after"],
+            "company_amount"         => $debitCustomer["company_cashback"],
+            "description"            => "Cashback on Airtime Purcahse",
+            "branch_id"              => auth()->user()->branch_id,
+            "company_id"             => auth()->user()->company_id,
+            "transaction_reference"  => $cashbackTransactionId,
             "transaction_remarks_id" => 2,
-            "transaction_type_id" => 66,
-            "credit_debit_type_id" => 1,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_cr" => $ledger_cr,
-            "ledger_dr" => $ledger_dr
+            "transaction_type_id"    => 66,
+            "credit_debit_type_id"   => 1,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
         ]);
 
         $vtPassController = new VTPassController();
@@ -4099,11 +4038,11 @@ class TransactionController extends Controller
 
             return response()->json(
                 [
-                    "status" => true,
+                    "status"  => true,
                     'message' => "Airtime Purchase Successful",
-                    'data' => [
-                        'balance' => $debitCustomer['balance_after']
-                    ]
+                    'data'    => [
+                        'balance' => $debitCustomer['balance_after'],
+                    ],
                 ]
             );
         } else {
@@ -4114,18 +4053,17 @@ class TransactionController extends Controller
     public function buyDataBundle(Request $request)
     {
 
-
         $transactionId = $this->vtPassRequestId();
 
         $validation = Validator::make($request->all(), [
-            "phone_number" => "required|numeric|gt:0",
+            "phone_number"     => "required|numeric|gt:0",
             "network_provider" => "required",
-            "data_plan" => "required",
-            "transaction_pin" => "required|numeric|gt:0|digits:4",
+            "data_plan"        => "required",
+            "transaction_pin"  => "required|numeric|gt:0|digits:4",
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -4137,7 +4075,7 @@ class TransactionController extends Controller
         }
 
         $transactionPinValidation = validatePinCheckCustomerBalance($request->transaction_pin, 1);
-        if (!$transactionPinValidation['status']) {
+        if (! $transactionPinValidation['status']) {
             return response()->json($transactionPinValidation, 400);
         }
 
@@ -4147,13 +4085,13 @@ class TransactionController extends Controller
 
         $validateTransferAmount = $this->validateTransfer($request->final_amount);
 
-        if (!$validateTransferAmount['status']) {
+        if (! $validateTransferAmount['status']) {
             return \response()->json($validateTransferAmount, 400);
         }
 
         $dataBundles = $this->getDataBundlesList($request->network_provider);
 
-        if (!$dataBundles['status']) {
+        if (! $dataBundles['status']) {
             return response()->json(["status" => false, 'message' => "Failed to get Data bundles"], 400);
         }
 
@@ -4164,95 +4102,95 @@ class TransactionController extends Controller
         foreach ($dataBundles['data'] as $value) {
             if ($value['variation_code'] == $request->data_plan) {
                 $selectedDataBundle = $value;
-                $isDataPlanValid = true;
+                $isDataPlanValid    = true;
             }
         }
-        if (!$isDataPlanValid) {
+        if (! $isDataPlanValid) {
             return response()->json(["status" => false, 'message' => "Invalid Data bundle"], 400);
         }
 
         $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0, 0.01);
 
-        if (!$debitCustomer['status']) {
+        if (! $debitCustomer['status']) {
             return response()->json($debitCustomer, 400);
         }
 
-        $ledger_cr = null;
-        $ledger_dr = null;
+        $ledger_cr       = null;
+        $ledger_dr       = null;
         $ledger_Settings = get_CR_DR_TXN_Type_Ledger(12, auth()->user()->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
 
-        if (!$debitCustomer['status']) {
+        if (! $debitCustomer['status']) {
             response()->json($debitCustomer, 400);
         }
 
         $transaction = transactions::create([
-            "balance_before" => $debitCustomer['balance_before'],
-            "amount" => $selectedDataBundle['variation_amount'],
-            "balance_after" => $debitCustomer["balance_after"],
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $selectedDataBundle['variation_amount'],
+            "balance_after"          => $debitCustomer["balance_after"],
             "company_balance_before" => $debitCustomer["company_balance_before"],
-            "company_balance_after" => $debitCustomer["company_balance_after"],
-            "company_amount" => $debitCustomer["company_amount"],
-            "company_id"  => auth()->user()->company_id,
-            "branch_id" => auth()->user()->branch_id,
-            "account_id" => $transactionPinValidation['account_id'],
-            "description" => "Purchase of Data worth " . $selectedDataBundle['variation_amount'] . " for $request->phone_number",
-            "transaction_reference" => $transactionId,
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "company_amount"         => $debitCustomer["company_amount"],
+            "company_id"             => auth()->user()->company_id,
+            "branch_id"              => auth()->user()->branch_id,
+            "account_id"             => $transactionPinValidation['account_id'],
+            "description"            => "Purchase of Data worth " . $selectedDataBundle['variation_amount'] . " for $request->phone_number",
+            "transaction_reference"  => $transactionId,
             "transaction_remarks_id" => 1,
-            "transaction_type_id" => 12,
-            "credit_debit_type_id" => 2,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_cr" => $ledger_cr,
-            "ledger_dr" => $ledger_dr
+            "transaction_type_id"    => 12,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
         ]);
 
         $cashbackTransactionId = \generate_txnID();
-        $ledger_cr = null;
-        $ledger_dr = null;
-        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(66, auth()->user()->company_id);
+        $ledger_cr             = null;
+        $ledger_dr             = null;
+        $ledger_Settings       = get_CR_DR_TXN_Type_Ledger(66, auth()->user()->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
         $cashbackTransaction = transactions::create([
-            "balance_before" => $debitCustomer['cashback_balance_before'],
-            "amount" => $debitCustomer["customer_cashback"],
-            "account_id" => $debitCustomer["customer_cashback"] > 0 ? $transactionPinValidation['account_id'] : NULL,
-            "balance_after" => $debitCustomer["cashback_balance_after"],
+            "balance_before"         => $debitCustomer['cashback_balance_before'],
+            "amount"                 => $debitCustomer["customer_cashback"],
+            "account_id"             => $debitCustomer["customer_cashback"] > 0 ? $transactionPinValidation['account_id'] : null,
+            "balance_after"          => $debitCustomer["cashback_balance_after"],
             "company_balance_before" => $debitCustomer["company_cashback_balance_before"],
-            "company_balance_after" => $debitCustomer["company_cashback_balance_after"],
-            "company_amount" => $debitCustomer["company_cashback"],
-            "description" => "Cashback on Data Purchase",
-            "company_id"  => auth()->user()->company_id,
-            "branch_id" => auth()->user()->branch_id,
-            "parent_transaction_id" => $transaction->id,
-            "transaction_reference" => $cashbackTransactionId,
+            "company_balance_after"  => $debitCustomer["company_cashback_balance_after"],
+            "company_amount"         => $debitCustomer["company_cashback"],
+            "description"            => "Cashback on Data Purchase",
+            "company_id"             => auth()->user()->company_id,
+            "branch_id"              => auth()->user()->branch_id,
+            "parent_transaction_id"  => $transaction->id,
+            "transaction_reference"  => $cashbackTransactionId,
             "transaction_remarks_id" => 2,
-            "transaction_type_id" => 66,
-            "credit_debit_type_id" => 1,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_cr" => $ledger_cr,
-            "ledger_dr" => $ledger_dr
+            "transaction_type_id"    => 66,
+            "credit_debit_type_id"   => 1,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
         ]);
 
         $body = [
-            "request_id" => $transactionId,
-            "serviceID" => $request->network_provider,
+            "request_id"     => $transactionId,
+            "serviceID"      => $request->network_provider,
             "variation_code" => $request->data_plan,
-            "amount" => $selectedDataBundle['variation_amount'],
-            "phone" => $request->phone_number
+            "amount"         => $selectedDataBundle['variation_amount'],
+            "phone"          => $request->phone_number,
         ];
 
         $endpoint = "pay";
 
         $vtPassController = new VTPassController();
 
-        $buyAirtime = $vtPassController->buyData($transactionId, $request->network_provider,  $request->data_plan, $selectedDataBundle['variation_amount'], $request->phone_number);
+        $buyAirtime = $vtPassController->buyData($transactionId, $request->network_provider, $request->data_plan, $selectedDataBundle['variation_amount'], $request->phone_number);
 
         if ($buyAirtime["status"]) {
 
@@ -4260,11 +4198,11 @@ class TransactionController extends Controller
 
             return response()->json(
                 [
-                    "status" => true,
+                    "status"  => true,
                     'message' => "Data Plan Purchase Successful",
-                    'data' => [
-                        'balance' => $debitCustomer['balance_after']
-                    ]
+                    'data'    => [
+                        'balance' => $debitCustomer['balance_after'],
+                    ],
                 ]
             );
         } else {
@@ -4277,7 +4215,7 @@ class TransactionController extends Controller
 
         $transaction = transactions::where("transaction_reference", $request->transaction_reference)->first();
 
-        if (!$transaction) {
+        if (! $transaction) {
             return response()->json(['status' => false, 'message' => 'Transaction record not found'], 400);
         }
 
@@ -4291,8 +4229,8 @@ class TransactionController extends Controller
 
         $adminUser = User::find($transaction->created_by);
 
-        if (!$adminUser) {
-            return response()->json(['status' => false, 'message' => "Admin user not found $transaction->company_id",], 400);
+        if (! $adminUser) {
+            return response()->json(['status' => false, 'message' => "Admin user not found $transaction->company_id"], 400);
         }
 
         logInfo($adminUser->branch_id);
@@ -4300,52 +4238,52 @@ class TransactionController extends Controller
         if ($transaction->account_id != null) {
             $debitCustomer = \debitCustomerAndCompanyWithCharge($transaction->account_id, $transaction->company_id, $transaction->amount, 50, 0, $adminUser);
 
-            if (!$debitCustomer['status']) {
+            if (! $debitCustomer['status']) {
                 return \response()->json($debitCustomer, 400);
             }
 
             $newtransaction = transactions::create([
-                "balance_before" => $debitCustomer['balance_before'],
-                "amount" => $transaction->amount,
-                "balance_after" => $debitCustomer["balance_after"],
-                "account_id" => $transaction->account_id,
-                "company_id" => $transaction->company_id,
-                "branch_id" => $adminUser->branch_id,
+                "balance_before"         => $debitCustomer['balance_before'],
+                "amount"                 => $transaction->amount,
+                "balance_after"          => $debitCustomer["balance_after"],
+                "account_id"             => $transaction->account_id,
+                "company_id"             => $transaction->company_id,
+                "branch_id"              => $adminUser->branch_id,
                 "company_balance_before" => $debitCustomer["company_balance_before"],
-                "company_amount" => $debitCustomer["company_amount"],
-                "company_balance_after" => $debitCustomer["company_balance_after"],
-                "description" => "Error Bank transaction Depot reversal",
-                "transaction_reference" => generateTransactionReference(),
+                "company_amount"         => $debitCustomer["company_amount"],
+                "company_balance_after"  => $debitCustomer["company_balance_after"],
+                "description"            => "Error Bank transaction Depot reversal",
+                "transaction_reference"  => generateTransactionReference(),
                 "transaction_remarks_id" => 2,
-                "transaction_type_id" => 27,
-                "credit_debit_type_id" => 2,
-                "created_date"  => date('Y-m-d'),
-                "created_by" => $adminUser->id
+                "transaction_type_id"    => 27,
+                "credit_debit_type_id"   => 2,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => $adminUser->id,
             ]);
         } else {
 
             $debitCustomer = debitCompanyWithCharge($transaction->company_id, $transaction->amount, 50, $adminUser);
 
-            if (!$debitCustomer['status']) {
+            if (! $debitCustomer['status']) {
                 return \response()->json($debitCustomer, 400);
             }
 
             $newtransaction = transactions::create([
-                "balance_before" => 0,
-                "amount" => 0,
-                "balance_after" => 0,
-                "description" => "Error  Bank transaction Depot reversal",
-                "branch_id" => $adminUser->branch_id,
-                "company_id"  => $transaction->company_id,
+                "balance_before"         => 0,
+                "amount"                 => 0,
+                "balance_after"          => 0,
+                "description"            => "Error  Bank transaction Depot reversal",
+                "branch_id"              => $adminUser->branch_id,
+                "company_id"             => $transaction->company_id,
                 "company_balance_before" => $debitCustomer['balance_before'],
-                "company_balance_after" => $debitCustomer['balance_after'],
-                "company_amount" => $request->amount,
-                "transaction_reference" => generateTransactionReference(),
+                "company_balance_after"  => $debitCustomer['balance_after'],
+                "company_amount"         => $request->amount,
+                "transaction_reference"  => generateTransactionReference(),
                 "transaction_remarks_id" => 2,
-                "transaction_type_id" => 8,
-                "credit_debit_type_id" => 2,
-                "created_date"  => date('Y-m-d'),
-                "created_by" => $adminUser->id
+                "transaction_type_id"    => 8,
+                "credit_debit_type_id"   => 2,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => $adminUser->id,
             ]);
         }
 
@@ -4361,16 +4299,16 @@ class TransactionController extends Controller
         $transactionId = $this->vtPassRequestId();
 
         $validation = Validator::make($request->all(), [
-            "final_amount" => "required|numeric|gt:0",
-            "phone_number" => "required|numeric|gt:0",
-            "meter_number" => "required|numeric|gt:0",
+            "final_amount"      => "required|numeric|gt:0",
+            "phone_number"      => "required|numeric|gt:0",
+            "meter_number"      => "required|numeric|gt:0",
             "electricity_disco" => "required",
-            "meter_type" => "required",
-            "transaction_pin" => "required|numeric|gt:0|digits:4",
+            "meter_type"        => "required",
+            "transaction_pin"   => "required|numeric|gt:0|digits:4",
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -4382,7 +4320,7 @@ class TransactionController extends Controller
         }
 
         $transactionPinValidation = validatePinCheckCustomerBalance($request->transaction_pin, $request->final_amount);
-        if (!$transactionPinValidation['status']) {
+        if (! $transactionPinValidation['status']) {
             return response()->json($transactionPinValidation, 400);
         }
 
@@ -4397,83 +4335,82 @@ class TransactionController extends Controller
 
         $validateTransferAmount = $this->validateTransfer($request->final_amount);
 
-        if (!$validateTransferAmount['status']) {
+        if (! $validateTransferAmount['status']) {
             return \response()->json($validateTransferAmount, 400);
         }
 
         $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
 
-        if (!$debitCustomer['status']) {
+        if (! $debitCustomer['status']) {
             return \response()->json($debitCustomer, 400);
         }
 
-        $ledger_cr = null;
-        $ledger_dr = null;
+        $ledger_cr       = null;
+        $ledger_dr       = null;
         $ledger_Settings = get_CR_DR_TXN_Type_Ledger(14, auth()->user()->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
         $transaction = transactions::create([
-            "balance_before" => $debitCustomer['balance_before'],
-            "amount" => $request->final_amount,
-            "balance_after" => $debitCustomer["balance_after"],
-            "account_id" => $transactionPinValidation['account_id'],
-            "company_id" => \auth()->user()->company_id,
-            "branch_id" => auth()->user()->branch_id,
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $request->final_amount,
+            "balance_after"          => $debitCustomer["balance_after"],
+            "account_id"             => $transactionPinValidation['account_id'],
+            "company_id"             => \auth()->user()->company_id,
+            "branch_id"              => auth()->user()->branch_id,
             "company_balance_before" => $debitCustomer["company_balance_before"],
-            "company_amount" => $debitCustomer["company_amount"],
-            "company_balance_after" => $debitCustomer["company_balance_after"],
-            "description" => "Purchase of Electricity worth $request->final_amount",
-            "transaction_reference" => $transactionId,
+            "company_amount"         => $debitCustomer["company_amount"],
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "description"            => "Purchase of Electricity worth $request->final_amount",
+            "transaction_reference"  => $transactionId,
             "transaction_remarks_id" => 1,
-            "transaction_type_id" => 14,
-            "credit_debit_type_id" => 2,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_cr" => $ledger_cr,
-            "ledger_dr" => $ledger_dr
+            "transaction_type_id"    => 14,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
         ]);
 
         $transactionChargeId = \generate_txnID();
-        $ledger_cr = null;
-        $ledger_dr = null;
-        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(51, auth()->user()->company_id);
+        $ledger_cr           = null;
+        $ledger_dr           = null;
+        $ledger_Settings     = get_CR_DR_TXN_Type_Ledger(51, auth()->user()->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
         // Save Charges to transaction table
         $chargetransaction = transactions::create([
-            "balance_before" => $debitCustomer['charge_balance_before'],
-            "amount" =>  $companySettings->bills_payment_charge,
-            "balance_after" => $debitCustomer["charge_balance_after"],
-            "account_id" => $transactionPinValidation['account_id'],
-            "company_id" => \auth()->user()->company_id,
-            "branch_id" => auth()->user()->branch_id,
+            "balance_before"         => $debitCustomer['charge_balance_before'],
+            "amount"                 => $companySettings->bills_payment_charge,
+            "balance_after"          => $debitCustomer["charge_balance_after"],
+            "account_id"             => $transactionPinValidation['account_id'],
+            "company_id"             => \auth()->user()->company_id,
+            "branch_id"              => auth()->user()->branch_id,
             "company_balance_before" => $debitCustomer["company_charge_balance_before"],
-            "company_amount" => $wbaCharge,
-            "company_balance_after" => $debitCustomer["company_charge_balance_after"],
-            "description" => "Charge for Electricity Purchase",
-            "transaction_reference" => $transactionChargeId,
-            "parent_transaction_id" => $transactionId,
+            "company_amount"         => $wbaCharge,
+            "company_balance_after"  => $debitCustomer["company_charge_balance_after"],
+            "description"            => "Charge for Electricity Purchase",
+            "transaction_reference"  => $transactionChargeId,
+            "parent_transaction_id"  => $transactionId,
             "transaction_remarks_id" => 1,
-            "transaction_type_id" => 51,
-            "credit_debit_type_id" => 2,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_cr" => $ledger_cr,
-            "ledger_dr" => $ledger_dr
+            "transaction_type_id"    => 51,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
         ]);
 
-
         $body = [
-            "request_id" => $transactionId,
-            "serviceID" => $request->electricity_disco,
+            "request_id"     => $transactionId,
+            "serviceID"      => $request->electricity_disco,
             "variation_code" => $request->meter_type,
-            "billersCode" => $request->meter_number,
-            "amount" => $request->final_amount,
-            "phone" => $request->phone_number
+            "billersCode"    => $request->meter_number,
+            "amount"         => $request->final_amount,
+            "phone"          => $request->phone_number,
         ];
 
         $endpoint = "pay";
@@ -4491,13 +4428,14 @@ class TransactionController extends Controller
 
         logInfo($buyElectricity, "VTPass Electricity Response");
 
-        if (!$buyElectricity['status'])
+        if (! $buyElectricity['status']) {
             return response()->json($buyElectricity, 400);
+        }
 
         $electricityToken = $buyElectricity['data']['token'];
 
         $transaction->transaction_remarks_id = 2;
-        $transaction->description = "Purchased Electricity Token: $electricityToken Amount: $request->final_amount";
+        $transaction->description            = "Purchased Electricity Token: $electricityToken Amount: $request->final_amount";
         $transaction->save();
 
         $buyElectricity['data']['balance'] = $debitCustomer["charge_balance_after"];
@@ -4513,21 +4451,21 @@ class TransactionController extends Controller
         $transactionId = $this->vtPassRequestId();
 
         $validation = Validator::make($request->all(), [
-            "final_amount" => "required|numeric|gt:0",
-            "phone_number" => "required|numeric|gt:0",
+            "final_amount"      => "required|numeric|gt:0",
+            "phone_number"      => "required|numeric|gt:0",
             "smart_card_number" => "required|numeric|gt:0",
             "subscription_plan" => "required|string",
-            "cable_tv_type" => "required|string",
-            "transaction_pin" => "required|numeric|gt:0|digits:4",
+            "cable_tv_type"     => "required|string",
+            "transaction_pin"   => "required|numeric|gt:0|digits:4",
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
         $transactionPinValidation = validatePinCheckCustomerBalance($request->transaction_pin, $request->final_amount);
-        if (!$transactionPinValidation['status']) {
+        if (! $transactionPinValidation['status']) {
             return response()->json($transactionPinValidation, 400);
         }
 
@@ -4549,13 +4487,13 @@ class TransactionController extends Controller
 
         $validateTransferAmount = $this->validateTransfer($request->final_amount);
 
-        if (!$validateTransferAmount['status']) {
+        if (! $validateTransferAmount['status']) {
             return \response()->json($validateTransferAmount, 400);
         }
 
-        $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
-        $ledger_cr = null;
-        $ledger_dr = null;
+        $debitCustomer   = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
+        $ledger_cr       = null;
+        $ledger_dr       = null;
         $ledger_Settings = get_CR_DR_TXN_Type_Ledger(13, auth()->user()->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
@@ -4563,55 +4501,55 @@ class TransactionController extends Controller
         }
         $transaction = transactions::create([
 
-            "balance_before" => $debitCustomer['balance_before'],
-            "amount" => $request->final_amount,
-            "balance_after" => $debitCustomer["balance_after"],
-            "account_id" => $transactionPinValidation['account_id'],
-            "company_id" => \auth()->user()->company_id,
-            "branch_id" => auth()->user()->branch_id,
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $request->final_amount,
+            "balance_after"          => $debitCustomer["balance_after"],
+            "account_id"             => $transactionPinValidation['account_id'],
+            "company_id"             => \auth()->user()->company_id,
+            "branch_id"              => auth()->user()->branch_id,
             "company_balance_before" => $debitCustomer["company_balance_before"],
-            "company_amount" => $debitCustomer["company_amount"],
-            "company_balance_after" => $debitCustomer["company_balance_after"],
-            "description" => "Cable TV Subscription worth $request->final_amount",
-            "transaction_reference" => $transactionId,
+            "company_amount"         => $debitCustomer["company_amount"],
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "description"            => "Cable TV Subscription worth $request->final_amount",
+            "transaction_reference"  => $transactionId,
             "transaction_remarks_id" => 1,
-            "transaction_type_id" => 13,
-            "credit_debit_type_id" => 2,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_dr" => $ledger_dr,
-            "ledger_cr" => $ledger_cr,
+            "transaction_type_id"    => 13,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_dr"              => $ledger_dr,
+            "ledger_cr"              => $ledger_cr,
         ]);
 
         $transactionChargeId = \generate_txnID();
-        $ledger_cr = null;
-        $ledger_dr = null;
-        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(51, auth()->user()->company_id);
+        $ledger_cr           = null;
+        $ledger_dr           = null;
+        $ledger_Settings     = get_CR_DR_TXN_Type_Ledger(51, auth()->user()->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
         // Save Charges to transaction table
         $transaction = transactions::create([
-            "balance_before" => $debitCustomer['charge_balance_before'],
-            "amount" =>  $companySettings->bills_payment_charge,
-            "balance_after" => $debitCustomer["charge_balance_after"],
-            "account_id" => $transactionPinValidation['account_id'],
-            "company_id" => \auth()->user()->company_id,
-            "branch_id" => auth()->user()->branch_id,
+            "balance_before"         => $debitCustomer['charge_balance_before'],
+            "amount"                 => $companySettings->bills_payment_charge,
+            "balance_after"          => $debitCustomer["charge_balance_after"],
+            "account_id"             => $transactionPinValidation['account_id'],
+            "company_id"             => \auth()->user()->company_id,
+            "branch_id"              => auth()->user()->branch_id,
             "company_balance_before" => $debitCustomer["company_charge_balance_before"],
-            "company_amount" => $wbaCharge,
-            "company_balance_after" => $debitCustomer["company_charge_balance_after"],
-            "description" => "Charge for Cable TV Subscription",
-            "transaction_reference" => $transactionChargeId,
-            "parent_transaction_id" => $transactionId,
+            "company_amount"         => $wbaCharge,
+            "company_balance_after"  => $debitCustomer["company_charge_balance_after"],
+            "description"            => "Charge for Cable TV Subscription",
+            "transaction_reference"  => $transactionChargeId,
+            "parent_transaction_id"  => $transactionId,
             "transaction_remarks_id" => 1,
-            "transaction_type_id" => 51,
-            "credit_debit_type_id" => 2,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => auth()->user()->id,
-            "ledger_dr" => $ledger_dr,
-            "ledger_cr" => $ledger_cr,
+            "transaction_type_id"    => 51,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_dr"              => $ledger_dr,
+            "ledger_cr"              => $ledger_cr,
         ]);
 
         $vtPassController = new VTPassController();
@@ -4639,37 +4577,37 @@ class TransactionController extends Controller
             "dob" => 'required',
         ]);
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => "BVN and Date of birth is required");
+            $ra = ["status" => false, "message" => "BVN and Date of birth is required"];
             return response()->json($ra, 406);
         }
 
         $companyId = auth()->user()->company->id;
 
-        $debitCompany = debitCompanyWithCharge($companyId, 70, 0,);
+        $debitCompany = debitCompanyWithCharge($companyId, 70, 0, );
 
-        if (!$debitCompany['status']) {
+        if (! $debitCompany['status']) {
             return response()->json(['status' => false, 'message' => 'Switcher Error. Kindly contact support'], 400);
         }
 
         logInfo($debitCompany, "Debit company log");
 
         $header = [
-            'Content-Type' => 'application/json',
+            'Content-Type'  => 'application/json',
             'Authorization' => 'prod_sk_opOycQfcwBrqTrBLovXN4jFyR',
-            'AppId' => '61d0b13d49c296003276f53b'
+            'AppId'         => '61d0b13d49c296003276f53b',
         ];
 
         $url = "https://api.dojah.io/api/v1/kyc/bvn/advance?bvn=$request->bvn";
 
-        $time = strtotime($request->dob);
+        $time        = strtotime($request->dob);
         $bvnResponse = \getRequest($header, [], $url);
 
         if (isset($bvnResponse['entity']['bvn'])) {
-            $firstName = $bvnResponse["entity"]["first_name"];
-            $lastName = $bvnResponse["entity"]["last_name"];
-            $dob = $bvnResponse["entity"]["date_of_birth"];
+            $firstName       = $bvnResponse["entity"]["first_name"];
+            $lastName        = $bvnResponse["entity"]["last_name"];
+            $dob             = $bvnResponse["entity"]["date_of_birth"];
             $bvnFromResponse = $bvnResponse["entity"]["bvn"];
-            $phone = $bvnResponse["entity"]["phone_number1"];
+            $phone           = $bvnResponse["entity"]["phone_number1"];
 
             $newformat = date('Y-m-d', $time);
 
@@ -4679,24 +4617,24 @@ class TransactionController extends Controller
 
                 return response()->json(
                     [
-                        'status' => true,
+                        'status'  => true,
                         'message' => "Account Verified Successfully",
-                        'data' => [
+                        'data'    => [
                             'first_name' => trim($firstName),
-                            "last_name" => trim($lastName),
-                            "dob" => $newformat,
-                            "bvn" => trim($bvnFromResponse),
-                            "phone" => trim($phone)
-                        ]
+                            "last_name"  => trim($lastName),
+                            "dob"        => $newformat,
+                            "bvn"        => trim($bvnFromResponse),
+                            "phone"      => trim($phone),
+                        ],
                     ]
                 );
             } else {
 
                 return response()->json(
                     [
-                        'status' => false,
+                        'status'  => false,
                         'message' => "Failed to verify BVN with Date of birth",
-                        'data' => $request->bvn
+                        'data'    => $request->bvn,
                     ],
                     400
                 );
@@ -4705,8 +4643,8 @@ class TransactionController extends Controller
 
             return response()->json(
                 [
-                    'status' => false,
-                    'message' => "Failed to verify BVN"
+                    'status'  => false,
+                    'message' => "Failed to verify BVN",
                 ],
                 400
             );
@@ -4715,8 +4653,8 @@ class TransactionController extends Controller
 
     public function verifyBVNAlt(Request $request, $bvn)
     {
-        if (!$bvn) {
-            $ra = array("status" => false, "message" => "BVN is required");
+        if (! $bvn) {
+            $ra = ["status" => false, "message" => "BVN is required"];
             return response()->json($ra, 406);
         }
 
@@ -4731,13 +4669,13 @@ class TransactionController extends Controller
     {
 
         $validation = Validator::make($request->all(), [
-            "meter_number" => 'required',
+            "meter_number"      => 'required',
             "electricity_disco" => 'required',
-            "type" => 'required',
+            "type"              => 'required',
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -4745,7 +4683,7 @@ class TransactionController extends Controller
 
         $verifyMeterResult = $vtPassController->verifyMeterNumber($request->meter_number, $request->electricity_disco, $request->type);
 
-        if (!$verifyMeterResult['status']) {
+        if (! $verifyMeterResult['status']) {
             return response()->json($verifyMeterResult, 400);
         }
         return response()->json($verifyMeterResult);
@@ -4756,11 +4694,11 @@ class TransactionController extends Controller
 
         $validation = Validator::make($request->all(), [
             "smart_card_number" => 'required|numeric|gt:0',
-            "cable_tv_type" => 'required'
+            "cable_tv_type"     => 'required',
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -4768,7 +4706,7 @@ class TransactionController extends Controller
 
         $verifyCableTV = $vtPassController->verifyCableTV($request->smart_card_number, $request->cable_tv_type);
 
-        if (!$verifyCableTV["status"]) {
+        if (! $verifyCableTV["status"]) {
             return response()->json($verifyCableTV, 400);
         }
         return response()->json($verifyCableTV);
@@ -4776,7 +4714,7 @@ class TransactionController extends Controller
 
     public function getAllBanks(Request $request)
     {
-        $type  = $request->has('type') ? $request->type : 'long';
+        $type = $request->has('type') ? $request->type : 'long';
 
         $banks = \getBanksFromDB($type);
 
@@ -4794,7 +4732,7 @@ class TransactionController extends Controller
         if ($hidecharge == '1') {
             // $get_list_of_excluded_transaction_ids = getTransactionIdByName(['USSD Session Charge','Physical Card Funding Charge','Virtual Card Funding Charge','USSD Wallet Funding Charge','Customer Whatsapp Charge','Company Whatsapp Charge','POS Credit Charge']);
             $get_list_of_excluded_transaction_ids = [108, 107, 100, 99, 92, 91, 76, 62, 58, 55, 54, 51, 42, 41, 39, 38, 33, 27];
-            $transactions = $transactions->whereNotIn('transaction_type_id', $get_list_of_excluded_transaction_ids);
+            $transactions                         = $transactions->whereNotIn('transaction_type_id', $get_list_of_excluded_transaction_ids);
         }
         if ($request->from != null && $request->to != null) {
             $transactions = $transactions->where('created_at', '>=', $request->from)
@@ -4811,7 +4749,7 @@ class TransactionController extends Controller
     public function getDataBundles($networkProvider)
     {
         $vtPassController = new VTPassController();
-        $dataBundles = $vtPassController->getDataBundles($networkProvider);
+        $dataBundles      = $vtPassController->getDataBundles($networkProvider);
 
         if ($dataBundles['status']) {
             return ['status' => true, 'message' => 'Data Bundles fetched successfully', 'data' => $dataBundles['data']];
@@ -4823,7 +4761,7 @@ class TransactionController extends Controller
     public function getDataBundlesList($networkProvider)
     {
         $vtPassController = new VTPassController();
-        $dataBundles = $vtPassController->getDataBundles($networkProvider);
+        $dataBundles      = $vtPassController->getDataBundles($networkProvider);
 
         if ($dataBundles['status']) {
             return ['status' => true, 'message' => 'Data Bundles fetched successfully', 'data' => $dataBundles['data']];
@@ -4836,21 +4774,22 @@ class TransactionController extends Controller
     {
 
         $validation = Validator::make($request->all(), [
-            "cableTvType" => 'required'
+            "cableTvType" => 'required',
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => false, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
         $cableTV = $request['cableTvType'];
 
         $vtPassController = new VTPassController();
-        $dataBundles = $vtPassController->getSubscriptions($cableTV);
+        $dataBundles      = $vtPassController->getSubscriptions($cableTV);
 
-        if (!$dataBundles['status'])
+        if (! $dataBundles['status']) {
             return response()->json($dataBundles, 400);
+        }
 
         return response()->json($dataBundles);
     }
@@ -4860,12 +4799,11 @@ class TransactionController extends Controller
 
         $cableTV = $request['cableTvType'];
 
-
         $endpoint = "betting";
 
         return response()->json(['status' => false, 'message' => 'This service is unavailable at the moment'], 400);
 
-        $isDemo = env('APP_MODE');
+        $isDemo         = env('APP_MODE');
         $apiExchangeKey = env("API_SERVER_EXCHANGE_KEY");
 
         $bettings = \getRequest([], [], "/get_subscriptions.php?is_demo=$isDemo&api_exchange_key=$apiExchangeKey");
@@ -4875,7 +4813,7 @@ class TransactionController extends Controller
             $providers = [];
 
             foreach ($bettings['data'] as $key => $bettingCompany) {
-                $providers[] = array('providers' => $bettingCompany['provider']);
+                $providers[] = ['providers' => $bettingCompany['provider']];
             }
 
             return response()->json(['status' => true, 'message' => 'Bettings fetched Successfuly', 'data' => $providers]);
@@ -4898,17 +4836,17 @@ class TransactionController extends Controller
                     $sweepAccount = true;
 
                     $body = [
-                        "account_number" => $incomingRequest['nuban'],
-                        "amount" => $incomingRequest['amount'],
+                        "account_number"        => $incomingRequest['nuban'],
+                        "amount"                => $incomingRequest['amount'],
                         "transaction_reference" => $incomingRequest['account_reference'],
-                        "narration" => "Funds received from " . $incomingRequest['source_account_name'],
-                        "status" => $incomingRequest['status'],
-                        "transaction_date" => $incomingRequest['transaction_time']
+                        "narration"             => "Funds received from " . $incomingRequest['source_account_name'],
+                        "status"                => $incomingRequest['status'],
+                        "transaction_date"      => $incomingRequest['transaction_time'],
                     ];
 
                     $header = [
                         'Content-Type' => 'application/json',
-                        'ApiKey' =>  $checkWebhook->api_key
+                        'ApiKey'       => $checkWebhook->api_key,
                     ];
                     $response = Http::withHeaders($header)->post($checkWebhook->webhook_url, $body);
 
@@ -4931,21 +4869,21 @@ class TransactionController extends Controller
 
         $curl = curl_init();
 
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://api.woven.finance/v2/api/nuban/enquiry',
+        curl_setopt_array($curl, [
+            CURLOPT_URL            => 'https://api.woven.finance/v2/api/nuban/enquiry',
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
+            CURLOPT_ENCODING       => '',
+            CURLOPT_MAXREDIRS      => 10,
+            CURLOPT_TIMEOUT        => 0,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => "account_number=$accountNumber&bank_code=$bankCode",
-            CURLOPT_HTTPHEADER => array(
+            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST  => 'POST',
+            CURLOPT_POSTFIELDS     => "account_number=$accountNumber&bank_code=$bankCode",
+            CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/x-www-form-urlencoded',
-                'api_secret:  00'
-            ),
-        ));
+                'api_secret:  00',
+            ],
+        ]);
 
         $response = curl_exec($curl);
 
@@ -4956,19 +4894,19 @@ class TransactionController extends Controller
     {
 
         return json_encode(
-            array(
-                array("id" => "prepaid", "name" => "Prepaid"),
-                array("id" => "postpaid", "name" => "Postpaid"),
-            )
+            [
+                ["id" => "prepaid", "name" => "Prepaid"],
+                ["id" => "postpaid", "name" => "Postpaid"],
+            ]
         );
     }
     public function getMeterService()
     {
         return json_encode(
-            array(
-                array("id" => "abuja-electric", "name" => "Abuja Prepaid"), array("id" => "ibadan-electric", "name" => "Ibadan Prepaid"), array("id" => "eko-electric", "name" => "Eko Prepaid"), array("id" => "ikeja-electric", "name" => "Ikeja Prepaid"), array("id" => "portharcourt-electric", "name" => "Port Harcourt Prepaid"), array("id" => "jos-electric", "name" => "Jos Prepaid"), array("id" => "kano-electric", "name" => "Kano Prepaid"), array("id" => "enugu-electric", "name" => "Enugu Prepaid")
+            [
+                ["id" => "abuja-electric", "name" => "Abuja Prepaid"], ["id" => "ibadan-electric", "name" => "Ibadan Prepaid"], ["id" => "eko-electric", "name" => "Eko Prepaid"], ["id" => "ikeja-electric", "name" => "Ikeja Prepaid"], ["id" => "portharcourt-electric", "name" => "Port Harcourt Prepaid"], ["id" => "jos-electric", "name" => "Jos Prepaid"], ["id" => "kano-electric", "name" => "Kano Prepaid"], ["id" => "enugu-electric", "name" => "Enugu Prepaid"],
 
-            )
+            ]
         );
     }
     public function getMeterServiceType()
@@ -4976,22 +4914,19 @@ class TransactionController extends Controller
 
         return response()->json(
             [
-                'status' => true,
+                'status'  => true,
                 'message' =>
                 'Response Successful',
-                'data' =>
-                array(
-                    'service' => array(
-                        array("id" => "abuja-electric", "name" => "Abuja Prepaid"), array("id" => "ibadan-electric", "name" => "Ibadan Prepaid"), array("id" => "eko-electric", "name" => "Eko Prepaid"), array("id" => "ikeja-electric", "name" => "Ikeja Prepaid"), array("id" => "portharcourt-electric", "name" => "Port Harcourt Prepaid"), array("id" => "jos-electric", "name" => "Jos Prepaid"), array("id" => "kano-electric", "name" => "Kano Prepaid"), array("id" => "enugu-electric", "name" => "Enugu Prepaid")
+                'data'    => [
+                    'service' => [
+                        ["id" => "abuja-electric", "name" => "Abuja Prepaid"], ["id" => "ibadan-electric", "name" => "Ibadan Prepaid"], ["id" => "eko-electric", "name" => "Eko Prepaid"], ["id" => "ikeja-electric", "name" => "Ikeja Prepaid"], ["id" => "portharcourt-electric", "name" => "Port Harcourt Prepaid"], ["id" => "jos-electric", "name" => "Jos Prepaid"], ["id" => "kano-electric", "name" => "Kano Prepaid"], ["id" => "enugu-electric", "name" => "Enugu Prepaid"],
 
+                    ], 'type' => [
+                        ["id" => "prepaid", "name" => "Prepaid"],
+                        ["id" => "postpaid", "name" => "Postpaid"],
+                    ],
 
-                    ), 'type' => array(
-                        array("id" => "prepaid", "name" => "Prepaid"),
-                        array("id" => "postpaid", "name" => "Postpaid"),
-                    )
-
-
-                ),
+                ],
             ]
         );
     }
@@ -4999,47 +4934,47 @@ class TransactionController extends Controller
     {
         $network = [
             'network' => [
-                array("id" => "mtn", "name" => "MTN"),
-                array("id" => "glo", "name" => "GLO"),
-                array("id" => "airtel", "name" => "Airtel"),
+                ["id" => "mtn", "name" => "MTN"],
+                ["id" => "glo", "name" => "GLO"],
+                ["id" => "airtel", "name" => "Airtel"],
 
-                array("id" => "etisalat", "name" => "9mobile"),
+                ["id" => "etisalat", "name" => "9mobile"],
             ],
-            'data' => [
-                "mtn" => array(
-                    array("id" => "500", "name" => "500mb/30days - 350.00", "amount" => 350),
-                    array("id" => "1000", "name" => "1.0GB/30days - 550.00", "amount" => 550),
-                    array("id" => "2000", "name" => "2.0GB/30days - 750.00", "amount" => 750),
-                    array("id" => "5000", "name" => "5.0GB/30days - 2,700.00", "amount" => 2700),
-                    array("id" => "10000.01", "name" => "10.0GB/30days - 5,000.00", "amount" => 5000),
-                ),
-                "glo" => array(
+            'data'    => [
+                "mtn"      => [
+                    ["id" => "500", "name" => "500mb/30days - 350.00", "amount" => 350],
+                    ["id" => "1000", "name" => "1.0GB/30days - 550.00", "amount" => 550],
+                    ["id" => "2000", "name" => "2.0GB/30days - 750.00", "amount" => 750],
+                    ["id" => "5000", "name" => "5.0GB/30days - 2,700.00", "amount" => 2700],
+                    ["id" => "10000.01", "name" => "10.0GB/30days - 5,000.00", "amount" => 5000],
+                ],
+                "glo"      => [
 
-                    array("id" => "1050.01", "name" => "1GB for 30Days - 1,100.00", "amount" => 1100),
-                    array("id" => "2500.01", "name" => "2.5GB for 30Days - 1,500.00", "amount" => 1500),
+                    ["id" => "1050.01", "name" => "1GB for 30Days - 1,100.00", "amount" => 1100],
+                    ["id" => "2500.01", "name" => "2.5GB for 30Days - 1,500.00", "amount" => 1500],
 
-                    array("id" => "5800.01", "name" => "5.8GB for 30Days - 2,500.00", "amount" => 2500),
-                    array("id" => "10000.01", "name" => "10GB for 30Days - 3,500.00", "amount" => 3500),
-                ),
-                "airtel" => array(
-                    array("id" => "999.00", "name" => "1.5GB/30days - 1,200.00", "amount" => 1200),
-                    array("id" => "1499.01", "name" => "3.5GB/30days - 1,650.00", "amount" => 1650),
-                    array("id" => "1999.00", "name" => "4.5GB/30days - 2,050.00 ", "amount" => 2050),
+                    ["id" => "5800.01", "name" => "5.8GB for 30Days - 2,500.00", "amount" => 2500],
+                    ["id" => "10000.01", "name" => "10GB for 30Days - 3,500.00", "amount" => 3500],
+                ],
+                "airtel"   => [
+                    ["id" => "999.00", "name" => "1.5GB/30days - 1,200.00", "amount" => 1200],
+                    ["id" => "1499.01", "name" => "3.5GB/30days - 1,650.00", "amount" => 1650],
+                    ["id" => "1999.00", "name" => "4.5GB/30days - 2,050.00 ", "amount" => 2050],
 
-                    array("id" => "2499.01", "name" => "6.0GB/30days - 2,499.01", "amount" => 2550),
-                    array("id" => "2999.02", "name" => "8.0GB/30days - 3,500", "amount" => 3500),
+                    ["id" => "2499.01", "name" => "6.0GB/30days - 2,499.01", "amount" => 2550],
+                    ["id" => "2999.02", "name" => "8.0GB/30days - 3,500", "amount" => 3500],
 
-                ),
-                "etisalat" => array(
-                    array("id" => "500.01", "name" => "500MB/30days - 550", "amount" => 550),
-                    array("id" => "1500.01", "name" => "1.5GB/30days - 1,500", "amount" => 1500),
-                    array("id" => "4500.01", "name" => "4.5GB/30days - 2,500", "amount" => 2500),
+                ],
+                "etisalat" => [
+                    ["id" => "500.01", "name" => "500MB/30days - 550", "amount" => 550],
+                    ["id" => "1500.01", "name" => "1.5GB/30days - 1,500", "amount" => 1500],
+                    ["id" => "4500.01", "name" => "4.5GB/30days - 2,500", "amount" => 2500],
 
-                    array("id" => "15000.01", "name" => "15GB/30days - 7,000", "amount" => 7000),
+                    ["id" => "15000.01", "name" => "15GB/30days - 7,000", "amount" => 7000],
 
-                    array("id" => "40000.01", "name" => "40.0GB/30days - 14,500", "amount" => 14500),
-                )
-            ]
+                    ["id" => "40000.01", "name" => "40.0GB/30days - 14,500", "amount" => 14500],
+                ],
+            ],
         ];
         return response()->json($network);
     }
@@ -5058,18 +4993,18 @@ class TransactionController extends Controller
         }
 
         if ($transaction) {
-            $transaction->id = 0;
-            $transaction->account_id = 0;
-            $transaction->account_id = 0;
-            $transaction->branch_id = null;
-            $transaction->parent_transaction_id = null;
-            $transaction->company_id = null;
+            $transaction->id                     = 0;
+            $transaction->account_id             = 0;
+            $transaction->account_id             = 0;
+            $transaction->branch_id              = null;
+            $transaction->parent_transaction_id  = null;
+            $transaction->company_id             = null;
             $transaction->company_balance_before = null;
-            $transaction->company_amount = null;
-            $transaction->company_balance_after = null;
-            $transaction->transaction_type_id = null;
-            $transaction->created_by = null;
-            $transaction->modified_by = null;
+            $transaction->company_amount         = null;
+            $transaction->company_balance_after  = null;
+            $transaction->transaction_type_id    = null;
+            $transaction->created_by             = null;
+            $transaction->modified_by            = null;
             return response()->json(['status' => true, 'message' => 'Transaction details fetched successfully', 'data' => $transaction], 200);
         } else {
             return response()->json(['status' => false, 'message' => 'Invalid transaction reference'], 400);
@@ -5079,18 +5014,18 @@ class TransactionController extends Controller
     {
         $transaction = transactions::where(['transaction_reference' => $request->transaction_reference])->with('type')->with('remark')->with('creditDebitType')->first();
         if ($transaction) {
-            $transaction->id = 0;
-            $transaction->account_id = 0;
-            $transaction->account_id = 0;
-            $transaction->branch_id = null;
-            $transaction->parent_transaction_id = null;
-            $transaction->company_id = null;
+            $transaction->id                     = 0;
+            $transaction->account_id             = 0;
+            $transaction->account_id             = 0;
+            $transaction->branch_id              = null;
+            $transaction->parent_transaction_id  = null;
+            $transaction->company_id             = null;
             $transaction->company_balance_before = null;
-            $transaction->company_amount = null;
-            $transaction->company_balance_after = null;
-            $transaction->transaction_type_id = null;
-            $transaction->created_by = null;
-            $transaction->modified_by = null;
+            $transaction->company_amount         = null;
+            $transaction->company_balance_after  = null;
+            $transaction->transaction_type_id    = null;
+            $transaction->created_by             = null;
+            $transaction->modified_by            = null;
             return response()->json(['status' => true, 'message' => 'Transaction details fetched successfully', 'data' => $transaction], 200);
         } else {
             return response()->json(['status' => false, 'message' => 'Invalid transaction reference'], 400);

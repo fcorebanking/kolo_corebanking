@@ -3261,8 +3261,9 @@ class TransactionController extends Controller
                         ]]);
                     }
                 }
-
+                logInfo("wb_account_details", "wb_account_details");
                 $customerAccount = $user->wb_account_details[0];
+                logInfo("wb_account_details after", "wb_account_details after");
 
                 if ($currentRequest['action_type'] == "pre-balance-check-auth") {
 
@@ -3397,13 +3398,15 @@ class TransactionController extends Controller
 
                         // logInfo($posSetting, "My POS Setting is...");
 
-                        logInfo($user->wb_account_details[0], "wb_account_details");
+                       
 
                         $originalAmount  = $currentRequest['data']['transaction']['transactionAmount'];
                         $customerAccount = $user->wb_account_details[0];
                         $accountId       = $customerAccount->id;
                         $branchId        = $user->branch->id;
                         $companyId       = $user->company_id;
+
+                
 
                         $companyCharge = getWbaTransferCharges(39, $originalAmount);
 

@@ -3397,6 +3397,8 @@ class TransactionController extends Controller
 
                         // logInfo($posSetting, "My POS Setting is...");
 
+                        logInfo($user->wb_account_details[0], "wb_account_details");
+
                         $originalAmount  = $currentRequest['data']['transaction']['transactionAmount'];
                         $customerAccount = $user->wb_account_details[0];
                         $accountId       = $customerAccount->id;

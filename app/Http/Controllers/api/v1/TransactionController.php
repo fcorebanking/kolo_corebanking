@@ -3261,9 +3261,8 @@ class TransactionController extends Controller
                         ]]);
                     }
                 }
-                logInfo("wb_account_details", "wb_account_details");
+
                 $customerAccount = $user->wb_account_details[0];
-                logInfo("wb_account_details after", "wb_account_details after");
 
                 if ($currentRequest['action_type'] == "pre-balance-check-auth") {
 
@@ -3308,7 +3307,7 @@ class TransactionController extends Controller
                     // $customerCharge = ($companySettings->min_bank_transfer_charge_or_percentage * 0.01) * $currentRequest['data']['transaction']['amount'];
                     $customerCharge = $companySettings->max_bank_transfer_charge;
 
-                    if ($currentRequest['data']['transaction']['type' == "topup"]) {
+                    if ($currentRequest['data']['transaction']['type'] == "topup") {
                         $theCharge      = 0;
                         $customerCharge = 0;
                     }
@@ -3398,15 +3397,11 @@ class TransactionController extends Controller
 
                         // logInfo($posSetting, "My POS Setting is...");
 
-                       
-
                         $originalAmount  = $currentRequest['data']['transaction']['transactionAmount'];
                         $customerAccount = $user->wb_account_details[0];
                         $accountId       = $customerAccount->id;
                         $branchId        = $user->branch->id;
                         $companyId       = $user->company_id;
-
-                
 
                         $companyCharge = getWbaTransferCharges(39, $originalAmount);
 

@@ -3309,7 +3309,7 @@ class TransactionController extends Controller
 
                     if ($currentRequest['data']['transaction']['type'] == "topup") {
                         $theCharge      = 0;
-                        $charge = 0;
+                        $charge         = 0;
                         $customerCharge = 0;
                     }
 

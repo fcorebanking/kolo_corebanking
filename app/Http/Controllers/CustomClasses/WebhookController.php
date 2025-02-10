@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers\CustomClasses;
 
 use App\Http\Controllers\Controller;
@@ -9,8 +8,6 @@ use App\Http\Controllers\ThirdParty\KudaController;
 use App\Models\AgentTerminal;
 use App\Models\ApiKey;
 use App\Models\Company;
-use Illuminate\Http\Request;
-
 use App\Models\company_settings;
 use App\Models\company_wallet;
 use App\Models\loan;
@@ -21,6 +18,7 @@ use App\Models\wb_account_details;
 use App\Models\WebhookLog;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
@@ -47,7 +45,7 @@ class WebhookController extends Controller
 
             if ($webhook) {
                 if ($this->webhookType == 'providus') {
-                    return ["responseCode" => "01", "requestSuccessful" => true,  "sessionId" => $this->transactionReference, "responseMessage" => "duplicate transaction"];
+                    return ["responseCode" => "01", "requestSuccessful" => true, "sessionId" => $this->transactionReference, "responseMessage" => "duplicate transaction"];
                 }
                 return ['status' => false, 'message' => "Duplicate transaction", 'httpCode' => 400];
             }
@@ -60,12 +58,12 @@ class WebhookController extends Controller
             if ($this->fromTempWebhook == 'false') {
 
                 WebhookLog::create([
-                    'webhook_type' => $this->webhookType,
+                    'webhook_type'     => $this->webhookType,
                     'unique_reference' => $this->transactionReference,
-                    'body' => $this->fromTempWebhook == 'true' ? json_encode($this->tempWebookRequest) : json_encode($this->request->all())
+                    'body'             => $this->fromTempWebhook == 'true' ? json_encode($this->tempWebookRequest) : json_encode($this->request->all()),
                 ]);
             }
-            $account = wb_account_details::where('virtual_accnum', $this->virtualAccount)->first();
+            $account = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $this->request->recipientName)->first();
             if ($account) {
 
                 DB::beginTransaction();
@@ -90,17 +88,17 @@ class WebhookController extends Controller
 
                         try {
 
-                            $tempWebookRequest =  TempWebhook::create([
-                                'webhook_type' => $this->webhookType,
-                                'amount' => $theAmount,
-                                'company_id' => $customer->company_id,
-                                'description' => $this->description,
-                                'charge' => $this->wbaCharge,
+                            $tempWebookRequest = TempWebhook::create([
+                                'webhook_type'     => $this->webhookType,
+                                'amount'           => $theAmount,
+                                'company_id'       => $customer->company_id,
+                                'description'      => $this->description,
+                                'charge'           => $this->wbaCharge,
                                 'transaction_date' => $this->transactionDate,
-                                'account_number' => $this->virtualAccount,
+                                'account_number'   => $this->virtualAccount,
                                 'unique_reference' => $this->transactionReference,
-                                'status_id' => 7,
-                                'body' => json_encode($this->request->all())
+                                'status_id'        => 7,
+                                'body'             => json_encode($this->request->all()),
                             ]);
 
                             DB::commit();
@@ -115,9 +113,9 @@ class WebhookController extends Controller
 
                 if ($this->webhookType == 'kuda') {
 
-                    $kudaAmount =  $this->fromTempWebhook == 'true' ? $this->amount * 100 : $this->amount;
+                    $kudaAmount = $this->fromTempWebhook == 'true' ? $this->amount * 100 : $this->amount;
 
-                    $kudaAmount = $kudaAmount  >= 1000000 ? ($kudaAmount  - 5000) : $kudaAmount;
+                    $kudaAmount = $kudaAmount >= 1000000 ? ($kudaAmount - 5000) : $kudaAmount;
 
                     $kudaController = new KudaController();
 
@@ -129,17 +127,16 @@ class WebhookController extends Controller
 
                     $verifyPaymentResponse['httpCode'] = 400;
 
-                    if (!$verifyPaymentResponse['status']) {
+                    if (! $verifyPaymentResponse['status']) {
                         return $verifyPaymentResponse;
                     }
                 }
 
-
-                $mainAccount = $this->webhookType == 'monnify' ?  wb_account_details::where('acc_reference', $this->accountReference)->first() : wb_account_details::where('virtual_accnum', $this->virtualAccount)->first();
-                $companyId = $account->user->company->id;
-                $branchId = $account->user->branch->id;
-                $accountId = $mainAccount->id;
-                $userId = $account->user_id;
+                $mainAccount = $this->webhookType == 'monnify' ? wb_account_details::where('acc_reference', $this->accountReference)->first() : wb_account_details::where('virtual_accnum', $this->virtualAccount)->first();
+                $companyId   = $account->user->company->id;
+                $branchId    = $account->user->branch->id;
+                $accountId   = $mainAccount->id;
+                $userId      = $account->user_id;
 
                 if ($this->fromTempWebhook == 'false') {
                     $customerAmount = $this->webhookType == 'kuda' ? ($this->amount / 100) : $this->amount;
@@ -187,78 +184,77 @@ class WebhookController extends Controller
                 }
 
                 $transaction = transactions::create([
-                    "balance_before" => $creditCustomer['balance_before'],
-                    "amount" => $originalAmount,
-                    "company_amount" => $originalAmount,
-                    "balance_after" => $creditCustomer['balance_after'],
+                    "balance_before"         => $creditCustomer['balance_before'],
+                    "amount"                 => $originalAmount,
+                    "company_amount"         => $originalAmount,
+                    "balance_after"          => $creditCustomer['balance_after'],
                     'company_balance_before' => $creditCustomer['company_balance_before'],
-                    'company_balance_after' => $creditCustomer['company_balance_after'],
-                    "description" => $newdescription,
-                    "company_id" => $companyId,
-                    "branch_id" => $branchId,
-                    "account_id" => $accountId,
-                    "transaction_reference" => $this->transactionReference,
+                    'company_balance_after'  => $creditCustomer['company_balance_after'],
+                    "description"            => $newdescription,
+                    "company_id"             => $companyId,
+                    "branch_id"              => $branchId,
+                    "account_id"             => $accountId,
+                    "transaction_reference"  => $this->transactionReference,
                     "transaction_remarks_id" => 2,
-                    "transaction_type_id" => $this->webhookType == "cgate" ? 97 : 6,
-                    "credit_debit_type_id" => 1,
-                    "created_date"  => $this->transactionDate,
-                    "created_by" => 1
+                    "transaction_type_id"    => $this->webhookType == "cgate" ? 97 : 6,
+                    "credit_debit_type_id"   => 1,
+                    "created_date"           => $this->transactionDate,
+                    "created_by"             => 1,
                 ]);
 
-                $transactionId =  generateTransactionReference();
-
+                $transactionId = generateTransactionReference();
 
                 if ($customerCharge > 0) {
 
                     $transaction = transactions::create([
-                        "balance_before" => $creditCustomer['charge_balance_before'],
-                        "amount" => $customerCharge,
-                        "company_amount" => $this->wbaCharge,
-                        "balance_after" => $creditCustomer['charge_balance_after'],
+                        "balance_before"         => $creditCustomer['charge_balance_before'],
+                        "amount"                 => $customerCharge,
+                        "company_amount"         => $this->wbaCharge,
+                        "balance_after"          => $creditCustomer['charge_balance_after'],
                         'company_balance_before' => $creditCustomer['company_charge_balance_before'],
-                        'company_balance_after' => $creditCustomer['company_charge_balance_after'],
-                        "description" => $this->webhookType == "cgate" ? "USSD funding charges" : "Charge from payment received",
-                        "company_id" => $companyId,
-                        "branch_id" => $branchId,
-                        "account_id" => $accountId,
-                        "parent_transaction_id" => $transaction->id,
-                        "transaction_reference" => $transactionId,
+                        'company_balance_after'  => $creditCustomer['company_charge_balance_after'],
+                        "description"            => $this->webhookType == "cgate" ? "USSD funding charges" : "Charge from payment received",
+                        "company_id"             => $companyId,
+                        "branch_id"              => $branchId,
+                        "account_id"             => $accountId,
+                        "parent_transaction_id"  => $transaction->id,
+                        "transaction_reference"  => $transactionId,
                         "transaction_remarks_id" => 2,
-                        "transaction_type_id" => $this->webhookType == "cgate" ? 97 : 6,
-                        "credit_debit_type_id" => 2,
-                        "created_date"  => $this->transactionDate,
-                        "created_by" => 1
+                        "transaction_type_id"    => $this->webhookType == "cgate" ? 97 : 6,
+                        "credit_debit_type_id"   => 2,
+                        "created_date"           => $this->transactionDate,
+                        "created_by"             => 1,
                     ]);
                 } else {
 
                     if ($this->wbaCharge > 0) {
 
-                        $transactionId =  generateTransactionReference();
+                        $transactionId = generateTransactionReference();
 
                         $transaction = transactions::create([
-                            "balance_before" => $creditCustomer['company_charge_balance_before'],
+                            "balance_before"         => $creditCustomer['company_charge_balance_before'],
                             "company_balance_before" => $creditCustomer['company_charge_balance_before'],
-                            "amount" => $this->wbaCharge,
-                            "company_amount" => $this->wbaCharge,
-                            "balance_after" => $creditCustomer['company_charge_balance_after'],
-                            "company_balance_after" => $creditCustomer['company_charge_balance_after'],
-                            "description" => "Charge from payment received",
-                            "company_id" => $companyId,
-                            "branch_id" => $branchId,
-                            "parent_transaction_id" => $transaction->id,
-                            "transaction_reference" => $transactionId,
+                            "amount"                 => $this->wbaCharge,
+                            "company_amount"         => $this->wbaCharge,
+                            "balance_after"          => $creditCustomer['company_charge_balance_after'],
+                            "company_balance_after"  => $creditCustomer['company_charge_balance_after'],
+                            "description"            => "Charge from payment received",
+                            "company_id"             => $companyId,
+                            "branch_id"              => $branchId,
+                            "parent_transaction_id"  => $transaction->id,
+                            "transaction_reference"  => $transactionId,
                             "transaction_remarks_id" => 2,
-                            "transaction_type_id" => 27,
-                            "credit_debit_type_id" => 2,
-                            "created_date"  => $this->transactionDate,
-                            "created_by" => 1
+                            "transaction_type_id"    => 27,
+                            "credit_debit_type_id"   => 2,
+                            "created_date"           => $this->transactionDate,
+                            "created_by"             => 1,
                         ]);
                     }
                 }
 
                 $balanceAfter = $creditCustomer['charge_balance_after'];
-                $desc = $newdescription;
-                $currentDate = Carbon::now();
+                $desc         = $newdescription;
+                $currentDate  = Carbon::now();
 
                 DB::commit();
 
@@ -278,21 +274,21 @@ class WebhookController extends Controller
                 // $this->sendNotificationToErrandPay($userId);
 
                 if ($this->webhookType == 'providus') {
-                    return ["responseCode" => "00", "requestSuccessful" => true,  "sessionId" => $this->transactionReference, "responseMessage" => "success"];
+                    return ["responseCode" => "00", "requestSuccessful" => true, "sessionId" => $this->transactionReference, "responseMessage" => "success"];
                 }
                 return ['status' => true, 'httpCode' => 200, 'message' => "Success"];
             } else {
 
                 DB::beginTransaction();
 
-                $transactionId =  generateTransactionReference();
+                $transactionId = generateTransactionReference();
 
                 if ($this->webhookType == "cgate") {
                     if (strlen($this->virtualAccount) == 5) {
-                        $accountCode = (int) $this->virtualAccount;
+                        $accountCode   = (int) $this->virtualAccount;
                         $companyWallet = company_wallet::where('company_id', $accountCode)->first();
                     } else {
-                        $loanRecord = loan::where('ref', $this->virtualAccount)->first();
+                        $loanRecord    = loan::where('ref', $this->virtualAccount)->first();
                         $companyWallet = $loanRecord->user->company->wallet;
                     }
                 } else {
@@ -316,48 +312,47 @@ class WebhookController extends Controller
                 $creditCompany = creditCompanyWithCharge($companyId, $originalAmount, $this->wbaCharge);
 
                 $transaction = transactions::create([
-                    "balance_before" => $creditCompany['balance_before'],
+                    "balance_before"         => $creditCompany['balance_before'],
                     "company_balance_before" => $creditCompany['balance_before'],
-                    "amount" => $this->amount,
-                    "company_amount" => $this->amount,
-                    "balance_after" => $creditCompany['balance_after'],
-                    "company_balance_after" => $creditCompany['balance_after'],
-                    "description" => $newdescription,
-                    "company_id" => $companyId,
-                    "transaction_reference" => $this->transactionReference,
+                    "amount"                 => $this->amount,
+                    "company_amount"         => $this->amount,
+                    "balance_after"          => $creditCompany['balance_after'],
+                    "company_balance_after"  => $creditCompany['balance_after'],
+                    "description"            => $newdescription,
+                    "company_id"             => $companyId,
+                    "transaction_reference"  => $this->transactionReference,
                     "transaction_remarks_id" => 2,
-                    "transaction_type_id" => $this->webhookType == "cgate" ? 97 : 6,
-                    "credit_debit_type_id" => 1,
-                    "created_date"  => $this->transactionDate,
-                    "created_by" => 1
+                    "transaction_type_id"    => $this->webhookType == "cgate" ? 97 : 6,
+                    "credit_debit_type_id"   => 1,
+                    "created_date"           => $this->transactionDate,
+                    "created_by"             => 1,
                 ]);
 
-
                 if ($this->wbaCharge > 0) {
-                    $transactionId =  generateTransactionReference();
+                    $transactionId = generateTransactionReference();
 
                     $transaction = transactions::create([
                         "company_balance_before" => $creditCompany['charge_balance_before'],
-                        "balance_before" => $creditCompany['charge_balance_before'],
-                        "amount" => $this->wbaCharge,
-                        "company_amount" => $this->wbaCharge,
-                        "company_balance_after" => $creditCompany['charge_balance_after'],
-                        "balance_after" => $creditCompany['charge_balance_after'],
-                        "description" => $this->webhookType == "cgate" ? "Charge for Funding Wallet via USSD" : "Charge from payment received",
-                        "company_id" => $companyId,
-                        "parent_transaction_id" => $transaction->id,
-                        "transaction_reference" => $transactionId,
+                        "balance_before"         => $creditCompany['charge_balance_before'],
+                        "amount"                 => $this->wbaCharge,
+                        "company_amount"         => $this->wbaCharge,
+                        "company_balance_after"  => $creditCompany['charge_balance_after'],
+                        "balance_after"          => $creditCompany['charge_balance_after'],
+                        "description"            => $this->webhookType == "cgate" ? "Charge for Funding Wallet via USSD" : "Charge from payment received",
+                        "company_id"             => $companyId,
+                        "parent_transaction_id"  => $transaction->id,
+                        "transaction_reference"  => $transactionId,
                         "transaction_remarks_id" => 2,
-                        "transaction_type_id" => $this->webhookType == "cgate" ? 99 : 27,
-                        "credit_debit_type_id" => 2,
-                        "created_date"  => date('Y-m-d'),
-                        "created_by" => 1
+                        "transaction_type_id"    => $this->webhookType == "cgate" ? 99 : 27,
+                        "credit_debit_type_id"   => 2,
+                        "created_date"           => date('Y-m-d'),
+                        "created_by"             => 1,
                     ]);
                 }
 
                 $balanceAfter = $creditCompany['charge_balance_after'];
-                $desc = $newdescription;
-                $currentDate = Carbon::now();
+                $desc         = $newdescription;
+                $currentDate  = Carbon::now();
 
                 $adminUser = User::where('company_id', $companyId)->first();
 
@@ -369,7 +364,7 @@ class WebhookController extends Controller
 
                     $getExchangeRate = $flutterwaveController->getExchangeRater(15, "NGN", "USD");
 
-                    if (!$getExchangeRate['status']) {
+                    if (! $getExchangeRate['status']) {
                         return \response()->json($getExchangeRate);
                     }
 
@@ -382,20 +377,20 @@ class WebhookController extends Controller
                         $setupTransactionId = generateTransactionReference();
 
                         $transaction = transactions::create([
-                            "balance_before" => 0,
-                            "amount" => 0,
-                            "balance_after" => 0,
+                            "balance_before"         => 0,
+                            "amount"                 => 0,
+                            "balance_after"          => 0,
                             "company_balance_before" => $debitCustomerAndCompany['balance_before'],
-                            "company_amount" => $finalAmount,
-                            "company_balance_after" => $debitCustomerAndCompany['balance_after'],
-                            "description" => "Setup fee payment", //airtime and data
-                            "transaction_reference" => $setupTransactionId,
+                            "company_amount"         => $finalAmount,
+                            "company_balance_after"  => $debitCustomerAndCompany['balance_after'],
+                            "description"            => "Setup fee payment", //airtime and data
+                            "transaction_reference"  => $setupTransactionId,
                             "transaction_remarks_id" => 2,
-                            "company_id" => $companyId,
-                            "transaction_type_id" => 57,
-                            "credit_debit_type_id" => 2,
-                            "created_date"  => date('Y-m-d'),
-                            "created_by" => $adminUser->id
+                            "company_id"             => $companyId,
+                            "transaction_type_id"    => 57,
+                            "credit_debit_type_id"   => 2,
+                            "created_date"           => date('Y-m-d'),
+                            "created_by"             => $adminUser->id,
                         ]);
 
                         $company->status_id = 7;
@@ -408,9 +403,8 @@ class WebhookController extends Controller
                 DB::commit();
                 // $smsstate = sendSMS($adminUser->id, $message, true, true, 'Credit Transaction', '', 0, false);
 
-
                 if ($this->webhookType == 'providus') {
-                    return ["responseCode" => "00",  "requestSuccessful" => true, "sessionId" => $this->transactionReference, "responseMessage" => "success"];
+                    return ["responseCode" => "00", "requestSuccessful" => true, "sessionId" => $this->transactionReference, "responseMessage" => "success"];
                 }
 
                 return ['status' => true, 'httpCode' => 200, 'message' => "Success"];
@@ -421,7 +415,7 @@ class WebhookController extends Controller
             logInfo($e->getMessage(), "$this->webhookType WebHook laravel error");
 
             // return ['status' => false,  'message' => "Error Crediting account"];
-            return ['responseCode' => "02",  "requestSuccessful" => true, 'sessionId' => $request->sessionId, 'responseMessage' => "rejected transaction"];
+            return ['responseCode' => "02", "requestSuccessful" => true, 'sessionId' => $request->sessionId, 'responseMessage' => "rejected transaction"];
 
         }
     }
@@ -433,15 +427,15 @@ class WebhookController extends Controller
         if ($terminal) {
 
             $body = [
-                "TransactionReference" => $this->transactionReference,
-                "SenderAccountNumber" => $this->virtualAccount,
-                "SenderAccountName" => $this->virtualAccount,
-                "ResponseCode" => "00",
-                "DateOfTransaction" => $this->transactionDate,
-                "OriginatorBank" => "Big Bank",
+                "TransactionReference"   => $this->transactionReference,
+                "SenderAccountNumber"    => $this->virtualAccount,
+                "SenderAccountName"      => $this->virtualAccount,
+                "ResponseCode"           => "00",
+                "DateOfTransaction"      => $this->transactionDate,
+                "OriginatorBank"         => "Big Bank",
                 "RecipientAccountNumber" => $this->virtualAccount,
-                "RecipientAccountName" => $this->virtualAccount,
-                "Amount" => $this->webhookType == "kuda" ? $this->amount / 100 : $this->amount,
+                "RecipientAccountName"   => $this->virtualAccount,
+                "Amount"                 => $this->webhookType == "kuda" ? $this->amount / 100 : $this->amount,
             ];
 
             $cgateController = new CgateController();
@@ -449,7 +443,6 @@ class WebhookController extends Controller
             $notificationResult = $cgateController->sendTransactionNotification($body);
         }
     }
-
 
     public function verifyIncomingWebhook(Request $request)
     {
@@ -470,17 +463,17 @@ class WebhookController extends Controller
                     $sweepAccount = true;
 
                     $body = [
-                        "account_number" => $incomingRequest['nuban'],
-                        "amount" => $incomingRequest['amount'],
+                        "account_number"        => $incomingRequest['nuban'],
+                        "amount"                => $incomingRequest['amount'],
                         "transaction_reference" => $incomingRequest['account_reference'],
-                        "narration" => "Funds received from " . $incomingRequest['source_account_name'],
-                        "status" => $incomingRequest['status'],
-                        "transaction_date" => $incomingRequest['transaction_time']
+                        "narration"             => "Funds received from " . $incomingRequest['source_account_name'],
+                        "status"                => $incomingRequest['status'],
+                        "transaction_date"      => $incomingRequest['transaction_time'],
                     ];
 
                     $header = [
                         'Content-Type' => 'application/json',
-                        'ApiKey' =>  $checkWebhook->api_key
+                        'ApiKey'       => $checkWebhook->api_key,
                     ];
                     $response = Http::withHeaders($header)->post($checkWebhook->webhook_url, $body);
 
@@ -512,17 +505,17 @@ class WebhookController extends Controller
                     $sweepAccount = true;
 
                     $body = [
-                        "account_number" => $this->virtualAccount,
-                        "amount" => $this->amount,
+                        "account_number"        => $this->virtualAccount,
+                        "amount"                => $this->amount,
                         "transaction_reference" => $this->transactionReference,
-                        "narration" => $this->description,
-                        "status" => "Success",
-                        "transaction_date" => $this->transactionDate
+                        "narration"             => $this->description,
+                        "status"                => "Success",
+                        "transaction_date"      => $this->transactionDate,
                     ];
 
                     $header = [
                         'Content-Type' => 'application/json',
-                        'ApiKey' =>  $checkWebhook->api_key
+                        'ApiKey'       => $checkWebhook->api_key,
                     ];
                     $response = Http::withHeaders($header)->post($checkWebhook->webhook_url, $body);
 

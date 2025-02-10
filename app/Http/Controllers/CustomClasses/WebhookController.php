@@ -63,7 +63,9 @@ class WebhookController extends Controller
                     'body'             => $this->fromTempWebhook == 'true' ? json_encode($this->tempWebookRequest) : json_encode($this->request->all()),
                 ]);
             }
-            $account = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $this->request->recipientName)->first();
+
+            $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
+            $account           = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
             if ($account) {
 
                 DB::beginTransaction();
@@ -111,7 +113,7 @@ class WebhookController extends Controller
                     }
                 }
 
-                if ($this->webhookType == 'kuda') {
+                if ($this->webhookType == 'kuda' && $this->fromTempWebhook == 'true') {
 
                     $kudaAmount = $this->fromTempWebhook == 'true' ? $this->amount * 100 : $this->amount;
 
@@ -531,5 +533,16 @@ class WebhookController extends Controller
             \logInfo($e->getMessage(), "Forward Webhook Error");
         }
         return $sweepAccount;
+    }
+
+    private function getVirtualAccountNumber($kudaVirtualNumber)
+    {
+        if (isset($kudaVirtualNumber->payingBank) && $kudaVirtualNumber->payingBank == "Paycom(OPay)") {
+            $virtualAccount = $kudaVirtualNumber->recipientName;
+        } else {
+            $virtualAccount = $kudaVirtualNumber->senderAccountNumber;
+        }
+
+        return $virtualAccount;
     }
 }

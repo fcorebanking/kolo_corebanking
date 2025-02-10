@@ -106,7 +106,7 @@ class WebhookController extends Controller
                             DB::commit();
                             logInfo($tempWebookRequest, "temp webhook things");
 
-                            return ['status' => true, 'httpCode' => 200, 'message' => "Success"];
+                            //      return ['status' => true, 'httpCode' => 200, 'message' => "Success"];
                         } catch (Exception $e) {
                             logInfo($e->getMessage(), "Tier Amount error message");
                         }

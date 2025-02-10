@@ -134,7 +134,7 @@ class WebhookController extends Controller
                     }
                 }
 
-                $mainAccount = $this->webhookType == 'monnify' ? wb_account_details::where('acc_reference', $this->accountReference)->first() : wb_account_details::where('virtual_accnum', $this->virtualAccount)->first();
+                $mainAccount = $this->webhookType == 'monnify' ? wb_account_details::where('acc_reference', $this->accountReference)->first() : wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
                 $companyId   = $account->user->company->id;
                 $branchId    = $account->user->branch->id;
                 $accountId   = $mainAccount->id;

@@ -4575,7 +4575,7 @@ class TransactionController extends Controller
 
     public function verifyBVN(Request $request)
     {
-
+        return response()->json(['status' => false, 'message' => 'checking'], 400);
         $validation = Validator::make($request->all(), [
             "bvn" => 'required|numeric|gt:0',
             "dob" => 'required',
@@ -4587,7 +4587,7 @@ class TransactionController extends Controller
 
         $companyId = auth()->user()->company->id;
 
-        logInfo( $companyId, "Debit company id");
+        logInfo($companyId, "Debit company id");
 
         $debitCompany = debitCompanyWithCharge($companyId, 70, 0, );
 

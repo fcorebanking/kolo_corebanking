@@ -4587,6 +4587,8 @@ class TransactionController extends Controller
 
         $companyId = auth()->user()->company->id;
 
+        logInfo( $companyId, "Debit company id");
+
         $debitCompany = debitCompanyWithCharge($companyId, 70, 0, );
 
         if (! $debitCompany['status']) {

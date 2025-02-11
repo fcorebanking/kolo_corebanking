@@ -4597,8 +4597,8 @@ class TransactionController extends Controller
 
         $header = [
             'Content-Type'  => 'application/json',
-            'Authorization' => 'prod_sk_opOycQfcwBrqTrBLovXN4jFyR',
-            'AppId'         => '61d0b13d49c296003276f53b',
+            'Authorization' => 'prod_sk_O4XNi5PieXhZTEpHXleNPxTZq',
+            'AppId'         => '66cdb8d3397cb7297b3eed22',
         ];
 
         $url = "https://api.dojah.io/api/v1/kyc/bvn/advance?bvn=$request->bvn";

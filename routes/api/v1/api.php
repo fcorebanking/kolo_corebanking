@@ -108,8 +108,7 @@ Route::prefix('/ussd-apis')->group(function () {
 
 Route::post('/verify-bank-account', [TransactionController::class, 'verifyBankAccount'])->name('v1-verify-bank-account');
 Route::post('/verify-account-full', [TransactionController::class, 'verifyBankAccountFullname'])->name('v1-verify-account-full');
-//Route::middleware('auth:api')->post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
-Route::post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
+Route::middleware('auth:api')->post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
 Route::middleware('checkApiKey')->get('/verify-bvn/{bvn}', [TransactionController::class, 'verifyBVNAlt'])->name('verify-bvn-alt');
 Route::get('/get-banks', [TransactionController::class, 'getAllBanks'])->name('v1-get-banks');
 

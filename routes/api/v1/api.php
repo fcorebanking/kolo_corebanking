@@ -1,31 +1,29 @@
 <?php
 
 use App\Http\Controllers\api\v1\CardController;
-use App\Http\Controllers\api\v1\LoginController;
-use App\Http\Controllers\api\v1\NibbsController;
-use App\Http\Controllers\api\v1\RegisterController;
-use App\Http\Controllers\api\v1\SpecialAPIController;
-use App\Http\Controllers\api\v1\TransactionController;
-use App\Http\Controllers\api\v1\user\UserController;
-use App\Http\Controllers\ThirdParty\KudaController;
-use App\Http\Controllers\ThirdParty\ProvidusController;
-use App\Http\Controllers\api\v1\LoanController;
-use App\Http\Controllers\api\v1\InvestmentController;
-use App\Http\Controllers\api\v1\UtilityController;
-use App\Http\Controllers\api\v1\OrderController;
-use App\Http\Controllers\api\v1\MeetingController;
 use App\Http\Controllers\api\v1\CoinremitterController;
 use App\Http\Controllers\api\v1\CustomerSavingController;
+use App\Http\Controllers\api\v1\InternationalTransaction;
+use App\Http\Controllers\api\v1\InvestmentController;
+use App\Http\Controllers\api\v1\LoanController;
+use App\Http\Controllers\api\v1\LoginController;
+use App\Http\Controllers\api\v1\MeetingController;
+use App\Http\Controllers\api\v1\NibbsController;
+use App\Http\Controllers\api\v1\OrderController;
+use App\Http\Controllers\api\v1\RegisterController;
+use App\Http\Controllers\api\v1\SpecialAPIController;
 use App\Http\Controllers\api\v1\TalentModuleController;
+use App\Http\Controllers\api\v1\TransactionController;
+use App\Http\Controllers\api\v1\user\UserController;
+use App\Http\Controllers\api\v1\UtilityController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\HomeController;
-use App\Http\Middleware\LogRoute;
-
-use App\Http\Controllers\api\v1\InternationalTransaction;
+use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\ParkwayController;
+use App\Http\Controllers\ThirdParty\ProvidusController;
+use App\Http\Middleware\LogRoute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -110,7 +108,8 @@ Route::prefix('/ussd-apis')->group(function () {
 
 Route::post('/verify-bank-account', [TransactionController::class, 'verifyBankAccount'])->name('v1-verify-bank-account');
 Route::post('/verify-account-full', [TransactionController::class, 'verifyBankAccountFullname'])->name('v1-verify-account-full');
-Route::middleware('auth:api')->post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
+//Route::middleware('auth:api')->post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
+Route::post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
 Route::middleware('checkApiKey')->get('/verify-bvn/{bvn}', [TransactionController::class, 'verifyBVNAlt'])->name('verify-bvn-alt');
 Route::get('/get-banks', [TransactionController::class, 'getAllBanks'])->name('v1-get-banks');
 
@@ -254,7 +253,6 @@ Route::prefix('/transactions')->group(function () {
 
 Route::middleware('checkApiKey')->post('company/update-user-kyc-info', [TransactionController::class, 'updateKycInfo'])->middleware('log.route');
 
-
 //Cards
 Route::prefix('/physical-cards')->group(function () {
     Route::group(['middleware' => 'checkApiKey'], function () {
@@ -330,7 +328,6 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::post('/schedule-esusu-withdraw', [CustomerSavingController::class, 'cancelEsusuSchedule']);
     });
 });
-
 
 Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/coinremitter/view-coin', [CoinremitterController::class, 'viewCoin']);

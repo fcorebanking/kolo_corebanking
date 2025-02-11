@@ -4575,7 +4575,7 @@ class TransactionController extends Controller
 
     public function verifyBVN(Request $request)
     {
-        return response()->json(['status' => false, 'message' => 'checking'], 400);
+        
         $validation = Validator::make($request->all(), [
             "bvn" => 'required|numeric|gt:0',
             "dob" => 'required',

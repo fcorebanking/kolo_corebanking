@@ -4585,7 +4585,7 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
-        $companyId = auth()->user()->company->id;
+        $companyId = auth()->user()->company->id ?? $request->id;
 
         logInfo($companyId, "Debit company id");
 

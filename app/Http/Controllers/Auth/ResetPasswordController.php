@@ -93,7 +93,7 @@ class ResetPasswordController extends Controller
             Session::flash("fail", $validation->errors()->all()[0]);
             return \redirect()->back()->with($data);
         }
-        if ($request->has('account_number')) {
+        if ($request->has('account_number') && $request->account_number != null) {
             $companyInfo = company_wallet::where('vaccount', $request->account_number)->first();
 
             if (! $companyInfo) {

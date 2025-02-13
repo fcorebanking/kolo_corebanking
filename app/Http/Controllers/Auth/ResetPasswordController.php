@@ -73,7 +73,7 @@ class ResetPasswordController extends Controller
 
         $validation = Validator::make($request->all(), [
             "account_number" => 'nullable|numeric',
-            "username"       => 'sometimes|string',
+            "username"       => 'nullable|string',
         ]);
 
         $data = [

@@ -72,7 +72,7 @@ class ResetPasswordController extends Controller
         logInfo($request->all(), "Forgot Password Request");
 
         $validation = Validator::make($request->all(), [
-            "account_number" => 'sometimes|numeric',
+            "account_number" => 'nullable|numeric',
             "username"       => 'sometimes|string',
         ]);
 

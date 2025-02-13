@@ -1,11 +1,9 @@
 <?php
-
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\company_wallet;
 use App\Models\User;
-use App\Models\wb_account_details;
 use App\Providers\RouteServiceProvider;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\ResetsPasswords;
@@ -13,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
-
 
 class ResetPasswordController extends Controller
 {
@@ -42,7 +39,6 @@ class ResetPasswordController extends Controller
         $this->middleware('guest');
     }
 
-
     protected function validator(Request $data)
     {
         // Validator::extend('without_spaces', function($attr, $value){
@@ -56,59 +52,61 @@ class ResetPasswordController extends Controller
     {
 
         $data = [
-            'category_name' => 'auth',
-            'page_name' => 'auth_default',
-            'has_scrollspy' => 0,
+            'category_name'    => 'auth',
+            'page_name'        => 'auth_default',
+            'has_scrollspy'    => 0,
             'scrollspy_offset' => '',
-            'page_menu' => '',
-            'alt_menu' => '',
-            'status' => 'success',
+            'page_menu'        => '',
+            'alt_menu'         => '',
+            'status'           => 'success',
             'isReferenceValid' => true,
-            'title' => "Reset Password",
-            'description' => "The link provided is not a valid link.<br>Kindly click on the link sent to your email to validate your account"
+            'title'            => "Reset Password",
+            'description'      => "The link provided is not a valid link.<br>Kindly click on the link sent to your email to validate your account",
         ];
         return view('auth.passwords.forgot_password')->with($data);
     }
 
-
-
     protected function submitResetRequest(Request $request)
-    {  //regex:/^\S*$/u
+    { //regex:/^\S*$/u
 
         logInfo($request->all(), "Forgot Password Request");
 
         $validation = Validator::make($request->all(), [
-            "account_number" => 'required|numeric'
+            "account_number" => 'sometimes|numeric',
+            "username"       => 'sometimes|string',
         ]);
 
         $data = [
-            'category_name' => 'auth',
-            'page_name' => 'auth_default',
-            'has_scrollspy' => 0,
+            'category_name'    => 'auth',
+            'page_name'        => 'auth_default',
+            'has_scrollspy'    => 0,
             'scrollspy_offset' => '',
-            'page_menu' => '',
-            'alt_menu' => '',
-            'status' => 'success',
+            'page_menu'        => '',
+            'alt_menu'         => '',
+            'status'           => 'success',
             'isReferenceValid' => true,
-            'title' => "Reset Password",
-            'description' => "The link provided is not a valid link.<br>Kindly click on the link sent to your email to validate your account"
+            'title'            => "Reset Password",
+            'description'      => "The link provided is not a valid link.<br>Kindly click on the link sent to your email to validate your account",
         ];
 
         if ($validation->fails()) {
             Session::flash("fail", $validation->errors()->all()[0]);
             return \redirect()->back()->with($data);
         }
+        if ($request->has('account_number')) {
+            $companyInfo = company_wallet::where('vaccount', $request->account_number)->first();
 
-        $companyInfo = company_wallet::where('vaccount', $request->account_number)->first();
-
-        if (!$companyInfo) {
-            Session::flash("fail", 'Invalid Company account provided');
-            return \redirect()->back()->with($data);
-            // return \response()->json(['status' => 0, 'message' => "Invalid Company account provided"]);
+            if (! $companyInfo) {
+                Session::flash("fail", 'Invalid Company account provided');
+                return \redirect()->back()->with($data);
+                // return \response()->json(['status' => 0, 'message' => "Invalid Company account provided"]);
+            }
+            $userInfo = User::where('company_id', $companyInfo->id)->first();
+        } else {
+            $userInfo = User::where('username', $request->username)->first();
         }
 
-        $userInfo = User::where('company_id', $companyInfo->id)->first();
-        if (!$userInfo) {
+        if (! $userInfo) {
             Session::flash("fail", 'No user found with this company');
             return \redirect()->back()->with($data);
             // return \response()->json(['status' => 0, 'message' => "No user found with this company"]);
@@ -116,7 +114,7 @@ class ResetPasswordController extends Controller
 
         $verificationHash = \generateAPIKey(12);
 
-        $userInfo->updated_at = Carbon::now();
+        $userInfo->updated_at        = Carbon::now();
         $userInfo->verification_hash = $verificationHash;
         $userInfo->save();
 
@@ -132,7 +130,6 @@ class ResetPasswordController extends Controller
         return \redirect()->back()->with($data);
     }
 
-
     public function resetPassword($password_hash)
     {
         $verification = User::where('verification_hash', $password_hash)->first();
@@ -143,46 +140,46 @@ class ResetPasswordController extends Controller
             if (Carbon::now()->subMinute(5) > $verification->updated_at) {
 
                 $data = [
-                    'category_name' => 'auth',
-                    'page_name' => 'auth_default',
-                    'has_scrollspy' => 0,
+                    'category_name'    => 'auth',
+                    'page_name'        => 'auth_default',
+                    'has_scrollspy'    => 0,
                     'scrollspy_offset' => '',
-                    'page_menu' => '',
-                    'alt_menu' => '',
+                    'page_menu'        => '',
+                    'alt_menu'         => '',
                     'isReferenceValid' => true,
-                    'status' => 'expired',
-                    'resendUrl' => url("resend-email/$password_hash"),
-                    'title' => "Link Expired",
-                    'description' => "This link has expired.<br>Kindly Click the button below to resend activation email"
+                    'status'           => 'expired',
+                    'resendUrl'        => url("resend-email/$password_hash"),
+                    'title'            => "Link Expired",
+                    'description'      => "This link has expired.<br>Kindly Click the button below to resend activation email",
                 ];
             } else {
 
                 $data = [
-                    'category_name' => 'auth',
-                    'page_name' => 'auth_default',
-                    'has_scrollspy' => 0,
-                    'scrollspy_offset' => '',
-                    'page_menu' => '',
-                    'alt_menu' => '',
-                    'status' => 'successful',
+                    'category_name'     => 'auth',
+                    'page_name'         => 'auth_default',
+                    'has_scrollspy'     => 0,
+                    'scrollspy_offset'  => '',
+                    'page_menu'         => '',
+                    'alt_menu'          => '',
+                    'status'            => 'successful',
                     'verification_hash' => $password_hash,
-                    'isReferenceValid' => true,
-                    'title' => "Reset Password",
-                    'description' => "Your account has been activated successfully.<br>Kindly Login to Complete your profile"
+                    'isReferenceValid'  => true,
+                    'title'             => "Reset Password",
+                    'description'       => "Your account has been activated successfully.<br>Kindly Login to Complete your profile",
                 ];
             }
         } else {
             $data = [
-                'category_name' => 'auth',
-                'page_name' => 'auth_default',
-                'has_scrollspy' => 0,
+                'category_name'    => 'auth',
+                'page_name'        => 'auth_default',
+                'has_scrollspy'    => 0,
                 'scrollspy_offset' => '',
-                'page_menu' => '',
-                'alt_menu' => '',
-                'status' => 'failed',
+                'page_menu'        => '',
+                'alt_menu'         => '',
+                'status'           => 'failed',
                 'isReferenceValid' => true,
-                'title' => "Invalid Link",
-                'description' => "The link provided is not a valid link.<br>Kindly click on the link sent to your email to Reset your password"
+                'title'            => "Invalid Link",
+                'description'      => "The link provided is not a valid link.<br>Kindly click on the link sent to your email to Reset your password",
             ];
         }
 
@@ -195,13 +192,13 @@ class ResetPasswordController extends Controller
         logInfo($request->all(), "Set New Password Request Log");
 
         $validation = Validator::make($request->all(), [
-            "new_password" => 'required|string',
-            "confirm_password" => 'required|string',
-            "verification_hash" => 'required|string'
+            "new_password"      => 'required|string',
+            "confirm_password"  => 'required|string',
+            "verification_hash" => 'required|string',
         ]);
 
         if ($validation->fails()) {
-            $ra = array("status" => 2, "message" => $validation->errors()->all()[0]);
+            $ra = ["status" => 2, "message" => $validation->errors()->all()[0]];
             return response()->json($ra);
         }
 
@@ -211,7 +208,7 @@ class ResetPasswordController extends Controller
 
         $userAccount = User::where(['verification_hash' => $request->verification_hash])->first();
 
-        if (!$userAccount['status']) {
+        if (! $userAccount['status']) {
             return \response()->json(['status' => 0, 'Failed to update password']);
         }
 

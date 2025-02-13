@@ -539,6 +539,9 @@ class WebhookController extends Controller
     {
         if (isset($kudaVirtualNumber->payingBank) && $kudaVirtualNumber->payingBank == "Paycom(OPay)") {
             $virtualAccount = $kudaVirtualNumber->recipientName;
+        }
+        if (isset($kudaVirtualNumber->recipientName) && (is_numeric($kudaVirtualNumber->recipientName) && (int) $kudaVirtualNumber->recipientName == $kudaVirtualNumber->recipientName)) {
+            $virtualAccount = $kudaVirtualNumber->recipientName;
         } else {
             $virtualAccount = $kudaVirtualNumber->senderAccountNumber;
         }

@@ -3307,7 +3307,7 @@ class TransactionController extends Controller
                     // $customerCharge = ($companySettings->min_bank_transfer_charge_or_percentage * 0.01) * $currentRequest['data']['transaction']['amount'];
                     $customerCharge = $companySettings->max_bank_transfer_charge;
 
-                    if ($currentRequest['data']['transaction']['type'] == "topup") {
+                    if ($currentRequest['data']['transaction']['type'] == "topup" ||$currentRequest['data']['transaction']['type'] == "data" ) {
                         $theCharge      = 0;
                         $charge         = 0;
                         $customerCharge = 0;

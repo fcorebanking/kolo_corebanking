@@ -958,6 +958,10 @@ class TransactionController extends Controller
                     $description = "You sent money to $request->receipient_name via Bank Transfer";
                 }
 
+                if ($charge == null || $charge == "") {
+                    $charge = 0.00;
+                }
+
                 $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
 
                 $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount);

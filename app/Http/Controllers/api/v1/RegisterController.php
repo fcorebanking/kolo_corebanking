@@ -153,6 +153,9 @@ class RegisterController extends Controller
         if (! isset($request->account_type) || $request->account_type != 'regular') {
             $virtualAccount = new VirtualAccountType();
 
+            \logInfo($bank_id, "Register Bank Id ");
+            \logInfo($selectedBank->bank_code, "Register Bank code ");
+
             $virtualAccount->bankCode                     = $selectedBank->bank_code;
             $virtualAccount->currencyCode                 = $companyRecord->currency->code;
             $virtualAccount->firstName                    = $request->first_name;

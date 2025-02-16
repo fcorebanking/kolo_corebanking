@@ -1481,7 +1481,7 @@ class TransactionController extends Controller
                                 "status"  => true,
                                 'message' => "Transaction initialized",
                                 'data'    => [
-                                    'charge'            => $charge,
+                                    'charge'            => $charge ?? 0.00,
                                     'transactionId'     => $transaction->id,
                                     'transactionTypeId' => $request->transaction_type,
                                     'exchangeAmount'    => $request->final_amount,
@@ -1570,7 +1570,7 @@ class TransactionController extends Controller
                         "status"  => true,
                         'message' => "Transaction initialized",
                         'data'    => [
-                            'charge'                => $charge,
+                            'charge'                => $charge ?? 0.00,
                             'transaction_reference' => $transactionId,
                             'transactionTypeId'     => $request->transaction_type,
                             'transfer_amount'       => $amount,
@@ -1642,7 +1642,7 @@ class TransactionController extends Controller
                         "status"  => true,
                         'message' => "Transaction initialized",
                         'data'    => [
-                            'charge'                => $charge,
+                            'charge'                => $charge ?? 0.00,
                             'transaction_reference' => $transactionId,
                             'transactionTypeId'     => $request->transaction_type,
                             'transfer_amount'       => $amount,

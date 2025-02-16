@@ -921,7 +921,7 @@ class TransactionController extends Controller
                                 "status"  => true,
                                 'message' => "Transaction initialized",
                                 'data'    => [
-                                    'charge'            => $charge,
+                                    'charge'            => $charge ?? 0.00,
                                     'transactionId'     => $transaction->id,
                                     'transactionTypeId' => $request->transaction_type,
                                     'exchangeAmount'    => $request->finalAmount,

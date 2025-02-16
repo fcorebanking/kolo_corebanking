@@ -1514,6 +1514,7 @@ class TransactionController extends Controller
                     }
 
                     $charge = $validateSavingsProduct['data']['charge'];
+                    logInfo($charge, "Charge for Transaction type 8");
 
                     $amount      = $request->final_amount;
                     $totalAmount = $request->final_amount + $charge;

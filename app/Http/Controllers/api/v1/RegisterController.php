@@ -94,7 +94,7 @@ class RegisterController extends Controller
         //     return response()->json($ra, 406);
         // }
         // }
-        $companyRecord = Company::where(['company_reference' => $request->company])->orWhere(['company' => $request->company])->first();
+        $companyRecord = Company::where(['company_reference' => $request->company])->orWhere(['id' => $request->company])->first();
         if (! $companyRecord) {
             $ra = ["status" => false, "message" => "Invalid company provided"];
             return response()->json($ra, 400);

@@ -3223,18 +3223,17 @@ class TransactionController extends Controller
 
         $currentRequest = $request->all();
 
-        $userPOS = AgentTerminal::where('terminal_code', $currentRequest['data']['terminal']['serialNo'])->first();
-
-        if ($userPOS->status == 0) {
-            return response()->json(['data' => [
-                'transaction' => [
-                    'shouldActionProceed' => false,
-                    'reasonCode'          => '02',
-                ],
-            ]]);
-        }
-
         if (isset($currentRequest['data']['transaction']['type']) && $currentRequest['data']['transaction']['type'] == 'vact_transfer') {
+            $userPOS = AgentTerminal::where('terminal_code', $currentRequest['data']['terminal']['serialNo'])->first();
+
+            if ($userPOS->status == 0) {
+                return response()->json(['data' => [
+                    'transaction' => [
+                        'shouldActionProceed' => false,
+                        'reasonCode'          => '02',
+                    ],
+                ]]);
+            }
             $amuchaResponse = $this->amuchaWebhook($request);
         }
 
@@ -3249,6 +3248,7 @@ class TransactionController extends Controller
                     if ($currentRequest['action_type'] == "pre-balance-check-auth") {
                         return response()->json(["status" => false, 'message' => "Invalid POS terminal Code"]);
                     } else if ($currentRequest['action_type'] == "pre-payout-auth") {
+
                         return response()->json(['data' => [
                             'transaction' => [
                                 'shouldActionProceed' => false,
@@ -3287,6 +3287,14 @@ class TransactionController extends Controller
                         ],
                     ]);
                 } else if ($currentRequest['action_type'] == "pre-payout-auth") {
+                    if ($userPOS->status == 0) {
+                        return response()->json(['data' => [
+                            'transaction' => [
+                                'shouldActionProceed' => false,
+                                'reasonCode'          => '02',
+                            ],
+                        ]]);
+                    }
 
                     $companySettings = company_settings::where('company_id', $user->company_id)->first();
 

@@ -3232,6 +3232,15 @@ class TransactionController extends Controller
 
                 $userPOS = AgentTerminal::where('terminal_code', $currentRequest['data']['terminal']['serialNo'])->first();
 
+                if ($userPOS->status == 0) {
+                    return response()->json(['data' => [
+                        'transaction' => [
+                            'shouldActionProceed' => false,
+                            'reasonCode'          => '02',
+                        ],
+                    ]]);
+                }
+
                 //  logInfo(json_encode($userPOS), "Agent Terminal response");
 
                 if (! $userPOS) {
@@ -3287,6 +3296,8 @@ class TransactionController extends Controller
                             ],
                         ]]);
                     }
+
+                    
 
                     $transaction = transactions::where('transaction_reference', $currentRequest['data']['transaction']['rrn'])->first();
 

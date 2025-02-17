@@ -3223,6 +3223,17 @@ class TransactionController extends Controller
 
         $currentRequest = $request->all();
 
+        $userPOS = AgentTerminal::where('terminal_code', $currentRequest['data']['terminal']['serialNo'])->first();
+
+        if ($userPOS->status == 0) {
+            return response()->json(['data' => [
+                'transaction' => [
+                    'shouldActionProceed' => false,
+                    'reasonCode'          => '02',
+                ],
+            ]]);
+        }
+
         if (isset($currentRequest['data']['transaction']['type']) && $currentRequest['data']['transaction']['type'] == 'vact_transfer') {
             $amuchaResponse = $this->amuchaWebhook($request);
         }
@@ -3231,15 +3242,6 @@ class TransactionController extends Controller
             if (isset($currentRequest['action_type'])) {
 
                 $userPOS = AgentTerminal::where('terminal_code', $currentRequest['data']['terminal']['serialNo'])->first();
-
-                if ($userPOS->status == 0) {
-                    return response()->json(['data' => [
-                        'transaction' => [
-                            'shouldActionProceed' => false,
-                            'reasonCode'          => '02',
-                        ],
-                    ]]);
-                }
 
                 //  logInfo(json_encode($userPOS), "Agent Terminal response");
 
@@ -3296,8 +3298,6 @@ class TransactionController extends Controller
                             ],
                         ]]);
                     }
-
-                    
 
                     $transaction = transactions::where('transaction_reference', $currentRequest['data']['transaction']['rrn'])->first();
 

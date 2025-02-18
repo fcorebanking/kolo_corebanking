@@ -3224,16 +3224,7 @@ class TransactionController extends Controller
         $currentRequest = $request->all();
 
         if (isset($currentRequest['data']['transaction']['type']) && $currentRequest['data']['transaction']['type'] == 'vact_transfer') {
-            $userPOS = AgentTerminal::where('terminal_code', $currentRequest['data']['terminal']['serialNo'])->first();
-
-            if ($userPOS->status == 0) {
-                return response()->json(['data' => [
-                    'transaction' => [
-                        'shouldActionProceed' => false,
-                        'reasonCode'          => '02',
-                    ],
-                ]]);
-            }
+            
             $amuchaResponse = $this->amuchaWebhook($request);
         }
 

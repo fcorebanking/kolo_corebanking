@@ -123,6 +123,8 @@ class ResetPasswordController extends Controller
         $msg = 'If you did not make this request then please ignore this email. Otherwise, please click this link to change your password:<br><br>';
         $msg .= '<a href="' . $url . '">Reset Password</a>';
 
+        logInfo($url, "Reset Password User");
+
         $sendSms = sendEmail("Request to Change Password", $msg, $userInfo);
 
         Session::flash("success", "A Reset Password email has been sent to your email account. Follow the instructions to reset account");

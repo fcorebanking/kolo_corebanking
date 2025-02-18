@@ -3224,7 +3224,7 @@ class TransactionController extends Controller
         $currentRequest = $request->all();
 
         if (isset($currentRequest['data']['transaction']['type']) && $currentRequest['data']['transaction']['type'] == 'vact_transfer') {
-            
+
             $amuchaResponse = $this->amuchaWebhook($request);
         }
 

@@ -1240,7 +1240,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
         if (!$isApi) {
             $company_short = $company->short_name;
         } else {
-            $company_short = "WBA";
+            $company_short = "Finova";
         }
 
         if (($all_sms_email == 1 || $all_sms_email == 3) && !empty($to)) {

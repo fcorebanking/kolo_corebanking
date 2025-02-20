@@ -448,7 +448,7 @@ class KudaController extends WebhookController
 
                 //    $response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if ($response['ResponseCode'] == "-2") {
+                if ($createAccountResponse['ResponseCode'] == "-2") {
 
                     $newType = $type == 1 ? 15 : 1;
                     $this->bankTransfer($requestReference, $accountNumber, $bankCode, $sessionId, $amount, $accountName, $description, $newType);

@@ -1116,6 +1116,7 @@ class TransactionController extends Controller
                     $bankTransferType->description          = $gatewayDescription;
                     $bankTransferType->amount               = $request->final_amount;
                     $bankTransferType->transactionReference = $transaction->transaction_reference;
+                    $bankTransferType->sessionId = $currentUser->virtual_account;
 
                     $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
 

@@ -236,12 +236,11 @@ class KudaController extends WebhookController
 
         $body = [
             "servicetype" => "NAME_ENQUIRY",
-            "requestref"  => $requestReference,
-            "data"        => [
-                "beneficiaryAccountNumber"    => $accountNumber,
-                "beneficiaryBankCode"         => $bankCode,
-                "SenderTrackingReference"     => "payout account",
-                "isRequestFromVirtualAccount" => "true",
+            "requestRef"  => $requestReference,
+            "Data"        => [
+                "BeneficiaryAccountNumber" => $accountNumber,
+                "BeneficiaryBankCode"      => $bankCode,
+
             ],
         ];
         $jsonBody = \json_encode($body);
@@ -280,10 +279,10 @@ class KudaController extends WebhookController
                         'status'  => true,
                         'message' => "Account Verified Successfully",
                         'data'    => [
-                            'account_name'      => $createAccountResponse["data"]["BeneficiaryName"],
-                            'bank_code'         => $createAccountResponse["data"]["BeneficiaryBankCode"],
+                            'account_name'      => $createAccountResponse["data"]["beneficiaryName"],
+                            'bank_code'         => $createAccountResponse["data"]["beneficiaryBankCode"],
                             'request_reference' => $requestReference,
-                            'session_id'        => $createAccountResponsee["data"]["SessionID"],
+                            'sessionID'         => $createAccountResponsee["data"]["SessionID"],
                         ],
                     ];
                 }
@@ -394,35 +393,31 @@ class KudaController extends WebhookController
 
         if ($type == 1) {
             $body = [
-                "servicetype" => "VIRTUAL_ACCOUNT_FUND_TRANSFER",
-                "requestref"  => $requestReference,
-                "data"        => [
-                    "beneficiaryAccount"   => $accountNumber,
-                    "beneficiarybankCode"  => $bankCode,
-                    "nameEnquirySessionID" => $sessionId,
-                    "amount"               => $amount * 100,
-                    "ClientAccountNumber"  => "payout account",
-                    "beneficiaryName"      => $accountName,
-                    "trackingReference"    => "payout account",
-                    "senderName"           => "WBALite-" . $description,
-                    "narration"            => $description,
+                "servicetype" => "SINGLE_FUND_TRANSFER",
+                "requestRef"  => $requestReference,
+                "Data"        => [
+                    "BeneficiaryAccount"  => $accountNumber,
+                    "beneficiaryBankCode" => $bankCode,
+                    "amount"              => $amount * 100,
+                    "ClientAccountNumber" => $sessionId,
+                    "beneficiaryName"     => $accountName,
+                    "SenderName"          => "FinovaLite-" . $description,
+                    "narration"           => $description,
                 ],
             ];
         } else {
             //************** New one *************************
             $body = [
-                "servicetype" => "VIRTUAL_ACCOUNT_FUND_TRANSFER",
-                "requestref"  => $requestReference,
-                "data"        => [
-                    "beneficiaryAccount"   => $accountNumber,
-                    "beneficiarybankCode"  => $bankCode,
-                    "nameEnquirySessionID" => $sessionId,
-                    "amount"               => $amount * 100,
-                    "ClientAccountNumber"  => "payout account",
-                    "beneficiaryName"      => $accountName,
-                    "trackingReference"    => "payout account",
-                    "senderName"           => "WBALite-" . $description,
-                    "narration"            => $description,
+                "servicetype" => "SINGLE_FUND_TRANSFER",
+                "requestRef"  => $requestReference,
+                "Data"        => [
+                    "BeneficiaryAccount"  => $accountNumber,
+                    "beneficiaryBankCode" => $bankCode,
+                    "amount"              => $amount * 100,
+                    "ClientAccountNumber" => $sessionId,
+                    "beneficiaryName"     => $accountName,
+                    "SenderName"          => "FinovaLite-" . $description,
+                    "narration"           => $description,
                 ],
             ];
         }
@@ -453,13 +448,13 @@ class KudaController extends WebhookController
 
                 //    $response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if ($response['responseCode'] == "-2") {
+                if ($response['ResponseCode'] == "-2") {
 
                     $newType = $type == 1 ? 15 : 1;
                     $this->bankTransfer($requestReference, $accountNumber, $bankCode, $sessionId, $amount, $accountName, $description, $newType);
                 }
 
-                if (! $createAccountResponse["status"]) {
+                if (! $createAccountResponse["Status"]) {
                     return [
                         'status'  => true,
                         'message' => "Bank Transfer Processing",

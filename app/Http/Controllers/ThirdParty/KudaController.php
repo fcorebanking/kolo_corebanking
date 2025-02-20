@@ -282,7 +282,7 @@ class KudaController extends WebhookController
                             'account_name'      => $createAccountResponse["data"]["beneficiaryName"],
                             'bank_code'         => $createAccountResponse["data"]["beneficiaryBankCode"],
                             'request_reference' => $requestReference,
-                            'sessionID'         => $createAccountResponse["data"]["SessionID"],
+                            //  'sessionID'         => $createAccountResponse["data"]["SessionID"],
                         ],
                     ];
                 }

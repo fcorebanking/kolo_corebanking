@@ -448,13 +448,13 @@ class KudaController extends WebhookController
 
                 //    $response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if ($createAccountResponse['ResponseCode'] == "-2") {
+                if ($createAccountResponse['responseCode'] == "-2") {
 
                     $newType = $type == 1 ? 15 : 1;
                     $this->bankTransfer($requestReference, $accountNumber, $bankCode, $sessionId, $amount, $accountName, $description, $newType);
                 }
 
-                if (! $createAccountResponse["Status"]) {
+                if (! $createAccountResponse["status"]) {
                     return [
                         'status'  => true,
                         'message' => "Bank Transfer Processing",

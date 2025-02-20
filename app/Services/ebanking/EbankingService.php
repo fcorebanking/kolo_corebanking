@@ -36,12 +36,12 @@ class EbankingService
 
             $kudaController = new KudaController();
 
-            $bankTransfer = $kudaController->bankTransfer($bankTransferType->transactionReference, $bankTransferType->accountNumber, $bankTransferType->bankCode, $bankAccount['data']['session_id'], $bankTransferType->amount, $bankTransferType->sessionId, $bankTransferType->description, $this->bankTransferPartner);
+            $bankTransfer = $kudaController->bankTransfer($bankTransferType->transactionReference, $bankTransferType->accountNumber, $bankTransferType->bankCode, $bankTransferType->sessionId, $bankTransferType->amount, $bankAccount['data']['account_name'], $bankTransferType->description, $this->bankTransferPartner);
         } else if ($this->bankTransferPartner == 17) {
 
             $kudaController = new KudaBusinessController();
 
-            $bankTransfer = $kudaController->bankTransfer($bankTransferType->transactionReference, $bankTransferType->accountNumber, $bankTransferType->bankCode, $bankAccount['data']['session_id'], $bankTransferType->amount, $bankAccount['data']['account_name'], $bankTransferType->description, $this->bankTransferPartner);
+            $bankTransfer = $kudaController->bankTransfer($bankTransferType->transactionReference, $bankTransferType->accountNumber, $bankTransferType->bankCode, $bankTransferType->sessionId, $bankTransferType->amount, $bankAccount['data']['account_name'], $bankTransferType->description, $this->bankTransferPartner);
         } else if ($this->bankTransferPartner == 2) {
 
             $accountName = $bankAccount["data"]["account_name"];

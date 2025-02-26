@@ -1,81 +1,82 @@
 <?php
-
 namespace App\Http\Controllers\api\v1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\company_status;
 use App\Models\frequency;
-use App\Models\User;
+use App\Models\Investmentbooking;
 use App\Models\InvestmentProduct;
 use App\Models\status;
-use App\Models\company_status;
-use App\Models\Investmentbooking;
-use App\Models\user_wallet;
 use App\Models\transactions;
-use Validator;
+use App\Models\User;
+use App\Models\user_wallet;
 use App\Models\wb_account_details;
-use App\Models\BranchWallet;
-use Illuminate\Support\Facades\Storage;
-use DB;
+use Illuminate\Http\Request;
+
 class InvestmentController extends Controller
 {
-    public function investmentVariable(){
-        $data=[
-        'product' => InvestmentProduct::with('frequency')->where('company_id', auth()->user()->company_id)->get(),
-            'freq' => frequency::where('id', '>', 1)->get(),
-            'status' => company_status::all(),
+    public function investmentVariable()
+    {
+        $data = [
+            'product'      => InvestmentProduct::with('investmentfrequency')->where('company_id', auth()->user()->company_id)->get(),
+            'freq'         => frequency::where('id', '>', 1)->get(),
+            'status'       => company_status::all(),
             'userAccounts' => auth()->user()->wb_account_details,
         ];
         return json_encode($data);
     }
-    public function processInvestment(Request $request){
+    public function processInvestment(Request $request)
+    {
         $calculate = (app('App\Http\Controllers\InvestmentController')->calculateinvestment($request));
         return $calculate;
     }
-    public function bookinvestment(Request $request){
+    public function bookinvestment(Request $request)
+    {
         //makeinvestment
-       // return auth()->user()->id;
-       $request->status = 1;
-       $request->uuid = auth()->user()->uuid;
-        $send = (app('App\Http\Controllers\InvestmentController')->makeinvestment($request));
+        // return auth()->user()->id;
+        $request->status = 1;
+        $request->uuid   = auth()->user()->uuid;
+        $send            = (app('App\Http\Controllers\InvestmentController')->makeinvestment($request));
         return $send;
     }
-    public function viewInvestment(){
+    public function viewInvestment()
+    {
         $Investmentbooking = Investmentbooking::with('plan') //->join('wb_account_details','wb_account_details.id','=','investmentbooking.wb_accountdetails_id')
-        ->whereHas('wb_account_details', function ($q){
-            $q->where('wb_account_details.user_id',auth()->user()->id);
-                })
-        ->get();
+            ->whereHas('wb_account_details', function ($q) {
+                $q->where('wb_account_details.user_id', auth()->user()->id);
+            })
+            ->get();
         return json_encode($Investmentbooking);
         // return response()->json($Investmentbooking,200);
 
     }
-    public function TerminateInvestment(Request $request){
+    public function TerminateInvestment(Request $request)
+    {
         //ajax_investmentstatus
         $send = (app('App\Http\Controllers\InvestmentController')->ajax_investmentstatus($request));
         return $send;
     }
-    public function  ajax_investmentstatus($id)
+    public function ajax_investmentstatus($id)
     {
         $terminationoption = auth()->user()->company->setting->investment_termination_control;
         $runninginvestment = Investmentbooking::where('id', $id)->first();
-        $cashleft =0;
+        $cashleft          = 0;
 
         // wb_account_details
         //return $runninginvestment->wb_account_details->id;
-        if($runninginvestment->wb_account_details->id != $runninginvestment->wb_accountdetails_id){
+        if ($runninginvestment->wb_account_details->id != $runninginvestment->wb_accountdetails_id) {
             return response(json_encode(['status' => 0, 'message' => 'Access Denied!']));
 
         }
         $termination_charge = $runninginvestment->plan->termination_charge;
-        $amount = $runninginvestment->amount;
-        $PI = $amount + $runninginvestment->wallet;
-        $percent_charge = 0;
+        $amount             = $runninginvestment->amount;
+        $PI                 = $amount + $runninginvestment->wallet;
+        $percent_charge     = 0;
         if ($terminationoption == 1) {
             if ($runninginvestment->wallet > 1) {
                 $percent_charge = ($termination_charge / 100) * $runninginvestment->wallet;
                 if ($runninginvestment->wallet > $percent_charge) {
-                    $cashleft = ($runninginvestment->wallet -  $percent_charge) + $amount;
+                    $cashleft = ($runninginvestment->wallet - $percent_charge) + $amount;
                 } else {
                     // return response(json_encode(['status' => 0, 'message' => 'You are not eligeble to withdraw at this time try again later']));
                 }
@@ -84,11 +85,11 @@ class InvestmentController extends Controller
             }
         } elseif ($terminationoption == 2) {
             $percent_charge = ($termination_charge / 100) * $amount;
-            $cashleft = ($amount -  $percent_charge) + $runninginvestment->wallet;
+            $cashleft       = ($amount - $percent_charge) + $runninginvestment->wallet;
         } elseif ($terminationoption == 3) {
             $percent_charge = ($termination_charge / 100) * $PI;
             if ($PI > $percent_charge) {
-                $cashleft = $PI -  $percent_charge;
+                $cashleft = $PI - $percent_charge;
             } else {
                 return response(json_encode(['status' => 0, 'message' => 'You are not eligeble to withdraw at this time try again later']));
             }
@@ -97,39 +98,39 @@ class InvestmentController extends Controller
         } else {
             return response(json_encode(['status' => 0, 'message' => 'Error occured']));
         }
-        $wb = wb_account_details::where('id',$runninginvestment->wb_accountdetails_id)->first();
+        $wb = wb_account_details::where('id', $runninginvestment->wb_accountdetails_id)->first();
         if ($wb->user->company_id == auth()->user()->company_id) {
             if ($runninginvestment->status == 1) {
-                $userwallet = user_wallet::where('wb_account_detail_id', $runninginvestment->wb_accountdetails_id)->first();
+                $userwallet    = user_wallet::where('wb_account_detail_id', $runninginvestment->wb_accountdetails_id)->first();
                 $balanceBefore = $userwallet->balance;
-                $balanceAfter = $balanceBefore + $cashleft;
+                $balanceAfter  = $balanceBefore + $cashleft;
                 $userwallet->update(['balance' => $balanceAfter]);
                 $desc = "Investment Termination";
                 $date = date('Y-m-d H:i:s');
                 $runninginvestment->update(['status' => 2]); //Terminated
-                $ledger_cr =null;
-                $ledger_dr =null;
+                $ledger_cr       = null;
+                $ledger_dr       = null;
                 $ledger_Settings = get_CR_DR_TXN_Type_Ledger(21, auth()->user()->company_id);
-                if($ledger_Settings){
+                if ($ledger_Settings) {
                     $ledger_cr = $ledger_Settings->ledger_cr;
                     $ledger_dr = $ledger_Settings->ledger_dr;
                 }
                 $data = [
-                    "balance_before" => $balanceBefore,
-                    "amount" =>  $amount,
-                    "description" => $desc,
-                    "withdrawal_charge" => $percent_charge,
-                    "account_id" => $runninginvestment->wb_accountdetails_id,
-                    "branch_id" => $wb->user->branch_id,
-                    "transaction_reference" => generate_txnID(),
-                    "transaction_type_id" => 21, //investment plan
-                    "credit_debit_type_id" => 1, //debit 2
-                    "transaction_remarks_id" => 2, //success 2
-                    "balance_after" => $balanceAfter,
-                    "created_date"  => date('Y-m-d'),
-                    "created_by" => auth()->user()->id,
-                    "ledger_cr"=>$ledger_cr,
-                    "ledger_dr"=>$ledger_dr,
+                    "balance_before"         => $balanceBefore,
+                    "amount"                 => $amount,
+                    "description"            => $desc,
+                    "withdrawal_charge"      => $percent_charge,
+                    "account_id"             => $runninginvestment->wb_accountdetails_id,
+                    "branch_id"              => $wb->user->branch_id,
+                    "transaction_reference"  => generate_txnID(),
+                    "transaction_type_id"    => 21, //investment plan
+                    "credit_debit_type_id"   => 1,  //debit 2
+                    "transaction_remarks_id" => 2,  //success 2
+                    "balance_after"          => $balanceAfter,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => auth()->user()->id,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
                 ];
                 transactions::create($data);
                 sendSMS($runninginvestment->wb_accountdetails_id, "Credit Amt:$cashleft Charges:$percent_charge Desc:$desc Avail Bal:$userwallet->balance Date:$date", false, true, 'Investment Termination');
@@ -138,7 +139,7 @@ class InvestmentController extends Controller
                 return response(json_encode(['status' => 0, 'message' => 'Investment no longer Active']));
             }
         } else {
-            return response(json_encode(['status' => 0, 'message' => 'User restricted '.$wb->user->id .'=='. auth()->user()->company_id.'=='.$id]));
+            return response(json_encode(['status' => 0, 'message' => 'User restricted ' . $wb->user->id . '==' . auth()->user()->company_id . '==' . $id]));
         }
         return response(json_encode(['status' => 0, 'message' => 'An Error occured']));
     }

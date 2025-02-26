@@ -95,6 +95,7 @@ class LoginController extends Controller
 
     protected function credentials(Request $request)
     {
+        logInfo("{$request->all()}", "Company Request login");
         $credentials              = $request->only($this->username(), 'password');
         $credentials['status_id'] = 1;
         $company                  = Company::where('loginCode', $request->company_code)->first();

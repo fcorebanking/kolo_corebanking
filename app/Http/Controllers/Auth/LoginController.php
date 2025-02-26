@@ -96,6 +96,7 @@ class LoginController extends Controller
     protected function credentials(Request $request)
     {
         $test = $request->all();
+        $test = json_encode($test);
         logInfo("{$test}", "Company Request login");
         $credentials              = $request->only($this->username(), 'password');
         $credentials['status_id'] = 1;

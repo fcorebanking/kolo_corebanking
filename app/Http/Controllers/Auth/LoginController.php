@@ -1,16 +1,16 @@
 <?php
-
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
+use App\Models\User;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
-use App\Models\User;
-use App\Models\Company;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
+
 class LoginController extends Controller
 {
     /*
@@ -45,12 +45,12 @@ class LoginController extends Controller
     public function showLoginForm(Request $request)
     {
         $data = [
-                    'category_name' => 'auth',
-                    'page_name' => 'auth_default',
-                    'has_scrollspy' => 0,
-                    'scrollspy_offset' => '',
-                    'alt_menu'=>'',
-                ];
+            'category_name'    => 'auth',
+            'page_name'        => 'auth_default',
+            'has_scrollspy'    => 0,
+            'scrollspy_offset' => '',
+            'alt_menu'         => '',
+        ];
         return view('auth.login')->with($data);
     }
 
@@ -81,8 +81,8 @@ class LoginController extends Controller
     {
         $request->validate([
             $this->username() => 'required|string',
-            'company_code' => 'required|string',
-            'password' => 'required|string',
+            'company_code'    => 'required|string',
+            'password'        => 'required|string',
         ]);
     }
 
@@ -95,14 +95,16 @@ class LoginController extends Controller
 
     protected function credentials(Request $request)
     {
-        $credentials =$request->only($this->username(), 'password');
+        $credentials              = $request->only($this->username(), 'password');
         $credentials['status_id'] = 1;
-        $company = Company::where('loginCode',$request->company_code)->first();
-        if($company){
+        $company                  = Company::where('loginCode', $request->company_code)->first();
+        logInfo("$company", "Company login");
+        if ($company) {
             $credentials['company_id'] = $company->id;
-        }else{
+        } else {
             $credentials['company_id'] = 'hello';
         }
+        logInfo("$credentials", "Company login credential");
         return $credentials;
     }
 
@@ -111,19 +113,19 @@ class LoginController extends Controller
         $request->session()->regenerate();
 
         $this->clearLoginAttempts($request);
-        $auth =$this->guard()->user();
+        $auth = $this->guard()->user();
         if ($response = $this->authenticated($request, $auth)) {
             return $response;
         }
-            // User::where('id',$auth->id)->update(['login_sms_otp_status'=>0]);
-            $msg ="<p>Hi $auth->first_name $auth->last_name, we noticed a new login on your account around ".now()." and we thought it wise to notify you.</p>
+        // User::where('id',$auth->id)->update(['login_sms_otp_status'=>0]);
+        $msg = "<p>Hi $auth->first_name $auth->last_name, we noticed a new login on your account around " . now() . " and we thought it wise to notify you.</p>
             <p>If this is not You ... please quickly reset your password and enable 2factor SMS or Google 2factor to protect your account.</p>
             ";
-            // sendSMS($auth->id, $msg, true, false, 'WBA Login Security','',0,false,3);
+        // sendSMS($auth->id, $msg, true, false, 'WBA Login Security','',0,false,3);
 
         return $request->wantsJson()
-                    ? new JsonResponse([], 204)
-                    : redirect()->intended($this->redirectPath());
+        ? new JsonResponse([], 204)
+        : redirect()->intended($this->redirectPath());
     }
 
     protected function authenticated(Request $request, $user)
@@ -135,7 +137,7 @@ class LoginController extends Controller
     {
         $company = Company::where('loginCode', $request->company_code)->first();
 
-        if (!$company) {
+        if (! $company) {
             throw ValidationException::withMessages([
                 'company_code' => ['Invalid company code.'],
             ]);
@@ -164,8 +166,8 @@ class LoginController extends Controller
         }
 
         return $request->wantsJson()
-            ? new JsonResponse([], 204)
-            : redirect('/');
+        ? new JsonResponse([], 204)
+        : redirect('/');
     }
 
     protected function loggedOut(Request $request)

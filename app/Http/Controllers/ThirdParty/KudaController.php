@@ -478,6 +478,7 @@ class KudaController extends WebhookController
     public function buyAirtime($transactionId, $network, $amount, $phoneNumber)
     {
         $requestReference = \generate_txnID();
+        $login            = $this->login();
         try {
             $body = [
                 "request_id" => $transactionId,
@@ -521,6 +522,7 @@ class KudaController extends WebhookController
     public function getBiller($type)
     {
         $requestReference = \generate_txnID();
+        $login            = $this->login();
 
         $body = [
             "servicetype" => "ADMIN_PURCHASE_BILL",

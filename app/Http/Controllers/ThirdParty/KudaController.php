@@ -554,15 +554,15 @@ class KudaController extends WebhookController
 
         }
         if ($network == "glo") {
-            $airtime_id_name = "GLO NG VTU";
+            $airtime_id_name = "GLO VTU";
 
         }
         if ($network == "airtel") {
-            $airtime_id_name = "AIRTEL NG VTU";
+            $airtime_id_name = "AIRTEL VTU";
 
         }
         if ($network == "9mobile") {
-            $airtime_id_name = "9MOBILE NG VTU";
+            $airtime_id_name = "9MOBILE VTU";
 
         }
 

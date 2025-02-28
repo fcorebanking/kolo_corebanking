@@ -537,7 +537,7 @@ class KudaController extends WebhookController
 
         if (isset($billers['status']) == "true") {
             if (isset($billers['data']['billers'][0]['description']) && $billers['data']['billers'][0]['description'] == "Airtime") {
-                return $this->getBillAirtimeID($data, $network);
+                return $this->getBillAirtimeID($billers, $network);
             }
             return ['status' => true, 'message' => "{$type} fetched successfully", 'data' => $billers['data']];
         } else {

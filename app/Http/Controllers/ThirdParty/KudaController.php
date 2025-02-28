@@ -475,26 +475,26 @@ class KudaController extends WebhookController
         }
     }
 
-    public function buyAirtime($transactionId, $network, $amount, $phoneNumber)
+    public function buyAirtime($transactionId, $network, $amount, $phoneNumber, $account)
     {
         $requestReference = \generate_txnID();
-        $login            = $this->login();
+        $type             = "airtime";
+        $biller_id        = $this->getBiller($type, $network);
+        if (isset($biller_id['status'])) {
+            return ["status" => false, 'message' => 'Failed to purchase airtime, Please contact support'];
+        }
+
+        $login = $this->login();
         try {
-            $body = [
-                "request_id" => $transactionId,
-                "serviceID"  => $network,
-                "amount"     => $amount,
-                "phone"      => $phoneNumber,
-            ];
 
             $body = [
                 "servicetype" => "ADMIN_PURCHASE_BILL",
                 "requestRef"  => $requestReference,
                 "Data"        => [
-                    "CustomerFirstName"  => $accountNumber,
+                    "CustomerFirstName"  => $account,
                     "CustomerIdentifier" => $bankCode,
                     "PhoneNumber"        => $phoneNumber,
-                    "BillItemIdentifier" => "3002284739",
+                    "BillItemIdentifier" => $biller_id,
                     "Amount"             => $amount,
 
                 ]];
@@ -519,7 +519,7 @@ class KudaController extends WebhookController
         }
     }
 
-    public function getBiller($type, $network)
+    public function getBiller($type, $network = null)
     {
         $requestReference = \generate_txnID();
         $login            = $this->login();
@@ -539,7 +539,7 @@ class KudaController extends WebhookController
             if (isset($billers['data']['billers'][0]['description']) && $billers['data']['billers'][0]['description'] == "Airtime") {
                 return $this->getBillAirtimeID($billers, $network);
             }
-            return ['status' => true, 'message' => "{$type} fetched successfully", 'data' => $billers['data']];
+            //  return ['status' => true, 'message' => "{$type} fetched successfully", 'data' => $billers['data']];
         } else {
             return ['status' => false, 'message' => 'Failed to fetch Data bundles', 'data' => $billers];
         }

@@ -5054,7 +5054,7 @@ class TransactionController extends Controller
     {
         $type           = "electricity";
         $network        = $request->network;
-        $accountName = auth()->user()->accounts->first_name;
+        $accountName    = auth()->user()->first_name;
         $kudaController = new KudaController();
         return $kudaController->getBiller($type, $network);
     }

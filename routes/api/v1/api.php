@@ -232,6 +232,8 @@ Route::prefix('/transactions')->group(function () {
         Route::middleware('checkAccountStatus')->post('/initiate-transaction', [TransactionController::class, 'initiateTransaction'])->middleware('log.route');
         Route::get('/history', [TransactionController::class, 'transactionHistory']);
         Route::middleware('checkAccountStatus')->post('/buy-airtime', [TransactionController::class, 'buyAirtime'])->middleware('log.route');
+        Route::middleware('checkAccountStatus')->post('/buy-airtime-test', [TransactionController::class, 'buyAirtimeTest'])->middleware('log.route');
+
         Route::middleware('checkAccountStatus')->post('/buy-data-bundle', [TransactionController::class, 'buyDataBundle'])->middleware('log.route');
         Route::post('/verify-meter-number', [TransactionController::class, 'verifyMeterNumber']);
         Route::middleware('checkAccountStatus')->post('/buy-electricity', [TransactionController::class, 'buyElectricity'])->middleware('log.route');

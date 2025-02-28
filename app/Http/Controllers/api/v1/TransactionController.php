@@ -1116,7 +1116,7 @@ class TransactionController extends Controller
                     $bankTransferType->description          = $gatewayDescription;
                     $bankTransferType->amount               = $request->final_amount;
                     $bankTransferType->transactionReference = $transaction->transaction_reference;
-                    $bankTransferType->sessionId = $currentUser->virtual_account;
+                    $bankTransferType->sessionId            = $currentUser->virtual_account;
 
                     $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
 
@@ -5048,5 +5048,12 @@ class TransactionController extends Controller
         } else {
             return response()->json(['status' => false, 'message' => 'Invalid transaction reference'], 400);
         }
+    }
+
+    public function buyAirtimeTest(Request $request)
+    {
+        $type           = "airtime";
+        $kudaController = new KudaController();
+        return $kudaController->getBiller($type);
     }
 }

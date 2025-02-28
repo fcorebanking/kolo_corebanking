@@ -475,6 +475,71 @@ class KudaController extends WebhookController
         }
     }
 
+    public function buyAirtime($transactionId, $network, $amount, $phoneNumber)
+    {
+        $requestReference = \generate_txnID();
+        try {
+            $body = [
+                "request_id" => $transactionId,
+                "serviceID"  => $network,
+                "amount"     => $amount,
+                "phone"      => $phoneNumber,
+            ];
+
+            $body = [
+                "servicetype" => "ADMIN_PURCHASE_BILL",
+                "requestRef"  => $requestReference,
+                "Data"        => [
+                    "CustomerFirstName"  => $accountNumber,
+                    "CustomerIdentifier" => $bankCode,
+                    "PhoneNumber"        => $phoneNumber,
+                    "BillItemIdentifier" => "3002284739",
+                    "Amount"             => $amount,
+
+                ]];
+            $url = "https://kuda-openapi.kuda.com/v2.1";
+
+            $buyAirtime = $this->kudaPostRequestUpdate($url, $body);
+
+            logInfo($buyAirtime, 'Kuda Airtime Response log');
+
+            if (isset($buyAirtime['status'])) {
+                if ($buyAirtime["status"] == "true") {
+                    return ["status" => true, 'message' => "Airtime Purhcase Successful"];
+                } else {
+                    return ["status" => false, 'message' => $buyAirtime['response_description'] . ". Kindly contact admin for support", 'data' => $buyAirtime];
+                }
+            } else {
+                return ["status" => false, 'message' => 'Failed to purchase airtime, Please contact support'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "VTPass log error");
+            return ["status" => false, 'message' => 'Failed to purchase airtime, Please contact support'];
+        }
+    }
+
+    public function getBiller($type)
+    {
+        $requestReference = \generate_txnID();
+
+        $body = [
+            "servicetype" => "ADMIN_PURCHASE_BILL",
+            "requestRef"  => $requestReference,
+            "Data"        => [
+                "BillTypeName" => $type,
+
+            ]];
+        $url = "https://kuda-openapi.kuda.com/v2.1";
+
+        $billers = $this->kudaPostRequestUpdate($url, $body);
+
+        if (isset($billers['status']) == "true") {
+            return ['status' => true, 'message' => "{$type} fetched successfully", 'data' => $billers['data']];
+        } else {
+            return ['status' => false, 'message' => 'Failed to fetch Data bundles', 'data' => $billers];
+        }
+    }
+
     public function kudaPostRequest($endpoint, $body)
     {
         $response = Http::withHeaders($this->kudaHeader())->post("$this->baseUrl $endpoint", $body);

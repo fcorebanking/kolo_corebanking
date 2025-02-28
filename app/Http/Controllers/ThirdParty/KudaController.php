@@ -525,7 +525,7 @@ class KudaController extends WebhookController
         $login            = $this->login();
 
         $body = [
-            "servicetype" => "ADMIN_PURCHASE_BILL",
+            "servicetype" => "GET_BILLERS_BY_TYPE",
             "requestRef"  => $requestReference,
             "Data"        => [
                 "BillTypeName" => $type,

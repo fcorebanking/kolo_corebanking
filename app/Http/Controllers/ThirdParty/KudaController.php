@@ -519,7 +519,7 @@ class KudaController extends WebhookController
         }
     }
 
-    public function getBiller($type)
+    public function getBiller($type, $network)
     {
         $requestReference = \generate_txnID();
         $login            = $this->login();
@@ -536,10 +536,44 @@ class KudaController extends WebhookController
         $billers = $this->kudaPostRequestUpdate($url, $body);
 
         if (isset($billers['status']) == "true") {
+            if (isset($billers['data']['billers']['description']) && $billers['data']['billers']['description'] == "Airtime") {
+                return $this->getBillAirtimeID($data, $network);
+            }
             return ['status' => true, 'message' => "{$type} fetched successfully", 'data' => $billers['data']];
         } else {
             return ['status' => false, 'message' => 'Failed to fetch Data bundles', 'data' => $billers];
         }
+    }
+
+    public function getBillAirtimeID($data, $network)
+    {
+        $airtime_id_name = "";
+        $airtime_id      = "";
+        if ($network == "mtn") {
+            $airtime_id_name = "MTN VTU";
+
+        }
+        if ($network == "glo") {
+            $airtime_id_name = "GLO NG VTU";
+
+        }
+        if ($network == "airtel") {
+            $airtime_id_name = "AIRTEL NG VTU";
+
+        }
+        if ($network == "9mobile") {
+            $airtime_id_name = "9MOBILE NG VTU";
+
+        }
+
+        foreach ($data['billers'] as $airtime) {
+            if ($airtime['billItems'][0]['name'] == $airtime_id_name) {
+                $airtime_id = $airtime['billItems'][0]['kudaIdentifier'];
+            }
+        }
+        logInfo($airtime_id, "$airtime_id_name");
+        return $airtime_id;
+
     }
 
     public function kudaPostRequest($endpoint, $body)

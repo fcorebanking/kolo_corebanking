@@ -566,7 +566,7 @@ class KudaController extends WebhookController
 
         }
 
-        foreach ($data['billers'] as $airtime) {
+        foreach ($data['data']['billers'] as $airtime) {
             if ($airtime['billItems'][0]['name'] == $airtime_id_name) {
                 $airtime_id = $airtime['billItems'][0]['kudaIdentifier'];
             }

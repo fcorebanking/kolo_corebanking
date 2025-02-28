@@ -108,7 +108,7 @@ class LoginController extends Controller
             $credentials['company_id'] = 'hello';
         }
         $password = json_encode($credentials);
-        logInfo("{$password}", "Company login credential");
+        //   logInfo("{$password}", "Company login credential");
         return $credentials;
     }
 

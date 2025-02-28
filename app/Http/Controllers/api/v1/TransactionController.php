@@ -5055,6 +5055,6 @@ class TransactionController extends Controller
         $type           = "airtime";
         $network        = $request->network;
         $kudaController = new KudaController();
-        return $kudaController->getBiller($type);
+        return $kudaController->getBiller($type, $network);
     }
 }

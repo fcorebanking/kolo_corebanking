@@ -1,69 +1,64 @@
 <?php
 // namespace App\helpers;
-use Illuminate\Support\Facades\Auth;
-use App\Models\StaffpermissionTable;
-use Illuminate\Support\Facades\Http;
-use App\Models\transactions;
-use App\Models\User;
-use App\Models\wb_account_details;
-use App\Models\Temp_Charges;
-use Illuminate\Support\Facades\Mail;
-use App\Models\MainCustomerRestriction;
-use Carbon\Carbon;
-use App\Models\company_wallet;
-use App\Models\PendingSaving;
-use Illuminate\Support\Facades\Log;
-use App\Mail\NewAccountCreated;
 use App\Mail\AccountCreated;
 use App\Models\AgentTerminal;
-use App\Models\currencies as Currency;
-use App\Models\ClosingBalance;
-
 use App\Models\banks;
 use App\Models\BankTransferInformation;
-use App\Models\Company;
-use App\Models\CustomerRestrictionLog;
-use App\Models\smsapi;
-use App\Models\user_wallet;
-use App\Models\Notification;
 use App\Models\BranchValut;
-use App\Models\company_settings;
-use App\Models\loan;
-use App\Models\currencies;
-use App\Models\CompanyValut;
-use App\Models\WbaCharge;
 use App\Models\BranchWallet;
-use App\Models\company_types;
-use App\Models\loan_product;
-use App\Models\transaction_types;
+use App\Models\ClosingBalance;
+use App\Models\Company;
+use App\Models\CompanyValut;
+use App\Models\company_settings;
+use App\Models\company_wallet;
+use App\Models\currencies;
+use App\Models\currencies as Currency;
+use App\Models\CustomerRestrictionLog;
 use App\Models\Expenses;
-use App\Models\OtherIncome;
 use App\Models\LedgerAccountModel;
 use App\Models\LedgerSettings;
+use App\Models\loan;
+use App\Models\LoanRepayment;
+use App\Models\loan_product;
+use App\Models\MainCustomerRestriction;
+use App\Models\Notification;
+use App\Models\OtherIncome;
+use App\Models\PendingSaving;
 use App\Models\PreferredEbankingPartner;
+use App\Models\smsapi;
+use App\Models\StaffpermissionTable;
+use App\Models\Temp_Charges;
+use App\Models\transactions;
+use App\Models\transaction_types;
+use App\Models\User;
+use App\Models\user_wallet;
+use App\Models\WbaCharge;
+use App\Models\wb_account_details;
 use App\Services\ebanking\BankTransferType;
 use App\Services\ebanking\EbankingService;
-use Illuminate\Support\Facades\Crypt;
-
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Models\LoanRepayment;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 //allCashLoanRepayment
-if (!function_exists('generateAccountReference')) {
+if (! function_exists('generateAccountReference')) {
     function generateAccountReference()
     {
         return substr(str_shuffle(str_repeat('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', mt_rand(1, 20))), 1, 20);
     }
 }
 
-if (!function_exists('generateTransactionReference')) {
+if (! function_exists('generateTransactionReference')) {
     function generateTransactionReference()
     {
         return "BM" . mt_rand(10000000000, 99999999999);
     }
 }
 
-if (!function_exists('user_email')) {
+if (! function_exists('user_email')) {
     function user_email()
     {
         $user = Auth::user();
@@ -101,18 +96,25 @@ function removeMinusText($menu)
 function cando($permission)
 {
     $auth = auth()->user();
-    if (!auth()->check()) return redirect()->route('login');
+    if (! auth()->check()) {
+        return redirect()->route('login');
+    }
+
     $userrole = StaffpermissionTable::has('staffrole')
         ->join('users', 'users.id', 'staffpermission.user_id')
         ->where(['user_id' => $auth->id, 'users.company_id' => $auth->company_id])->get();
     $staff_permission = [];
 
-    if (count($userrole) == 0) return 0;
-
+    if (count($userrole) == 0) {
+        return 0;
+    }
 
     foreach ($userrole as $userroles);
 
-    if ($userroles->staffrole->id != $auth->staffpermission->staffrole_id) return 0;
+    if ($userroles->staffrole->id != $auth->staffpermission->staffrole_id) {
+        return 0;
+    }
+
     foreach ($userroles->staffrole->has_permissions as $role_as_permission) {
         $staff_permission[] = $role_as_permission->permission->name;
     }
@@ -127,10 +129,9 @@ function cando($permission)
     }
 }
 
-
 function postRequest($headers, $body, $url)
 {
-    
+
     logInfo($url);
 
     $response = Http::withHeaders($headers)->post($url, $body);
@@ -175,10 +176,10 @@ function vtpassPostRequest($endpoint, $body)
 
 function giftBillsTopupPostRequest($endpoint, $body)
 {
-    $json = '{"amount":"' . $body['amount'] . '","customerId":"' . $body['customerId'] . '","provider":"' . $body['provider'] . '","reference":"' . $body['reference'] . '"}';
+    $json    = '{"amount":"' . $body['amount'] . '","customerId":"' . $body['customerId'] . '","provider":"' . $body['provider'] . '","reference":"' . $body['reference'] . '"}';
     $sec_key = hash_hmac('sha512', $json, giftBillsEncryptionKey());
 
-    $final_array = array_merge(giftBillsHeader(), array("Encryption" => $sec_key, "MerchantId" => giftBillsMerchantId()));
+    $final_array = array_merge(giftBillsHeader(), ["Encryption" => $sec_key, "MerchantId" => giftBillsMerchantId()]);
 
     $response = Http::withHeaders($final_array)->post(giftBillsBaseUrl($endpoint), $body);
     return $response->json();
@@ -192,7 +193,7 @@ function giftBillsPostRequest($endpoint, $body)
 
 function flutterWaveHeader()
 {
-    $header = [];
+    $header               = [];
     $flutterwaveSecretKey = '';
 
     // if (env('APP_MODE') == 'test') {
@@ -203,7 +204,6 @@ function flutterWaveHeader()
 
     $flutterwaveSecretKey = env('FLUTTERWAVE_SECRET_KEY_LIVE');
 
-
     $header = ['Authorization' => 'Bearer ' . $flutterwaveSecretKey];
 
     logInfo($header, "Flutterwave header");
@@ -213,7 +213,7 @@ function flutterWaveHeader()
 
 function giftBillsHeader()
 {
-    $header = [];
+    $header             = [];
     $giftBillsSecretKey = '';
 
     if (env('APP_MODE') == 'test') {
@@ -229,7 +229,7 @@ function giftBillsHeader()
 
 function vtpassHeader()
 {
-    $header = [];
+    $header         = [];
     $basicAuthToken = '';
 
     if (env('APP_MODE') == 'test') {
@@ -245,25 +245,25 @@ function vtpassHeader()
 function loginReloadly()
 {
 
-    $clientId = '';
+    $clientId     = '';
     $clientSecret = '';
 
     if (env('APP_MODE') == 'test') {
-        $clientId = env('RELOADLY_CLIENT_ID_TEST');
+        $clientId     = env('RELOADLY_CLIENT_ID_TEST');
         $clientSecret = env('RELOADLY_CLIENT_SECRET_TEST');
     } else {
-        $clientId = env('RELOADLY_CLIENT_ID_LIVE');
+        $clientId     = env('RELOADLY_CLIENT_ID_LIVE');
         $clientSecret = env('RELOADLY_CLIENT_SECRET_LIVE');
     }
-    $clientId = env('RELOADLY_CLIENT_ID_LIVE');
+    $clientId     = env('RELOADLY_CLIENT_ID_LIVE');
     $clientSecret = env('RELOADLY_CLIENT_SECRET_LIVE');
 
     $body = [
 
-        "client_id" => $clientId,
+        "client_id"     => $clientId,
         "client_secret" => $clientSecret,
-        "grant_type" => "client_credentials",
-        "audience" => "https://topups.reloadly.com"
+        "grant_type"    => "client_credentials",
+        "audience"      => "https://topups.reloadly.com",
 
     ];
 
@@ -278,38 +278,37 @@ function cronJobBankTransfer($transactionId)
 {
     $transaction = transactions::find($transactionId);
 
-    if (!$transaction) {
+    if (! $transaction) {
         return ['status' => false, 'message' => 'Transaction not found'];
     }
 
-    if ($transaction->transaction_remarks_id == 2 || $transaction->transaction_remarks_id == 5 ||  $transaction->transaction_remarks_id == 3)
+    if ($transaction->transaction_remarks_id == 2 || $transaction->transaction_remarks_id == 5 || $transaction->transaction_remarks_id == 3) {
         return ['status' => false, 'message' => 'Cannot process this transaction'];
+    }
 
     $bankTransferInfo = BankTransferInformation::where('transaction_id', $transactionId)->first();
 
-    if (!$bankTransferInfo) {
+    if (! $bankTransferInfo) {
         return ['status' => false, 'message' => 'Bank transfer info not found ' . $transactionId];
     }
 
-
     $bank = banks::where('bank_code', $bankTransferInfo->bank_code)->orwhere('short_code', $bankTransferInfo->bank_code)->first();
 
-    if (!$bank) {
+    if (! $bank) {
         return response()->json(["status" => 0, 'message' => "Invalid bank code"], 400);
     }
 
-
-    $customerBalanceBefore = 0;
-    $customerBalanceAfter = 0;
+    $customerBalanceBefore       = 0;
+    $customerBalanceAfter        = 0;
     $customerChargeBalanceBefore = 0;
-    $customerChargeBalanceAfter = 0;
-    $accountId = 0;
+    $customerChargeBalanceAfter  = 0;
+    $accountId                   = 0;
 
-    $customerCharge = 0;
-    $companyBalanceBefore = 0;
-    $companyBalanceAfter = 0;
+    $customerCharge             = 0;
+    $companyBalanceBefore       = 0;
+    $companyBalanceAfter        = 0;
     $companyChargeBalanceBefore = 0;
-    $companyChargeBalanceAfter = 0;
+    $companyChargeBalanceAfter  = 0;
 
     $entityType = "both";
 
@@ -345,7 +344,7 @@ function cronJobBankTransfer($transactionId)
 
         $validateTransfer = validateTransfer($transaction->account_id, $transaction->company_id, $currentUser, $bankTransferInfo->amount);
 
-        if (!$validateTransfer['status']) {
+        if (! $validateTransfer['status']) {
             $transaction->transaction_remarks_id = 3;
             $transaction->save();
             return $validateTransfer;
@@ -353,39 +352,39 @@ function cronJobBankTransfer($transactionId)
 
         $debitCustomerAndCompany = debitCustomerAndCompanyWithCharge($transaction->account_id, $transaction->company_id, $bankTransferInfo->amount, $bankTransferInfo->customer_charge, $bankTransferInfo->company_charge, $currentUser);
 
-        if (!$debitCustomerAndCompany['status']) {
-            $debitCustomerAndCompany['status'] = 0;
+        if (! $debitCustomerAndCompany['status']) {
+            $debitCustomerAndCompany['status']   = 0;
             $transaction->transaction_remarks_id = 3;
             $transaction->save();
             return $debitCustomerAndCompany;
         }
 
-        $accountId =  $debitCustomerAndCompany['account_id'];
-        $customerBalanceBefore = $debitCustomerAndCompany['balance_before'];
-        $customerBalanceAfter = $debitCustomerAndCompany['balance_after'];
+        $accountId                   = $debitCustomerAndCompany['account_id'];
+        $customerBalanceBefore       = $debitCustomerAndCompany['balance_before'];
+        $customerBalanceAfter        = $debitCustomerAndCompany['balance_after'];
         $customerChargeBalanceBefore = $debitCustomerAndCompany['charge_balance_before'];
-        $customerChargeBalanceAfter = $debitCustomerAndCompany['charge_balance_after'];
+        $customerChargeBalanceAfter  = $debitCustomerAndCompany['charge_balance_after'];
 
-        $companyBalanceBefore = $debitCustomerAndCompany['company_balance_before'];
-        $companyAmount = $debitCustomerAndCompany['company_amount'];
-        $companyBalanceAfter = $debitCustomerAndCompany['company_balance_after'];
+        $companyBalanceBefore       = $debitCustomerAndCompany['company_balance_before'];
+        $companyAmount              = $debitCustomerAndCompany['company_amount'];
+        $companyBalanceAfter        = $debitCustomerAndCompany['company_balance_after'];
         $companyChargeBalanceBefore = $debitCustomerAndCompany['company_charge_balance_before'];
-        $companyChargeBalanceAfter = $debitCustomerAndCompany['company_charge_balance_after'];
+        $companyChargeBalanceAfter  = $debitCustomerAndCompany['company_charge_balance_after'];
 
-        $transaction->balance_before = $customerBalanceBefore;
-        $transaction->balance_after = $customerBalanceAfter;
+        $transaction->balance_before         = $customerBalanceBefore;
+        $transaction->balance_after          = $customerBalanceAfter;
         $transaction->company_balance_before = $companyBalanceBefore;
-        $transaction->company_balance_after = $companyBalanceAfter;
+        $transaction->company_balance_after  = $companyBalanceAfter;
 
         $transaction->save();
 
         $chargeTransaction = transactions::where('parent_transaction_id', $transaction->id)->first();
 
         if ($chargeTransaction) {
-            $chargeTransaction->balance_before = $customerChargeBalanceBefore;
-            $chargeTransaction->balance_after = $customerChargeBalanceAfter;
+            $chargeTransaction->balance_before         = $customerChargeBalanceBefore;
+            $chargeTransaction->balance_after          = $customerChargeBalanceAfter;
             $chargeTransaction->company_balance_before = $companyChargeBalanceBefore;
-            $chargeTransaction->company_balance_after = $companyChargeBalanceAfter;
+            $chargeTransaction->company_balance_after  = $companyChargeBalanceAfter;
             $chargeTransaction->transaction_remarks_id = 2;
 
             $chargeTransaction->save();
@@ -398,25 +397,25 @@ function cronJobBankTransfer($transactionId)
 
         $validateTransfer = validateCompanyTransfer($adminUser, $bankTransferInfo->amount);
 
-        if (!$validateTransfer['status']) {
+        if (! $validateTransfer['status']) {
             return $validateTransfer;
         }
 
         $debitCompanyWithCharge = debitCompanyWithCharge($transaction->company_id, $bankTransferInfo->amount, $bankTransferInfo->company_charge);
-        if (!$debitCompanyWithCharge['status']) {
-            $debitCompanyWithCharge['status'] = $debitCompanyWithCharge['responseCode'];
+        if (! $debitCompanyWithCharge['status']) {
+            $debitCompanyWithCharge['status']    = $debitCompanyWithCharge['responseCode'];
             $transaction->transaction_remarks_id = 3;
             $transaction->save();
             return $debitCompanyWithCharge;
         }
 
-        $companyBalanceBefore = $debitCompanyWithCharge['balance_before'];
-        $companyBalanceAfter = $debitCompanyWithCharge['balance_after'];
+        $companyBalanceBefore       = $debitCompanyWithCharge['balance_before'];
+        $companyBalanceAfter        = $debitCompanyWithCharge['balance_after'];
         $companyChargeBalanceBefore = $debitCompanyWithCharge['charge_balance_before'];
-        $companyChargeBalanceAfter = $debitCompanyWithCharge['charge_balance_after'];
+        $companyChargeBalanceAfter  = $debitCompanyWithCharge['charge_balance_after'];
 
         $transaction->company_balance_before = $companyBalanceBefore;
-        $transaction->company_balance_after = $companyBalanceAfter;
+        $transaction->company_balance_after  = $companyBalanceAfter;
         $transaction->transaction_remarks_id = 2;
 
         $transaction->save();
@@ -425,22 +424,22 @@ function cronJobBankTransfer($transactionId)
 
         transactions::create([
             "company_balance_before" => $companyChargeBalanceBefore,
-            "company_amount" => $bankTransferInfo->company_charge,
-            "account_id" => $accountId > 0 ? $accountId : null,
-            "company_balance_after" => $companyChargeBalanceAfter,
-            "description" => "Charge for NGN Bank Transfer - " . $transaction->transaction_reference,
-            "transaction_reference" => $transactionRef2,
-            "balance_before" => $customerChargeBalanceBefore,
-            "amount" => $customerCharge,
-            "balance_after" => $customerChargeBalanceAfter,
-            "company_id" => $transaction->company_id,
+            "company_amount"         => $bankTransferInfo->company_charge,
+            "account_id"             => $accountId > 0 ? $accountId : null,
+            "company_balance_after"  => $companyChargeBalanceAfter,
+            "description"            => "Charge for NGN Bank Transfer - " . $transaction->transaction_reference,
+            "transaction_reference"  => $transactionRef2,
+            "balance_before"         => $customerChargeBalanceBefore,
+            "amount"                 => $customerCharge,
+            "balance_after"          => $customerChargeBalanceAfter,
+            "company_id"             => $transaction->company_id,
             "transaction_remarks_id" => 2,
-            "transaction_type_id" => 27,
-            "credit_debit_type_id" => 2,
-            "created_date"  => date('Y-m-d'),
-            "created_by" => $transaction->created_by,
-            "ledger_cr" => $ledger_cr,
-            "ledger_dr" => $ledger_dr
+            "transaction_type_id"    => 27,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $transaction->created_by,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
         ]);
 
         $company = Company::find($transaction->company_id);
@@ -453,14 +452,14 @@ function cronJobBankTransfer($transactionId)
 
     logInfo($gatewayDescription);
 
-    $ebankingService = new EbankingService($preferredEbankingPartner);
-    $bankTransferType = new BankTransferType();
-    $bankTransferType->bankCode = $bankTransferInfo->bank_code;
-    $bankTransferType->shortBankCode = $bank->short_code;
-    $bankTransferType->accountNumber = $bankTransferInfo->account_number;
-    $bankTransferType->description = $bankTransferInfo->description;
-    $bankTransferType->amount = $bankTransferInfo->amount;
-    $bankTransferType->transactionReference =  $transaction->transaction_reference;
+    $ebankingService                        = new EbankingService($preferredEbankingPartner);
+    $bankTransferType                       = new BankTransferType();
+    $bankTransferType->bankCode             = $bankTransferInfo->bank_code;
+    $bankTransferType->shortBankCode        = $bank->short_code;
+    $bankTransferType->accountNumber        = $bankTransferInfo->account_number;
+    $bankTransferType->description          = $bankTransferInfo->description;
+    $bankTransferType->amount               = $bankTransferInfo->amount;
+    $bankTransferType->transactionReference = $transaction->transaction_reference;
 
     $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
 
@@ -487,11 +486,11 @@ function cronJobBankTransfer($transactionId)
 
     $bank = banks::where('bank_code', $bankTransferInfo->bank_code)->orwhere('short_code', $bankTransferInfo->bank_code)->first();
 
-    $newdescription =  $newdescription . "/" . $bankTransferInfo->account_name . "/" . $bank->bank_name . " - " . $bankTransferInfo->account_number;
+    $newdescription = $newdescription . "/" . $bankTransferInfo->account_name . "/" . $bank->bank_name . " - " . $bankTransferInfo->account_number;
 
-    $transaction = transactions::where('transaction_reference', $transaction->transaction_reference)->first();
+    $transaction                         = transactions::where('transaction_reference', $transaction->transaction_reference)->first();
     $transaction->transaction_remarks_id = 2;
-    $transaction->description = $newdescription;
+    $transaction->description            = $newdescription;
     $transaction->save();
 
     // if ($bankTransferInfo->transfer_entity_type == 'user'){
@@ -500,14 +499,13 @@ function cronJobBankTransfer($transactionId)
     // }
 }
 
-
 function validateTransfer($accountId, $companyId, $user, $amount)
 {
     $companySettings = company_settings::where('company_id', $companyId)->first();
-    $accountTier = $user->tier;
-    $wbaAccount = $user->accounts->first();
+    $accountTier     = $user->tier;
+    $wbaAccount      = $user->accounts->first();
 
-    if (!$companySettings) {
+    if (! $companySettings) {
         return ["status" => false, 'message' => "Contact support to resolve advanced settings"];
     }
 
@@ -527,7 +525,7 @@ function validateTransfer($accountId, $companyId, $user, $amount)
     }
 
     // $sum = transactions::where(['transaction_remarks_id' => '2', 'account_id' => $wbAccount->id])->whereDate('created_at', Carbon::today())->sum('amount');
-    $sum = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => $accountId])->where('transaction_type_id', '<>', '27')->whereDate('created_at', Carbon::today())->count();
+    $sum      = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => $accountId])->where('transaction_type_id', '<>', '27')->whereDate('created_at', Carbon::today())->count();
     $dailySum = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => $accountId])->where('transaction_type_id', '<>', '27')->whereDate('created_at', Carbon::today())->sum('amount');
 
     if ($dailySum + $amount > $accountTier->daily_transaction_limit) {
@@ -540,14 +538,13 @@ function validateTransfer($accountId, $companyId, $user, $amount)
     return ["status" => true, 'message' => "Transaction Validated"];
 }
 
-
 function validateCompanyTransfer($user, $amount)
 {
     $accountTier = $user->tier;
 
     $companyWallet = company_wallet::where('company_id', $user->company_id)->first();
 
-    if (!$companyWallet) {
+    if (! $companyWallet) {
         return ["status" => false, 'message' => "Contact support to resolve advanced settings"];
     }
 
@@ -556,7 +553,7 @@ function validateCompanyTransfer($user, $amount)
     }
 
     // $sum = transactions::where(['transaction_remarks_id' => '2', 'account_id' => $wbAccount->id])->whereDate('created_at', Carbon::today())->sum('amount');
-    $sum = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'company_id' => $user->company_id])->where('transaction_type_id', '<>', '8')->whereDate('created_at', Carbon::today())->count();
+    $sum      = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'company_id' => $user->company_id])->where('transaction_type_id', '<>', '8')->whereDate('created_at', Carbon::today())->count();
     $dailySum = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'company_id' => $user->company_id])->where('transaction_type_id', '8')->whereDate('created_at', Carbon::today())->sum('company_amount');
 
     if (($dailySum + $amount) > $accountTier->daily_transaction_limit) {
@@ -569,8 +566,6 @@ function validateCompanyTransfer($user, $amount)
 
     return ["status" => true, 'message' => "Transaction Validated"];
 }
-
-
 
 function logInfo($content, $title = "No Title")
 {
@@ -605,7 +600,6 @@ function giftBillsMerchantId()
     return env('APP_MODE') == 'test' ? env("GIFTBILLS_MERCHANT_ID_TEST") : env("GIFTBILLS_MERCHANT_ID_LIVE");
 }
 
-
 function getRequest($headers, $body, $url)
 {
     $response = Http::timeout(40)->withHeaders($headers)->get($url);
@@ -638,42 +632,41 @@ function giftBillsGetRequest($endpoint)
 
 function generateAPIKey($length = 25)
 {
-    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $characters       = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     $charactersLength = strlen($characters);
-    $randomString = '';
+    $randomString     = '';
     for ($i = 0; $i < $length; $i++) {
         $randomString .= $characters[rand(0, $charactersLength - 1)];
     }
     return $randomString;
 }
 
-
 function createVirtualAccount($name, $bvn)
 {
 
     $curl = curl_init();
-    $bvn = $bvn == '' ? '' : $bvn;
+    $bvn  = $bvn == '' ? '' : $bvn;
 
-    curl_setopt_array($curl, array(
-        CURLOPT_URL => 'https://vps.providusbank.com/vps/api/PiPCreateReservedAccountNumber',
+    curl_setopt_array($curl, [
+        CURLOPT_URL            => 'https://vps.providusbank.com/vps/api/PiPCreateReservedAccountNumber',
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 0,
+        CURLOPT_ENCODING       => '',
+        CURLOPT_MAXREDIRS      => 10,
+        CURLOPT_TIMEOUT        => 0,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_POSTFIELDS => '{
+        CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST  => 'POST',
+        CURLOPT_POSTFIELDS     => '{
         "account_name":"' . $name . '",
         "bvn":"' . $bvn . '"
 
     }',
-        CURLOPT_HTTPHEADER => array(
+        CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
             'Client-Id: M1JtQF9XSXIjZC5QcjBWKCkzMjUyMzIz',
-            'X-Auth-Signature: dd02585c6a0a87859ca50f8cf5a1947d10b2fdf5ca510f49652aee8dc15b3a77a10129c993f4e9039e4c11dcced0f3c1b4a27341e089ad3de4f997290048b72f'
-        ),
-    ));
+            'X-Auth-Signature: dd02585c6a0a87859ca50f8cf5a1947d10b2fdf5ca510f49652aee8dc15b3a77a10129c993f4e9039e4c11dcced0f3c1b4a27341e089ad3de4f997290048b72f',
+        ],
+    ]);
 
     $response = curl_exec($curl);
 
@@ -683,19 +676,18 @@ function createVirtualAccount($name, $bvn)
     // return $response->json();
 }
 
-
 function diff_btw_date($fdate, $tdate)
 {
 
     $datetime1 = new DateTime($fdate);
     $datetime2 = new DateTime($tdate);
-    $interval = $datetime1->diff($datetime2);
-    $days = $interval->format('%a');
+    $interval  = $datetime1->diff($datetime2);
+    $days      = $interval->format('%a');
     return $days;
 }
 function cleaninput_space($str)
 {
-    $str =  str_replace(array('\'', '"', ',', ';', '<', '>', '*', ')', '(', ' '), '', $str);
+    $str = str_replace(['\'', '"', ',', ';', '<', '>', '*', ')', '(', ' '], '', $str);
 
     return $str;
 }
@@ -716,7 +708,7 @@ function generate_txnID()
 }
 function add_day_to_date($daysToAdd, $premiumDate)
 {
-    $date = Carbon::createFromFormat('Y-m-d', $premiumDate);
+    $date    = Carbon::createFromFormat('Y-m-d', $premiumDate);
     $newdate = $date->addDays($daysToAdd);
     return date_format($newdate, "Y-m-d");
 }
@@ -725,10 +717,9 @@ function debitReversal($transactionReference, $customerAccountId, $companyId, $c
 {
     $mainTransaction = transactions::where('transaction_reference', $transactionReference)->first();
 
-    if (!$mainTransaction) {
+    if (! $mainTransaction) {
         return ['status' => false, 'message' => 'Invalid transaction Reference. Cannot reverse this transaction'];
     }
-
 
     $creditTransactionResult = [];
     if ($whoToCredit == 'company') {
@@ -736,65 +727,64 @@ function debitReversal($transactionReference, $customerAccountId, $companyId, $c
         $creditTransaction = creditCompanyWithCharge($companyId, $companyAmount, 0);
         logInfo($creditTransaction, "Main Credit Transaction");
 
-        if (!$creditTransaction['status']) {
+        if (! $creditTransaction['status']) {
             return $creditTransaction;
         }
 
         $customer_balance_before = 0;
-        $customer_amount = 0;
-        $customer_balance_after = 0;
-        $company_balance_before = $creditTransaction["balance_before"];
-        $company_amount = $companyAmount;
-        $company_balance_after = $creditTransaction["balance_after"];
+        $customer_amount         = 0;
+        $customer_balance_after  = 0;
+        $company_balance_before  = $creditTransaction["balance_before"];
+        $company_amount          = $companyAmount;
+        $company_balance_after   = $creditTransaction["balance_after"];
     } else if ($whoToCredit == 'both') {
         $creditTransaction = creditCustomerAndCompany($customerAccountId, $companyId, $customerAmount, $companyAmount);
         logInfo($creditTransaction, "Main Credit Transaction");
 
-        if (!$creditTransaction['status']) {
+        if (! $creditTransaction['status']) {
             return $creditTransaction;
         }
 
         $customer_balance_before = $creditTransaction["balance_before"];
-        $customer_amount = $customerAmount;
-        $customer_balance_after = $creditTransaction["balance_after"];
-        $company_balance_before = $creditTransaction["company_balance_before"];
-        $company_amount = $companyAmount;
-        $company_balance_after = $creditTransaction["company_balance_after"];
+        $customer_amount         = $customerAmount;
+        $customer_balance_after  = $creditTransaction["balance_after"];
+        $company_balance_before  = $creditTransaction["company_balance_before"];
+        $company_amount          = $companyAmount;
+        $company_balance_after   = $creditTransaction["company_balance_after"];
     }
-
 
     $mainTransaction->transaction_remarks_id = 5;
     $mainTransaction->save();
 
     $transaction = transactions::create([
-        "balance_before" => $customer_balance_before,
-        "amount" => $customer_amount,
-        "balance_after" => $customer_balance_after,
-        "description" => $type != "atm" ? "Ref: $transactionReference funds reversal for failed transfer" : "Failed ATM withdrawal reversal with ref: $transactionReference",
-        "account_id" => $customerAccountId ?? null,
-        "transaction_reference" => generate_txnID(),
-        "company_id" => $type == "atm" ? null : ($companyId ?? null),
-        "parent_transaction_id" => $mainTransaction->id,
+        "balance_before"         => $customer_balance_before,
+        "amount"                 => $customer_amount,
+        "balance_after"          => $customer_balance_after,
+        "description"            => $type != "atm" ? "Ref: $transactionReference funds reversal for failed transfer" : "Failed ATM withdrawal reversal with ref: $transactionReference",
+        "account_id"             => $customerAccountId ?? null,
+        "transaction_reference"  => generate_txnID(),
+        "company_id"             => $type == "atm" ? null : ($companyId ?? null),
+        "parent_transaction_id"  => $mainTransaction->id,
         "company_balance_before" => $company_balance_before,
-        "company_amount" => $company_amount,
-        "company_balance_after" => $company_balance_after,
+        "company_amount"         => $company_amount,
+        "company_balance_after"  => $company_balance_after,
         "transaction_remarks_id" => 2,
-        "transaction_type_id" => $type == "atm" ? 112 : 96,
-        "credit_debit_type_id" => 1,
-        "created_date"  => date('Y-m-d'),
-        "created_by" => $mainTransaction->created_by
+        "transaction_type_id"    => $type == "atm" ? 112 : 96,
+        "credit_debit_type_id"   => 1,
+        "created_date"           => date('Y-m-d'),
+        "created_by"             => $mainTransaction->created_by,
     ]);
 
     return [
-        'status' => true,
+        'status'  => true,
         'message' => 'Debit reversal successful',
-        'data' => [
-            'balance_before' => $customer_balance_before,
-            'amount' => $customer_amount,
-            'balance_after' => $customer_balance_after,
-            'account_id' => $customerAccountId,
-            'transaction_reference' => $transactionReference
-        ]
+        'data'    => [
+            'balance_before'        => $customer_balance_before,
+            'amount'                => $customer_amount,
+            'balance_after'         => $customer_balance_after,
+            'account_id'            => $customerAccountId,
+            'transaction_reference' => $transactionReference,
+        ],
     ];
 }
 
@@ -804,29 +794,31 @@ function getWbaTransferCharges($chargeId, $amount)
 
     if ($wbaCharge->charge_by == 1) {
         $wbaChargePercentage = $wbaCharge->charge * 0.01;
-        $companyCharge = $wbaChargePercentage * $amount;
+        $companyCharge       = $wbaChargePercentage * $amount;
 
         if ($wbaCharge->minimum_charge_amount > 0) {
             $companyCharge = $companyCharge < $wbaCharge->minimum_charge_amount ? $wbaCharge->minimum_charge_amount : $companyCharge;
         }
 
-        if ($wbaCharge->maximum_charge_amount > 0)
+        if ($wbaCharge->maximum_charge_amount > 0) {
             $companyCharge = $companyCharge > $wbaCharge->maximum_charge_amount ? $wbaCharge->maximum_charge_amount : $companyCharge;
+        }
+
     } else {
         $companyCharge = $wbaCharge->charge;
     }
-    return  $companyCharge;
+    return $companyCharge;
 }
 function padAccountCode($number)
 {
-    return  sprintf("%05d", $number);
+    return sprintf("%05d", $number);
 }
 
 function posDebitReversal($transactionReference, $customerAccountId, $companyId, $customerAmount, $whoToCredit)
 {
     $mainTransaction = transactions::where('transaction_reference', $transactionReference)->first();
 
-    if (!$mainTransaction) {
+    if (! $mainTransaction) {
         return ['status' => false, 'message' => 'Invalid transaction Reference. Cannot reverse this transaction'];
     }
 
@@ -834,64 +826,63 @@ function posDebitReversal($transactionReference, $customerAccountId, $companyId,
 
     $creditTransactionResult = [];
     if ($whoToCredit == 'company') {
-        $creditTransaction = creditCompanyWithCharge($companyId, $companyTransaction->company_amount, 0);
+        $creditTransaction       = creditCompanyWithCharge($companyId, $companyTransaction->company_amount, 0);
         $customer_balance_before = 0;
-        $customer_amount = 0;
-        $customer_balance_after = 0;
-        $company_balance_before = $creditTransaction["balance_before"];
-        $company_amount = $companyTransaction->company_amount;
-        $company_balance_after = $creditTransaction["balance_after"];
+        $customer_amount         = 0;
+        $customer_balance_after  = 0;
+        $company_balance_before  = $creditTransaction["balance_before"];
+        $company_amount          = $companyTransaction->company_amount;
+        $company_balance_after   = $creditTransaction["balance_after"];
     } else if ($whoToCredit == 'both') {
-        $creditTransaction = creditCustomerAndCompany($customerAccountId, $companyId, $customerAmount, $companyTransaction->company_amount);
+        $creditTransaction       = creditCustomerAndCompany($customerAccountId, $companyId, $customerAmount, $companyTransaction->company_amount);
         $customer_balance_before = $creditTransaction["balance_before"];
-        $customer_amount = $customerAmount;
-        $customer_balance_after = $creditTransaction["balance_after"];
-        $company_balance_before = $creditTransaction["company_balance_before"];
-        $company_amount = $companyTransaction->company_amount;
-        $company_balance_after = $creditTransaction["company_balance_after"];
+        $customer_amount         = $customerAmount;
+        $customer_balance_after  = $creditTransaction["balance_after"];
+        $company_balance_before  = $creditTransaction["company_balance_before"];
+        $company_amount          = $companyTransaction->company_amount;
+        $company_balance_after   = $creditTransaction["company_balance_after"];
     }
 
     $mainTransaction->transaction_remarks_id = 5;
     $mainTransaction->save();
 
     $transaction = transactions::create([
-        "balance_before" => $customer_balance_before,
-        "amount" => $customer_amount,
-        "balance_after" => $customer_balance_after,
-        "description" => "Ref: $transactionReference funds reversal for failed transfer",
-        "account_id" => $customerAccountId ?? null,
-        "transaction_reference" => generate_txnID(),
-        "company_id" => $companyId ?? null,
-        "parent_transaction_id" => $mainTransaction->id,
+        "balance_before"         => $customer_balance_before,
+        "amount"                 => $customer_amount,
+        "balance_after"          => $customer_balance_after,
+        "description"            => "Ref: $transactionReference funds reversal for failed transfer",
+        "account_id"             => $customerAccountId ?? null,
+        "transaction_reference"  => generate_txnID(),
+        "company_id"             => $companyId ?? null,
+        "parent_transaction_id"  => $mainTransaction->id,
         "company_balance_before" => $company_balance_before,
-        "company_amount" => $company_amount,
-        "company_balance_after" => $company_balance_after,
+        "company_amount"         => $company_amount,
+        "company_balance_after"  => $company_balance_after,
         "transaction_remarks_id" => 2,
-        "transaction_type_id" => 25,
-        "credit_debit_type_id" => 1,
-        "created_date"  => date('Y-m-d'),
-        "created_by" => $mainTransaction->created_by
+        "transaction_type_id"    => 25,
+        "credit_debit_type_id"   => 1,
+        "created_date"           => date('Y-m-d'),
+        "created_by"             => $mainTransaction->created_by,
     ]);
 
     return ['status' => true, 'message' => 'Debit reversal successful'];
 }
-
 
 function sendVansoSMS($phone, $msg)
 {
 
     $curl = curl_init();
 
-    curl_setopt_array($curl, array(
-        CURLOPT_URL => 'https://sms.vanso.com/rest/sms/submit',
+    curl_setopt_array($curl, [
+        CURLOPT_URL            => 'https://sms.vanso.com/rest/sms/submit',
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 0,
+        CURLOPT_ENCODING       => '',
+        CURLOPT_MAXREDIRS      => 10,
+        CURLOPT_TIMEOUT        => 0,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_POSTFIELDS => '{
+        CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST  => 'POST',
+        CURLOPT_POSTFIELDS     => '{
             "account": {
                 "password": "gLlUpU0y",
                 "systemId": "NG.101.0222"
@@ -902,33 +893,32 @@ function sendVansoSMS($phone, $msg)
                     "text": "' . $msg . '"
                 }
             }',
-        CURLOPT_HTTPHEADER => array(
+        CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
-            'Authorization: Basic TkcuMTAxLjAyMjI6Z0xsVXBVMHk='
-        ),
-    ));
+            'Authorization: Basic TkcuMTAxLjAyMjI6Z0xsVXBVMHk=',
+        ],
+    ]);
 
     $response = curl_exec($curl);
     logInfo($response, "Vanso response log");
 }
 
-
 function sendEmail($title, $msg, $userinfo)
 {
     $datax = [
-        'message' => "Notification",
-        'subtext' => "$title",
-        'desc' => $msg,
-        'status' => 1,
-        'name' => $userinfo->first_name . ' ' . $userinfo->last_name,
-        'email' => $userinfo->email,
+        'message'        => "Notification",
+        'subtext'        => "$title",
+        'desc'           => $msg,
+        'status'         => 1,
+        'name'           => $userinfo->first_name . ' ' . $userinfo->last_name,
+        'email'          => $userinfo->email,
         'account_number' => $userinfo->virtual_account,
-        'from' => $userinfo->company->createdby->email,
-        'company_name' => $userinfo->company->company_name,
-        'user' => $userinfo,
+        'from'           => $userinfo->company->createdby->email,
+        'company_name'   => $userinfo->company->company_name,
+        'user'           => $userinfo,
     ];
-    $to = $userinfo->email;
-    $company = $userinfo->company;
+    $to          = $userinfo->email;
+    $company     = $userinfo->company;
     $companyname = $company_name = $company->company_name;
     logInfo($userinfo->email, "email data");
     // Mail::to($userinfo->email)->send(new AccountCreated($datax));
@@ -936,10 +926,10 @@ function sendEmail($title, $msg, $userinfo)
 
 function changePhoneFormatLeadingZero($phone)
 {
-    $newPhone = $phone;
+    $newPhone       = $phone;
     $firstCharacter = substr($newPhone, 0, 3);
     if ($firstCharacter == '234') {
-        $str = ltrim($newPhone, '234');
+        $str      = ltrim($newPhone, '234');
         $newPhone = '0' . $str;
     }
 
@@ -950,16 +940,16 @@ function sendResetEmail($title, $msg, $userinfo)
 {
     try {
         $datax = [
-            'message' => "Notification",
-            'subtext' => "$title",
-            'desc' => $msg,
-            'status' => 1,
-            'name' => $userinfo->first_name . ' ' . $userinfo->last_name,
-            'email' => $userinfo->email,
+            'message'        => "Notification",
+            'subtext'        => "$title",
+            'desc'           => $msg,
+            'status'         => 1,
+            'name'           => $userinfo->first_name . ' ' . $userinfo->last_name,
+            'email'          => $userinfo->email,
             'account_number' => $userinfo->virtual_account,
-            'from' => $userinfo->company->createdby->email,
-            'company_name' => $userinfo->company->company_name,
-            'user' => $userinfo,
+            'from'           => $userinfo->company->createdby->email,
+            'company_name'   => $userinfo->company->company_name,
+            'user'           => $userinfo,
         ];
         $company = $userinfo->company;
         initSMTPconfiguration($company->companyEmail);
@@ -998,13 +988,13 @@ function whatsapp($phone, $msg, $type = 'transaction', $param = [])
 
         if (isset($param[3])) {
 
-            $company_wallet = $param[0];
-            $customerInfo = $param[1];
-            $chargeCustomer = $param[2];
-            $txnid = $param[3];
-            $session = $param[4];
-            $auth = $session;
-            $company = $session->company;
+            $company_wallet       = $param[0];
+            $customerInfo         = $param[1];
+            $chargeCustomer       = $param[2];
+            $txnid                = $param[3];
+            $session              = $param[4];
+            $auth                 = $session;
+            $company              = $session->company;
             $ledgerWhatsappCharge = systemLedgerAccount('Expenses: Company Whatsapp Charge', $auth->company_id)->id;
             $ledgerWhatsappWallet = systemLedgerAccount('Company Whatsapp Wallet', $auth->company_id)->id;
             if ($company_wallet->whatsapp < $amount) {
@@ -1015,30 +1005,30 @@ function whatsapp($phone, $msg, $type = 'transaction', $param = [])
 
             $company_wallet->whatsapp -= $amount;
             $whatsappcharge = $company->setting->whatsapp_charge;
-            $companyUpdate = ['whatsapp' => $company_wallet->whatsapp];
-            $transactionId = generate_txnID();
+            $companyUpdate  = ['whatsapp' => $company_wallet->whatsapp];
+            $transactionId  = generate_txnID();
             logInfo($transactionId, "Whatsapp API");
             $data_company = [
-                "balance_before" => $balanceBefore,
-                "amount" => $amount,
-                "withdrawal_charge" => 0,
-                "description" => "Company Whatsapp Charge",
-                "branch_id" => $customerInfo->branch_id,
-                "transaction_reference" => $transactionId,
-                "transaction_type_id" => 91, //company whatsapp charge
-                "credit_debit_type_id" => 2, //debit 2
-                "transaction_remarks_id" => 1, //success 2
-                "balance_after" => $company_wallet->balance,
-                "created_date"  => date('Y-m-d H:i:s'),
-                "created_by" => $session->id,
-                "parent_transaction_id" => $txnid,
-                "ledger_dr" => $ledgerWhatsappCharge,
-                "ledger_cr" => $ledgerWhatsappWallet,
+                "balance_before"         => $balanceBefore,
+                "amount"                 => $amount,
+                "withdrawal_charge"      => 0,
+                "description"            => "Company Whatsapp Charge",
+                "branch_id"              => $customerInfo->branch_id,
+                "transaction_reference"  => $transactionId,
+                "transaction_type_id"    => 91, //company whatsapp charge
+                "credit_debit_type_id"   => 2,  //debit 2
+                "transaction_remarks_id" => 1,  //success 2
+                "balance_after"          => $company_wallet->balance,
+                "created_date"           => date('Y-m-d H:i:s'),
+                "created_by"             => $session->id,
+                "parent_transaction_id"  => $txnid,
+                "ledger_dr"              => $ledgerWhatsappCharge,
+                "ledger_cr"              => $ledgerWhatsappWallet,
             ];
             if ($chargeCustomer) {
                 if ($data_company != null) {
                     $transaction = transactions::where('id', $txnid)->first();
-                    if (!$transaction) {
+                    if (! $transaction) {
                         return ['status' => 0, 'message' => 'Transaction error'];
                         exit();
                     }
@@ -1047,25 +1037,25 @@ function whatsapp($phone, $msg, $type = 'transaction', $param = [])
                         return ['status' => 0, 'message' => 'Insufficient customer fund'];
                         exit();
                     }
-                    $balanceBefore = $accountInfodata->user_wallet->balance;
+                    $balanceBefore  = $accountInfodata->user_wallet->balance;
                     $chargesBalance = $accountInfodata->user_wallet->balance - $whatsappcharge;
                     user_wallet::where('wb_account_detail_id', $accountInfodata->id)->update(['balance' => $chargesBalance]);
                     $data = [
-                        "balance_before" => $balanceBefore,
-                        "amount" => $whatsappcharge,
-                        "withdrawal_charge" => 0,
-                        "description" => "Customer Whatsapp Charge",
-                        "branch_id" => $customerInfo->branch_id,
-                        "transaction_reference" => generate_txnID(),
-                        "transaction_type_id" => 92, //Customer whatsapp charge
-                        "credit_debit_type_id" => 2, //debit 2
-                        "transaction_remarks_id" => 1, //success 2
-                        "balance_after" => $chargesBalance,
-                        "created_date"  => date('Y-m-d H:i:s'),
-                        "created_by" => $session->id,
-                        "parent_transaction_id" => $txnid,
-                        "ledger_cr" => systemLedgerAccount('Customer WhatsApp Charge', $auth->company_id)->id,
-                        "ledger_dr" => systemLedgerAccount('Customer Saving Deposit', $auth->company_id)->id,
+                        "balance_before"         => $balanceBefore,
+                        "amount"                 => $whatsappcharge,
+                        "withdrawal_charge"      => 0,
+                        "description"            => "Customer Whatsapp Charge",
+                        "branch_id"              => $customerInfo->branch_id,
+                        "transaction_reference"  => generate_txnID(),
+                        "transaction_type_id"    => 92, //Customer whatsapp charge
+                        "credit_debit_type_id"   => 2,  //debit 2
+                        "transaction_remarks_id" => 1,  //success 2
+                        "balance_after"          => $chargesBalance,
+                        "created_date"           => date('Y-m-d H:i:s'),
+                        "created_by"             => $session->id,
+                        "parent_transaction_id"  => $txnid,
+                        "ledger_cr"              => systemLedgerAccount('Customer WhatsApp Charge', $auth->company_id)->id,
+                        "ledger_dr"              => systemLedgerAccount('Customer Saving Deposit', $auth->company_id)->id,
                     ];
                     $transaction = transactions::create($data);
                 }
@@ -1075,45 +1065,45 @@ function whatsapp($phone, $msg, $type = 'transaction', $param = [])
         } else {
             if (Auth::check()) {
                 if (isset($param[0])) {
-                    $auth = auth()->user();
-                    $companywallet =  company_wallet::where('company_id', $auth->company_id)->first();
-                    $balanceBefore = $companywallet->whatsapp;
-                    $balanceafter = $balanceBefore - $amount;
+                    $auth                    = auth()->user();
+                    $companywallet           = company_wallet::where('company_id', $auth->company_id)->first();
+                    $balanceBefore           = $companywallet->whatsapp;
+                    $balanceafter            = $balanceBefore - $amount;
                     $companywallet->whatsapp = $balanceafter;
                     $companywallet->save();
-                    $customerInfo = $param[0];
-                    $auth = $customerInfo;
+                    $customerInfo         = $param[0];
+                    $auth                 = $customerInfo;
                     $ledgerWhatsappCharge = systemLedgerAccount('Expenses: Company Whatsapp Charge', $auth->company_id)->id;
                     $ledgerWhatsappWallet = systemLedgerAccount('Company Whatsapp Wallet', $auth->company_id)->id;
-                    $data_company = [
-                        "balance_before" => $balanceBefore,
-                        "amount" => $amount,
-                        "withdrawal_charge" => 0,
-                        "description" => "Company Whatsapp Charge",
-                        "branch_id" => $customerInfo->branch_id,
-                        "transaction_type_id" => 91, //company whatsapp charge
-                        "credit_debit_type_id" => 2, //debit 2
-                        "transaction_remarks_id" => 1, //success 2
-                        "balance_after" => $balanceafter,
-                        "created_date"  => date('Y-m-d H:i:s'),
-                        "created_by" => $auth->id,
-                        "transaction_reference" => generate_txnID(),
+                    $data_company         = [
+                        "balance_before"         => $balanceBefore,
+                        "amount"                 => $amount,
+                        "withdrawal_charge"      => 0,
+                        "description"            => "Company Whatsapp Charge",
+                        "branch_id"              => $customerInfo->branch_id,
+                        "transaction_type_id"    => 91, //company whatsapp charge
+                        "credit_debit_type_id"   => 2,  //debit 2
+                        "transaction_remarks_id" => 1,  //success 2
+                        "balance_after"          => $balanceafter,
+                        "created_date"           => date('Y-m-d H:i:s'),
+                        "created_by"             => $auth->id,
+                        "transaction_reference"  => generate_txnID(),
                     ];
                     $transaction = transactions::create($data_company);
                 }
             }
         }
         $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://graph.facebook.com/v15.0/111039541873466/messages',
+        curl_setopt_array($curl, [
+            CURLOPT_URL            => 'https://graph.facebook.com/v15.0/111039541873466/messages',
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
+            CURLOPT_ENCODING       => '',
+            CURLOPT_MAXREDIRS      => 10,
+            CURLOPT_TIMEOUT        => 0,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => '{
+            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST  => 'POST',
+            CURLOPT_POSTFIELDS     => '{
         "messaging_product": "whatsapp",
         "to": "' . $phone . '",
         "type": "template",
@@ -1136,11 +1126,11 @@ function whatsapp($phone, $msg, $type = 'transaction', $param = [])
         ]
         }
     }',
-            CURLOPT_HTTPHEADER => array(
+            CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/json',
-                'Authorization: Bearer 77'
-            ),
-        ));
+                'Authorization: Bearer 77',
+            ],
+        ]);
         $response = curl_exec($curl);
         curl_close($curl);
         return $response;
@@ -1152,8 +1142,8 @@ function whatsapp($phone, $msg, $type = 'transaction', $param = [])
 function initSMTPconfiguration($companyEmailConfig)
 {
     if (isset($companyEmailConfig->MAIL_FROM_NAME) && isset($companyEmailConfig->MAIL_FROM_ADDRESS)) {
-        config(['mail.from.name' =>  $companyEmailConfig->MAIL_FROM_NAME]);
-        config(['mail.from.address' =>  $companyEmailConfig->MAIL_FROM_ADDRESS]);
+        config(['mail.from.name' => $companyEmailConfig->MAIL_FROM_NAME]);
+        config(['mail.from.address' => $companyEmailConfig->MAIL_FROM_ADDRESS]);
     }
     if ($companyEmailConfig->companyemail_active) {
         if (isset($companyEmailConfig->MAIL_HOST) && isset($companyEmailConfig->MAIL_USERNAME) && isset($companyEmailConfig->MAIL_PASSWORD) && isset($companyEmailConfig->MAIL_FROM_NAME)) {
@@ -1169,22 +1159,22 @@ function initSMTPconfiguration($companyEmailConfig)
 function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 'Create Account', $accno = '', $usesms = 0, $isApi = false, $all_sms_email = 1, $sms_logdata = [])
 {
     try {
-        $data_in_array = 0;
+        $data_in_array  = 0;
         $external_phone = "";
-        $is_external = false;
-        $fname = '';
-        $lname = '';
+        $is_external    = false;
+        $fname          = '';
+        $lname          = '';
 
         if (is_array($userid)) {
             $data_in_array = $userid;
-            $userid = $data_in_array['userid'];
+            $userid        = $data_in_array['userid'];
             if (isset($data_in_array['isExternal'])) {
                 if ($data_in_array['isExternal']) {
                     $external_phone = $data_in_array['phone'];
-                    $g_email = $data_in_array['email'];
-                    $is_external = $data_in_array['isExternal'];
-                    $lname = $data_in_array['lname'];
-                    $fname = $data_in_array['fname'];
+                    $g_email        = $data_in_array['email'];
+                    $is_external    = $data_in_array['isExternal'];
+                    $lname          = $data_in_array['lname'];
+                    $fname          = $data_in_array['fname'];
                 }
             }
         }
@@ -1192,17 +1182,17 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
         $userType = 1;
 
         if ($type) {
-            $userinfo = User::find($userid);
-            $userType = $userinfo->user_type_id;
+            $userinfo        = User::find($userid);
+            $userType        = $userinfo->user_type_id;
             $accountInfodata = wb_account_details::where('user_id', $userid)->first();
         } else {
             $accountInfodata = wb_account_details::find($userid);
-            $userinfo = User::find($accountInfodata->user_id);
+            $userinfo        = User::find($accountInfodata->user_id);
         }
         if ($is_external) {
-            $phone = $external_phone;
-            $userinfo->email = $g_email;
-            $userinfo->last_name = $lname;
+            $phone                = $external_phone;
+            $userinfo->email      = $g_email;
+            $userinfo->last_name  = $lname;
             $userinfo->first_name = $fname;
         } else {
             $phone = $userinfo->phone;
@@ -1213,37 +1203,44 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
             $auth = auth()->user();
         }
 
-        $totalchar = strlen($msg);
+        logInfo("$userinfo->username", "SMS 2FA Username");
+
+        $totalchar  = strlen($msg);
         $sms_charge = $userinfo->company->setting->sms_charge;
-        $num_page = 1;
+        $num_page   = 1;
         if ($totalchar > 150) {
             $num_page = 2;
         }
         $sms_charge *= $num_page;
         $datax = [
-            'message' => "Notification",
-            'subtext' => "$title",
-            'desc' => $msg,
-            'status' => 1,
-            'name' => $userinfo->first_name . ' ' . $userinfo->last_name,
-            'email' => $userinfo->email,
+            'message'        => "Notification",
+            'subtext'        => "$title",
+            'desc'           => $msg,
+            'status'         => 1,
+            'name'           => $userinfo->first_name . ' ' . $userinfo->last_name,
+            'email'          => $userinfo->email,
             'account_number' => $accno,
-            'from' => $userinfo->company->createdby->email,
-            'company_name' => $userinfo->company->company_name,
-            'user' => $userinfo,
+            'from'           => $userinfo->company->createdby->email,
+            'company_name'   => $userinfo->company->company_name,
+            'user'           => $userinfo,
         ];
         $to = $userinfo->email;
+
+        logInfo("$to", "SMS 2FA to");
+        logInfo("$all_sms_email", "SMS 2FA all_sms_email");
+        logInfo("$usesms", "SMS 2FA usesms");
+
         $company = $userinfo->company;
         $session = User::where('company_id', $company->id)->first();
 
         // }
-        if (!$isApi) {
+        if (! $isApi) {
             $company_short = $company->short_name;
         } else {
             $company_short = "Finova";
         }
 
-        if (($all_sms_email == 1 || $all_sms_email == 3) && !empty($to)) {
+        if (($all_sms_email == 1 || $all_sms_email == 3) && ! empty($to)) {
             // if ($userinfo->email_verified_at != null) {
             if (isset($session->company->companyEmail->MAIL_USERNAME)) {
                 // initSMTPconfiguration($session->company->companyEmail);
@@ -1254,14 +1251,14 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
         }
 
         if (Auth::check()) {
-            $companywallet =  company_wallet::where('company_id', $auth->company_id)->first();
+            $companywallet = company_wallet::where('company_id', $auth->company_id)->first();
         } else {
-            $companywallet =  company_wallet::where('company_id', $userinfo->company_id)->first();
+            $companywallet = company_wallet::where('company_id', $userinfo->company_id)->first();
         }
 
         $firstCharacter = substr($phone, 0, 1);
         if ($firstCharacter == 0) {
-            $str = ltrim($phone, '0');
+            $str   = ltrim($phone, '0');
             $phone = '234' . $str;
         }
         if ($all_sms_email == 4) { //for broadcast message
@@ -1272,17 +1269,20 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
             if (is_array($data_in_array)) {
                 $parent_txn_id = $data_in_array['txnid'];
             }
-            if (Auth::check()) $session = auth()->user();
+            if (Auth::check()) {
+                $session = auth()->user();
+            }
+
             whatsapp($phone, $msg, 'transaction', [$companywallet, $userinfo, $charge_customer, $parent_txn_id, $session]);
         }
         if (($all_sms_email == 1 || $all_sms_email == 2) && ($usesms > 0)) { // if specific sms is tergetted where usesms  is an smsapi ID
 
-            $smsapi = smsapi::where('id', $usesms)->first();
+            $smsapi          = smsapi::where('id', $usesms)->first();
             $smsapi->api_url = $smsapi->api_url . "&" . $smsapi->sender_variable . "=" . $company_short;
-            $msg1 = $msg;
-            $msg = str_replace(' ', '%20', $msg);
-            $apicur = "$smsapi->api_url&$smsapi->phone_variable=$phone&$smsapi->message_variable=$msg";
-            $method = $smsapi->requestMethod->request_method;
+            $msg1            = $msg;
+            $msg             = str_replace(' ', '%20', $msg);
+            $apicur          = "$smsapi->api_url&$smsapi->phone_variable=$phone&$smsapi->message_variable=$msg";
+            $method          = $smsapi->requestMethod->request_method;
             //mail
             $header = [
                 'Content-Type' => $smsapi->content_type,
@@ -1292,10 +1292,11 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
             }
             if ($method == 'POST') {
                 if ($smsapi->name == 'Type 1') {
-                    if (!$isApi)
+                    if (! $isApi) {
                         $company_short = $company->short_name;
-                    else
+                    } else {
                         $company_short = "Cash Matrix";
+                    }
 
                     sendSMSWithVanso($phone, $company_short, $msg1);
                 } else if ($smsapi->name == 'Type 7') {
@@ -1310,17 +1311,17 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                     //     }'
                 } else {
                     $response = Http::withHeaders($header)->post($smsapi->api_url, [
-                        $smsapi->phone_variable => $phone,
+                        $smsapi->phone_variable   => $phone,
                         $smsapi->message_variable => $msg,
                     ]);
                 }
                 $sms_logdata = [
-                    'user_id' => $userinfo->id,
-                    'subject' => $title,
-                    'message' => $msg,
-                    'num_page' => $num_page,
-                    'amount' => $sms_charge,
-                    'hello' => "fhdf",
+                    'user_id'    => $userinfo->id,
+                    'subject'    => $title,
+                    'message'    => $msg,
+                    'num_page'   => $num_page,
+                    'amount'     => $sms_charge,
+                    'hello'      => "fhdf",
                     'created_by' => (Auth::check()) ? auth()->user()->id : $session->id,
                 ];
                 $notify = Notification::create($sms_logdata);
@@ -1332,19 +1333,19 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                     $response = Http::withHeaders($header)->get($apicur);
                 }
                 $sms_logdata = [
-                    'user_id' => $userinfo->id,
-                    'subject' => $title,
-                    'message' => $msg,
-                    'num_page' => $num_page,
-                    'amount' => $sms_charge,
-                    'hello' => "fhdf",
+                    'user_id'    => $userinfo->id,
+                    'subject'    => $title,
+                    'message'    => $msg,
+                    'num_page'   => $num_page,
+                    'amount'     => $sms_charge,
+                    'hello'      => "fhdf",
                     'created_by' => (Auth::check()) ? auth()->user()->id : $session->id,
                 ];
                 //}
                 // if($sms_charge > 0){
                 $notify = Notification::create($sms_logdata);
                 // die(var_dump($sms_logdata));
-                if (!$notify) {
+                if (! $notify) {
                     return $notify;
                 }
                 return $response;
@@ -1354,23 +1355,23 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
             if ($userinfo->sms == 1 || $is_external == true) {
                 $setting = $company->setting;
                 if ($setting->allsms_state) {
-                    $sms_charge = $setting->sms_charge;
-                    $can_proceed = false;
-                    $sms_charge_frequencie_id  = $setting->sms_charge_frequencie_id;
+                    $sms_charge               = $setting->sms_charge;
+                    $can_proceed              = false;
+                    $sms_charge_frequencie_id = $setting->sms_charge_frequencie_id;
                     if (1 == $sms_charge_frequencie_id) { //if instant
                         if ($charge_customer) {
                             if ($userType == 1) {
-                                $mywallet = $accountInfodata->user_wallet;
+                                $mywallet  = $accountInfodata->user_wallet;
                                 $mybalance = $mywallet->balance;
                             } else {
-                                $mywallet = $userinfo->company->wallet;
+                                $mywallet  = $userinfo->company->wallet;
                                 $mybalance = $mywallet->balance;
                             }
                             if ($sms_charge <= $mybalance && $companywallet->sms >= $sms_charge) {
-                                $can_proceed = true;
-                                $user = $mywallet;
+                                $can_proceed       = true;
+                                $user              = $mywallet;
                                 $userbalanceBefore = $user->balance;
-                                $user->balance = $user->balance - $sms_charge;
+                                $user->balance     = $user->balance - $sms_charge;
                                 $user->save();
                                 $parent_txn_id = null;
                                 if (is_array($data_in_array)) {
@@ -1379,36 +1380,36 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                 // logInfo($accountInfodata->id, "before inserting transaction");
                                 logInfo($userinfo->id, "staff ID before inserting transaction");
                                 $data = [
-                                    "balance_before" => $userbalanceBefore,
-                                    "amount" => $sms_charge,
-                                    "withdrawal_charge" => 0,
-                                    "description" => 'Instant SMS Charge',
-                                    "account_id" => $userType == 1 ? $accountInfodata->id : NULL,
-                                    "branch_id" => $userinfo->branch_id,
-                                    "company_id" => $userinfo->company_id,
-                                    "transaction_reference" => generate_txnID(),
-                                    "transaction_type_id" => 33, //debit 7
+                                    "balance_before"         => $userbalanceBefore,
+                                    "amount"                 => $sms_charge,
+                                    "withdrawal_charge"      => 0,
+                                    "description"            => 'Instant SMS Charge',
+                                    "account_id"             => $userType == 1 ? $accountInfodata->id : null,
+                                    "branch_id"              => $userinfo->branch_id,
+                                    "company_id"             => $userinfo->company_id,
+                                    "transaction_reference"  => generate_txnID(),
+                                    "transaction_type_id"    => 33, //debit 7
                                     "company_balance_before" => $mybalance,
-                                    "company_amount" => $sms_charge,
-                                    "company_balance_after" => $mybalance - $sms_charge,
-                                    "credit_debit_type_id" => 2, //debit 2
+                                    "company_amount"         => $sms_charge,
+                                    "company_balance_after"  => $mybalance - $sms_charge,
+                                    "credit_debit_type_id"   => 2, //debit 2
                                     "transaction_remarks_id" => 2, //success 2
-                                    "balance_after" => $user->balance,
-                                    "created_date"  => date('Y-m-d'),
-                                    "created_by" => $userinfo->id,
-                                    "parent_transaction_id" => $parent_txn_id,
-                                    "ledger_cr" => systemLedgerAccount('Customer SMS Charge', $auth->company_id)->id,
-                                    "ledger_dr" => systemLedgerAccount('Customer Saving Deposit', $auth->company_id)->id,
+                                    "balance_after"          => $user->balance,
+                                    "created_date"           => date('Y-m-d'),
+                                    "created_by"             => $userinfo->id,
+                                    "parent_transaction_id"  => $parent_txn_id,
+                                    "ledger_cr"              => systemLedgerAccount('Customer SMS Charge', $auth->company_id)->id,
+                                    "ledger_dr"              => systemLedgerAccount('Customer Saving Deposit', $auth->company_id)->id,
                                 ];
                                 if ($sms_charge > 0) {
-                                    $smstxt = transactions::create($data);
+                                    $smstxt      = transactions::create($data);
                                     $sms_logdata = [
-                                        'user_id' => $userinfo->id,
-                                        'subject' => $title,
-                                        'message' => $msg,
-                                        'num_page' => $num_page,
-                                        'amount' => $sms_charge,
-                                        'hello' => "fhdf",
+                                        'user_id'    => $userinfo->id,
+                                        'subject'    => $title,
+                                        'message'    => $msg,
+                                        'num_page'   => $num_page,
+                                        'amount'     => $sms_charge,
+                                        'hello'      => "fhdf",
                                         'created_by' => (Auth::check()) ? auth()->user()->id : $session->id,
                                     ];
                                     $notify = Notification::create($sms_logdata);
@@ -1423,7 +1424,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                     } else {
 
                         $can_proceed = true;
-                        $due = date('Y-m-d');
+                        $due         = date('Y-m-d');
                         if ($sms_charge_frequencie_id == 2) {
                             $due = add_day_to_date(7, $due);
                         }
@@ -1437,22 +1438,22 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                         if ($userType == 1) {
                             $tempcharge = [
                                 'wb_account_detail_id' => $accountInfodata->id,
-                                'amount' => $sms_charge,
-                                'type' => 'SMS',
-                                'date_due' => $due,
-                                'status' => 0,
-                                'created_by' => $auth->id
+                                'amount'               => $sms_charge,
+                                'type'                 => 'SMS',
+                                'date_due'             => $due,
+                                'status'               => 0,
+                                'created_by'           => $auth->id,
                             ];
                             Temp_Charges::create($tempcharge);
                         }
                     }
                     if ($can_proceed) {
-                        $smsapi  = $setting->smsapi;
-                        $msg1 = $msg;
+                        $smsapi          = $setting->smsapi;
+                        $msg1            = $msg;
                         $smsapi->api_url = $smsapi->api_url . "&" . $smsapi->sender_variable . "=" . $company_short;
-                        $msg = str_replace(' ', '%20', $msg);
-                        $apicur = "$smsapi->api_url&$smsapi->phone_variable=$phone&$smsapi->message_variable=$msg";
-                        $method = $smsapi->requestMethod->request_method;
+                        $msg             = str_replace(' ', '%20', $msg);
+                        $apicur          = "$smsapi->api_url&$smsapi->phone_variable=$phone&$smsapi->message_variable=$msg";
+                        $method          = $smsapi->requestMethod->request_method;
                         //wba SMS charge
                         $proceedTwo = false;
                         if ($smsapi->access_setup) {
@@ -1487,10 +1488,10 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
 
                                     $firstCharacter = substr($phone, 0, 1);
                                     if ($firstCharacter == 0) {
-                                        $str = ltrim($phone, '0');
+                                        $str   = ltrim($phone, '0');
                                         $phone = '234' . $str;
                                     }
-                                    if (!$isApi) {
+                                    if (! $isApi) {
                                         $company_short = $company->short_name;
                                     } else {
                                         $company_short = "WBA";
@@ -1502,7 +1503,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                     }
                                 } else {
                                     $response = Http::withHeaders($header)->post($smsapi->api_url, [
-                                        $smsapi->phone_variable => $phone,
+                                        $smsapi->phone_variable   => $phone,
                                         $smsapi->message_variable => $msg,
                                     ]);
                                 }
@@ -1515,17 +1516,17 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                             }
                             if (isset($userinfo->id)) {
                                 $sms_logdata = [
-                                    'user_id' => $userinfo->id,
-                                    'subject' => $title,
-                                    'message' => str_replace('%20', ' ', $msg),
-                                    'num_page' => $num_page,
-                                    'amount' => $sms_charge,
-                                    'hello' => "fhdf",
+                                    'user_id'    => $userinfo->id,
+                                    'subject'    => $title,
+                                    'message'    => str_replace('%20', ' ', $msg),
+                                    'num_page'   => $num_page,
+                                    'amount'     => $sms_charge,
+                                    'hello'      => "fhdf",
                                     'created_by' => (Auth::check()) ? auth()->user()->id : $session->id,
                                 ];
                                 $notify = Notification::create($sms_logdata);
                             }
-                            return  $response;
+                            return $response;
                         } else {
                             return "Company Wallet empty" . $companywallet->sms . ">." . $smsapi->smscharge;
                         }
@@ -1546,16 +1547,16 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
 function raw_venso_api($phone, $company_short, $msg1, $systemID = 'NG.101.0222', $password = 'gLlUpU0y', $basicAuth = 'TkcuMTAxLjAyMjI6Z0xsVXBVMHk=')
 {
     $curl = curl_init();
-    curl_setopt_array($curl, array(
-        CURLOPT_URL => 'https://sms.vanso.com/rest/sms/submit',
+    curl_setopt_array($curl, [
+        CURLOPT_URL            => 'https://sms.vanso.com/rest/sms/submit',
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 0,
+        CURLOPT_ENCODING       => '',
+        CURLOPT_MAXREDIRS      => 10,
+        CURLOPT_TIMEOUT        => 0,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_POSTFIELDS => '{
+        CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST  => 'POST',
+        CURLOPT_POSTFIELDS     => '{
                                             "account": {
                                                 "password": "' . $password . '",
                                                 "systemId": "' . $systemID . '"
@@ -1566,11 +1567,11 @@ function raw_venso_api($phone, $company_short, $msg1, $systemID = 'NG.101.0222',
                                                 "text": "' . $msg1 . '"
                                             }
                                         }',
-        CURLOPT_HTTPHEADER => array(
+        CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
-            'Authorization: Basic ' . $basicAuth
-        ),
-    ));
+            'Authorization: Basic ' . $basicAuth,
+        ],
+    ]);
     $response = curl_exec($curl);
     logInfo($response, "vanso sms log4");
     curl_close($curl);
@@ -1582,21 +1583,21 @@ function sendSMSWithHollatag($phone, $company_short, $msg1)
 
     $message = urlencode($msg1);
 
-    curl_setopt_array($curl, array(
-        CURLOPT_URL => 'https://sms.hollatags.com/api/send/',
+    curl_setopt_array($curl, [
+        CURLOPT_URL            => 'https://sms.hollatags.com/api/send/',
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 0,
+        CURLOPT_ENCODING       => '',
+        CURLOPT_MAXREDIRS      => 10,
+        CURLOPT_TIMEOUT        => 0,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_POSTFIELDS => "user=shema&pass=shema%40123&from=$company_short&to=$phone&msg=$message",
-        CURLOPT_HTTPHEADER => array(
+        CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST  => 'POST',
+        CURLOPT_POSTFIELDS     => "user=shema&pass=shema%40123&from=$company_short&to=$phone&msg=$message",
+        CURLOPT_HTTPHEADER     => [
             'Content-Type: application/x-www-form-urlencoded',
-            'Cookie: nuM_session=p%2B9P3hjrQUl4bV2BALzBEz%2FRSenfJuvpFreFbySNZ%2Ff2qQG%2Bz81RGa%2F2AVMYil8TCfmP5BxQPgndcwBjZ%2FbRLq58w8T8MFzd%2BhL6kHRY7xZeAIOmNx6BEHEW8F0ASgirUGu4%2FT9FBsDX0hn5Kr5LeKMPXxBZOx3pp%2FdUyBmfiCeXMcOJhbWXAiPOLxeAnbvh1wgtYgBE8wus4LC01Wu1sx%2BVrjiYWnVLw3%2FZtGoD6n6f9MpHsfsQ9%2FxUuEjcp66SPULN24RVSh0UgTP3WKUWQU9W77f1Qee1L%2B5R8TlvOIo%3D'
-        ),
-    ));
+            'Cookie: nuM_session=p%2B9P3hjrQUl4bV2BALzBEz%2FRSenfJuvpFreFbySNZ%2Ff2qQG%2Bz81RGa%2F2AVMYil8TCfmP5BxQPgndcwBjZ%2FbRLq58w8T8MFzd%2BhL6kHRY7xZeAIOmNx6BEHEW8F0ASgirUGu4%2FT9FBsDX0hn5Kr5LeKMPXxBZOx3pp%2FdUyBmfiCeXMcOJhbWXAiPOLxeAnbvh1wgtYgBE8wus4LC01Wu1sx%2BVrjiYWnVLw3%2FZtGoD6n6f9MpHsfsQ9%2FxUuEjcp66SPULN24RVSh0UgTP3WKUWQU9W77f1Qee1L%2B5R8TlvOIo%3D',
+        ],
+    ]);
 
     $response = curl_exec($curl);
 
@@ -1607,16 +1608,16 @@ function sendSMSWithHollatag($phone, $company_short, $msg1)
 function sendSMSWithVanso($phone, $company_short, $msg1)
 {
     $curl = curl_init();
-    curl_setopt_array($curl, array(
-        CURLOPT_URL => 'https://sms.hollatags.com/api/send/?user=shema&pass=shema@123',
+    curl_setopt_array($curl, [
+        CURLOPT_URL            => 'https://sms.hollatags.com/api/send/?user=shema&pass=shema@123',
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 0,
+        CURLOPT_ENCODING       => '',
+        CURLOPT_MAXREDIRS      => 10,
+        CURLOPT_TIMEOUT        => 0,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_POSTFIELDS => '{
+        CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST  => 'POST',
+        CURLOPT_POSTFIELDS     => '{
             "account": {
                 "password": "gLlUpU0y",
                 "systemId": "NG.101.0222"
@@ -1627,11 +1628,11 @@ function sendSMSWithVanso($phone, $company_short, $msg1)
                     "text": "' . $msg1 . '"
                 }
             }',
-        CURLOPT_HTTPHEADER => array(
+        CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
-            'Authorization: Basic shema='
-        ),
-    ));
+            'Authorization: Basic shema=',
+        ],
+    ]);
 
     $response = curl_exec($curl);
 
@@ -1645,7 +1646,6 @@ function checkdate_day($n)
     $day = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Sarturday', 'Sunday'];
     return $day[$n];
 }
-
 
 function nomoney()
 {
@@ -1668,7 +1668,7 @@ function checkcustomerrestrictionData($userid, $restriction)
 
 function getBanksFromDB($type)
 {
-    return $banks = $type == 'long' ? banks::orderBy('bank_name', 'ASC')->get() : banks::where('short_code', '<>', '')->get(['id', 'bank_name', 'short_code AS bank_code',]);
+    return $banks = $type == 'long' ? banks::orderBy('bank_name', 'ASC')->get() : banks::where('short_code', '<>', '')->get(['id', 'bank_name', 'short_code AS bank_code']);
 }
 
 function checkCustomerBalance($accountId, $amount)
@@ -1720,29 +1720,29 @@ function creditCustomerAndCompany($customerAccountId, $companyId, $customerAmoun
 
     if ($customerAmount > 0 || $companyAmount > 0) {
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
+        $userWallet             = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
         $customerInitialBalance = $userWallet->balance;
-        $customerFinalBalance = $userWallet->balance + $customerAmount;
-        $userWallet->balance = $customerFinalBalance;
+        $customerFinalBalance   = $userWallet->balance + $customerAmount;
+        $userWallet->balance    = $customerFinalBalance;
         $userWallet->save();
         if (isset($userWallet->wb_account_details->user->branch_id)) {
             $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
             $BranchWallet->balance += $customerAmount;
             $BranchWallet->save();
         }
-        $company = Company::find($companyId);
+        $company               = Company::find($companyId);
         $companyInitialBalance = $company->wallet->balance;
         $company->wallet->balance += $companyAmount;
         $company->wallet->save();
 
         $response = [
-            "status" => true,
-            'message' => "Amount is Valid",
-            'account_id' => $customerAccountId,
-            'balance_before' => $customerInitialBalance,
-            'balance_after' => $customerFinalBalance,
+            "status"                 => true,
+            'message'                => "Amount is Valid",
+            'account_id'             => $customerAccountId,
+            'balance_before'         => $customerInitialBalance,
+            'balance_after'          => $customerFinalBalance,
             'company_balance_before' => $companyInitialBalance,
-            'company_balance_after' => $company->wallet->balance
+            'company_balance_after'  => $company->wallet->balance,
         ];
     } else {
         $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
@@ -1757,12 +1757,12 @@ function creditCustomerAndCompanyWithCharge($customerAccountId, $companyId, $ori
 
     if ($originalAmount > 0) {
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
+        $userWallet             = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
         $customerInitialBalance = $userWallet->balance;
-        $customerBalanceAfter = $customerInitialBalance + $originalAmount;
+        $customerBalanceAfter   = $customerInitialBalance + $originalAmount;
 
         // $customerChargeBalanceAfter = $customerBalanceAfter - $customerCharge;
-        $amountPay = ($originalAmount - $customerCharge);
+        $amountPay            = ($originalAmount - $customerCharge);
         $customerFinalBalance = $userWallet->balance += $amountPay;
         $userWallet->save();
         if (isset($userWallet->wb_account_details->user->branch_id)) {
@@ -1771,24 +1771,24 @@ function creditCustomerAndCompanyWithCharge($customerAccountId, $companyId, $ori
             $BranchWallet->save();
         }
 
-        $company = Company::find($companyId);
+        $company               = Company::find($companyId);
         $companyCurrentBalance = $company->wallet->balance;
-        $companyBalanceAfter = $company->wallet->balance + $originalAmount;
-        $companyFinalBalance = $company->wallet->balance += ($originalAmount - $companyCharge);
+        $companyBalanceAfter   = $company->wallet->balance + $originalAmount;
+        $companyFinalBalance   = $company->wallet->balance += ($originalAmount - $companyCharge);
         $company->wallet->save();
 
         $response = [
-            "status" => true,
-            'message' => "Amount is Valid",
-            'account_id' => $customerAccountId,
-            'company_balance_before' => $companyCurrentBalance,
-            'company_balance_after' => $companyBalanceAfter,
+            "status"                        => true,
+            'message'                       => "Amount is Valid",
+            'account_id'                    => $customerAccountId,
+            'company_balance_before'        => $companyCurrentBalance,
+            'company_balance_after'         => $companyBalanceAfter,
             'company_charge_balance_before' => $companyBalanceAfter,
-            'company_charge_balance_after' => $companyFinalBalance,
-            'balance_before' => $customerInitialBalance,
-            'balance_after' => $customerBalanceAfter,
-            'charge_balance_before' => $customerBalanceAfter,
-            'charge_balance_after' => $customerFinalBalance
+            'company_charge_balance_after'  => $companyFinalBalance,
+            'balance_before'                => $customerInitialBalance,
+            'balance_after'                 => $customerBalanceAfter,
+            'charge_balance_before'         => $customerBalanceAfter,
+            'charge_balance_after'          => $customerFinalBalance,
         ];
     } else {
         $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
@@ -1805,34 +1805,34 @@ function creditPOSTerminal($terminalCode, $originalAmount, $charge, $companyChar
 
         $agentTerminal = AgentTerminal::where('terminal_code', $terminalCode)->first();
 
-        if (!$agentTerminal) {
+        if (! $agentTerminal) {
             $response = ["status" => false, 'message' => "Invalid POS Terminal"];
         }
 
         $currentAgentBalance = $agentTerminal->balance;
-        $agentBalanceAfter = $currentAgentBalance + $originalAmount;
-        $customerCharge = $charge + $companyCharge;
-        $amountToCredit = $originalAmount - $customerCharge;
-        $finalAgentBalance = $agentTerminal->balance += $amountToCredit;
+        $agentBalanceAfter   = $currentAgentBalance + $originalAmount;
+        $customerCharge      = $charge + $companyCharge;
+        $amountToCredit      = $originalAmount - $customerCharge;
+        $finalAgentBalance   = $agentTerminal->balance += $amountToCredit;
         $agentTerminal->save();
 
-        $company = Company::find($companyId);
+        $company               = Company::find($companyId);
         $companyCurrentBalance = $company->wallet->balance;
-        $companyFinalBalance = $company->wallet->balance += ($charge);
+        $companyFinalBalance   = $company->wallet->balance += ($charge);
         $company->wallet->save();
 
         $response = [
-            "status" => true,
-            'message' => "Amount is Valid",
-            'company_balance_before' => $companyCurrentBalance,
-            'company_balance_after' => $companyFinalBalance,
-            'company_amount' => $charge,
-            'pos_balance_before' => $currentAgentBalance,
-            'pos_balance_after' => $agentBalanceAfter,
-            'pos_amount' => $amountToCredit,
+            "status"                    => true,
+            'message'                   => "Amount is Valid",
+            'company_balance_before'    => $companyCurrentBalance,
+            'company_balance_after'     => $companyFinalBalance,
+            'company_amount'            => $charge,
+            'pos_balance_before'        => $currentAgentBalance,
+            'pos_balance_after'         => $agentBalanceAfter,
+            'pos_amount'                => $amountToCredit,
             'pos_charge_balance_before' => $agentBalanceAfter,
-            'pos_charge_balance_after' => $finalAgentBalance,
-            'pos_charge_amount' => $charge,
+            'pos_charge_balance_after'  => $finalAgentBalance,
+            'pos_charge_amount'         => $charge,
         ];
     } else {
         $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
@@ -1847,32 +1847,32 @@ function sweepCustomerAccountAndCreditCompanyWithCharge($customerAccountId, $com
 
     if ($originalAmount > 0) {
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
+        $userWallet             = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
         $customerInitialBalance = $userWallet->balance;
-        $customerBalanceAfter = $customerInitialBalance + $originalAmount;
+        $customerBalanceAfter   = $customerInitialBalance + $originalAmount;
 
         // $customerChargeBalanceAfter = $customerBalanceAfter - $customerCharge;
 
         $customerFinalBalance = $userWallet->balance += ($originalAmount - $customerCharge);
 
-        $company = Company::find($companyId);
+        $company               = Company::find($companyId);
         $companyCurrentBalance = $company->wallet->balance;
-        $companyBalanceAfter = $company->wallet->balance + $originalAmount;
-        $companyFinalBalance = $company->wallet->balance += ($originalAmount - $companyCharge);
+        $companyBalanceAfter   = $company->wallet->balance + $originalAmount;
+        $companyFinalBalance   = $company->wallet->balance += ($originalAmount - $companyCharge);
         $company->wallet->save();
 
         $response = [
-            "status" => true,
-            'message' => "Amount is Valid",
-            'account_id' => $customerAccountId,
-            'company_balance_before' => $companyCurrentBalance,
-            'company_balance_after' => $companyBalanceAfter,
+            "status"                        => true,
+            'message'                       => "Amount is Valid",
+            'account_id'                    => $customerAccountId,
+            'company_balance_before'        => $companyCurrentBalance,
+            'company_balance_after'         => $companyBalanceAfter,
             'company_charge_balance_before' => $companyBalanceAfter,
-            'company_charge_balance_after' => $companyFinalBalance,
-            'balance_before' => $customerInitialBalance,
-            'balance_after' => $customerInitialBalance,
-            'charge_balance_before' => $customerInitialBalance,
-            'charge_balance_after' => $customerInitialBalance
+            'company_charge_balance_after'  => $companyFinalBalance,
+            'balance_before'                => $customerInitialBalance,
+            'balance_after'                 => $customerInitialBalance,
+            'charge_balance_before'         => $customerInitialBalance,
+            'charge_balance_after'          => $customerInitialBalance,
         ];
     } else {
         $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
@@ -1903,12 +1903,12 @@ function creditCustomerOnly($customerAccountId, $originalAmount, $charge = 0.0)
         }
 
         $response = [
-            "status" => true,
-            'message' => "Amount is Valid",
-            'amount' => $creditAmount,
-            'account_id' => $customerAccountId,
+            "status"         => true,
+            'message'        => "Amount is Valid",
+            'amount'         => $creditAmount,
+            'account_id'     => $customerAccountId,
             'balance_before' => $customerInitialBalance,
-            'balance_after' => $customerBalanceAfter
+            'balance_after'  => $customerBalanceAfter,
         ];
     } else {
         $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
@@ -1923,7 +1923,7 @@ function debitCustomerOnly($customerAccountId, $originalAmount, $user)
 
     if ($originalAmount > 0) {
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
+        $userWallet             = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
         $customerInitialBalance = $userWallet->balance;
 
         $minBalance = $user->company->setting->min_withdraw_charge;
@@ -1938,11 +1938,11 @@ function debitCustomerOnly($customerAccountId, $originalAmount, $user)
                 $BranchWallet->save();
             }
             $response = [
-                "status" => true,
-                'message' => "Amount is Valid",
-                'account_id' => $customerAccountId,
+                "status"         => true,
+                'message'        => "Amount is Valid",
+                'account_id'     => $customerAccountId,
                 'balance_before' => $customerInitialBalance,
-                'balance_after' => $customerBalanceAfter
+                'balance_after'  => $customerBalanceAfter,
             ];
         } else {
             $response = ["status" => false, 'message' => "Not Sufficient funds"];
@@ -1960,7 +1960,7 @@ function debitCustomerWithCharge($customerAccountId, $originalAmount, $charge, $
 
     if ($originalAmount > 0) {
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
+        $userWallet             = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
         $customerInitialBalance = $userWallet->balance;
 
         $debitAmount = $originalAmount + $charge;
@@ -1979,13 +1979,13 @@ function debitCustomerWithCharge($customerAccountId, $originalAmount, $charge, $
             }
 
             $response = [
-                "status" => true,
-                'amount' => $debitAmount,
-                'message' => "Amount is Valid",
-                'message' => "Amount is Valid",
-                'account_id' => $customerAccountId,
+                "status"         => true,
+                'amount'         => $debitAmount,
+                'message'        => "Amount is Valid",
+                'message'        => "Amount is Valid",
+                'account_id'     => $customerAccountId,
                 'balance_before' => $customerInitialBalance,
-                'balance_after' => $customerBalanceAfter
+                'balance_after'  => $customerBalanceAfter,
             ];
         } else {
             $response = ["status" => false, 'message' => "Not Sufficient funds"];
@@ -1996,68 +1996,64 @@ function debitCustomerWithCharge($customerAccountId, $originalAmount, $charge, $
     return $response;
 }
 
-
-
 function debitPOSTerminalWithCharge($terminalId, $originalAmount, $charge, $companyCharge, $user)
 {
 
     $response = [];
-    
-    try{
 
-    if ($originalAmount > 0) {
+    try {
 
-        $userPOS = AgentTerminal::where('id', $terminalId)->first();
+        if ($originalAmount > 0) {
 
-        $customerInitialBalance = $userPOS->balance;
+            $userPOS = AgentTerminal::where('id', $terminalId)->first();
 
-        $debitAmount = $originalAmount + $charge + $companyCharge;
+            $customerInitialBalance = $userPOS->balance;
 
-        $minBalance = $user->company->setting->min_withdraw_charge;
+            $debitAmount = $originalAmount + $charge + $companyCharge;
 
-        if (($customerInitialBalance - $minBalance) > $debitAmount) {
+            $minBalance = $user->company->setting->min_withdraw_charge;
 
-            $customerBalanceAfter = $userPOS->balance -= $debitAmount;
-            $userPOS->save();
-            
-            $companyWallet = company_wallet::where('company_id', $user->company_id)->lockForUpdate()->first();
+            if (($customerInitialBalance - $minBalance) > $debitAmount) {
 
-            $companyBalanceBefore = $companyWallet->balance;
-            $companyBalanceAfter = $companyWallet->balance +=  $charge;
-            $companyWallet->save();
+                $customerBalanceAfter = $userPOS->balance -= $debitAmount;
+                $userPOS->save();
 
-            $response = [
-                "status" => true,
-                'amount' => $debitAmount,
-                'message' => "Amount is Valid",
-                'balance_before' => $customerInitialBalance,
-                'balance_after' => $customerBalanceAfter,
-                'company_balance_before' => $companyBalanceBefore,
-                'company_amount' => $charge,
-                'company_balance_after' => $companyBalanceAfter,
-            ];
+                $companyWallet = company_wallet::where('company_id', $user->company_id)->lockForUpdate()->first();
+
+                $companyBalanceBefore = $companyWallet->balance;
+                $companyBalanceAfter  = $companyWallet->balance += $charge;
+                $companyWallet->save();
+
+                $response = [
+                    "status"                 => true,
+                    'amount'                 => $debitAmount,
+                    'message'                => "Amount is Valid",
+                    'balance_before'         => $customerInitialBalance,
+                    'balance_after'          => $customerBalanceAfter,
+                    'company_balance_before' => $companyBalanceBefore,
+                    'company_amount'         => $charge,
+                    'company_balance_after'  => $companyBalanceAfter,
+                ];
+            } else {
+                $response = ["status" => false, 'responseCode' => 0, 'message' => "Not Sufficient funds"];
+            }
         } else {
-            $response = ["status" => false, 'responseCode' => 0, 'message' => "Not Sufficient funds"];
+            $response = ["status" => false, 'responseCode' => 1, 'message' => "Invalid Transaction Amount"];
         }
-    } else {
-        $response = ["status" => false, 'responseCode' => 1, 'message' => "Invalid Transaction Amount"];
-    }
-    return $response;
-    
-    }catch(Exception $e){
+        return $response;
+
+    } catch (Exception $e) {
         logInfo($e->getMessage(), "Server error things");
         $response = ["status" => false, 'message' => "Server error"];
     }
 }
 
-
-
-function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = NULL)
+function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
 {
 
     $response = [];
 
-    if (!Auth::check()) {
+    if (! Auth::check()) {
         $currentUser = $user;
     } else {
         $currentUser = auth()->user();
@@ -2067,7 +2063,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
         $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
 
-        if (!$userWallet) {
+        if (! $userWallet) {
             $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
         }
 
@@ -2085,7 +2081,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
             if ($companyWallet->balance > ($originalAmount + $customerCharge)) {
 
                 $customerBalanceAfter = $customerInitialBalance - $originalAmount;
-                $paymentcash = ($originalAmount + $customerCharge);
+                $paymentcash          = ($originalAmount + $customerCharge);
                 $customerFinalBalance = $userWallet->balance -= $paymentcash;
 
                 if ($userWallet->save()) {
@@ -2094,7 +2090,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
                     $BranchWallet->save();
                 }
                 $companyInitialBalance = $companyWallet->balance;
-                $companyBalanceAfter = $companyInitialBalance - $originalAmount;
+                $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 
                 $companyFinalBalance = $companyWallet->balance -= ($originalAmount + $companyCharge);
                 $companyWallet->save();
@@ -2103,18 +2099,18 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
                 $currentUser->save();
 
                 $response = [
-                    "status" => true,
-                    'message' => "Amount is Valid",
-                    'account_id' => $customerAccountId,
-                    'balance_before' => $customerInitialBalance,
-                    'balance_after' => $customerBalanceAfter,
-                    'charge_balance_before' => $customerBalanceAfter,
-                    'charge_balance_after' => $customerFinalBalance,
-                    'company_balance_before' => $companyInitialBalance,
-                    'company_amount' => $originalAmount,
-                    'company_balance_after' => $companyBalanceAfter,
+                    "status"                        => true,
+                    'message'                       => "Amount is Valid",
+                    'account_id'                    => $customerAccountId,
+                    'balance_before'                => $customerInitialBalance,
+                    'balance_after'                 => $customerBalanceAfter,
+                    'charge_balance_before'         => $customerBalanceAfter,
+                    'charge_balance_after'          => $customerFinalBalance,
+                    'company_balance_before'        => $companyInitialBalance,
+                    'company_amount'                => $originalAmount,
+                    'company_balance_after'         => $companyBalanceAfter,
                     'company_charge_balance_before' => $companyBalanceAfter,
-                    'company_charge_balance_after' => $companyFinalBalance
+                    'company_charge_balance_after'  => $companyFinalBalance,
                 ];
             } else {
                 $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
@@ -2137,14 +2133,12 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
     return $response;
 }
 
-
-function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = NULL)
+function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
 {
 
     $response = [];
 
-
-    if (!Auth::check()) {
+    if (! Auth::check()) {
         $currentUser = $user;
     } else {
         $currentUser = auth()->user();
@@ -2154,7 +2148,7 @@ function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, 
 
         $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
 
-        if (!$userWallet) {
+        if (! $userWallet) {
             $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
         }
 
@@ -2170,9 +2164,8 @@ function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, 
             if ($company->wallet->balance > ($originalAmount + $customerCharge)) {
 
                 $customerBalanceAfter = $customerInitialBalance - $originalAmount;
-                $paymentcash = ($originalAmount + $customerCharge);
+                $paymentcash          = ($originalAmount + $customerCharge);
                 $customerFinalBalance = $userWallet->balance -= $paymentcash;
-
 
                 // if ($userWallet->save()) {
                 $BranchWallet = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
@@ -2180,28 +2173,27 @@ function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, 
                 // $BranchWallet->save();
                 // }
                 $companyInitialBalance = $company->wallet->balance;
-                $companyBalanceAfter = $companyInitialBalance - $originalAmount;
+                $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 
                 $companyFinalBalance = $company->wallet->balance -= ($originalAmount + $companyCharge);
                 // $company->wallet->save();
-
 
                 $currentUser->balance_fails = 0;
                 $currentUser->save();
 
                 $response = [
-                    "status" => true,
-                    'message' => "Amount is Valid",
-                    'account_id' => $customerAccountId,
-                    'balance_before' => $customerInitialBalance,
-                    'balance_after' => $customerBalanceAfter,
-                    'charge_balance_before' => $customerBalanceAfter,
-                    'charge_balance_after' => $customerFinalBalance,
-                    'company_balance_before' => $companyInitialBalance,
-                    'company_amount' => $originalAmount,
-                    'company_balance_after' => $companyBalanceAfter,
+                    "status"                        => true,
+                    'message'                       => "Amount is Valid",
+                    'account_id'                    => $customerAccountId,
+                    'balance_before'                => $customerInitialBalance,
+                    'balance_after'                 => $customerBalanceAfter,
+                    'charge_balance_before'         => $customerBalanceAfter,
+                    'charge_balance_after'          => $customerFinalBalance,
+                    'company_balance_before'        => $companyInitialBalance,
+                    'company_amount'                => $originalAmount,
+                    'company_balance_after'         => $companyBalanceAfter,
                     'company_charge_balance_before' => $companyBalanceAfter,
-                    'company_charge_balance_after' => $companyFinalBalance
+                    'company_charge_balance_after'  => $companyFinalBalance,
                 ];
             } else {
                 $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
@@ -2224,12 +2216,11 @@ function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, 
     return $response;
 }
 
-
-function debitCustomerAndCompanyPOSWithChargeAndCommission($customerAccountId, $terminalCode, $companyId, $originalAmount, $customerCharge, $companyCommission, $user = NULL)
+function debitCustomerAndCompanyPOSWithChargeAndCommission($customerAccountId, $terminalCode, $companyId, $originalAmount, $customerCharge, $companyCommission, $user = null)
 {
     $response = [];
 
-    if (!Auth::check()) {
+    if (! Auth::check()) {
         $currentUser = $user;
     } else {
         $currentUser = auth()->user();
@@ -2239,7 +2230,7 @@ function debitCustomerAndCompanyPOSWithChargeAndCommission($customerAccountId, $
 
         $userPOS = AgentTerminal::where('terminal_code', $terminalCode)->first();
 
-        if (!$userPOS) {
+        if (! $userPOS) {
             $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid POS terminal Code"];
         }
 
@@ -2255,7 +2246,7 @@ function debitCustomerAndCompanyPOSWithChargeAndCommission($customerAccountId, $
             $userPOS->save();
 
             $companyInitialBalance = $company->wallet->balance;
-            $companyBalanceAfter = $companyInitialBalance;
+            $companyBalanceAfter   = $companyInitialBalance;
 
             $companyFinalBalance = $company->wallet->balance += ($companyCommission);
             $company->wallet->save();
@@ -2264,19 +2255,19 @@ function debitCustomerAndCompanyPOSWithChargeAndCommission($customerAccountId, $
             $currentUser->save();
 
             $response = [
-                "status" => true,
-                'message' => "Amount is Valid",
-                'account_id' => $customerAccountId,
-                'pos_amount' => $originalAmount + $customerCharge,
-                'pos_balance_before' => $customerInitialBalance,
-                'pos_balance_after' => $customerFinalBalance,
-                'pos_charge_balance_before' => $customerBalanceAfter,
-                'pos_charge_balance_after' => $customerFinalBalance,
-                'company_balance_before' => $companyInitialBalance,
-                'company_amount' => $companyCommission,
-                'company_balance_after' => $companyFinalBalance,
+                "status"                        => true,
+                'message'                       => "Amount is Valid",
+                'account_id'                    => $customerAccountId,
+                'pos_amount'                    => $originalAmount + $customerCharge,
+                'pos_balance_before'            => $customerInitialBalance,
+                'pos_balance_after'             => $customerFinalBalance,
+                'pos_charge_balance_before'     => $customerBalanceAfter,
+                'pos_charge_balance_after'      => $customerFinalBalance,
+                'company_balance_before'        => $companyInitialBalance,
+                'company_amount'                => $companyCommission,
+                'company_balance_after'         => $companyFinalBalance,
                 'company_charge_balance_before' => $companyBalanceAfter,
-                'company_charge_balance_after' => $companyFinalBalance
+                'company_charge_balance_after'  => $companyFinalBalance,
             ];
         } else {
             if ($currentUser->balance_fails < 4) {
@@ -2296,12 +2287,11 @@ function debitCustomerAndCompanyPOSWithChargeAndCommission($customerAccountId, $
     return $response;
 }
 
-
 function checkCompanyAllowedTransactionStatus($companyId)
 {
     $company = Company::find($companyId);
 
-    if (!$company) {
+    if (! $company) {
         return ["status" => 0, 'message' => "Company Not found"];
     }
 
@@ -2312,12 +2302,12 @@ function checkCompanyAllowedTransactionStatus($companyId)
     return ["status" => $company->allow_transaction_setting, 'message' => "Sorry, $company->company_name is not profiled for bank transfer at the moment due to network downtime , please try again later or  contact support"];
 }
 
-function creditCustomerAndCompanyPOSAmountWithCharge($customerAccountId, $terminal_code, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = NULL)
+function creditCustomerAndCompanyPOSAmountWithCharge($customerAccountId, $terminal_code, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
 {
 
     $response = [];
 
-    if (!Auth::check()) {
+    if (! Auth::check()) {
         $currentUser = $user;
     } else {
         $currentUser = auth()->user();
@@ -2327,7 +2317,7 @@ function creditCustomerAndCompanyPOSAmountWithCharge($customerAccountId, $termin
 
         $agentTerminal = AgentTerminal::where('terminal_code', $terminal_code)->first();
 
-        if (!$agentTerminal) {
+        if (! $agentTerminal) {
             $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid POS Terminal Code"];
         }
 
@@ -2341,11 +2331,11 @@ function creditCustomerAndCompanyPOSAmountWithCharge($customerAccountId, $termin
         $customerFinalBalance = $agentTerminal->balance -= ($originalAmount + $customerCharge);
         $agentTerminal->save();
 
-        $userWallet = user_wallet::where('wb_account_detail_id',  $customerAccountId)->first();
+        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
 
         //Credit Customer Account
         $customerInitialBalance = $userWallet->balance;
-        $customerBalanceAfter = $userWallet->balance += $originalAmount;
+        $customerBalanceAfter   = $userWallet->balance += $originalAmount;
         $userWallet->save();
         if (isset($userWallet->wb_account_details->user->branch_id)) {
             $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
@@ -2353,26 +2343,26 @@ function creditCustomerAndCompanyPOSAmountWithCharge($customerAccountId, $termin
             $BranchWallet->save();
         }
         $companyInitialBalance = $company->wallet->balance;
-        $companyBalanceAfter = $companyInitialBalance + $originalAmount;
+        $companyBalanceAfter   = $companyInitialBalance + $originalAmount;
 
         $companyFinalBalance = $company->wallet->balance += $originalAmount;
         $company->wallet->save();
 
         $response = [
-            "status" => true,
-            'message' => "Amount is Valid",
-            'account_id' => $customerAccountId,
-            'pos_balance_before' => $posInitialBalance,
-            'pos_balance_after' => $posBalanceAfter,
-            'balance_before' => $customerInitialBalance,
-            'balance_after' => $customerBalanceAfter,
-            'charge_balance_before' => $customerBalanceAfter,
-            'charge_balance_after' => $customerFinalBalance,
-            'company_balance_before' => $companyInitialBalance,
-            'company_amount' => $originalAmount,
-            'company_balance_after' => $companyBalanceAfter,
+            "status"                        => true,
+            'message'                       => "Amount is Valid",
+            'account_id'                    => $customerAccountId,
+            'pos_balance_before'            => $posInitialBalance,
+            'pos_balance_after'             => $posBalanceAfter,
+            'balance_before'                => $customerInitialBalance,
+            'balance_after'                 => $customerBalanceAfter,
+            'charge_balance_before'         => $customerBalanceAfter,
+            'charge_balance_after'          => $customerFinalBalance,
+            'company_balance_before'        => $companyInitialBalance,
+            'company_amount'                => $originalAmount,
+            'company_balance_after'         => $companyBalanceAfter,
             'company_charge_balance_before' => $companyBalanceAfter,
-            'company_charge_balance_after' => $companyFinalBalance
+            'company_charge_balance_after'  => $companyFinalBalance,
         ];
     } else {
         $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
@@ -2380,13 +2370,12 @@ function creditCustomerAndCompanyPOSAmountWithCharge($customerAccountId, $termin
     return $response;
 }
 
-function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = NULL)
+function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
 {
 
     $response = [];
 
-
-    if (!Auth::check()) {
+    if (! Auth::check()) {
         $currentUser = $user;
     } else {
         $currentUser = auth()->user();
@@ -2396,14 +2385,14 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
 
         $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
 
-        if (!$userWallet) {
+        if (! $userWallet) {
             $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
         }
 
         $customerInitialBalance = $userWallet->balance;
 
         $customerCashbackAmount = $customerCashback * $originalAmount;
-        $companyCashbackAmount = $companyCashback * $originalAmount;
+        $companyCashbackAmount  = $companyCashback * $originalAmount;
 
         if ($customerInitialBalance > ($originalAmount - $customerCashbackAmount)) {
 
@@ -2420,30 +2409,29 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
                     $BranchWallet->save();
                 }
                 $companyInitialBalance = $company->wallet->balance;
-                $companyBalanceAfter = $companyInitialBalance - $originalAmount;
+                $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 
                 $companyFinalBalance = $company->wallet->balance -= ($originalAmount - $companyCashbackAmount);
                 $company->wallet->save();
-
 
                 $currentUser->balance_fails = 0;
                 $currentUser->save();
 
                 $response = [
-                    "status" => true,
-                    'message' => "Amount is Valid",
-                    'account_id' => $customerAccountId,
-                    'balance_before' => $customerInitialBalance,
-                    'balance_after' => $customerBalanceAfter,
-                    'cashback_balance_before' => $customerBalanceAfter,
-                    'cashback_balance_after' => $customerFinalBalance,
-                    'company_balance_before' => $companyInitialBalance,
-                    'company_amount' => $originalAmount,
-                    'customer_cashback' => $customerCashbackAmount,
-                    'company_cashback' => $companyCashbackAmount,
-                    'company_balance_after' => $companyBalanceAfter,
+                    "status"                          => true,
+                    'message'                         => "Amount is Valid",
+                    'account_id'                      => $customerAccountId,
+                    'balance_before'                  => $customerInitialBalance,
+                    'balance_after'                   => $customerBalanceAfter,
+                    'cashback_balance_before'         => $customerBalanceAfter,
+                    'cashback_balance_after'          => $customerFinalBalance,
+                    'company_balance_before'          => $companyInitialBalance,
+                    'company_amount'                  => $originalAmount,
+                    'customer_cashback'               => $customerCashbackAmount,
+                    'company_cashback'                => $companyCashbackAmount,
+                    'company_balance_after'           => $companyBalanceAfter,
                     'company_cashback_balance_before' => $companyBalanceAfter,
-                    'company_cashback_balance_after' => $companyFinalBalance
+                    'company_cashback_balance_after'  => $companyFinalBalance,
                 ];
             } else {
                 $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
@@ -2473,19 +2461,19 @@ function creditCompanyWithCharge($companyId, $originalAmount, $companyCharge)
 
     if ($originalAmount > 0) {
 
-        $company = Company::find($companyId);
+        $company               = Company::find($companyId);
         $companyInitialBalance = $company->wallet->balance;
-        $companyBalanceAfter = $companyInitialBalance + $originalAmount;
-        $companyFinalBalance = $company->wallet->balance += ($originalAmount - $companyCharge);
+        $companyBalanceAfter   = $companyInitialBalance + $originalAmount;
+        $companyFinalBalance   = $company->wallet->balance += ($originalAmount - $companyCharge);
         $company->wallet->save();
 
         $response = [
-            "status" => true,
-            'message' => "Amount is Valid",
-            'balance_before' => $companyInitialBalance,
-            'balance_after' => $companyBalanceAfter,
+            "status"                => true,
+            'message'               => "Amount is Valid",
+            'balance_before'        => $companyInitialBalance,
+            'balance_after'         => $companyBalanceAfter,
             'charge_balance_before' => $companyBalanceAfter,
-            'charge_balance_after' => $companyFinalBalance
+            'charge_balance_after'  => $companyFinalBalance,
         ];
     } else {
         $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
@@ -2498,7 +2486,7 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
 
     $currentUser = $user == null ? auth()->user() : $user;
 
-    if (!$currentUser) {
+    if (! $currentUser) {
         $currentUser = User::where('company_id', $companyId)->first();
     }
 
@@ -2524,13 +2512,13 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
             $currentUser->save();
 
             $response = [
-                "status" => true,
-                'message' => "Amount is Valid",
-                'balance_before' => $companyInitialBalance,
-                'balance_after' => $companyBalanceAfter,
-                'amount' => $debitAmount,
+                "status"                => true,
+                'message'               => "Amount is Valid",
+                'balance_before'        => $companyInitialBalance,
+                'balance_after'         => $companyBalanceAfter,
+                'amount'                => $debitAmount,
                 'charge_balance_before' => $companyBalanceAfter,
-                'charge_balance_after' => $companyFinalBalance
+                'charge_balance_after'  => $companyFinalBalance,
             ];
         } else {
             if ($currentUser->balance_fails < 4) {
@@ -2554,7 +2542,7 @@ function tryToDebitCompanyWithCharge($companyId, $originalAmount, $companyCharge
 
     $currentUser = $user == null ? auth()->user() : $user;
 
-    if (!$currentUser) {
+    if (! $currentUser) {
         $currentUser = User::where('company_id', $companyId)->first();
     }
 
@@ -2562,7 +2550,7 @@ function tryToDebitCompanyWithCharge($companyId, $originalAmount, $companyCharge
 
     if ($originalAmount > 0) {
 
-        $company = Company::find($companyId);
+        $company               = Company::find($companyId);
         $companyInitialBalance = $company->wallet->balance;
 
         if ($companyInitialBalance > ($originalAmount + $companyCharge)) {
@@ -2571,17 +2559,16 @@ function tryToDebitCompanyWithCharge($companyId, $originalAmount, $companyCharge
             $companyFinalBalance = $company->wallet->balance -= ($originalAmount + $companyCharge);
             // $company->wallet->save();
 
-
             $currentUser->balance_fails = 0;
             $currentUser->save();
 
             $response = [
-                "status" => true,
-                'message' => "Amount is Valid",
-                'balance_before' => $companyInitialBalance,
-                'balance_after' => $companyBalanceAfter,
+                "status"                => true,
+                'message'               => "Amount is Valid",
+                'balance_before'        => $companyInitialBalance,
+                'balance_after'         => $companyBalanceAfter,
                 'charge_balance_before' => $companyBalanceAfter,
-                'charge_balance_after' => $companyFinalBalance
+                'charge_balance_after'  => $companyFinalBalance,
             ];
         } else {
             if ($currentUser->balance_fails < 4) {
@@ -2609,7 +2596,7 @@ function checkPinDebitCompanyWithCharge($transactionPin, $companyId, $originalAm
 
     if ($originalAmount > 0) {
 
-        $company = Company::find($companyId);
+        $company               = Company::find($companyId);
         $companyInitialBalance = $company->wallet->balance;
 
         if ($transactionPin != auth()->user()->pin) {
@@ -2629,7 +2616,7 @@ function checkPinDebitCompanyWithCharge($transactionPin, $companyId, $originalAm
 
     if ($companyInitialBalance > ($originalAmount + $companyCharge)) {
 
-        auth()->user()->balance_fails = 0;
+        auth()->user()->balance_fails         = 0;
         auth()->user()->transaction_pin_fails = 0;
         auth()->user()->save();
         $companyBalanceAfter = $companyInitialBalance - $originalAmount;
@@ -2637,12 +2624,12 @@ function checkPinDebitCompanyWithCharge($transactionPin, $companyId, $originalAm
         $company->wallet->save();
 
         $response = [
-            "status" => true,
-            'message' => "Amount is Valid",
-            'balance_before' => $companyInitialBalance,
-            'balance_after' => $companyBalanceAfter,
+            "status"                => true,
+            'message'               => "Amount is Valid",
+            'balance_before'        => $companyInitialBalance,
+            'balance_after'         => $companyBalanceAfter,
             'charge_balance_before' => $companyBalanceAfter,
-            'charge_balance_after' => $companyFinalBalance
+            'charge_balance_after'  => $companyFinalBalance,
         ];
     } else {
         if (auth()->user()->balance_fails < 4) {
@@ -2656,7 +2643,6 @@ function checkPinDebitCompanyWithCharge($transactionPin, $companyId, $originalAm
             $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support"];
         }
     }
-
 
     return $response;
 }
@@ -2672,7 +2658,7 @@ function checkCustomerBalanceAndDebit($accountId, $amount)
 
         if ($userWallet->balance >= $amount) {
             $currentBalance = $userWallet->balance;
-            $newBalance = $userWallet->balance -= $amount;
+            $newBalance     = $userWallet->balance -= $amount;
             $userWallet->save();
             if (isset($userWallet->wb_account_details->user->branch_id)) {
                 $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
@@ -2680,11 +2666,11 @@ function checkCustomerBalanceAndDebit($accountId, $amount)
                 $BranchWallet->save();
             }
             $response = [
-                "status" => true,
-                'message' => "Amount Debited Successfully",
-                'account_id' => $accountId,
+                "status"         => true,
+                'message'        => "Amount Debited Successfully",
+                'account_id'     => $accountId,
                 'balance_before' => $currentBalance,
-                'balance_after' => $newBalance
+                'balance_after'  => $newBalance,
             ];
         } else {
             $response = ["status" => false, 'message' => "Insufficient Funds"];
@@ -2706,13 +2692,13 @@ function checkCompanyBalanceAndDebit($amount)
 
         if ($userWallet->balance >= $amount) {
             $currentBalance = $userWallet->balance;
-            $newBalance = $userWallet->balance -= $amount;
+            $newBalance     = $userWallet->balance -= $amount;
             $userWallet->save();
             $response = [
-                "status" => true,
-                'message' => "Amount Debited Successfully",
+                "status"         => true,
+                'message'        => "Amount Debited Successfully",
                 'balance_before' => $currentBalance,
-                'balance_after' => $newBalance
+                'balance_after'  => $newBalance,
             ];
         } else {
             $response = ["status" => false, 'message' => "Insufficient Funds"];
@@ -2722,7 +2708,6 @@ function checkCompanyBalanceAndDebit($amount)
     }
     return $response;
 }
-
 
 function validatePinCheckCustomerBalance($transactionPin, $amount, $selectedwallet = null)
 {
@@ -2737,11 +2722,11 @@ function validatePinCheckCustomerBalance($transactionPin, $amount, $selectedwall
 
             if ($validatePin) {
                 $sourceWbAccount = ($selectedwallet != null) ? $selectedwallet : $user->accounts->first()->id;
-                $userWallet = user_wallet::where('wb_account_detail_id', $sourceWbAccount)->lockForUpdate()->first();
+                $userWallet      = user_wallet::where('wb_account_detail_id', $sourceWbAccount)->lockForUpdate()->first();
 
                 if ($userWallet->balance >= $amount) {
                     if ($user->company->wallet->balance >= $amount) {
-                        $user->balance_fails = 0;
+                        $user->balance_fails         = 0;
                         $user->transaction_pin_fails = 0;
                         $user->save();
                         $response = ["status" => true, 'message' => "Amount and pin are Valid", 'account_id' => $user->accounts->first()->id, 'balance' => $userWallet->balance];
@@ -2797,13 +2782,13 @@ function validatePinDebitCompanyBalance($transactionPin, $amount)
 
                 if ($balanceBefore >= $amount) {
 
-                    auth()->user()->balance_fails = 0;
+                    auth()->user()->balance_fails         = 0;
                     auth()->user()->transaction_pin_fails = 0;
                     auth()->user()->save();
 
                     $companywallet = company_wallet::where('company_id', auth()->user()->company->id)->first();
 
-                    $balanceAfter = $companywallet->balance -= $amount;
+                    $balanceAfter              = $companywallet->balance -= $amount;
                     $companywallet->updated_at = Carbon::now();
                     $companywallet->save();
 
@@ -2860,11 +2845,11 @@ function restrictUserAccount($restrictionId, $remark, $user = null)
                 $auth->customerPermissions()->attach($restrictionId);
 
                 CustomerRestrictionLog::create([
-                    "user_id" => $auth->id,
-                    "customer_permission_id" => $restrictionId,
-                    "remark" => $remark,
-                    "restricted_by_system" => 1,
-                    "restriction_log_type_id" => 1
+                    "user_id"                 => $auth->id,
+                    "customer_permission_id"  => $restrictionId,
+                    "remark"                  => $remark,
+                    "restricted_by_system"    => 1,
+                    "restriction_log_type_id" => 1,
                 ]);
             }
         }
@@ -2874,19 +2859,19 @@ function restrictUserAccount($restrictionId, $remark, $user = null)
         // auth()->user()->customerPermissions()->attach($restrictionId);
 
         MainCustomerRestriction::create([
-            'user_id' => $auth->id,
+            'user_id'                => $auth->id,
             'customer_permission_id' => $restrictionId,
-            'company_id' => $auth->company_id,
-            "remark" => $remark,
-            "created_by" => $auth->id
+            'company_id'             => $auth->company_id,
+            "remark"                 => $remark,
+            "created_by"             => $auth->id,
         ]);
 
         CustomerRestrictionLog::create([
-            "user_id" => $auth->id,
-            "customer_permission_id" => $restrictionId,
-            "remark" => $remark,
-            "restricted_by_system" => 1,
-            "restriction_log_type_id" => 1
+            "user_id"                 => $auth->id,
+            "customer_permission_id"  => $restrictionId,
+            "remark"                  => $remark,
+            "restricted_by_system"    => 1,
+            "restriction_log_type_id" => 1,
 
         ]);
     }
@@ -2909,23 +2894,23 @@ function restrictUserAccountAPI($userId, $restrictionId, $remark, $transactionRe
                     // $userAccount->customerPermissions()->syncWithPivotValues([$restrictionId], ['remark' => "lskdjflsjdflkjsdfs"]);
 
                     MainCustomerRestriction::create([
-                        'transaction_reference' => $transactionRef,
-                        'user_id' => $userAccount->id,
-                        'company_id' => $userAccount->company_id,
+                        'transaction_reference'  => $transactionRef,
+                        'user_id'                => $userAccount->id,
+                        'company_id'             => $userAccount->company_id,
                         'customer_permission_id' => $restrictionId,
-                        "session_id" => $sessionId,
-                        "remark" => $remark,
-                        "created_by" => $userAccount->id
+                        "session_id"             => $sessionId,
+                        "remark"                 => $remark,
+                        "created_by"             => $userAccount->id,
                     ]);
 
                     CustomerRestrictionLog::create([
-                        "user_id" => $userAccount->id,
-                        "customer_permission_id" => $restrictionId,
-                        "remark" => $remark,
-                        "restricted_by_system" => 1,
+                        "user_id"                 => $userAccount->id,
+                        "customer_permission_id"  => $restrictionId,
+                        "remark"                  => $remark,
+                        "restricted_by_system"    => 1,
                         "restriction_log_type_id" => 1,
-                        'transaction_reference' => $transactionRef,
-                        "session_id" => $sessionId
+                        'transaction_reference'   => $transactionRef,
+                        "session_id"              => $sessionId,
                     ]);
 
                     return ['status' => true, 'message' => "User restriction added successfully"];
@@ -2937,29 +2922,29 @@ function restrictUserAccountAPI($userId, $restrictionId, $remark, $transactionRe
             // $userAccount->customerPermissions()->attach($restrictionId);
 
             MainCustomerRestriction::create([
-                'transaction_reference' => $transactionRef,
-                'user_id' => $userAccount->id,
-                'company_id' => $userAccount->company_id,
+                'transaction_reference'  => $transactionRef,
+                'user_id'                => $userAccount->id,
+                'company_id'             => $userAccount->company_id,
                 'customer_permission_id' => $restrictionId,
-                "session_id" => $sessionId,
-                "remark" => $remark,
-                "created_by" => $userAccount->id
+                "session_id"             => $sessionId,
+                "remark"                 => $remark,
+                "created_by"             => $userAccount->id,
             ]);
 
             CustomerRestrictionLog::create([
-                "user_id" => $userAccount->id,
-                "customer_permission_id" => $restrictionId,
-                "remark" => $remark,
-                "restricted_by_system" => 1,
+                "user_id"                 => $userAccount->id,
+                "customer_permission_id"  => $restrictionId,
+                "remark"                  => $remark,
+                "restricted_by_system"    => 1,
                 "restriction_log_type_id" => 1,
-                'transaction_reference' => $transactionRef,
-                "session_id" => $sessionId
+                'transaction_reference'   => $transactionRef,
+                "session_id"              => $sessionId,
             ]);
 
             return ['status' => true, 'message' => "User restriction added successfully"];
         }
     } else {
-        return  ['status' => false, 'message' => "Invalid username provided"];
+        return ['status' => false, 'message' => "Invalid username provided"];
     }
 }
 
@@ -2980,43 +2965,43 @@ function restrictUserAccountNIBBS($userId, $remark, $transactionRef = "", $sessi
                     // $userAccount->customerPermissions()->syncWithPivotValues([$restrictionId], ['remark' => "lskdjflsjdflkjsdfs"]);
 
                     MainCustomerRestriction::create([
-                        'transaction_reference' => $transactionRef,
-                        'user_id' => $userAccount->id,
-                        'company_id' => $userAccount->company_id,
+                        'transaction_reference'  => $transactionRef,
+                        'user_id'                => $userAccount->id,
+                        'company_id'             => $userAccount->company_id,
                         'customer_permission_id' => 1,
-                        "session_id" => $sessionId,
-                        "remark" => $remark,
-                        "created_by" => $userAccount->id
+                        "session_id"             => $sessionId,
+                        "remark"                 => $remark,
+                        "created_by"             => $userAccount->id,
                     ]);
 
                     MainCustomerRestriction::create([
-                        'transaction_reference' => $transactionRef,
-                        'user_id' => $userAccount->id,
-                        'company_id' => $userAccount->company_id,
+                        'transaction_reference'  => $transactionRef,
+                        'user_id'                => $userAccount->id,
+                        'company_id'             => $userAccount->company_id,
                         'customer_permission_id' => 2,
-                        "session_id" => $sessionId,
-                        "remark" => $remark,
-                        "created_by" => $userAccount->id
+                        "session_id"             => $sessionId,
+                        "remark"                 => $remark,
+                        "created_by"             => $userAccount->id,
                     ]);
 
                     CustomerRestrictionLog::create([
-                        "user_id" => $userAccount->id,
-                        "customer_permission_id" => 2,
-                        "remark" => $remark,
-                        "restricted_by_system" => 1,
+                        "user_id"                 => $userAccount->id,
+                        "customer_permission_id"  => 2,
+                        "remark"                  => $remark,
+                        "restricted_by_system"    => 1,
                         "restriction_log_type_id" => 1,
-                        'transaction_reference' => $transactionRef,
-                        "session_id" => $sessionId
+                        'transaction_reference'   => $transactionRef,
+                        "session_id"              => $sessionId,
                     ]);
 
                     CustomerRestrictionLog::create([
-                        "user_id" => $userAccount->id,
-                        "customer_permission_id" => 2,
-                        "remark" => $remark,
-                        "restricted_by_system" => 2,
+                        "user_id"                 => $userAccount->id,
+                        "customer_permission_id"  => 2,
+                        "remark"                  => $remark,
+                        "restricted_by_system"    => 2,
                         "restriction_log_type_id" => 1,
-                        'transaction_reference' => $transactionRef,
-                        "session_id" => $sessionId
+                        'transaction_reference'   => $transactionRef,
+                        "session_id"              => $sessionId,
                     ]);
 
                     return ['status' => true, 'message' => "User restriction added successfully"];
@@ -3027,52 +3012,50 @@ function restrictUserAccountNIBBS($userId, $remark, $transactionRef = "", $sessi
             logInfo("Attaching permissions", "Restrict user account title");
             // $userAccount->customerPermissions()->attach($restrictionId);
 
-
             MainCustomerRestriction::create([
-                'transaction_reference' => $transactionRef,
-                'user_id' => $userAccount->id,
-                'company_id' => $userAccount->company_id,
+                'transaction_reference'  => $transactionRef,
+                'user_id'                => $userAccount->id,
+                'company_id'             => $userAccount->company_id,
                 'customer_permission_id' => 1,
-                "session_id" => $sessionId,
-                "remark" => $remark,
-                "created_by" => $userAccount->id
+                "session_id"             => $sessionId,
+                "remark"                 => $remark,
+                "created_by"             => $userAccount->id,
             ]);
 
             MainCustomerRestriction::create([
-                'transaction_reference' => $transactionRef,
-                'user_id' => $userAccount->id,
-                'company_id' => $userAccount->company_id,
+                'transaction_reference'  => $transactionRef,
+                'user_id'                => $userAccount->id,
+                'company_id'             => $userAccount->company_id,
                 'customer_permission_id' => 2,
-                "session_id" => $sessionId,
-                "remark" => $remark,
-                "created_by" => $userAccount->id
+                "session_id"             => $sessionId,
+                "remark"                 => $remark,
+                "created_by"             => $userAccount->id,
             ]);
 
             CustomerRestrictionLog::create([
-                "user_id" => $userAccount->id,
-                "customer_permission_id" => 2,
-                "remark" => $remark,
-                "restricted_by_system" => 1,
+                "user_id"                 => $userAccount->id,
+                "customer_permission_id"  => 2,
+                "remark"                  => $remark,
+                "restricted_by_system"    => 1,
                 "restriction_log_type_id" => 1,
-                'transaction_reference' => $transactionRef,
-                "session_id" => $sessionId
+                'transaction_reference'   => $transactionRef,
+                "session_id"              => $sessionId,
             ]);
 
             CustomerRestrictionLog::create([
-                "user_id" => $userAccount->id,
-                "customer_permission_id" => 2,
-                "remark" => $remark,
-                "restricted_by_system" => 2,
+                "user_id"                 => $userAccount->id,
+                "customer_permission_id"  => 2,
+                "remark"                  => $remark,
+                "restricted_by_system"    => 2,
                 "restriction_log_type_id" => 1,
-                'transaction_reference' => $transactionRef,
-                "session_id" => $sessionId
+                'transaction_reference'   => $transactionRef,
+                "session_id"              => $sessionId,
             ]);
-
 
             return ['status' => true, 'message' => "User restriction added successfully"];
         }
     } else {
-        return  ['status' => false, 'message' => "Invalid username provided"];
+        return ['status' => false, 'message' => "Invalid username provided"];
     }
 }
 
@@ -3093,19 +3076,19 @@ function removeUserRestrictionAPI($userId, $restrictionId, $remark, $createdBy, 
                     $userAccount->customerPermissions()->detach($restrictionId);
 
                     CustomerRestrictionLog::create([
-                        "user_id" => $userAccount->id,
-                        "customer_permission_id" => $restrictionId,
-                        "remark" => $remark,
-                        "transaction_reference" => $transactionRef,
-                        "session_id" => $sessionId,
-                        "restricted_by_system" => 1,
+                        "user_id"                 => $userAccount->id,
+                        "customer_permission_id"  => $restrictionId,
+                        "remark"                  => $remark,
+                        "transaction_reference"   => $transactionRef,
+                        "session_id"              => $sessionId,
+                        "restricted_by_system"    => 1,
                         "restriction_log_type_id" => 2,
-                        "created_by" => $createdBy->id
+                        "created_by"              => $createdBy->id,
                     ]);
 
                     MainCustomerRestriction::where([
-                        'user_id' => $userAccount->id,
-                        'customer_permission_id' => $restrictionId
+                        'user_id'                => $userAccount->id,
+                        'customer_permission_id' => $restrictionId,
                     ])->delete();
 
                     return ['status' => true, 'message' => "User restriction removed successfully"];
@@ -3116,7 +3099,7 @@ function removeUserRestrictionAPI($userId, $restrictionId, $remark, $createdBy, 
             return ['status' => true, 'message' => "No restriction is found on this account"];
         }
     } else {
-        return  ['status' => false, 'message' => "Invalid username provided"];
+        return ['status' => false, 'message' => "Invalid username provided"];
     }
 }
 
@@ -3136,14 +3119,14 @@ function removeUserRestrictionNIBBS($userId, $remark, $createdBy, $transactionRe
                     $userAccount->customerPermissions()->detach($customerPermission->id);
 
                     CustomerRestrictionLog::where([
-                        "user_id" => $userAccount->id,
-                        'transaction_reference' => $transactionRef,
-                        "customer_permission_id" => $customerPermission->id,
-                        "remark" => $remark,
-                        "session_id" => $sessionId,
-                        "restricted_by_system" => 1,
+                        "user_id"                 => $userAccount->id,
+                        'transaction_reference'   => $transactionRef,
+                        "customer_permission_id"  => $customerPermission->id,
+                        "remark"                  => $remark,
+                        "session_id"              => $sessionId,
+                        "restricted_by_system"    => 1,
                         "restriction_log_type_id" => 2,
-                        "created_by" => $createdBy->id
+                        "created_by"              => $createdBy->id,
                     ]);
 
                     return ['status' => true, 'message' => "User restriction removed successfully"];
@@ -3154,13 +3137,13 @@ function removeUserRestrictionNIBBS($userId, $remark, $createdBy, $transactionRe
             return ['status' => true, 'message' => "No restriction is found on this account"];
         }
     } else {
-        return  ['status' => false, 'message' => "Invalid username provided"];
+        return ['status' => false, 'message' => "Invalid username provided"];
     }
 }
 
 function checkForDebitRestriction()
 {
-    $isDebitPermissionAvailable =  ["status" => true, "responseCode" => 0, 'message' => "Account is Active"];
+    $isDebitPermissionAvailable = ["status" => true, "responseCode" => 0, 'message' => "Account is Active"];
 
     if (count(auth()->user()->customerPermissions) > 0) {
         foreach (auth()->user()->customerPermissions as $customerPermission) {
@@ -3172,15 +3155,18 @@ function checkForDebitRestriction()
     return $isDebitPermissionAvailable;
 }
 
-
 function updateTransactionAsSuccessful($transactionId, $balance, $isCompany = false)
 {
     $transaction = transactions::where('transaction_reference', $transactionId)->first();
-    if ($isCompany) $transaction->company_balance_after = $balance;
-    else $transaction->balance_after = $balance;
+    if ($isCompany) {
+        $transaction->company_balance_after = $balance;
+    } else {
+        $transaction->balance_after = $balance;
+    }
+
     $transaction->transaction_remarks_id = 2;
-    $transaction->updated_at = Carbon::now();
-    $transaction->modified_by = auth()->user()->id;
+    $transaction->updated_at             = Carbon::now();
+    $transaction->modified_by            = auth()->user()->id;
     $transaction->save();
 }
 
@@ -3189,8 +3175,8 @@ function updateTransactionAsSuccessfulOnly($transactionId)
     $transaction = transactions::where('transaction_reference', $transactionId)->first();
 
     $transaction->transaction_remarks_id = 2;
-    $transaction->updated_at = Carbon::now();
-    $transaction->modified_by = auth()->user()->id;
+    $transaction->updated_at             = Carbon::now();
+    $transaction->modified_by            = auth()->user()->id;
     $transaction->save();
 }
 
@@ -3199,23 +3185,21 @@ function updateCustomerAndCompanyTransactionAsSuccessful($transactionId, $custom
     $transaction = transactions::where('transaction_reference', $transactionId)->first();
 
     if ($updateBalance) {
-        $transaction->balance_after = $customerBalance;
+        $transaction->balance_after         = $customerBalance;
         $transaction->company_balance_after = $companyBalance;
     }
 
     $transaction->transaction_remarks_id = 2;
-    $transaction->updated_at = Carbon::now();
-    $transaction->modified_by = auth()->user()->id;
+    $transaction->updated_at             = Carbon::now();
+    $transaction->modified_by            = auth()->user()->id;
     $transaction->save();
 }
-
 
 function checkCustomerBalanceCompanyBalanceAndDebit($accountId, $amount)
 {
 
     $companyId = auth()->user()->company_id;
-    $response = [];
-
+    $response  = [];
 
     if ($amount > 0) {
 
@@ -3231,7 +3215,7 @@ function checkCustomerBalanceCompanyBalanceAndDebit($accountId, $amount)
                 $company->wallet->save();
 
                 $currentBalance = $userWallet->balance;
-                $newBalance = $userWallet->balance -= $amount;
+                $newBalance     = $userWallet->balance -= $amount;
                 $userWallet->save();
                 if (isset($userWallet->wb_account_details->user->branch_id)) {
                     $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
@@ -3239,11 +3223,11 @@ function checkCustomerBalanceCompanyBalanceAndDebit($accountId, $amount)
                     $BranchWallet->save();
                 }
                 $response = [
-                    "status" => true,
-                    'message' => "Amount Debited Successfully",
-                    'account_id' => $accountId,
+                    "status"         => true,
+                    'message'        => "Amount Debited Successfully",
+                    'account_id'     => $accountId,
                     'balance_before' => $currentBalance,
-                    'balance_after' => $newBalance
+                    'balance_after'  => $newBalance,
                 ];
             } else {
                 $response = ["status" => false, 'message' => "Switcher Error. Please contact support " . $company->wallet->balance . " $amount"];
@@ -3279,11 +3263,11 @@ function fundVault($vault_info)
     //esusu_circle_out_charge
     //withdrawal_charge
     //sms_charge
-    $vault_type = $vault_info['type'];
-    $vault_value = $vault_info['value'];
+    $vault_type       = $vault_info['type'];
+    $vault_value      = $vault_info['value'];
     $vault_company_id = $vault_info['company_id'];
-    $vault_created_by = !isset($vault_info['created_by']) ? auth()->user()->id : $vault_info['created_by']; //
-    $vault_branch_id = $vault_info['branch_id'];
+    $vault_created_by = ! isset($vault_info['created_by']) ? auth()->user()->id : $vault_info['created_by']; //
+    $vault_branch_id  = $vault_info['branch_id'];
     // $vault_company_valut_id= $vault_info['company_valut_id'];
     $vault_transaction_id = $vault_info['transaction_id'];
 
@@ -3294,7 +3278,7 @@ function fundVault($vault_info)
     }
 
     $check_tocreate = $valutcount = CompanyValut::where(['vault' => $vault_type, 'company_id' => $vault_company_id]);
-    $cout_exist = $valutcount->count();
+    $cout_exist     = $valutcount->count();
     if ($cout_exist == 0) {
         $acno = time();
         while (CompanyValut::where(['accountno' => $acno])->count() > 0) {
@@ -3306,7 +3290,7 @@ function fundVault($vault_info)
         return 1;
     } else {
         $check_tocreate = $check_tocreate->first();
-        $amount_to_add =  $check_tocreate->value + $vault_value;
+        $amount_to_add  = $check_tocreate->value + $vault_value;
         logInfo("Updating Company $vault_type vault and adding new balance $amount_to_add value $vault_value ", "Crediting Company $vault_type vault");
 
         $update_vault = $check_tocreate->update(['value' => $amount_to_add]);
@@ -3318,10 +3302,12 @@ function fundVault($vault_info)
 
 function restrict_to_just_my_company($user_array = [])
 {
-    if (!is_array($user_array)) return 0;
+    if (! is_array($user_array)) {
+        return 0;
+    }
 
     $right = (cando('root|allow-staff-view-all-customers'));
-    $auth = auth()->user();
+    $auth  = auth()->user();
     if (isset($user_array['user_id'])) {
         $user_id = $user_array['user_id'];
         return ($right) ? User::where(['id' => $user_id, 'company_id' => $auth->company_id])->count() : User::where(['id' => $user_id, 'company_id' => auth()->user()->company_id, 'account_officer_id' => auth()->user()->id])->count();
@@ -3340,14 +3326,15 @@ function formatPhoneNumber($phone, $countryPhonePrefix)
 
     logInfo(substr($phone, 0), "Phone prefix");
 
-    if (substr($phone, 0, 1) === "0")
+    if (substr($phone, 0, 1) === "0") {
         $userPhone = $phonePrefix . "" . substr($phone, 1);
+    }
 
-    if (substr($phone, 0, strlen($phonePrefix)) === $phonePrefix)
+    if (substr($phone, 0, strlen($phonePrefix)) === $phonePrefix) {
         $userPhone = $phonePrefix . "" . substr($phone, strlen($phonePrefix));
-
-    else  if (substr($phone, 0, strlen($countryPhonePrefix)) === $countryPhonePrefix)
+    } else if (substr($phone, 0, strlen($countryPhonePrefix)) === $countryPhonePrefix) {
         $userPhone = $phonePrefix . "" . substr($phone, strlen($countryPhonePrefix));
+    }
 
     return $userPhone;
 }
@@ -3379,7 +3366,7 @@ function convertLY($period)
 }
 function calculatePeriodByPeriod($period, $Y)
 {
-    if ($period == 'Daily' &&  $Y == 'days') {
+    if ($period == 'Daily' && $Y == 'days') {
         return 1;
     } else if ($period == 'Daily' && $Y == 'weeks') {
         return 7;
@@ -3420,10 +3407,10 @@ function calculatePeriodByPeriod($period, $Y)
 
 function encrypt_decrypt($action, $string)
 {
-    $output = false;
+    $output         = false;
     $encrypt_method = "AES-256-CBC";
-    $secret_key = 'iamsaviourthatli';
-    $secret_iv = '1234545456';
+    $secret_key     = 'iamsaviourthatli';
+    $secret_iv      = '1234545456';
     // hash
     $key = hash('sha256', $secret_key);
     // iv - encrypt method AES-256-CBC expects 16 bytes
@@ -3444,7 +3431,7 @@ function Stringlimiter($string, $length)
 
         // truncate string
         $stringCut = substr($string, 0, $length);
-        $endPoint = strrpos($stringCut, ' ');
+        $endPoint  = strrpos($stringCut, ' ');
 
         //if the string doesn't contain any space then it will cut without word basis.
         $string = $endPoint ? substr($stringCut, 0, $endPoint) : substr($stringCut, 0);
@@ -3464,7 +3451,7 @@ function dateDiffInDays($date1, $date2)
 function notificationBar()
 {
     if (auth()->check()) {
-        $is_staff = cando('root');
+        $is_staff    = cando('root');
         $pendingUser = User::where(['company_id' => auth()->user()->company_id, 'status_id' => 7, 'user_type_id' => 1]);
         if ($is_staff) {
             $pendingUser = $pendingUser->count();
@@ -3493,7 +3480,7 @@ function decryptJWT($endcoded, $key)
     try {
         $newSign = explode('.', $endcoded);
 
-        $jsonToken = base64_decode($newSign[1]);
+        $jsonToken  = base64_decode($newSign[1]);
         $arrayToken = json_decode($jsonToken, true);
 
         return ['status' => true, 'message' => "Decrypted successfully", 'data' => ['value' => $arrayToken[$key]]];
@@ -3541,31 +3528,31 @@ function DebitCreditcustomer($data = [])
             }
         }
 
-        $userParamType = $data['userParamType'];
-        $userId = $data['userId'];
-        $amount = $data['amount'];
-        $desc = $data['description'];
-        $transaction_type_id = $data['transaction_type_id'];
+        $userParamType        = $data['userParamType'];
+        $userId               = $data['userId'];
+        $amount               = $data['amount'];
+        $desc                 = $data['description'];
+        $transaction_type_id  = $data['transaction_type_id'];
         $credit_debit_type_id = $data['credit_debit_type_id'];
-        $remark = $data['remark'];
-        $backdate = $data['created_date'];
-        $created_by_id = $data['created_by'];
-        $chargeamt = $data['chargeamt'];
-        $companyVault = $data['companyVault'] ?? null;
-        $ledger_cr = $data['ledger_cr'];
-        $ledger_dr = $data['ledger_dr'];
-        $initiator = $data['initiator'] ?? null;
-        $sendSMS = ($data['sendSMS']) ?? true;
-        $request = $data['request'] ?? null;
+        $remark               = $data['remark'];
+        $backdate             = $data['created_date'];
+        $created_by_id        = $data['created_by'];
+        $chargeamt            = $data['chargeamt'];
+        $companyVault         = $data['companyVault'] ?? null;
+        $ledger_cr            = $data['ledger_cr'];
+        $ledger_dr            = $data['ledger_dr'];
+        $initiator            = $data['initiator'] ?? null;
+        $sendSMS              = ($data['sendSMS']) ?? true;
+        $request              = $data['request'] ?? null;
 
         $transactionId = generate_txnID();
         DB::beginTransaction();
 
         //, 'virtual_accnum' => $account_type
         $wb_account_details = ($userParamType == 1) ? wb_account_details::where(['user_id' => $userId])->first() : wb_account_details::where(['id' => $userId])->first();
-        $user_wallet = null;
-        $vaultpayment = 0;
-        if (!$wb_account_details) {
+        $user_wallet        = null;
+        $vaultpayment       = 0;
+        if (! $wb_account_details) {
             return ["status" => 0, 'message' => "Invalide Account Details!"];
         }
         if ($request) {
@@ -3581,7 +3568,7 @@ function DebitCreditcustomer($data = [])
                         $closing->ten_thousand_quantity -= $request->ten_thousand_quantity;
                         $closing->ten_thousand_amount -= $request->ten_thousand_quantity ?? 0 * 10000;
                         $closing->five_thousand_quantity -= $request->five_thousand_quantity;
-                        $closing->five_thousand_amount -=  $request->five_thousand_quantity ?? 0 * 5000;
+                        $closing->five_thousand_amount -= $request->five_thousand_quantity ?? 0 * 5000;
                         $closing->two_thousand_quantity -= $request->two_thousand_quantity;
                         $closing->two_thousand_amount -= $request->two_thousand_quantity ?? 0 * 2000;
                         $closing->one_thousand_quantity -= $request->one_thousand_quantity;
@@ -3608,7 +3595,7 @@ function DebitCreditcustomer($data = [])
                         $closing->ten_thousand_quantity += $request->ten_thousand_quantity;
                         $closing->ten_thousand_amount += ($request->ten_thousand_quantity ?? 0) * 10000;
                         $closing->five_thousand_quantity += $request->five_thousand_quantity;
-                        $closing->five_thousand_amount +=  ($request->five_thousand_quantity ?? 0) * 5000;
+                        $closing->five_thousand_amount += ($request->five_thousand_quantity ?? 0) * 5000;
                         $closing->two_thousand_quantity += $request->two_thousand_quantity;
                         $closing->two_thousand_amount += ($request->two_thousand_quantity ?? 0) * 2000;
                         $closing->one_thousand_quantity += $request->one_thousand_quantity;
@@ -3632,46 +3619,46 @@ function DebitCreditcustomer($data = [])
                         $closing->one_quantity += $request->one_quantity;
                         $closing->one_amount += ($request->one_amount ?? 0) * 1;
                     }
-                    $closing->total = ($closing->one_amount + $closing->two_amount + $closing->five_amount + $closing->ten_amount + $closing->twenty_five_amount + $closing->fifthy_amount + $closing->one_hundred_amount + $closing->five_hundred_coin_amount +  $closing->five_hundred_note_amount + $closing->one_thousand_amount + $closing->two_thousand_amount + $closing->five_thousand_amount + $closing->ten_thousand_amount);
+                    $closing->total = ($closing->one_amount + $closing->two_amount + $closing->five_amount + $closing->ten_amount + $closing->twenty_five_amount + $closing->fifthy_amount + $closing->one_hundred_amount + $closing->five_hundred_coin_amount + $closing->five_hundred_note_amount + $closing->one_thousand_amount + $closing->two_thousand_amount + $closing->five_thousand_amount + $closing->ten_thousand_amount);
                 }
             }
         }
         if ($credit_debit_type_id == 2) {
             $user_wallet = user_wallet::where('id', $wb_account_details->user_wallet->id)->where('balance', '>=', $amount)->first();
-            if (!$user_wallet) {
+            if (! $user_wallet) {
                 return ["status" => 0, 'message' => "Insufficient Balance!"];
             }
             $balanceBefore = $user_wallet->balance;
-            $balanceAfter = $balanceBefore - $amount;
-            $vaultpayment = 0 - $amount;
+            $balanceAfter  = $balanceBefore - $amount;
+            $vaultpayment  = 0 - $amount;
         } else if ($credit_debit_type_id == 1) {
-            $user_wallet = user_wallet::where('id', $wb_account_details->user_wallet->id)->first();
+            $user_wallet   = user_wallet::where('id', $wb_account_details->user_wallet->id)->first();
             $balanceBefore = $user_wallet->balance;
-            $balanceAfter = $balanceBefore + $amount;
-            $vaultpayment = $amount;
+            $balanceAfter  = $balanceBefore + $amount;
+            $vaultpayment  = $amount;
         } else {
             return ["status" => 0, 'message' => "Error!"];
         }
         $account_typeid = $wb_account_details->id;
-        $data = [
-            "balance_before" => $balanceBefore,
-            "amount" => $amount,
-            "withdrawal_charge" => $chargeamt,
-            "description" => $desc,
-            "account_id" => $wb_account_details->id,
-            "branch_id" => $wb_account_details->user->branch_id,
-            "transaction_status_id" => 1,
-            "transaction_reference" => $transactionId,
-            "transaction_type_id" => $transaction_type_id, //debit 7
-            "credit_debit_type_id" => $credit_debit_type_id, //debit 2
-            "transaction_remarks_id" => $remark, //success 2
-            "balance_after" => $balanceAfter,
-            "created_date"  => $backdate,
-            "created_by" => $created_by_id,
-            "ledger_cr" => $ledger_cr,
-            "ledger_dr" => $ledger_dr,
-            "initiator" => $initiator,
-            "currency_id" => $wb_account_details->currency_id
+        $data           = [
+            "balance_before"         => $balanceBefore,
+            "amount"                 => $amount,
+            "withdrawal_charge"      => $chargeamt,
+            "description"            => $desc,
+            "account_id"             => $wb_account_details->id,
+            "branch_id"              => $wb_account_details->user->branch_id,
+            "transaction_status_id"  => 1,
+            "transaction_reference"  => $transactionId,
+            "transaction_type_id"    => $transaction_type_id,  //debit 7
+            "credit_debit_type_id"   => $credit_debit_type_id, //debit 2
+            "transaction_remarks_id" => $remark,               //success 2
+            "balance_after"          => $balanceAfter,
+            "created_date"           => $backdate,
+            "created_by"             => $created_by_id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
+            "initiator"              => $initiator,
+            "currency_id"            => $wb_account_details->currency_id,
         ];
         // die(var_dump($data));
         $transaction = ($data['transactionExist']) ?? transactions::create($data);
@@ -3692,14 +3679,14 @@ function DebitCreditcustomer($data = [])
             if ($chargeamt > 0) {
                 fundVault(['type' => 'withdrawal_charge', 'value' => $chargeamt, 'company_id' => $auth->company_id, 'created_by' => $auth->id, 'branch_id' => $auth->branch_id, 'transaction_id' => $transaction->id]);
             }
-            $BranchWallet = BranchWallet::where('branch_id', $wb_account_details->user->branch_id)->first();
+            $BranchWallet          = BranchWallet::where('branch_id', $wb_account_details->user->branch_id)->first();
             $BranchWallet->balance = ($credit_debit_type_id == 1) ? ($BranchWallet->balance + $amount) : ($BranchWallet->balance - $amount);
             $BranchWallet->save();
             $currencycode = 'NGN';
             if (isset($wb_account_details->currency->code)) {
                 $currencycode = $wb_account_details->currency->code;
             }
-            $msg = ($credit_debit_type_id == 1) ? "Credit Amt:$currencycode $amount Desc: $desc Avail Bal:$currencycode $balanceAfter Date:$backdate Ref:$transactionId" : "Debit Amt:$currencycode $amount  Desc: $desc Avail Bal:$currencycode $balanceAfter Date:$backdate Ref:$transactionId";
+            $msg     = ($credit_debit_type_id == 1) ? "Credit Amt:$currencycode $amount Desc: $desc Avail Bal:$currencycode $balanceAfter Date:$backdate Ref:$transactionId" : "Debit Amt:$currencycode $amount  Desc: $desc Avail Bal:$currencycode $balanceAfter Date:$backdate Ref:$transactionId";
             $subject = ($credit_debit_type_id == 1) ? 'Credit Transaction' : 'Debit Transaction';
             if ($request) {
                 if (isset($customerCurrency)) {
@@ -3712,7 +3699,7 @@ function DebitCreditcustomer($data = [])
             }
             $smsres = 0;
             if ($sendSMS) {
-                $smsres = sendSMS(['txnid' => $transaction->id, 'userid' => $account_typeid],  $msg, false, true, $subject);
+                $smsres = sendSMS(['txnid' => $transaction->id, 'userid' => $account_typeid], $msg, false, true, $subject);
             }
             DB::commit();
             return ['status' => 1, 'message' => 'Transaction Successful!', 'data' => $transaction, 'statesms' => $smsres];
@@ -3736,33 +3723,33 @@ function alertData()
             ->where(['users.company_id' => auth()->user()->company_id, 'pending_savings.status_id' => 1])
             ->select('pending_savings.*', 'users.first_name', 'users.last_name', 'wb_account_details.virtual_accnum');
         $is_root = cando('pending-credit-debit|root');
-        if (!$is_root) {
+        if (! $is_root) {
             $pendingtXN = $pendingtXN->where('pending_savings.created_by', auth()->user()->id);
         }
         $pendingtXN = $pendingtXN->count();
 
         $pending_transfer = transactions::with('TXNBankDetails')->where(
             [
-                "credit_debit_type_id" => 2,
-                "transaction_type_id" => 8,
+                "credit_debit_type_id"   => 2,
+                "transaction_type_id"    => 8,
                 "transaction_remarks_id" => 4,
             ]
         )->count();
 
         $isroot = cando('root|approve-reject-vourcher-permission');
-        $query = BranchValut::join('company_valuts', 'company_valuts.id', '=', 'branch_valuts.company_valut_id')
+        $query  = BranchValut::join('company_valuts', 'company_valuts.id', '=', 'branch_valuts.company_valut_id')
             ->join('staff_wallet', 'staff_wallet.user_id', '=', 'branch_valuts.created_by')
             ->join('users', 'staff_wallet.user_id', '=', 'users.id')
             ->where(['company_valuts.company_id' => auth()->user()->company_id])
             ->select('branch_valuts.*', 'company_valuts.vault', 'staff_wallet.balance', 'staff_wallet.accountno', 'users.first_name', 'users.last_name');
-        if (!$isroot) {
+        if (! $isroot) {
             $query = $query->where(['branch_valuts.created_by' => auth()->user()->id, 'company_valuts.vault' => 'Staff_wallet_vault']);
         }
         if ($isroot) {
             $query = $query->where(['branch_valuts.status' => 2]);
         }
         $vouccher = $query->count();
-        $sum = $vouccher + $pending_transfer + $pendingtXN;
+        $sum      = $vouccher + $pending_transfer + $pendingtXN;
         return ['total' => $sum, 'voucher' => [$vouccher], 'pending_transfer' => [$pending_transfer], 'pendingTXN' => [$pendingtXN]];
     } else {
         return ['total' => 0, 'voucher' => 0, 'pending_transfer' => 0, 'pendingTXN' => 0];
@@ -3840,9 +3827,9 @@ function OtherIncomeSum($from = null, $to = null, $branchID = null, $ledger = nu
 
 function AllCustomerTransactionBalance($from = null, $to = null, $branchID = null)
 {
-    $auth = auth()->user();
+    $auth      = auth()->user();
     $searchstr = '';
-    $exclude = " AND (transactions.transaction_type_id != 35 AND transactions.transaction_type_id != 39 AND transactions.transaction_type_id != 73 AND transactions.transaction_type_id != 98 AND transactions.transaction_type_id != 68) ";
+    $exclude   = " AND (transactions.transaction_type_id != 35 AND transactions.transaction_type_id != 39 AND transactions.transaction_type_id != 73 AND transactions.transaction_type_id != 98 AND transactions.transaction_type_id != 68) ";
     if ($from) {
         $searchstr .= " AND transactions.created_at >= '$from'";
     }
@@ -3872,7 +3859,7 @@ function AllCustomerTransactionBalance($from = null, $to = null, $branchID = nul
 
 function transactionReportTypes($cr_dr = null, $from = null, $to = null, $branchID = null, $transactionType = null)
 {
-    $auth = auth()->user();
+    $auth      = auth()->user();
     $searchstr = " AND (transactions.transaction_type_id != 35 AND transactions.transaction_type_id != 39 AND transactions.transaction_type_id != 73 AND transactions.transaction_type_id != 98 AND transactions.transaction_type_id != 68) ";
     if ($cr_dr != null) {
         $searchstr .= " AND transactions.credit_debit_type_id = $cr_dr";
@@ -3932,7 +3919,7 @@ function Allprofit($from = null, $to = null, $branchID = null, $officer = null)
     // 42(USSD CHARGE) - profit(company/wba)
     // 51 bill payment charge- profit(company/wba)
     // 93 local bank transfer
-    $auth = auth()->user();
+    $auth               = auth()->user();
     $transactionTypeIDs = [7, 8, 27, 30, 33, 38, 39, 54, 55, 57, 58, 62, 76, 91, 95, 100, 41, 42, 51, 93];
 
     $query = transactions::select([
@@ -3940,7 +3927,7 @@ function Allprofit($from = null, $to = null, $branchID = null, $officer = null)
         'transactions.credit_debit_type_id',
         'credit_debit_types.type',
         'transaction_types.transaction_type',
-        DB::raw('CASE WHEN transactions.transaction_type_id IN (7,8,93) THEN SUM(transactions.withdrawal_charge) ELSE SUM(transactions.amount) END AS total')
+        DB::raw('CASE WHEN transactions.transaction_type_id IN (7,8,93) THEN SUM(transactions.withdrawal_charge) ELSE SUM(transactions.amount) END AS total'),
     ])
         ->join('wb_account_details', 'wb_account_details.id', '=', 'transactions.account_id')
         ->join('users', 'users.id', '=', 'wb_account_details.user_id')
@@ -3989,7 +3976,7 @@ function AllLoss($from = null, $to = null, $branchID = null, $officer = null)
     // 51 bill payment charge- profit(company/wba)
     // 59 saving interest -loss
 
-    $auth = auth()->user();
+    $auth      = auth()->user();
     $searchstr = " AND
         (transactions.transaction_type_id = 18 OR
         transactions.transaction_type_id = 76 OR
@@ -4037,7 +4024,7 @@ function AllLoss($from = null, $to = null, $branchID = null, $officer = null)
 function getTransactionTypeData($transactionTypeID, $from = null, $to = null, $branchID = null, $officer = null)
 {
     // 56 loan repayment
-    $auth = auth()->user();
+    $auth      = auth()->user();
     $searchstr = " AND
         (transactions.transaction_type_id = $transactionTypeID) ";
     if ($from) {
@@ -4080,7 +4067,7 @@ WHERE users.company_id = $auth->company_id
 }
 function allCashLoanRepayment($from = null, $to = null, $branchID = null, $returnType = 1, $officer = null)
 {
-    $users = User::where('company_id', auth()->user()->company_id)->get();
+    $users          = User::where('company_id', auth()->user()->company_id)->get();
     $loanRepayments = LoanRepayment::with(['loan.user', 'loan.user.myOfficer' => function ($query) {
         // $query;
     }])
@@ -4097,10 +4084,10 @@ function allCashLoanRepayment($from = null, $to = null, $branchID = null, $retur
             $query->where('account_officer_id', $officer);
         });
     }
-    if ($from && !$to) {
+    if ($from && ! $to) {
         $loanRepayments = $loanRepayments->whereDate('paymentDate', '>=', $from);
     }
-    if (!$from && $to) {
+    if (! $from && $to) {
         $loanRepayments = $loanRepayments->whereDate('paymentDate', '<=', $to);
     }
     if ($from && $to) {
@@ -4118,7 +4105,7 @@ function allCashLoanRepayment($from = null, $to = null, $branchID = null, $retur
 
 function buildQuerys($ledgerid, $from = null, $to = null, $branchID = null)
 {
-    $auth = auth()->user();
+    $auth      = auth()->user();
     $searchstr = "";
     if ($from) {
         $searchstr .= " AND transactions.created_at >= '$from'";
@@ -4142,7 +4129,7 @@ function buildQuerys($ledgerid, $from = null, $to = null, $branchID = null)
 }
 function getLedgers($ledgerid, $from = null, $to = null, $branchID = null)
 {
-    $auth = auth()->user();
+    $auth      = auth()->user();
     $searchstr = "";
     if ($from) {
         $searchstr .= " AND transactions.created_at >= '$from'";
@@ -4162,7 +4149,7 @@ function getLedgers($ledgerid, $from = null, $to = null, $branchID = null)
     AND transactions.transaction_status_id = 1
     $searchstr";
     $credit = DB::select($query);
-    $query = "SELECT
+    $query  = "SELECT
     COALESCE(SUM(transactions.amount), 0) AS total
     FROM transactions
     JOIN users ON users.id = transactions.created_by
@@ -4178,8 +4165,7 @@ function getLedgersData($ledgerid, $from = null, $to = null, $branchID = null)
 {
     // $query = buildQuerys($ledgerid, $from, $to, $branchID);
 
-
-    $auth = auth()->user();
+    $auth      = auth()->user();
     $searchstr = "";
     if ($from) {
         $searchstr .= " AND transactions.created_at >= '$from'";
@@ -4218,11 +4204,11 @@ WHERE
     $searchstr";
 
     $response = DB::select($query);
-    return  $response;
+    return $response;
 }
 function systemLedgerAccount($ledgerName, $company_id)
 {
-    $auth = User::where('company_id', $company_id)->first(); // auth()->user();
+    $auth    = User::where('company_id', $company_id)->first(); // auth()->user();
     $ledgers = LedgerAccountModel::where(['name' => $ledgerName, 'deleteable' => 0, 'company_id' => $auth->company_id])->first();
     if ($ledgers) {
         return $ledgers;
@@ -4231,10 +4217,10 @@ function systemLedgerAccount($ledgerName, $company_id)
         while (LedgerAccountModel::where(['code' => $code, 'company_id' => $auth->company_id])->count()) {
             $code = $randomNumber = mt_rand(1000, 9999);
         }
-        $addAccount = new LedgerAccountModel;
-        $addAccount->access = 1;
-        $addAccount->code = $code;
-        $addAccount->name = $ledgerName;
+        $addAccount             = new LedgerAccountModel;
+        $addAccount->access     = 1;
+        $addAccount->code       = $code;
+        $addAccount->name       = $ledgerName;
         $addAccount->deleteable = 0;
         $addAccount->created_by = $auth->id;
         $addAccount->company_id = $auth->company_id;
@@ -4251,11 +4237,10 @@ function get_CR_DR_TXN_Type_Ledger($id, $company_id)
     return LedgerSettings::where(['transaction_type_id' => $id, 'company_id' => $company_id])->first();
 }
 
-
 function forwardRequestToWirelesspay($endpoint, $request)
 {
     $header = [
-        "ApiExchangeKey" => "ZZGGAgh3&=+NPgw}ME}C05Yk.:u[6ie"
+        "ApiExchangeKey" => "ZZGGAgh3&=+NPgw}ME}C05Yk.:u[6ie",
     ];
 
     $terminalResponse = postRequest($header, $request, "https://wba.ng/v1/$endpoint");
@@ -4268,7 +4253,7 @@ function forwardRequestToWirelesspay($endpoint, $request)
 function forwardRequestToAM($endpoint, $request)
 {
     $header = [
-        "ApiExchangeKey" => ".:u[ZZGGg9bb)2Q5f=9&1fm_TFBxW7W5Unkm"
+        "ApiExchangeKey" => ".:u[ZZGGg9bb)2Q5f=9&1fm_TFBxW7W5Unkm",
     ];
 
     $terminalResponse = postRequest($header, $request, "https:/$endpoint");
@@ -4399,65 +4384,65 @@ function getTransactionIdByName($name)
 }
 function getallBranchAndStaff()
 {
-    return ['staff' => auth()->user()->company->allStaff, 'branch' => auth()->user()->company->branch,];
+    return ['staff' => auth()->user()->company->allStaff, 'branch' => auth()->user()->company->branch];
 }
 
 function debitCreditCompany($data)
 {
 
-    $ledger_cr = null;
-    $ledger_dr = null;
-    $auth = $data['auth'];
-    $transationid = $data['transaction_id'];
-    $desc = $data['desc'];
-    $currency = $data['currency'] ?? 'NGN';
-    $amount = $data['amount'];
+    $ledger_cr            = null;
+    $ledger_dr            = null;
+    $auth                 = $data['auth'];
+    $transationid         = $data['transaction_id'];
+    $desc                 = $data['desc'];
+    $currency             = $data['currency'] ?? 'NGN';
+    $amount               = $data['amount'];
     $credit_debit_type_id = $data['credit_debit_type_id'];
-    $transactionref = generate_txnID();
-    $currencies = currencies::where('code', $currency)->first();
+    $transactionref       = generate_txnID();
+    $currencies           = currencies::where('code', $currency)->first();
 
     $company_wallet = company_wallet::where(['company_id' => $auth->company_id, 'currency_code' => $currency])->first();
-    if (!$company_wallet) {
+    if (! $company_wallet) {
         $company_wallet_init = company_wallet::where(['id' => $auth->company_id])->first();
 
         $company_wallet = company_wallet::create([
             'currency_code' => $currency,
-            'balance' => 0,
-            'sms' => 0,
-            'ussd' => 0,
-            'bank_id' => $company_wallet_init->bank_id,
-            'whatsapp' => 0
+            'balance'       => 0,
+            'sms'           => 0,
+            'ussd'          => 0,
+            'bank_id'       => $company_wallet_init->bank_id,
+            'whatsapp'      => 0,
         ]);
     }
     $company_balance_before = $company_wallet->balance;
-    $company_balance_after = ($credit_debit_type_id == 1) ? $company_wallet->balance + $amount : $company_wallet->balance - $amount;
-    $ledger_Settings = get_CR_DR_TXN_Type_Ledger($transationid, $auth->company_id);
+    $company_balance_after  = ($credit_debit_type_id == 1) ? $company_wallet->balance + $amount : $company_wallet->balance - $amount;
+    $ledger_Settings        = get_CR_DR_TXN_Type_Ledger($transationid, $auth->company_id);
     if ($ledger_Settings) {
         $ledger_cr = $ledger_Settings->ledger_cr;
         $ledger_dr = $ledger_Settings->ledger_dr;
     }
     $data_company = [
         "company_balance_before" => $company_balance_before,
-        "company_amount" => $amount,
-        "company_balance_after" => $company_balance_after,
-        "balance_before" => 0,
-        "balance_after" => 0,
-        "amount" => 0,
-        "withdrawal_charge" => 0,
-        "description" => $desc,
-        "company_id" => $auth->company_id,
-        "branch_id" => $auth->branch_id,
-        "transaction_reference" => $transactionref,
-        "transaction_type_id" => $transationid, //debit 7
-        "credit_debit_type_id" => $credit_debit_type_id, //debit 2
-        "transaction_remarks_id" => 2, //success 2
-        "created_date"  => date('Y-m-d H:i:s'),
-        "created_by" => $auth->id,
-        "ledger_dr" => $ledger_dr,
-        "ledger_cr" => $ledger_cr,
-        "currency_id" => $currencies->id
+        "company_amount"         => $amount,
+        "company_balance_after"  => $company_balance_after,
+        "balance_before"         => 0,
+        "balance_after"          => 0,
+        "amount"                 => 0,
+        "withdrawal_charge"      => 0,
+        "description"            => $desc,
+        "company_id"             => $auth->company_id,
+        "branch_id"              => $auth->branch_id,
+        "transaction_reference"  => $transactionref,
+        "transaction_type_id"    => $transationid,         //debit 7
+        "credit_debit_type_id"   => $credit_debit_type_id, //debit 2
+        "transaction_remarks_id" => 2,                     //success 2
+        "created_date"           => date('Y-m-d H:i:s'),
+        "created_by"             => $auth->id,
+        "ledger_dr"              => $ledger_dr,
+        "ledger_cr"              => $ledger_cr,
+        "currency_id"            => $currencies->id,
     ];
-    $txn = transactions::create($data_company);
+    $txn                     = transactions::create($data_company);
     $company_wallet->balance = $company_balance_after;
     $company_wallet->save();
     return $txn;

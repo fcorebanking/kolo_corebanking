@@ -1279,7 +1279,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
         }
 
         logInfo("$phone", "SMS 2FA phone");
-        $usesms = 1;
+        // $usesms = 1;
 
         if (($all_sms_email == 1 || $all_sms_email == 2) && ($usesms > 0)) { // if specific sms is tergetted where usesms  is an smsapi ID
 

@@ -1164,6 +1164,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
         $is_external    = false;
         $fname          = '';
         $lname          = '';
+        logInfo("$userid", "SMS 2FA userid");
 
         if (is_array($userid)) {
             $data_in_array = $userid;

@@ -1244,6 +1244,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
         if (($all_sms_email == 1 || $all_sms_email == 3) && ! empty($to)) {
             // if ($userinfo->email_verified_at != null) {
             if (isset($session->company->companyEmail->MAIL_USERNAME)) {
+                logInfo("{$session->company->companyEmail->MAIL_USERNAME}", "SMS 2FA  mail username");
                 // initSMTPconfiguration($session->company->companyEmail);
                 // }
                 // Mail::to($userinfo->email)->send(new NewAccountCreated($datax));
@@ -1276,6 +1277,10 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
 
             whatsapp($phone, $msg, 'transaction', [$companywallet, $userinfo, $charge_customer, $parent_txn_id, $session]);
         }
+
+        logInfo("$phone", "SMS 2FA phone");
+        $usesms = 1;
+
         if (($all_sms_email == 1 || $all_sms_email == 2) && ($usesms > 0)) { // if specific sms is tergetted where usesms  is an smsapi ID
 
             $smsapi          = smsapi::where('id', $usesms)->first();

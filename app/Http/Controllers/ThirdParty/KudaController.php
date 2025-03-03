@@ -401,7 +401,7 @@ class KudaController extends WebhookController
                     "amount"              => $amount * 100,
                     "ClientAccountNumber" => "3002284739",
                     "beneficiaryName"     => $accountName,
-                    "SenderName"          => "FinovaLite-" . $description,
+                    "SenderName"          => $description,
                     "narration"           => $description,
                 ],
             ];
@@ -416,7 +416,7 @@ class KudaController extends WebhookController
                     "amount"              => $amount * 100,
                     "ClientAccountNumber" => "3002284739",
                     "beneficiaryName"     => $accountName,
-                    "SenderName"          => "FinovaLite-" . $description,
+                    "SenderName"          => $description,
                     "narration"           => $description,
                 ],
             ];

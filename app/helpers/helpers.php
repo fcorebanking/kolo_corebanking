@@ -1482,6 +1482,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                         } else {
                             $proceedTwo = true;
                         }
+                        logInfo("$proceedTwo", "SMS 2FA can proceed two status");
                         if ($proceedTwo) {
                             $response = null;
                             //mail

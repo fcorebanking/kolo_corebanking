@@ -1,34 +1,30 @@
 <?php
-
 namespace App\Http\Controllers\api\v1\user;
 
 use App\Http\Controllers\Controller;
+use App\Models\AgentRequest;
 use App\Models\ApiKey;
-use App\Models\CarouselImage;
-use App\Models\User;
-use App\Models\user_wallet;
-use App\Models\Company;
-use App\Models\UserCard;
-use App\Models\wb_account_details;
 use App\Models\banks;
+use App\Models\branch;
+use App\Models\CarouselImage;
+use App\Models\Company;
+use App\Models\company_wallet;
+use App\Models\Esusu;
+use App\Models\Esusulog;
+use App\Models\EsusuTXN;
 use App\Models\esusu_types;
 use App\Models\transactions;
-use App\Models\AgentRequest;
-use App\Models\company_wallet;
-
-use App\Models\Esusu;
-use App\Models\branch;
-use App\Models\EsusuTXN;
-use App\Models\Esusulog;
+use App\Models\User;
+use App\Models\UserCard;
+use App\Models\user_wallet;
+use App\Models\wb_account_details;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
@@ -60,8 +56,8 @@ class UserController extends Controller
                 $myUserWallets = [];
 
                 foreach ($request->user()->accounts as $key => $wallet) {
-                    $userWallet = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
-                    $myUserWallets[] = array("account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN');
+                    $userWallet      = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
+                    $myUserWallets[] = ["account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN'];
                 }
 
                 $virtualCard = UserCard::where('user_id', auth()->user()->id)->get();
@@ -69,43 +65,42 @@ class UserController extends Controller
                 // $sliders = CarouselImage::where('status_id', 1)->get("image_url");
                 $sliders = CarouselImage::where(['status_id' => 1, 'company_id' => auth()->user()->company_id])->get("image_url");
 
-
-                if (!$virtualCard) {
+                if (! $virtualCard) {
                     $virtualCard = [];
                 }
 
                 $userDetails = [
-                    "currency" => $request->user()->branch->currency ?? 'NGN',
-                    "first_name" => $request->user()->first_name,
-                    "last_name" => $request->user()->last_name,
-                    "phone" => $request->user()->phone,
-                    "profile_pic" => $request->user()->profile_pic,
-                    "username" => $request->user()->username,
-                    "bvn" => $request->user()->bvn,
-                    "bvn_status_id" => $request->user()->bvn_status_id,
-                    "nin" => $request->user()->nin,
-                    "dob" => $request->user()->dob,
-                    "signature" => $request->user()->signature,
-                    "email" => $request->user()->email,
-                    "address" => $request->user()->address,
-                    "sex" => $request->user()->sex,
-                    "otp" => $request->user()->otp,
-                    "virtual_account" => $request->user()->virtual_account,
-                    "account_reference" => $request->user()->account_reference,
-                    "bank_id" => $request->user()->bank_id,
-                    "validID_file" => $request->user()->validID_file,
-                    "otherID_file" => $request->user()->otherID_file,
-                    "company_id" => $request->user()->company_id,
-                    "status_id" => $request->user()->status_id,
+                    "currency"                     => $request->user()->branch->currency ?? 'NGN',
+                    "first_name"                   => $request->user()->first_name,
+                    "last_name"                    => $request->user()->last_name,
+                    "phone"                        => $request->user()->phone,
+                    "profile_pic"                  => $request->user()->profile_pic,
+                    "username"                     => $request->user()->username,
+                    "bvn"                          => $request->user()->bvn,
+                    "bvn_status_id"                => $request->user()->bvn_status_id,
+                    "nin"                          => $request->user()->nin,
+                    "dob"                          => $request->user()->dob,
+                    "signature"                    => $request->user()->signature,
+                    "email"                        => $request->user()->email,
+                    "address"                      => $request->user()->address,
+                    "sex"                          => $request->user()->sex,
+                    "otp"                          => $request->user()->otp,
+                    "virtual_account"              => $request->user()->virtual_account,
+                    "account_reference"            => $request->user()->account_reference,
+                    "bank_id"                      => $request->user()->bank_id,
+                    "validID_file"                 => $request->user()->validID_file,
+                    "otherID_file"                 => $request->user()->otherID_file,
+                    "company_id"                   => $request->user()->company_id,
+                    "status_id"                    => $request->user()->status_id,
                     "phone_verification_status_id" => $request->user()->phone_verification_status_id,
-                    "account_officer_id" => $request->user()->account_officer_id,
-                    "branch_id" => $request->user()->branch_id,
-                    "balance" => $userWallet->balance,
-                    "wallets" => $myUserWallets,
-                    "cards" => $virtualCard,
-                    "sliders" => $sliders,
-                    "is_card_available" => count($virtualCard) > 0,
-                    "accounts" => wb_account_details::with('currency')->with('user_wallet')->with('accountType')->with('bank')->where('user_id', $request->user()->id)->get(), //$request->user()->wb_account_details,
+                    "account_officer_id"           => $request->user()->account_officer_id,
+                    "branch_id"                    => $request->user()->branch_id,
+                    "balance"                      => $userWallet->balance,
+                    "wallets"                      => $myUserWallets,
+                    "cards"                        => $virtualCard,
+                    "sliders"                      => $sliders,
+                    "is_card_available"            => count($virtualCard) > 0,
+                    "accounts"                     => wb_account_details::with('currency')->with('user_wallet')->with('accountType')->with('bank')->where('user_id', $request->user()->id)->get(), //$request->user()->wb_account_details,
                 ];
 
                 return response()->json(['status' => true, 'message' => 'User Details Fetched successfully', 'data' => $userDetails]);
@@ -118,18 +113,17 @@ class UserController extends Controller
         // return User::all();
     }
 
-
     public function uploadFile(Request $request)
     {
         // \logInfo($request->all(), "uploadFile request log");
 
         $validate = Validator::make($request->all(), [
             'image_file' => 'required|mimes:jpg,jpeg,png|file|max:512',
-            'type' => 'required',
+            'type'       => 'required',
         ]);
 
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => $validate->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -167,24 +161,26 @@ class UserController extends Controller
 
             // $userAccunt->save();
 
-            return response()->json(["status" => true, "message" => "Image Upload successful",  "data" => ["image_url" => \url("wba/storage/app/" . $result)]]);
-        } else
+            return response()->json(["status" => true, "message" => "Image Upload successful", "data" => ["image_url" => \url("wba/storage/app/" . $result)]]);
+        } else {
             return response()->json(["status" => false, "message" => "Failed to upload image"], 400);
+        }
+
     }
 
     public function verifyOTP(Request $request)
     {
         \logInfo($request->all(), "verifyOTP request log");
 
-        logInfo($request->all());;
+        logInfo($request->all());
 
         $validate = Validator::make($request->all(), [
             'user_reference' => 'required',
-            'otp_code' => 'required|numeric|gt:0',
+            'otp_code'       => 'required|numeric|gt:0',
         ]);
 
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => "Otp Code and user reference are required");
+            $ra = ["status" => false, "message" => "Otp Code and user reference are required"];
             return response()->json($ra, 406);
         }
 
@@ -197,7 +193,7 @@ class UserController extends Controller
             if (Carbon::createFromTimestamp(strtotime($userAccunt->otp_expiration_date)) > Carbon::now()) {
 
                 $userAccunt->phone_verification_status_id = 2;
-                $userAccunt->last_login = Carbon::now();
+                $userAccunt->last_login                   = Carbon::now();
                 $userAccunt->save();
 
                 return response(['status' => true, 'message' => 'OTP Verification Successful']);
@@ -213,15 +209,15 @@ class UserController extends Controller
     {
         \logInfo($request->all(), "confirmOTP request log");
 
-        logInfo($request->all());;
+        logInfo($request->all());
 
         $validate = Validator::make($request->all(), [
             'phone_number' => 'required',
-            'otp_code' => 'required|numeric|gt:0',
+            'otp_code'     => 'required|numeric|gt:0',
         ]);
 
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => "Otp Code and Phone number are required");
+            $ra = ["status" => false, "message" => "Otp Code and Phone number are required"];
             return response()->json($ra, 406);
         }
 
@@ -247,14 +243,14 @@ class UserController extends Controller
         \logInfo($request->all(), "restrict request log");
 
         $validate = Validator::make($request->all(), [
-            'user_id' => 'sometimes|numeric|gt:0',
-            'account_number' => 'sometimes|string',
-            'remark' => 'required|string',
+            'user_id'          => 'sometimes|numeric|gt:0',
+            'account_number'   => 'sometimes|string',
+            'remark'           => 'required|string',
             'restriction_type' => 'required|numeric',
         ]);
 
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => $validate->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -285,13 +281,13 @@ class UserController extends Controller
         \logInfo($request->all(), "restrict request log");
 
         $validate = Validator::make($request->all(), [
-            'user_id' => 'sometimes|numeric|gt:0',
-            'account_number' => 'sometimes|string',
+            'user_id'          => 'sometimes|numeric|gt:0',
+            'account_number'   => 'sometimes|string',
             'restriction_type' => 'required|numeric',
         ]);
 
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => $validate->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -299,12 +295,11 @@ class UserController extends Controller
 
         if ($request->has('user_id')) {
             $userAccunt = User::find($request->user_id);
-            $userId = $userAccunt->id;
+            $userId     = $userAccunt->id;
         } else if ($request->has('account_number')) {
             $wbAccountDetails = wb_account_details::where('virtual_accnum', $request->account_number)->first();
 
-            
-            if (!$wbAccountDetails) {
+            if (! $wbAccountDetails) {
                 return response(['status' => false, 'message' => 'Invalid Account Number']);
             }
 
@@ -330,22 +325,22 @@ class UserController extends Controller
 
         $validate = Validator::make($request->all(), [
             'current_pin' => 'required|max:4|min:4',
-            'new_pin' => 'required|max:4|min:4',
+            'new_pin'     => 'required|max:4|min:4',
         ]);
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => $validate->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
             return response()->json($ra, 406);
         }
         if ($request->new_pin == $request->current_pin) {
-            $ra = array("status" => false, "message" => "New Pin cannot be same as Current Pin");
+            $ra = ["status" => false, "message" => "New Pin cannot be same as Current Pin"];
             return response()->json($ra, 406);
         }
         if (auth()->user()->pin == $request->current_pin) {
             User::where('id', auth()->user()->id)->update(['pin' => $request->new_pin]);
-            $ra = array("status" => true, "message" => "Pin Reset Successful");
+            $ra = ["status" => true, "message" => "Pin Reset Successful"];
             return response()->json($ra, 200);
         } else {
-            $ra = array("status" => false, "message" => "Invalide Pin");
+            $ra = ["status" => false, "message" => "Invalide Pin"];
             return response()->json($ra, 406);
         }
     }
@@ -355,7 +350,7 @@ class UserController extends Controller
         \logInfo($request->all(), "restrict request log");
 
         $perPage = $request->input('limit', 10);
-        if (!is_numeric($perPage)) {
+        if (! is_numeric($perPage)) {
             $perPage = 10;
         }
 
@@ -384,7 +379,7 @@ class UserController extends Controller
         \logInfo($request->all(), "restrict request log");
 
         $perPage = $request->input('limit', 10);
-        if (!is_numeric($perPage)) {
+        if (! is_numeric($perPage)) {
             $perPage = 10;
         }
 
@@ -399,11 +394,11 @@ class UserController extends Controller
         }
 
         return response()->json([
-            'status' => true,
+            'status'  => true,
             'message' => 'Customers balance fetched successfully',
-            'data' => [
-                'balance' => $customerAccount->user_wallet->balance
-            ]
+            'data'    => [
+                'balance' => $customerAccount->user_wallet->balance,
+            ],
         ]);
     }
 
@@ -413,12 +408,12 @@ class UserController extends Controller
 
         $validate = Validator::make($request->all(), [
             'phone_number' => 'required',
-            'otp_code' => 'required|numeric|gt:0',
-            'password' => 'required',
+            'otp_code'     => 'required|numeric|gt:0',
+            'password'     => 'required',
         ]);
 
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => "Otp Code and Phone number are required");
+            $ra = ["status" => false, "message" => "Otp Code and Phone number are required"];
             return response()->json($ra, 406);
         }
 
@@ -430,9 +425,9 @@ class UserController extends Controller
 
             if ($userAccunt->otp_expiration_date < $date) {
 
-                $userAccunt->password = Hash::make($request->password);
+                $userAccunt->password    = Hash::make($request->password);
                 $userAccunt->login_fails = 0;
-                $userAccunt->status_id = 1;
+                $userAccunt->status_id   = 1;
                 $userAccunt->save();
 
                 return response(['status' => true, 'message' => 'Password Reset Successfully']);
@@ -450,11 +445,11 @@ class UserController extends Controller
 
         $validate = Validator::make($request->all(), [
             'current_password' => 'required',
-            'new_password' => 'required'
+            'new_password'     => 'required',
         ]);
 
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => $validate->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -462,7 +457,7 @@ class UserController extends Controller
 
         if (Hash::check($request->current_password, $userAccunt->password)) {
 
-            $userAccunt->password = Hash::make($request->new_password);
+            $userAccunt->password   = Hash::make($request->new_password);
             $userAccunt->updated_at = Carbon::now();
             $userAccunt->save();
 
@@ -479,11 +474,11 @@ class UserController extends Controller
         $validate = Validator::make($request->all(), [
             'phone' => 'required|numeric|gt:0',
             'email' => 'required|email',
-            'dob' => 'required|date',
+            'dob'   => 'required|date',
         ]);
 
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => $validate->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -529,12 +524,12 @@ class UserController extends Controller
         \logInfo($request->all(), "resendOtp request log");
 
         $validate = Validator::make($request->all(), [
-            'phone_number' => 'required',
-            'user_reference' => 'required'
+            'phone_number'   => 'required',
+            'user_reference' => 'required',
         ]);
 
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => $validate->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -552,7 +547,7 @@ class UserController extends Controller
                 $otpCode = \generateOtp();
 
                 $userAccunt->otp = $otpCode;
-                $date = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
+                $date            = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
 
                 $userAccunt->otp_expiration_date = $date;
                 $userAccunt->save();
@@ -572,7 +567,7 @@ class UserController extends Controller
                     $otpCode = \generateOtp();
 
                     $userAccunt->otp = $otpCode;
-                    $date = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
+                    $date            = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
 
                     $userAccunt->otp_expiration_date = $date;
                     $userAccunt->save();
@@ -593,7 +588,7 @@ class UserController extends Controller
     public function getUserInfo(Request $request)
     {
 
-        if (!$request->unique_identifier) {
+        if (! $request->unique_identifier) {
             return response()->json(['status' => false, 'message' => 'Account Number is required'], 400);
         }
 
@@ -603,7 +598,7 @@ class UserController extends Controller
 
         $wbAccountDetails = wb_account_details::where(['virtual_accnum' => $request->unique_identifier])->first();
 
-        if (!$wbAccountDetails) {
+        if (! $wbAccountDetails) {
             return response()->json(['status' => false, 'message' => 'Invalid Account number'], 400);
         }
 
@@ -611,25 +606,25 @@ class UserController extends Controller
 
         $returnedUser = $wbAccountDetails->user;
 
-        $userData['first_name'] = $returnedUser->first_name;
-        $userData['last_name'] = $returnedUser->last_name;
-        $userData['email'] = $returnedUser->email;
-        $userData['phone'] = $returnedUser->phone;
-        $userData['address'] = $returnedUser->address;
-        $userData['dob'] = $returnedUser->dob;
-        $userData['bvn'] = $returnedUser->bvn;
+        $userData['first_name']   = $returnedUser->first_name;
+        $userData['last_name']    = $returnedUser->last_name;
+        $userData['email']        = $returnedUser->email;
+        $userData['phone']        = $returnedUser->phone;
+        $userData['address']      = $returnedUser->address;
+        $userData['dob']          = $returnedUser->dob;
+        $userData['bvn']          = $returnedUser->bvn;
         $userData['kyc_level_id'] = $returnedUser->kyc_level_id;
-        $userData['gender'] = "M";
+        $userData['gender']       = "M";
 
         return response()->json([
-            'status' => true, 'message' => 'User Information fetched successfully', 'data' => $userData
+            'status' => true, 'message' => 'User Information fetched successfully', 'data' => $userData,
         ]);
     }
 
     public function getUserCardBalance(Request $request)
     {
 
-        if (!$request->unique_identifier) {
+        if (! $request->unique_identifier) {
             return response()->json(['status' => "05", 'message' => 'Account Number is required'], 400);
         }
 
@@ -639,7 +634,7 @@ class UserController extends Controller
 
         $wbAccountDetails = wb_account_details::where(['virtual_accnum' => $request->unique_identifier])->first();
 
-        if (!$wbAccountDetails) {
+        if (! $wbAccountDetails) {
             return response()->json(['status' => "01", 'message' => 'Invalid Account number'], 400);
         }
 
@@ -649,16 +644,16 @@ class UserController extends Controller
 
         $isActive = $wbAccountDetails->user->status_id == 1;
 
-        if (!$isActive) {
+        if (! $isActive) {
 
             return response()->json([
-                'status' => "00",
+                'status'  => "00",
                 'message' => 'Customer Balance fetched successfully',
-                'data' => [
-                    'balance' => $wbAccountDetails->user_wallet->balance,
+                'data'    => [
+                    'balance'      => $wbAccountDetails->user_wallet->balance,
                     'account_name' => $wbAccountDetails->user->first_name . " " . $wbAccountDetails->user->last_name,
-                    'is_active' => $isActive
-                ]
+                    'is_active'    => $isActive,
+                ],
             ]);
         }
 
@@ -669,39 +664,36 @@ class UserController extends Controller
                     $msg = "Debit Transaction Alert: Amount: " . ($request->amount / 100) . ",  Date: " . date("Y-m-d H:i:s") . " Avail Bal: " . $wbAccountDetails->user_wallet->balance . ".";
                     $msg .= " Direct ATM Withdrawal";
 
-
                     // $sendSMS = \sendSMS($wbAccountDetails->user_id, $msg, \true, false, "ATM Withdrawal", '', 0, \false);
 
-
                     return response()->json([
-                        'status' => "00",
+                        'status'  => "00",
                         'message' => 'Transaction approved successfully',
-                        'data' => [
-                            'balance' => $wbAccountDetails->user_wallet->balance,
-                            'is_active' => $isActive
-                        ]
+                        'data'    => [
+                            'balance'   => $wbAccountDetails->user_wallet->balance,
+                            'is_active' => $isActive,
+                        ],
                     ]);
                 }
 
                 if (($request->event == "card.authorization.closed" && $request->status == "declined") || ($request->event == "card.authorization.update" && $request->status == "reversed")) {
                     $checkTransaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
 
-                    if (!$checkTransaction) {
+                    if (! $checkTransaction) {
                         return response()->json([
-                            'status' => "09",
-                            'message' => 'Invalid transaction Reference'
+                            'status'  => "09",
+                            'message' => 'Invalid transaction Reference',
                         ], 400);
                     }
 
                     if ($checkTransaction->transaction_remarks_id == 5) {
                         return response()->json([
-                            'status' => "03",
-                            'message' => 'Transaction already reversed'
+                            'status'  => "03",
+                            'message' => 'Transaction already reversed',
                         ], 400);
                     }
 
                     $debitReversal = debitReversal($request->transaction_reference, $wbAccountDetails->id, $wbAccountDetails->user->company_id, $checkTransaction->amount, 0, "both", "atm");
-
 
                     $msg = "Credit Transaction Alert: Amount: $request->amount, Avail Bal: " . $debitReversal['data']['balance_after'] . "  Date: " . date("Y-m-d H:i:s") . ".";
                     $msg .= " ATM Debit Reversal";
@@ -709,22 +701,22 @@ class UserController extends Controller
                     // $sendSMS = \sendSMS($wbAccountDetails->user_id, $msg, true, true, "ATM Withdrawal", '', 0, false);
 
                     return response()->json([
-                        'status' => "00",
+                        'status'  => "00",
                         'message' => 'Transaction Declined and has been reversed',
-                        'data' => [
-                            'balance' => $debitReversal['data']['balance_after'],
-                            'is_active' => $isActive
-                        ]
+                        'data'    => [
+                            'balance'   => $debitReversal['data']['balance_after'],
+                            'is_active' => $isActive,
+                        ],
                     ]);
                 }
 
                 if ($request->event == "card.authorization.update" && $request->status != "reversed") {
                     $checkTransaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
 
-                    if (!$checkTransaction) {
+                    if (! $checkTransaction) {
                         return response()->json([
-                            'status' => "09",
-                            'message' => 'Invalid transaction Reference'
+                            'status'  => "09",
+                            'message' => 'Invalid transaction Reference',
                         ], 400);
                     }
 
@@ -734,8 +726,8 @@ class UserController extends Controller
 
                     if ($newAmount < 0) {
                         return response()->json([
-                            'status' => "10",
-                            'message' => 'Invalid transaction amount'
+                            'status'  => "10",
+                            'message' => 'Invalid transaction amount',
                         ], 400);
                     }
 
@@ -749,18 +741,18 @@ class UserController extends Controller
                     $currentBalance = $wbAccountDetails->user_wallet->balance + $oldAmount;
 
                     $checkTransaction->balance_before = $currentBalance;
-                    $checkTransaction->amount = $request->amount;
-                    $checkTransaction->balance_after = $currentBalance - $request->amount;
+                    $checkTransaction->amount         = $request->amount;
+                    $checkTransaction->balance_after  = $currentBalance - $request->amount;
 
                     $checkTransaction->save();
 
                     return response()->json([
-                        'status' => "00",
+                        'status'  => "00",
                         'message' => 'Transaction updated and has been reversed',
-                        'data' => [
-                            'balance' => $checkTransaction->balance_after,
-                            'is_active' => $isActive
-                        ]
+                        'data'    => [
+                            'balance'   => $checkTransaction->balance_after,
+                            'is_active' => $isActive,
+                        ],
                     ]);
                 }
 
@@ -770,8 +762,8 @@ class UserController extends Controller
 
                     if ($checkTransaction) {
                         return response()->json([
-                            'status' => "03",
-                            'message' => 'Duplicate transaction record'
+                            'status'  => "03",
+                            'message' => 'Duplicate transaction record',
                         ], 400);
                     }
 
@@ -783,13 +775,13 @@ class UserController extends Controller
 
                     $customerBalance = debitCustomerOnly($wbAccountDetails->id, $debitAmount, $wbAccountDetails->user);
 
-                    if (!$customerBalance['status']) {
+                    if (! $customerBalance['status']) {
                         $customerBalance['status'] = "02";
                         return response()->json($customerBalance, 400);
                     }
 
-                    $ledger_cr = null;
-                    $ledger_dr = null;
+                    $ledger_cr       = null;
+                    $ledger_dr       = null;
                     $ledger_Settings = get_CR_DR_TXN_Type_Ledger(103, $wbAccountDetails->user->company_id);
                     if ($ledger_Settings) {
                         $ledger_cr = $ledger_Settings->ledger_cr;
@@ -798,50 +790,50 @@ class UserController extends Controller
                     //Create a successful transaction for the Recipient
                     $transaction = transactions::create([
                         "company_balance_before" => 0,
-                        "company_amount" => 0,
-                        "company_balance_after" => 0,
-                        "balance_before" => $customerBalance['balance_before'],
-                        "amount" => $debitAmount,
-                        "account_id" => $wbAccountDetails->id,
-                        "balance_after" => $customerBalance['balance_after'],
-                        "description" => "ATM Debit Transaction",
-                        "transaction_reference" => $request->transaction_reference,
+                        "company_amount"         => 0,
+                        "company_balance_after"  => 0,
+                        "balance_before"         => $customerBalance['balance_before'],
+                        "amount"                 => $debitAmount,
+                        "account_id"             => $wbAccountDetails->id,
+                        "balance_after"          => $customerBalance['balance_after'],
+                        "description"            => "ATM Debit Transaction",
+                        "transaction_reference"  => $request->transaction_reference,
                         "transaction_remarks_id" => 2,
-                        "transaction_type_id" => 103,
-                        "credit_debit_type_id" => 2,
-                        "created_date"  => date('Y-m-d'),
-                        "created_by" => $wbAccountDetails->user->id,
-                        "ledger_cr" => $ledger_cr,
-                        "ledger_dr" => $ledger_dr
+                        "transaction_type_id"    => 103,
+                        "credit_debit_type_id"   => 2,
+                        "created_date"           => date('Y-m-d'),
+                        "created_by"             => $wbAccountDetails->user->id,
+                        "ledger_cr"              => $ledger_cr,
+                        "ledger_dr"              => $ledger_dr,
                     ]);
 
                     return response()->json([
-                        'status' => "00",
+                        'status'  => "00",
                         'message' => 'Transaction completed successfully',
-                        'data' => [
-                            'balance' => $customerBalance['balance_after'],
+                        'data'    => [
+                            'balance'      => $customerBalance['balance_after'],
                             'account_name' => $wbAccountDetails->user->first_name . " " . $wbAccountDetails->user->last_name,
-                            'is_active' => $isActive
-                        ]
+                            'is_active'    => $isActive,
+                        ],
                     ]);
                 } catch (Exception $e) {
                     logInfo($e->getMessage(), "Exception with ATM Debit Transaction");
 
                     return response()->json([
-                        'status' => "05",
-                        'message' => 'Failed to complete transaction. (Server Error)'
+                        'status'  => "05",
+                        'message' => 'Failed to complete transaction. (Server Error)',
                     ], 500);
                 }
             } else {
 
                 return response()->json([
-                    'status' => "00",
+                    'status'  => "00",
                     'message' => 'Customer Balance fetched successfully',
-                    'data' => [
-                        'balance' => $wbAccountDetails->user_wallet->balance,
+                    'data'    => [
+                        'balance'      => $wbAccountDetails->user_wallet->balance,
                         'account_name' => $wbAccountDetails->user->first_name . " " . $wbAccountDetails->user->last_name,
-                        'is_active' => $isActive
-                    ]
+                        'is_active'    => $isActive,
+                    ],
                 ]);
             }
         }
@@ -850,13 +842,13 @@ class UserController extends Controller
         // }
 
         return response()->json([
-            'status' => "00",
+            'status'  => "00",
             'message' => 'Customer Balance fetched successfully',
-            'data' => [
-                'balance' => $wbAccountDetails->user_wallet->balance,
+            'data'    => [
+                'balance'      => $wbAccountDetails->user_wallet->balance,
                 'account_name' => $wbAccountDetails->user->first_name . " " . $wbAccountDetails->user->last_name,
-                'is_active' => $isActive
-            ]
+                'is_active'    => $isActive,
+            ],
         ]);
     }
 
@@ -865,12 +857,12 @@ class UserController extends Controller
         \logInfo($request->all(), "sendOtp request log");
 
         $validate = Validator::make($request->all(), [
-            'phone_number' => 'required',
-            'user_reference' => 'required'
+            'phone_number'   => 'required',
+            'user_reference' => 'required',
         ]);
 
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => $validate->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
             return response()->json($ra, 406);
         }
 
@@ -895,7 +887,7 @@ class UserController extends Controller
                 $otpCode = \generateOtp();
 
                 $userAccunt->otp = $otpCode;
-                $date = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
+                $date            = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
 
                 $userAccunt->otp_expiration_date = $date;
                 $userAccunt->save();
@@ -915,10 +907,10 @@ class UserController extends Controller
                     $otpCode = \generateOtp();
 
                     $userAccunt->otp = $otpCode;
-                    $date = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
+                    $date            = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
 
                     $userAccunt->otp_expiration_date = $date;
-                    $userAccunt->phone = $request->phone_number;
+                    $userAccunt->phone               = $request->phone_number;
                     $userAccunt->save();
 
                     $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone.";
@@ -941,19 +933,19 @@ class UserController extends Controller
             'phone_number' => 'required|numeric|gt:0',
         ]);
         if ($validate->fails()) {
-            $ra = array("status" => false, "message" => $validate->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
             return response()->json($ra, 406);
         }
         $userAccunt = User::where(['phone' => $request->phone_number, 'user_type_id' => 1])->orwhere(['virtual_account' => $request->phone_number, 'user_type_id' => 1])->first();
         if ($userAccunt) {
             //Third party SMS (Send OTP Code goes here)
             // $otpCode = "2222";
-            $otpCode = \generateOtp();
-            $userAccunt->otp = $otpCode;
-            $date = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
+            $otpCode                         = \generateOtp();
+            $userAccunt->otp                 = $otpCode;
+            $date                            = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
             $userAccunt->otp_expiration_date = $date;
             $userAccunt->save();
-            $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone.";
+            $msg     = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone.";
             $sendSMS = \sendSMS($userAccunt->id, $msg, true, true, 'Reset Password OTP');
             return response(['status' => true, 'message' => 'OTP Sent Successfully']);
         } else {
@@ -964,26 +956,26 @@ class UserController extends Controller
     {
         \logInfo($request->all(), "Agent User Registration Request");
         $validator = Validator::make($request->all(), [
-            'first_name' => 'required|string|max:50|min:2',
-            'last_name' => 'required|string|max:50|min:2',
-            'phone' => 'required|string',
-            'amount' => 'required|numeric|gt:0',
-            'address' => 'required',
-            'accountNo' => 'required',
-            'bankcode' => 'required',
+            'first_name'    => 'required|string|max:50|min:2',
+            'last_name'     => 'required|string|max:50|min:2',
+            'phone'         => 'required|string',
+            'amount'        => 'required|numeric|gt:0',
+            'address'       => 'required',
+            'accountNo'     => 'required',
+            'bankcode'      => 'required',
             'esusu_product' => 'required',
         ]);
         if ($validator->fails()) {
-            $ra = array("status" => false, "message" => $validator->errors()->all()[0]);
+            $ra = ["status" => false, "message" => $validator->errors()->all()[0]];
             return response()->json($ra, 406);
         }
         $companyRecord = Company::where(['id' => auth()->user()->company_id])->first();
-        if (!$companyRecord) {
-            $ra = array("status" => false, "message" => "Invalid company provided");
+        if (! $companyRecord) {
+            $ra = ["status" => false, "message" => "Invalid company provided"];
             return response()->json($ra, 400);
         }
         if (count($companyRecord->savingsProducts) < 1) {
-            $ra = array("status" => false, "message" => "No Savings product found for this company");
+            $ra = ["status" => false, "message" => "No Savings product found for this company"];
             return response()->json($ra, 400);
         }
         \logInfo($companyRecord, "Branch first");
@@ -992,31 +984,31 @@ class UserController extends Controller
             return response()->json(["status" => false, "message" => "Only approve agent can perform such action"], 400);
         }
         if ($companyRecord->sub->end_date < Date('Y-m-d')) {
-            $ra = array("status" => false, "message" => "Please hold on we are carrying out a quick maintenance on our system");
+            $ra = ["status" => false, "message" => "Please hold on we are carrying out a quick maintenance on our system"];
             return response()->json($ra, 400);
         }
         if ($companyRecord->status_id != 1) {
-            $ra = array("status" => false, "message" => "Encounter error while trying to connect to  institution.. please try again later");
+            $ra = ["status" => false, "message" => "Encounter error while trying to connect to  institution.. please try again later"];
             return response()->json($ra, 400);
         }
-        $userPhone = $request->phone;
+        $userPhone               = $request->phone;
         $virtual_acccount_number = $request->accountNo;
-        $banks = banks::where('id', $request->bankcode)->first();
-        if (!$banks) {
-            $ra = array("status" => false, "message" => "Bank not found!");
+        $banks                   = banks::where('id', $request->bankcode)->first();
+        if (! $banks) {
+            $ra = ["status" => false, "message" => "Bank not found!"];
             return response()->json($ra, 400);
         }
         $bank_id = $banks->id;
-        $user = User::where([['phone', $userPhone], ['company_id', $companyRecord->id]])->get();
+        $user    = User::where([['phone', $userPhone], ['company_id', $companyRecord->id]])->get();
         // \logInfo($user, "Current user");
         if (count($user) > 0) {
-            $ra = array("status" => false, "message" => "User is already existing");
+            $ra = ["status" => false, "message" => "User is already existing"];
             return response()->json($ra, 409);
         }
         if ($validator->passes()) {
             // if (true) {
             $customerReference = generateAccountReference();
-            $accountOfficer = User::where('company_id',  $companyRecord->id)->first();
+            $accountOfficer    = User::where('company_id', $companyRecord->id)->first();
             //
             //  GENERATE AND SEND OTP TO USER HERE
             //
@@ -1025,50 +1017,50 @@ class UserController extends Controller
             DB::beginTransaction();
             try {
                 $user = User::create([
-                    'first_name' => $request->first_name,
-                    'last_name' => $request->last_name,
-                    'company_id' => $companyRecord->id,
-                    'phone' => $userPhone,
-                    'bank_id' => $bank_id,
-                    'status_id' => 2,
-                    'branch_id' => $companyRecord->branch[0]->id,
-                    'profile_pic' => 'https://safe.wbalite.com/passports/default_image.jpg',
-                    'user_type_id' => 3,
+                    'first_name'                   => $request->first_name,
+                    'last_name'                    => $request->last_name,
+                    'company_id'                   => $companyRecord->id,
+                    'phone'                        => $userPhone,
+                    'bank_id'                      => $bank_id,
+                    'status_id'                    => 2,
+                    'branch_id'                    => $companyRecord->branch[0]->id,
+                    'profile_pic'                  => 'https://safe.wbalite.com/passports/default_image.jpg',
+                    'user_type_id'                 => 3,
                     'phone_verification_status_id' => 1,
-                    'virtual_account' => $virtual_acccount_number,
-                    'otp_expiration_date' => Carbon::now()->addMinutes(10),
-                    'uuid' => $customerReference,
-                    'address' => $request->address,
-                    'agent_id' => auth()->user()->id,
-                    'account_officer_id' => $companyRecord->id,
+                    'virtual_account'              => $virtual_acccount_number,
+                    'otp_expiration_date'          => Carbon::now()->addMinutes(10),
+                    'uuid'                         => $customerReference,
+                    'address'                      => $request->address,
+                    'agent_id'                     => auth()->user()->id,
+                    'account_officer_id'           => $companyRecord->id,
                 ]);
                 $wb_account_details = wb_account_details::create([
-                    'user_id' => $user->id,
+                    'user_id'            => $user->id,
                     'account_product_id' => $companyRecord->savingsProducts[0]->id,
-                    'bankid' => $bank_id ?? 126,
-                    'virtual_accnum' => $virtual_acccount_number,
-                    'acc_reference' => $customerReference,
-                    'has_atm_card' => 0,
+                    'bankid'             => $bank_id ?? 126,
+                    'virtual_accnum'     => $virtual_acccount_number,
+                    'acc_reference'      => $customerReference,
+                    'has_atm_card'       => 0,
                 ]);
                 $user_wallet = user_wallet::create([
                     'wb_account_detail_id' => $wb_account_details->id,
-                    'balance' => 0
+                    'balance'              => 0,
                 ]);
                 $bank = banks::where('id', $bank_id)->first();
-                if (!$bank) {
+                if (! $bank) {
                     response()->json(['status' => false, 'message' => 'Invalid bank selected']);
                 }
                 if ($user && $user_wallet) {
                     // $user->assignRole([4]);
-                    $accountNumber = $virtual_acccount_number;
+                    $accountNumber  = $virtual_acccount_number;
                     $welcomeMessage = "Welcome $request->first_name. Account No: $accountNumber, Bank: $bank->bank_name. Kindly upload your Valid ID & Recent Utility bill. T&Cs apply";
                     //$smsstate = sendSMS($user->id, "Welcome to " . $companyRecord->company_name . ". Your OTP is $otp. Alternatively, dial *7006*80*00 To verify your phone from the registered phone number", true, false, 'Verify OTP', '', 0, false);
                     //$smsstate = sendSMS($user->id, $welcomeMessage, true, false, 'Welcome Message', '', 0, false);
                     // \logInfo($smsstate, "SMS response");
-                    $request->rate = $request->amount;
-                    $request->savetype = $wb_account_details->id;
+                    $request->rate       = $request->amount;
+                    $request->savetype   = $wb_account_details->id;
                     $request->start_date = date("Y-m-d");
-                    $createEsusu = $this->create_esusu_wallet($request);
+                    $createEsusu         = $this->create_esusu_wallet($request);
                     if ($createEsusu['status'] == 0) {
                         DB::rollback();
                         return response()->json(['status' => false, 'message' => $createEsusu['message']], 400);
@@ -1097,12 +1089,15 @@ class UserController extends Controller
     public function create_esusu_wallet($request)
     {
         try {
-            $esusu_type_id  = $request->esusu_product;
-            $wb_account_detail_id  = $request->savetype;
-            $rate  = $request->rate;
-            $start_date  = $request->start_date;
-            $useraccount = wb_account_details::where('id', $wb_account_detail_id)->first();
-            if (!$useraccount) return ['status' => 0, 'message' => 'Block User Error!'];
+            $esusu_type_id        = $request->esusu_product;
+            $wb_account_detail_id = $request->savetype;
+            $rate                 = $request->rate;
+            $start_date           = $request->start_date;
+            $useraccount          = wb_account_details::where('id', $wb_account_detail_id)->first();
+            if (! $useraccount) {
+                return ['status' => 0, 'message' => 'Block User Error!'];
+            }
+
             //restricted
             if ($useraccount->user->company_id != auth()->user()->company_id) {
                 return ['status' => 0, 'message' => 'User Access Denied !'];
@@ -1119,7 +1114,10 @@ class UserController extends Controller
                 return ['status' => 0, 'message' => 'The maximum rate for this plan is ' . $esusu_type_data->max_rate . " $rate given"];
             }
             $esusu_already_exist = Esusu::where(['wb_account_detail_id' => $wb_account_detail_id, 'esusu_type_id' => $esusu_type_id])->count();
-            if ($esusu_already_exist) return ['status' => 0, 'message' => 'Esusu Already Exist for this account!'];
+            if ($esusu_already_exist) {
+                return ['status' => 0, 'message' => 'Esusu Already Exist for this account!'];
+            }
+
             // $esusu_type = $esusu_type_data->first();
             // $minrate = $esusu_type->min_rate;
             // $maxrate = $esusu_type->max_rate;
@@ -1129,17 +1127,17 @@ class UserController extends Controller
             $esusu = Esusu::create(
                 [
                     'wb_account_detail_id' => $wb_account_detail_id,
-                    'rate' => $rate,
-                    'commence_date' => $start_date,
-                    'prev_card' => 0,
-                    'esusu_type_id' => $esusu_type_id,
-                    'start_date' => $start_date, // esusu txn
-                    'withdrawable' => 0,
-                    'wallet' => 0,
-                    'overdraft' => 0,
-                    'missed_day' => 0,
-                    'status_id' => 1,
-                    'hasAgent' => 1,
+                    'rate'                 => $rate,
+                    'commence_date'        => $start_date,
+                    'prev_card'            => 0,
+                    'esusu_type_id'        => $esusu_type_id,
+                    'start_date'           => $start_date, // esusu txn
+                    'withdrawable'         => 0,
+                    'wallet'               => 0,
+                    'overdraft'            => 0,
+                    'missed_day'           => 0,
+                    'status_id'            => 1,
+                    'hasAgent'             => 1,
                 ]
             );
             if ($esusu) {
@@ -1160,7 +1158,7 @@ class UserController extends Controller
             ->where(['users.agent_id' => auth()->user()->id])->select('users.first_name', 'users.last_name', 'users.virtual_account', 'esusus.*', DB::raw('esusus.id as esusuID'), 'esusu_types.esusu_type', 'esusu_types.circle_charge', 'esusu_types.duration', 'banks.bank_name');
         if ($request->search) {
             $filter = $request->search;
-            $query = $query->where(function ($query) use ($filter) {
+            $query  = $query->where(function ($query) use ($filter) {
                 $query->where('users.virtual_account', $filter);
                 $query->orwhere('users.first_name', 'like', '%' . $filter . '%');
                 $query->orwhere('users.last_name', 'like', '%' . $filter . '%');
@@ -1184,7 +1182,7 @@ class UserController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'esusuid' => 'required',
-                'amount' => 'required',
+                'amount'  => 'required',
             ]);
             if ($validator->fails()) {
                 $errors = '';
@@ -1196,7 +1194,7 @@ class UserController extends Controller
                 }
                 $datax = [
                     'message' => $errors,
-                    'status' => 0,
+                    'status'  => 0,
                 ];
                 return response()->json($datax);
             }
@@ -1208,29 +1206,29 @@ class UserController extends Controller
                 return response()->json(["status" => false, "message" => "Only approve agent can perform such action"], 400);
             }
             $agentAccount = wb_account_details::where(['user_id' => $agent_id])->first();
-            $agent = $agentAccount->user_wallet;
+            $agent        = $agentAccount->user_wallet;
             if ($agent->balance < $request->amount) {
                 return response()->json(['status' => false, 'message' => "Insufficent Balance!"], 400);
             }
             $esusu = Esusu::where(['id' => $request->esusuid, 'hasAgent' => 1])->first();
-            if (!$esusu) {
+            if (! $esusu) {
                 return response()->json(['status' => 0, 'message' => 'Error Processing Request! ' . $request->esusuid]);
             }
-            $start_date  =  $esusu->commence_date;
-            $wb_id = $esusu->wb_account_detail_id;
-            $cash = $request->amount;
+            $start_date = $esusu->commence_date;
+            $wb_id      = $esusu->wb_account_detail_id;
+            $cash       = $request->amount;
             if (($cash % $esusu->rate) > 0) { //validate input
                 return response()->json(['status' => false, 'message' => "Invalide Topup Amount"], 400);
             }
-            $number = $cash / $esusu->rate;
-            $esusuid = $request->esusuid;
-            $rate = $esusu->rate;
+            $number       = $cash / $esusu->rate;
+            $esusuid      = $request->esusuid;
+            $rate         = $esusu->rate;
             $walletfinder = wb_account_details::where(['id' => $wb_id])->first();
-            if (!$walletfinder) {
+            if (! $walletfinder) {
                 return response()->json(['status' => 0, 'message' => 'Error Processing Account!'], 400);
             }
             $balanceBefore = $walletfinder->user_wallet->balance;
-            $transactions = transactions::where('account_id', $wb_id)->orderBy('id', 'desc')->first();
+            $transactions  = transactions::where('account_id', $wb_id)->orderBy('id', 'desc')->first();
             if ($transactions) {
                 $dbtimestamp = strtotime($transactions->created_at);
                 if (time() - $dbtimestamp < 1 * 60) {
@@ -1239,110 +1237,113 @@ class UserController extends Controller
             }
 
             DB::beginTransaction();
-            $created_by = User::where('id', auth()->user()->id)->first();
+            $created_by           = User::where('id', auth()->user()->id)->first();
             $agent_balance_before = $agent->balance;
-            $agent_balance_after = $agent->balance - $cash;
-            $Agent_user_wallet = user_wallet::where('id', $agent->id)->update(['balance' => $agent_balance_after]);
-            $transactionId = generate_txnID();
-            $backdate = date('Y-m-d h:i:s');
+            $agent_balance_after  = $agent->balance - $cash;
+            $Agent_user_wallet    = user_wallet::where('id', $agent->id)->update(['balance' => $agent_balance_after]);
+            $transactionId        = generate_txnID();
+            $backdate             = date('Y-m-d h:i:s');
             if (EsusuTXN::where(['esusu_id' => $esusuid])->wheredate('created_date', '=', $start_date)->count() == 0) {
                 $this->commissionAgentCompany(['rate' => $rate, 'agent_id' => $agent_id, 'created_by' => $created_by]);
             }
-            $ledger_cr = null;
-            $ledger_dr = null;
+            $ledger_cr       = null;
+            $ledger_dr       = null;
             $ledger_Settings = get_CR_DR_TXN_Type_Ledger(86, $created_by->company_id);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
             }
             $agentdata = [
-                "balance_before" => $agent_balance_before,
-                "amount" => $cash,
-                "account_id" => $agentAccount->id,
-                "description" => "Debited for crediting $walletfinder->virtual_accnum",
-                "branch_id" => $created_by->branch_id,
-                "transaction_status_id" => 1,
-                "transaction_reference" => $transactionId,
-                "transaction_type_id" => 86, //debit 7
-                "credit_debit_type_id" => 2, //debit 2
-                "transaction_remarks_id" => 2, //success 2
-                "balance_after" => $agent_balance_after,
-                "created_date"  => $backdate,
-                "created_by" => $created_by->id,
-                "ledger_dr" => $ledger_dr,
-                "ledger_cr" => $ledger_cr,
+                "balance_before"         => $agent_balance_before,
+                "amount"                 => $cash,
+                "account_id"             => $agentAccount->id,
+                "description"            => "Debited for crediting $walletfinder->virtual_accnum",
+                "branch_id"              => $created_by->branch_id,
+                "transaction_status_id"  => 1,
+                "transaction_reference"  => $transactionId,
+                "transaction_type_id"    => 86, //debit 7
+                "credit_debit_type_id"   => 2,  //debit 2
+                "transaction_remarks_id" => 2,  //success 2
+                "balance_after"          => $agent_balance_after,
+                "created_date"           => $backdate,
+                "created_by"             => $created_by->id,
+                "ledger_dr"              => $ledger_dr,
+                "ledger_cr"              => $ledger_cr,
             ];
             $transaction_agent = transactions::create($agentdata);
-            if (!$transaction_agent) return response()->json(['status' => 0, 'message' => "Error processing agent transaction"], 400);
-            $balanceAfter = $balanceBefore + $cash;
-            $transactionId = generate_txnID();
-            $ledger_cr = null;
-            $ledger_dr = null;
+            if (! $transaction_agent) {
+                return response()->json(['status' => 0, 'message' => "Error processing agent transaction"], 400);
+            }
+
+            $balanceAfter    = $balanceBefore + $cash;
+            $transactionId   = generate_txnID();
+            $ledger_cr       = null;
+            $ledger_dr       = null;
             $ledger_Settings = get_CR_DR_TXN_Type_Ledger(35, $created_by->company_id);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
             }
             $data_credit = [
-                "balance_before" => $balanceBefore,
-                "amount" => $cash,
-                "description" => "Esusu Wallet Deposit",
-                "account_id" => $wb_id,
-                "branch_id" => $walletfinder->user->branch_id,
-                "transaction_status_id" => 1,
-                "transaction_reference" => $transactionId,
-                "transaction_type_id" => 35, //debit 7
-                "credit_debit_type_id" => 1, //debit 2
-                "transaction_remarks_id" => 2, //success 2
-                "balance_after" => $balanceAfter,
-                "created_date"  => $backdate,
-                "created_by" => $created_by->id,
-                "ledger_dr" => $ledger_dr,
-                "ledger_cr" => $ledger_cr,
+                "balance_before"         => $balanceBefore,
+                "amount"                 => $cash,
+                "description"            => "Esusu Wallet Deposit",
+                "account_id"             => $wb_id,
+                "branch_id"              => $walletfinder->user->branch_id,
+                "transaction_status_id"  => 1,
+                "transaction_reference"  => $transactionId,
+                "transaction_type_id"    => 35, //debit 7
+                "credit_debit_type_id"   => 1,  //debit 2
+                "transaction_remarks_id" => 2,  //success 2
+                "balance_after"          => $balanceAfter,
+                "created_date"           => $backdate,
+                "created_by"             => $created_by->id,
+                "ledger_dr"              => $ledger_dr,
+                "ledger_cr"              => $ledger_cr,
             ];
             $esusu->withdrawable += $cash;
 
-            $duration =  $esusu->esusu_type->duration;
+            $duration          = $esusu->esusu_type->duration;
             $this_date_deposit = EsusuTXN::where(['esusu_id' => $esusuid])->wheredate('created_date', '=', $start_date)->sum('no_card');
-            $count_num_sofar = $this_date_deposit + $number;
+            $count_num_sofar   = $this_date_deposit + $number;
             if ($count_num_sofar > $duration) {
                 $supposenum = $count_num_sofar - $duration;
                 return response()->json(['status' => 0, 'message' => "Number of input exceed maximum required to complete this period. Put a number to complete the first period! $count_num_sofar $duration extra ($supposenum) "], 400);
             }
-            $suppose_day = add_day_to_date($duration, $start_date);
-            $days_so_far = diff_btw_date($start_date, $backdate);
+            $suppose_day        = add_day_to_date($duration, $start_date);
+            $days_so_far        = diff_btw_date($start_date, $backdate);
             $transaction_credit = transactions::create($data_credit);
-            $EsusuTXN = EsusuTXN::create(['transaction_id' => $transaction_credit->id, 'esusu_id' => $esusuid, 'no_card' => $number, 'created_date' => $esusu->commence_date]);
+            $EsusuTXN           = EsusuTXN::create(['transaction_id' => $transaction_credit->id, 'esusu_id' => $esusuid, 'no_card' => $number, 'created_date' => $esusu->commence_date]);
             if ($esusu->save()) {
                 $Esusulog_circle_out = Esusulog::where(['esusu_id' => $esusuid])->count();
                 if (($count_num_sofar >= $duration)) {
                     // circle_out_charge
-                    $circle_charge_percentage =  $esusu->esusu_type->circle_charge;
-                    $circle_charge = ($circle_charge_percentage / 100) * $rate;
-                    $esusu_circleout =  Esusulog::where(['esusu_id' => $esusuid])->count();
-                    $today_card = EsusuTXN::where(['esusu_id' => $esusuid])->whereDay('created_at', '=', date('d'))
+                    $circle_charge_percentage = $esusu->esusu_type->circle_charge;
+                    $circle_charge            = ($circle_charge_percentage / 100) * $rate;
+                    $esusu_circleout          = Esusulog::where(['esusu_id' => $esusuid])->count();
+                    $today_card               = EsusuTXN::where(['esusu_id' => $esusuid])->whereDay('created_at', '=', date('d'))
                         ->sum('no_card');
                     $prev_card = EsusuTXN::where(['esusu_id' => $esusuid])->whereDay('created_at', '<', date('d'))
                         ->sum('no_card');
                     $today_cash = $today_card * $rate;
-                    $logtxn = Esusulog::create([
+                    $logtxn     = Esusulog::create([
                         'circle_out_charge' => $circle_charge,
-                        'esusu_id' => $esusuid,
-                        'rate' => $rate,
-                        'commence_date' => $esusu->commence_date,
-                        'prev_card' => $prev_card,
-                        'today_card' => $today_card,
-                        'today_cash' => $today_cash,
-                        'circle_out' => $esusu_circleout,
-                        'withdrawable' => $esusu->withdrawable,
-                        'wallet' => $esusu->wallet,
-                        'overdraft' => $esusu->overdraft,
-                        'missed_day' => $esusu->missed_day,
-                        'status_id' => 1,
+                        'esusu_id'          => $esusuid,
+                        'rate'              => $rate,
+                        'commence_date'     => $esusu->commence_date,
+                        'prev_card'         => $prev_card,
+                        'today_card'        => $today_card,
+                        'today_cash'        => $today_cash,
+                        'circle_out'        => $esusu_circleout,
+                        'withdrawable'      => $esusu->withdrawable,
+                        'wallet'            => $esusu->wallet,
+                        'overdraft'         => $esusu->overdraft,
+                        'missed_day'        => $esusu->missed_day,
+                        'status_id'         => 1,
                     ]);
-                    $esusu->wallet = $wallet =  ($esusu->wallet + ($esusu->withdrawable));
+                    $esusu->wallet = $wallet = ($esusu->wallet + ($esusu->withdrawable));
                     $esusu->accum_charge += $circle_charge;
-                    $esusu->withdrawable = 0;
+                    $esusu->withdrawable  = 0;
                     $esusu->commence_date = add_day_to_date(1, $start_date);
                     $esusu->save();
                 }
@@ -1360,39 +1361,39 @@ class UserController extends Controller
         //esusu_comission increament 50% of the proc to agent
 
         try {
-            $rate = $commisionDetails['rate'];
-            $agent_id = $commisionDetails['agent_id'];
-            $created_by = $commisionDetails['created_by'];
-            $agentAccount = wb_account_details::where(['user_id' => $agent_id])->first();
-            $agent = $agentAccount->user_wallet;
+            $rate                 = $commisionDetails['rate'];
+            $agent_id             = $commisionDetails['agent_id'];
+            $created_by           = $commisionDetails['created_by'];
+            $agentAccount         = wb_account_details::where(['user_id' => $agent_id])->first();
+            $agent                = $agentAccount->user_wallet;
             $agent_balance_before = $agent->balance;
-            $agent_profit = ($rate / 2);
+            $agent_profit         = ($rate / 2);
 
             $agent_balance_after = $agent_balance_before + $agent_profit;
-            $transactionId = generate_txnID();
-            $ledger_cr = null;
-            $ledger_dr = null;
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(87, $created_by->company_id);
+            $transactionId       = generate_txnID();
+            $ledger_cr           = null;
+            $ledger_dr           = null;
+            $ledger_Settings     = get_CR_DR_TXN_Type_Ledger(87, $created_by->company_id);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
             }
             $agentdata = [
-                "balance_before" => $agent_balance_before,
-                "amount" => $agent_profit,
-                "account_id" => $agentAccount->id,
-                "description" => "Credit from $agentAccount->virtual_accnum Esusu Commission",
-                "branch_id" => $created_by->branch_id,
-                "transaction_status_id" => 1,
-                "transaction_reference" => $transactionId,
-                "transaction_type_id" => 87, //debit 7
-                "credit_debit_type_id" => 1, //debit 2
-                "transaction_remarks_id" => 2, //success 2
-                "balance_after" => $agent_balance_after,
-                "created_date"  => now(),
-                "created_by" => $created_by->id,
-                "ledger_dr" => $ledger_dr,
-                "ledger_cr" => $ledger_cr,
+                "balance_before"         => $agent_balance_before,
+                "amount"                 => $agent_profit,
+                "account_id"             => $agentAccount->id,
+                "description"            => "Credit from $agentAccount->virtual_accnum Esusu Commission",
+                "branch_id"              => $created_by->branch_id,
+                "transaction_status_id"  => 1,
+                "transaction_reference"  => $transactionId,
+                "transaction_type_id"    => 87, //debit 7
+                "credit_debit_type_id"   => 1,  //debit 2
+                "transaction_remarks_id" => 2,  //success 2
+                "balance_after"          => $agent_balance_after,
+                "created_date"           => now(),
+                "created_by"             => $created_by->id,
+                "ledger_dr"              => $ledger_dr,
+                "ledger_cr"              => $ledger_cr,
             ];
             $transaction_agent = transactions::create($agentdata);
             $Agent_user_wallet = user_wallet::where('id', $agent->id)->update(['balance' => $agent_balance_after]);
@@ -1408,9 +1409,9 @@ class UserController extends Controller
         $agentcount = AgentRequest::where('user_id', $request->user_id)->count();
         try {
             if ($agentcount == 0) {
-                $agent = new AgentRequest;
+                $agent          = new AgentRequest;
                 $agent->user_id = auth()->user()->id;
-                $agent->remark = "=> Agent Request <br>";
+                $agent->remark  = "=> Agent Request <br>";
                 $agent->save();
                 User::where('id', auth()->user()->id)->update(['is_agent' => 2]);
                 return response()->json(["status" => 1, "message" => "Request Sent!"], 200);
@@ -1456,7 +1457,7 @@ class UserController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'esusuid' => 'required',
-                'amount' => 'required',
+                'amount'  => 'required',
             ]);
             if ($validator->fails()) {
                 $errors = '';
@@ -1468,29 +1469,29 @@ class UserController extends Controller
                 }
                 $datax = [
                     'message' => $errors,
-                    'status' => 0,
+                    'status'  => 0,
                 ];
                 return response()->json($datax);
             }
             if ($request->amount < 1) {
                 return response()->json(['status' => false, 'message' => "Amount should be greater than zero!"], 400);
             }
-            $auth = auth()->user();
+            $auth       = auth()->user();
             $created_by = User::where('id', $auth->id)->first();
-            $esusu = Esusu::where(['id' => $request->esusuid, 'hasAgent' => 1])->first();
+            $esusu      = Esusu::where(['id' => $request->esusuid, 'hasAgent' => 1])->first();
             //if(auth()->user()->is_agent != 1){ return response()->json(["status" => false, "message" => "Only approve agent can perform such action"], 400);}
-            $wb_id = $esusu->wb_account_detail_id;
-            $cash = $request->amount;
-            $number = $cash / $esusu->rate;
+            $wb_id        = $esusu->wb_account_detail_id;
+            $cash         = $request->amount;
+            $number       = $cash / $esusu->rate;
             $walletfinder = wb_account_details::where(['id' => $wb_id])->first();
-            if (!$walletfinder) {
+            if (! $walletfinder) {
                 return response()->json(['status' => 0, 'message' => 'Error Processing Account!'], 400);
             }
             if ($esusu->wallet < $cash) {
                 return response()->json(['status' => 0, 'message' => 'Insufficient Fund!'], 400);
             }
             $company_wallet = company_wallet::where('company_id', $auth->company_id)->first();
-            if (!$company_wallet) {
+            if (! $company_wallet) {
                 return response()->json(['status' => 0, 'message' => 'Error!'], 400);
             }
             if ($company_wallet->balance < $cash) {
@@ -1500,84 +1501,82 @@ class UserController extends Controller
             $company_wallet->balance -= $cash;
 
             $data_caompany = [
-                "balance_before" => ($company_wallet->balance += $cash),
-                "amount" => $cash,
-                "withdrawal_charge" => 0,
-                "description" => 'Esusu App Withdrawal',
+                "balance_before"         => ($company_wallet->balance += $cash),
+                "amount"                 => $cash,
+                "withdrawal_charge"      => 0,
+                "description"            => 'Esusu App Withdrawal',
                 //   "account_id" => $account_typeid,
-                "branch_id" => $auth->branch_id,
-                "transaction_reference" => generate_txnID(),
-                "transaction_type_id" => 7, //debit 7
-                "credit_debit_type_id" => 2, //debit 2
+                "branch_id"              => $auth->branch_id,
+                "transaction_reference"  => generate_txnID(),
+                "transaction_type_id"    => 7, //debit 7
+                "credit_debit_type_id"   => 2, //debit 2
                 "transaction_remarks_id" => 1, //success 2
-                "balance_after" => $company_wallet->balance,
-                "created_date"  => date('Y-m-d H:i:s'),
-                "created_by" => $auth->id
+                "balance_after"          => $company_wallet->balance,
+                "created_date"           => date('Y-m-d H:i:s'),
+                "created_by"             => $auth->id,
             ];
 
-
             $company_wallet->balance -= $cash;
-            $ledger_cr = null;
-            $ledger_dr = null;
+            $ledger_cr       = null;
+            $ledger_dr       = null;
             $ledger_Settings = get_CR_DR_TXN_Type_Ledger(7, $auth->company_id);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
             }
             $data_caompany = [
-                "balance_before" => ($company_wallet->balance += $cash),
-                "amount" => $cash,
-                "withdrawal_charge" => 0,
-                "description" => 'Esusu App Withdrawal',
+                "balance_before"         => ($company_wallet->balance += $cash),
+                "amount"                 => $cash,
+                "withdrawal_charge"      => 0,
+                "description"            => 'Esusu App Withdrawal',
                 //   "account_id" => $account_typeid,
-                "branch_id" => $auth->branch_id,
-                "transaction_reference" => generate_txnID(),
-                "transaction_type_id" => 7, //debit 7
-                "credit_debit_type_id" => 2, //debit 2
+                "branch_id"              => $auth->branch_id,
+                "transaction_reference"  => generate_txnID(),
+                "transaction_type_id"    => 7, //debit 7
+                "credit_debit_type_id"   => 2, //debit 2
                 "transaction_remarks_id" => 1, //success 2
-                "balance_after" => $company_wallet->balance,
-                "created_date"  => date('Y-m-d H:i:s'),
-                "created_by" => $auth->id,
-                "ledger_dr" => $ledger_dr,
-                "ledger_cr" => $ledger_cr,
+                "balance_after"          => $company_wallet->balance,
+                "created_date"           => date('Y-m-d H:i:s'),
+                "created_by"             => $auth->id,
+                "ledger_dr"              => $ledger_dr,
+                "ledger_cr"              => $ledger_cr,
             ];
 
-
             $balanceBefore = $esusu->wallet;
-            $balanceAfter = $esusu->wallet = $esusu->wallet - $cash;
+            $balanceAfter  = $esusu->wallet  = $esusu->wallet - $cash;
             DB::beginTransaction();
             $transactionId = generate_txnID();
             //walletfinder
             if ($walletfinder->bank->bank_code == null) {
                 return response()->json(['status' => 0, 'message' => 'Error processing Bank Info!'], 400);
             }
-            $bankcode = $walletfinder->bank->bank_code;
+            $bankcode       = $walletfinder->bank->bank_code;
             $virtual_accnum = $walletfinder->virtual_accnum;
-            $customerName = $walletfinder->user->first_name . ' ' . $walletfinder->user->last_name;
+            $customerName   = $walletfinder->user->first_name . ' ' . $walletfinder->user->last_name;
             // die("$bankcode $virtual_accnum $customerName");
-            $ledger_cr = null;
-            $ledger_dr = null;
+            $ledger_cr       = null;
+            $ledger_dr       = null;
             $ledger_Settings = get_CR_DR_TXN_Type_Ledger(88, $created_by->company_id);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
             }
             $data_credit = [
-                "balance_before" => $balanceBefore,
-                "amount" => $cash,
-                "description" => "Esusu Withdrawal Request",
-                "account_id" => $wb_id,
-                "branch_id" => $walletfinder->user->branch_id,
-                "transaction_status_id" => 1,
-                "transaction_reference" => $transactionId,
-                "transaction_type_id" => 88, //esusu Pending txn 88
-                "credit_debit_type_id" => 2, //debit 2
-                "transaction_remarks_id" => 1, //success 2
-                "balance_after" => $balanceAfter,
-                "created_date"  => date("Y-m-d"),
-                "created_by" => $created_by->id,
-                "ledger_dr" => $ledger_dr,
-                "ledger_cr" => $ledger_cr,
+                "balance_before"         => $balanceBefore,
+                "amount"                 => $cash,
+                "description"            => "Esusu Withdrawal Request",
+                "account_id"             => $wb_id,
+                "branch_id"              => $walletfinder->user->branch_id,
+                "transaction_status_id"  => 1,
+                "transaction_reference"  => $transactionId,
+                "transaction_type_id"    => 88, //esusu Pending txn 88
+                "credit_debit_type_id"   => 2,  //debit 2
+                "transaction_remarks_id" => 1,  //success 2
+                "balance_after"          => $balanceAfter,
+                "created_date"           => date("Y-m-d"),
+                "created_by"             => $created_by->id,
+                "ledger_dr"              => $ledger_dr,
+                "ledger_cr"              => $ledger_cr,
             ];
             $transaction = transactions::create($data_credit);
             $esusu->save();
@@ -1587,16 +1586,16 @@ class UserController extends Controller
             $company_wallet->save();
             $desc = $data_credit['description'];
             $curl = curl_init();
-            curl_setopt_array($curl, array(
-                CURLOPT_URL => 'https://partner.com/api/bank-transfer',
+            curl_setopt_array($curl, [
+                CURLOPT_URL            => 'https://partner.com/api/bank-transfer',
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 0,
+                CURLOPT_ENCODING       => '',
+                CURLOPT_MAXREDIRS      => 10,
+                CURLOPT_TIMEOUT        => 0,
                 CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => '{
+                CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST  => 'POST',
+                CURLOPT_POSTFIELDS     => '{
             "amount": "' . $cash . '",
             "transaction_reference": "' . $transactionId . '",
             "destination_account": "' . $virtual_accnum . '",
@@ -1606,10 +1605,10 @@ class UserController extends Controller
 
             "api_key": "yourkey"
         }',
-                CURLOPT_HTTPHEADER => array(
-                    'Content-Type: application/json'
-                ),
-            ));
+                CURLOPT_HTTPHEADER     => [
+                    'Content-Type: application/json',
+                ],
+            ]);
 
             $response = curl_exec($curl);
 

@@ -1528,6 +1528,8 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                     $response = Http::withHeaders($header)->get($apicur);
                                 }
                             }
+                            $result = json_encode($response);
+                            logInfo("{$result}", "SMS 2FA sms api response");
                             if (isset($userinfo->id)) {
                                 $sms_logdata = [
                                     'user_id'    => $userinfo->id,
@@ -1538,6 +1540,9 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                     'hello'      => "fhdf",
                                     'created_by' => (Auth::check()) ? auth()->user()->id : $session->id,
                                 ];
+                                $result_sms_data = json_encode($response);
+                                logInfo("{$result_sms_data}", "SMS 2FA sms api response");
+
                                 $notify = Notification::create($sms_logdata);
                             }
                             return $response;

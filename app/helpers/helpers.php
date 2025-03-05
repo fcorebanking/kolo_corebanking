@@ -1490,11 +1490,14 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                 'Content-Type' => $smsapi->content_type,
 
                             ];
+                            logInfo("$smsapi->authorization", "SMS 2FA authorization");
                             if ($smsapi->authorization != null) {
                                 $header['Authorization'] = $smsapi->authorization;
                             }
-
+                            logInfo("$method", "SMS 2FA sms api method");
                             if ($method == 'POST') {
+                                logInfo("$smsapi->name", "SMS 2FA sms api name");
+                                logInfo("$smsapi->id", "SMS 2FA sms api id");
                                 if ($smsapi->name == 'Type 1' || $smsapi->id == 20) {
 
                                     $firstCharacter = substr($phone, 0, 1);

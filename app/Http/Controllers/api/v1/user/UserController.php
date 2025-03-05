@@ -554,7 +554,7 @@ class UserController extends Controller
 
                 $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone. Alternatively, dial *7006*80*00";
 
-                $sendSMS = \sendSMS($userAccunt->id, $msg, \true, false, "OTP Confirmation", '', 0, false);
+                $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, false);
                 \logInfo($sendSMS, "resend OTP response");
 
                 return response(['status' => true, 'message' => 'OTP Sent Successfully']);
@@ -574,7 +574,7 @@ class UserController extends Controller
 
                     $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone. Alternatively, dial *7006*80*00";
 
-                    $sendSMS = \sendSMS($userAccunt->id, $msg, \true, false, "OTP Confirmation", '', 0, \false);
+                    $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, \false);
                     \logInfo($sendSMS, "resend OTP response");
 
                     return response(['status' => true, 'message' => 'OTP Sent Successfully']);

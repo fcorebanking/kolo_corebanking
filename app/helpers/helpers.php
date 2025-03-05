@@ -1241,7 +1241,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
             $company_short = "Finova";
         }
 
-        if (($all_sms_email == 1 || $all_sms_email == 3) && ! empty($to)) {
+        if (($all_sms_email == 1 || $all_sms_email == 3) && !empty($to)) {
             // if ($userinfo->email_verified_at != null) {
             if (isset($session->company->companyEmail->MAIL_USERNAME)) {
                 logInfo("{$session->company->companyEmail->MAIL_USERNAME}", "SMS 2FA  mail username");
@@ -1360,6 +1360,9 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
         if ($all_sms_email == 1 || $all_sms_email == 2) {
             if ($userinfo->sms == 1 || $is_external == true) {
                 $setting = $company->setting;
+                logInfo("$setting", "SMS 2FA setting");
+                logInfo("$sms_charge", "SMS 2FA sms charge");
+                logInfo("$charge_customer", "SMS 2FA charge customer");
                 if ($setting->allsms_state) {
                     $sms_charge               = $setting->sms_charge;
                     $can_proceed              = false;
@@ -1453,6 +1456,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                             Temp_Charges::create($tempcharge);
                         }
                     }
+                    logInfo("$can_procee", "SMS 2FA can proceed");
                     if ($can_proceed) {
                         $smsapi          = $setting->smsapi;
                         $msg1            = $msg;

@@ -37,7 +37,8 @@ class LoginController extends Controller
         $current_time     = date("Y-m-d H:i:s");                                          // get current time
         $incremented_time = date("Y-m-d H:i:s", strtotime($current_time . "+5 minutes")); // add 5 minutes
         $user->update(['otp' => $otpgen, 'otp_expiration_date' => $incremented_time]);
-        sendSMS($user->id, "Your 2Factor OTP is $otpgen at " . now(), true, false, 'Finova Login Security');
+        $sendSMS = sendSMS($user->id, "Your 2Factor OTP is $otpgen at " . now(), true, false, 'Finova Login Security');
+        \logInfo($sendSMS, "resend OTP response");
         return response()->json(["status" => 1, "message" => "OTP Sent!"]);
     }
 }

@@ -1456,7 +1456,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                             Temp_Charges::create($tempcharge);
                         }
                     }
-                    logInfo("$can_proceed", "SMS 2FA can proceed");
+                    logInfo("$can_proceed", "SMS 2FA can proceed status");
                     if ($can_proceed) {
                         $smsapi          = $setting->smsapi;
                         $msg1            = $msg;

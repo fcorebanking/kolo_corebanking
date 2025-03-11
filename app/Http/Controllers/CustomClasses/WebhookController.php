@@ -295,7 +295,8 @@ class WebhookController extends Controller
                         $companyWallet = $loanRecord->user->company->wallet;
                     }
                 } else {
-                    $companyWallet = company_wallet::where('vaccount', $this->virtualAccount)->first();
+                    $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
+                    $companyWallet     = company_wallet::where('vaccount', $this->virtualAccount)->orWhere('vaccount', $getVirtualAccount)->first();
                 }
 
                 // if (!$companyWallet) {

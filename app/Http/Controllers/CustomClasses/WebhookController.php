@@ -331,8 +331,8 @@ class WebhookController extends Controller
                 $transaction = transactions::create([
                     "balance_before"         => $creditCompany['balance_before'],
                     "company_balance_before" => $creditCompany['balance_before'],
-                    "amount"                 => $this->amount,
-                    "company_amount"         => $this->amount,
+                    "amount"                 => $originalAmount,
+                    "company_amount"         => $originalAmount,
                     "balance_after"          => $creditCompany['balance_after'],
                     "company_balance_after"  => $creditCompany['balance_after'],
                     "description"            => $newdescription,

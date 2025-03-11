@@ -32,6 +32,7 @@ class ProvidusController extends WebhookController
             $this->appKey = config('providus.app_key_test');
             $this->clientId = config('providus.client_id_test');
             $this->clientSecret = config('providus.client_secret_test');
+            $this->clientSecretXpress = config('providus.base_xpress_secret_test');
         } else {
             $this->baseUrl = config('providus.base_url_live');
             $this->xAuthSignature = config('providus.auth_signature_live');
@@ -39,6 +40,7 @@ class ProvidusController extends WebhookController
             $this->appKey = config('providus.app_key_live');
             $this->clientId = config('providus.client_id_live');
             $this->clientSecret = config('providus.client_secret_live');
+            $this->clientSecretXpress = config('providus.base_xpress_secret_live');
         }
     }
 

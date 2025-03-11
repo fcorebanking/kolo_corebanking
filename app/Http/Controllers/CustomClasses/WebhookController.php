@@ -66,6 +66,7 @@ class WebhookController extends Controller
 
             $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
             $account           = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
+
             if ($account) {
 
                 DB::beginTransaction();
@@ -303,7 +304,11 @@ class WebhookController extends Controller
                 //     return $forwardWebhookResponse;
                 // }
 
+                logInfo("check company id");
+
                 $companyId = $companyWallet->company_id;
+
+                logInfo($companyId, "company id");
 
                 $originalAmount = $this->amount;
 

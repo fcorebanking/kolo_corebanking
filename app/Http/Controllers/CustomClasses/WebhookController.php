@@ -295,8 +295,13 @@ class WebhookController extends Controller
                         $companyWallet = $loanRecord->user->company->wallet;
                     }
                 } else {
-                    $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
-                    $companyWallet     = company_wallet::where('vaccount', $this->virtualAccount)->orWhere('vaccount', $getVirtualAccount)->first();
+                    if ($this->webhookType == 'kuda') {
+                        $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
+                    } else {
+                        $getVirtualAccount = null;
+                    }
+
+                    $companyWallet = company_wallet::where('vaccount', $this->virtualAccount)->orWhere('vaccount', $getVirtualAccount)->first();
                 }
 
                 // if (!$companyWallet) {
@@ -311,7 +316,11 @@ class WebhookController extends Controller
 
                 logInfo($companyId, "company id");
 
-                $originalAmount = $this->amount;
+                if ($this->webhookType == 'kuda') {
+                    $originalAmount = $this->amount / 100;
+                } else {
+                    $originalAmount = $this->amount;
+                }
 
                 \logInfo($this->wbaCharge, "Company Charge");
 

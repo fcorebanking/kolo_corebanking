@@ -146,7 +146,7 @@ class RegisterController extends Controller
             $virtualAccount->firstName        = $request->companyname;
             $virtualAccount->companyShortName = $request->companyshort;
             $virtualAccount->companyName      = $request->companyname;
-            $virtualAccount->lastName         = "";
+            $virtualAccount->lastName         = $request->companyname;
             $virtualAccount->accountType      = $request->account_category;
             $virtualAccount->email            = $request->email;
             $virtualAccount->phone            = $request->formatted_phone;

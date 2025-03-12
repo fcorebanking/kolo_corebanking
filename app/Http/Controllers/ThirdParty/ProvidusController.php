@@ -358,7 +358,7 @@ class ProvidusController extends WebhookController
 
         logInfo(json_encode($url), "Kuda Process Endpoint url");
 
-        $getAccount = $this->providusGetRequestUpdate($endpoint);
+        $getAccount = $this->providusGetRequestUpdate($url);
 
         logInfo($getAccount, "Providus Get Account Response");
         return $getAccount['wallet']['9964189288'];
@@ -366,6 +366,7 @@ class ProvidusController extends WebhookController
 
     public function getVirtualAccountPhone($phone)
     {
+        logInfo(json_encode($phone), "Providus Phone Number");
         $url = "https://payment.xpress-wallet.com/api/v1//customer/phone?phoneNumber=$phone";
 
         logInfo(json_encode($url), "Kuda Process Endpoint url");

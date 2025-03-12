@@ -325,7 +325,7 @@ class ProvidusController extends WebhookController
         logInfo(json_encode($createAccount), "Providus Create Account Response");
 
         if (isset($createAccount['status'])) {
-            if ($createAccount['status'] && $createAccount['status'] != "Customer already exist.") {
+            if ($createAccount['status'] && $createAccount['message'] != "Customer already exist.") {
                 return [
                     'status'  => true,
                     'message' => $createAccount['wallet']['accountName'],
@@ -333,7 +333,7 @@ class ProvidusController extends WebhookController
                         'account_number' => $createAccount['wallet']['accountNumber'],
                     ],
                 ];
-            } else if ($createAccount['status'] == "Customer already exist.") {
+            } else if ($createAccount['message'] == "Customer already exist.") {
                 $getVirtualAccountID = $this->getVirtualAccountPhone($virtualAccount->phone);
                 $getVirtualAccount   = $this->getVirtualAccount($getVirtualAccountID);
                 return [

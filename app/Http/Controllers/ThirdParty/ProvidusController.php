@@ -301,7 +301,8 @@ class ProvidusController extends WebhookController
         $data_string = json_encode($data);
 
         \logInfo($data_string, "Providus Request body");
-
+        $token = $this->clientSecretXpress;
+        \logInfo($token, "Providus Request token");
         $curl = curl_init();
         // $bvn = $bvn == '' ? '' : $bvn;
 

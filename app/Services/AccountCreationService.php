@@ -44,7 +44,7 @@ class AccountCreationService
             $providusController = new ProvidusController();
 
             $accountName           = $virtualAccount->accountType == 'coperate' ? $virtualAccount->companyName : $virtualAccount->firstName . ' ' . $virtualAccount->lastName;
-            $createAccountResponse = $providusController->createAccount($virtualAccount);
+            $createAccountResponse = $providusController->createVirtualAccount($virtualAccount);
 
             if ($createAccountResponse['status']) {
 

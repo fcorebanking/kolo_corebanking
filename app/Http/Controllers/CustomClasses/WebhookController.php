@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\ThirdParty\CgateController;
 use App\Http\Controllers\ThirdParty\FlutterwaveController;
 use App\Http\Controllers\ThirdParty\KudaController;
+use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Models\AgentTerminal;
 use App\Models\ApiKey;
 use App\Models\Company;
@@ -63,9 +64,15 @@ class WebhookController extends Controller
                     'body'             => $this->fromTempWebhook == 'true' ? json_encode($this->tempWebookRequest) : json_encode($this->request->all()),
                 ]);
             }
+            if ($this->webhookType == 'providus') {
+                $providusController = new ProvidusController();
+                $getVirtualAccount  = $providusController->getVirtualAccount($this->virtualAccount);
+            }
+            if ($this->webhookType == 'kuda') {
+                $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
+            }
 
-            $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
-            $account           = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
+            $account = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
 
             if ($account) {
 

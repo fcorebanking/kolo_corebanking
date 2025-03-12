@@ -1833,7 +1833,7 @@ class TransactionController extends Controller
 
             //remove providus verification
 */
-        /*    $providusController->transactionReference = $request->settlementId;
+            /*    $providusController->transactionReference = $request->settlementId;
             $providusController->wbaCharge            = getWbaTransferCharges(9, $request->transactionAmount);
             $providusController->virtualAccount       = $request->accountNumber;
             $providusController->amount               = $request->transactionAmount;
@@ -1845,7 +1845,7 @@ class TransactionController extends Controller
 
             $providusController->transactionReference = $request->reference;
             $providusController->wbaCharge            = getWbaTransferCharges(9, $request->$request->amount);
-            $providusController->virtualAccount       = $request->accountNumber;
+            $providusController->virtualAccount       = $request->userId;
             $providusController->amount               = $request->amount;
             $providusController->webhookType          = 'providus';
             $providusController->description          = "You received Funds from $request->accountName";

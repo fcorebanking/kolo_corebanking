@@ -340,6 +340,18 @@ class ProvidusController extends WebhookController
         }
     }
 
+    public function getVirtualAccount($virtualAccount)
+    {
+        $url = "https://payment.xpress-wallet.com/api/v1/wallet/customer?$virtualAccount";
+
+        logInfo(json_encode($url), "Kuda Process Endpoint url");
+
+        $getAccount = $this->providusGetRequestUpdate($endpoint);
+
+        logInfo($getAccount, "Providus Get Account Response");
+        return $getAccount['wallet']['9964189288'];
+    }
+
     public function vtpassGetRequest($endpoint)
     {
         $response = Http::withHeaders($this->providusHeaderV2())->get("$this->baseUrl $endpoint");
@@ -360,8 +372,15 @@ class ProvidusController extends WebhookController
 
     public function providusGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->providusHeader())->get("$this->baseUrl $endpoint");
+        $response = Http::withHeaders($this->providusHeaderV3())->get("$this->baseUrl $endpoint");
         return $response->json();
+    }
+
+    public function providusGetRequestUpdate($endpoint)
+    {
+
+        $response = Http::withHeaders($this->kudaHeader())->get($endpoint);
+        return $response;
     }
 
     public function providusHeader()
@@ -380,6 +399,16 @@ class ProvidusController extends WebhookController
     {
         $header = [];
         $header = ['appId' => $this->appId, 'appKey' => $this->appKey];
+
+        return $header;
+    }
+
+    public function providusHeaderV3()
+    {
+        $header = [];
+        $header = ['Content-Type' => 'application/json',
+            'Authorization'           => "Bearer $this->clientId",
+        ];
 
         return $header;
     }

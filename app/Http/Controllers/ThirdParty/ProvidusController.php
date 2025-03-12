@@ -321,6 +321,8 @@ class ProvidusController extends WebhookController
         $response      = curl_exec($ch);
         $createAccount = \json_decode($response, true);
 
+        logInfo(json_encode($createAccountResponse), "Providus Create Account Response");
+
         if (isset($createAccount['status'])) {
             if ($createAccount['status']) {
                 return [

@@ -354,14 +354,14 @@ class ProvidusController extends WebhookController
 
     public function getVirtualAccount($virtualAccount)
     {
-        $url = "https://payment.xpress-wallet.com/api/v1/wallet/customer?$virtualAccount";
+        $url = "https://payment.xpress-wallet.com/api/v1/wallet/customer?customerId=$virtualAccount";
 
         logInfo(json_encode($url), "Providus getVirtualAccount Endpoint url");
 
         $getAccount = $this->providusGetRequestUpdate($url);
 
         logInfo($getAccount, "Providus Get Account Response");
-        return $getAccount['wallet']['9964189288'];
+        return $getAccount;
     }
 
     public function getVirtualAccountPhone($phone)

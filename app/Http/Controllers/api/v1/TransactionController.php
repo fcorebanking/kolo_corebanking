@@ -1847,7 +1847,7 @@ class TransactionController extends Controller
 
             $providusController->transactionReference = $request->reference;
             $providusController->wbaCharge            = getWbaTransferCharges(9, $request->$request->amount);
-            $providusController->virtualAccount       = $request->userId;
+            $providusController->virtualAccount       = $request->beneficiaryAccountNumber;
             $providusController->amount               = $request->amount;
             $providusController->webhookType          = 'providus';
             $providusController->description          = "You received Funds from $request->accountName";

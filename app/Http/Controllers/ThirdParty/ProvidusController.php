@@ -325,7 +325,7 @@ class ProvidusController extends WebhookController
         logInfo(json_encode($createAccount), "Providus Create Account Response");
 
         if (isset($createAccount['status'])) {
-            if ($createAccount['status']) {
+            if ($createAccount['status'] && $createAccount['status'] != "Customer already exist.") {
                 return [
                     'status'  => true,
                     'message' => $createAccount['wallet']['accountName'],
@@ -333,8 +333,19 @@ class ProvidusController extends WebhookController
                         'account_number' => $createAccount['wallet']['accountNumber'],
                     ],
                 ];
+            } else if ($createAccount['status'] == "Customer already exist.") {
+                $getVirtualAccountID = $this->getVirtualAccountPhone($virtualAccount->phone);
+                $getVirtualAccount   = $this->getVirtualAccount($getVirtualAccountID);
+                return [
+                    'status'  => true,
+                    'message' => $getVirtualAccount['wallet']['accountName'],
+                    'data'    => [
+                        'account_number' => $getVirtualAccount['wallet']['accountNumber'],
+                    ],
+                ];
+
             } else {
-                return ['status' => false, 'message' => $createAccount['responseMessage']];
+                return ['status' => false, 'message' => $createAccount['message']];
             }
         } else {
             return ['status' => false, 'message' => "Failed to create account... Please contact support"];
@@ -351,6 +362,18 @@ class ProvidusController extends WebhookController
 
         logInfo($getAccount, "Providus Get Account Response");
         return $getAccount['wallet']['9964189288'];
+    }
+
+    public function getVirtualAccountPhone($phone)
+    {
+        $url = "https://payment.xpress-wallet.com/api/v1//customer/phone?phoneNumber=$phone";
+
+        logInfo(json_encode($url), "Kuda Process Endpoint url");
+
+        $getAccount = $this->providusGetRequestUpdate($url);
+
+        logInfo(json_encode($getAccount), "Providus Get Phone Account Response");
+        return $getAccount['customer']['id'];
     }
 
     public function vtpassGetRequest($endpoint)

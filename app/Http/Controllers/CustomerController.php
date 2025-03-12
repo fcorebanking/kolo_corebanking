@@ -2377,6 +2377,7 @@ class CustomerController extends Controller
                 $user->virtual_account   = $virtual_acccount_number;
                 $user->account_reference = $customer_reference;
                 $user->save();
+
             }
 
             if ($saving) {

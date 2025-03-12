@@ -287,7 +287,7 @@ class ProvidusController extends WebhookController
         }
     }
 
-    public function createVirtualAccount(VirtualAccountType $virtualAccount)
+    public function createVirtualAccount($virtualAccount)
     {
         $data = [
             "bvn"         => $virtualAccount->bvn,

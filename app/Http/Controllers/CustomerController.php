@@ -2371,8 +2371,8 @@ class CustomerController extends Controller
                     return response()->json($response);
                 }
                 logInfo($response, "Create Account service response");
-                $customer_reference      = $response['data']['account_reference'];
-                $virtual_acccount_number = $response['data']['virtual_account'];
+                $customer_reference      = $response['data']['account_reference'] ?? $customer_reference;
+                $virtual_acccount_number = $response['data']['virtual_account'] ?? $response['data']['account_number'];
 
                 $user->virtual_account   = $virtual_acccount_number;
                 $user->account_reference = $customer_reference;
@@ -2382,7 +2382,7 @@ class CustomerController extends Controller
             if ($saving) {
                 if ($user) {
                     $wb = wb_account_details::where(['account_product_id' => $saving->id, 'user_id' => $user->id])->first();
-                    if ($wb) {
+                    if ($wb && $request->replace_account != "yes") {
                         return response()->json(['status' => 0, 'message' => 'Error! Account Type Already Exist']);
                     }
 

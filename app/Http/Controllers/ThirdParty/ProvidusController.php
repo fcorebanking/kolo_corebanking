@@ -403,7 +403,7 @@ class ProvidusController extends WebhookController
     public function providusGetRequestUpdate($endpoint)
     {
 
-        $response = Http::withHeaders($this->kudaHeader())->get($endpoint);
+        $response = Http::withHeaders($this->providusHeaderV3())->get($endpoint);
         return $response;
     }
 

@@ -356,7 +356,7 @@ class ProvidusController extends WebhookController
     {
         $url = "https://payment.xpress-wallet.com/api/v1/wallet/customer?$virtualAccount";
 
-        logInfo(json_encode($url), "Kuda Process Endpoint url");
+        logInfo(json_encode($url), "Providus getVirtualAccount Endpoint url");
 
         $getAccount = $this->providusGetRequestUpdate($url);
 
@@ -367,9 +367,11 @@ class ProvidusController extends WebhookController
     public function getVirtualAccountPhone($phone)
     {
         logInfo(json_encode($phone), "Providus Phone Number");
-        $url = "https://payment.xpress-wallet.com/api/v1/customer/phone?phoneNumber=$phone";
+        $formattedPhone = $this->format_number($phone);
 
-        logInfo(json_encode($url), "Kuda Process Endpoint url");
+        $url = "https://payment.xpress-wallet.com/api/v1/customer/phone?phoneNumber=$formattedPhone";
+
+        logInfo(json_encode($url), "Providus Process getVirtualAccountPhone Endpoint url");
 
         $getAccount = $this->providusGetRequestUpdate($url);
 
@@ -436,6 +438,20 @@ class ProvidusController extends WebhookController
         ];
 
         return $header;
+    }
+    public function format_number($tell)
+    {
+
+        logInfo(json_encode($tell), "Providus tell");
+        $tell = str_replace('+', '', $tell);
+        $len  = strlen($tell);
+        if ($len == 11) {
+            $tell = "234" . substr($tell, 1);
+        } elseif ($len == 13) {
+            $tell = $tell;
+        }
+        logInfo(json_encode($tell), "Formatted Providus tell");
+        return $tell;
     }
 
 }

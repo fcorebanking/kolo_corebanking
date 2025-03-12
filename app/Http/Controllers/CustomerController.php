@@ -2383,7 +2383,7 @@ class CustomerController extends Controller
             if ($saving) {
                 if ($user) {
                     $wb = wb_account_details::where(['account_product_id' => $saving->id, 'user_id' => $user->id])->first();
-                    if ($wb && $request->replace_account != "yes") {
+                    if ($wb && ($request->replace_account != "yes") ) {
                         return response()->json(['status' => 0, 'message' => 'Error! Account Type Already Exist']);
                     }
 

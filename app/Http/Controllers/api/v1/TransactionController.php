@@ -1845,12 +1845,12 @@ class TransactionController extends Controller
             $providusController->request              = $request;
             $providusController->fromTempWebhook      = 'false';*/
 
-            $providusController->transactionReference = $request->reference;
-            $providusController->wbaCharge            = getWbaTransferCharges(9, $request->$request->amount);
-            $providusController->virtualAccount       = $request->beneficiaryAccountNumber;
-            $providusController->amount               = $request->amount;
+            $providusController->transactionReference = $request->data->reference;
+            $providusController->wbaCharge            = getWbaTransferCharges(9, $request->data->amount);
+            $providusController->virtualAccount       = $request->data->beneficiaryAccountNumber;
+            $providusController->amount               = $request->data->amount;
             $providusController->webhookType          = 'providus';
-            $providusController->description          = "You received Funds from $request->accountName";
+            $providusController->description          = "You received Funds from {$request->data->originatorAccountName}";
             $providusController->transactionDate      = date('Y-m-d');
             $providusController->request              = $request;
             $providusController->fromTempWebhook      = 'false';

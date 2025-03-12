@@ -66,7 +66,8 @@ class WebhookController extends Controller
             }
             if ($this->webhookType == 'providus') {
                 $providusController = new ProvidusController();
-                $getVirtualAccount  = $providusController->getVirtualAccount($this->virtualAccount);
+                $account            = $providusController->getVirtualAccount($this->virtualAccount);
+                $getVirtualAccount  = $account['wallet']['accountNumber'];
             }
             if ($this->webhookType == 'kuda') {
                 $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
@@ -304,6 +305,10 @@ class WebhookController extends Controller
                 } else {
                     if ($this->webhookType == 'kuda') {
                         $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
+                    } else if ($this->webhookType == 'providus') {
+                        $providusController = new ProvidusController();
+                        $account            = $providusController->getVirtualAccount($this->virtualAccount);
+                        $getVirtualAccount  = $account['wallet']['accountNumber'];
                     } else {
                         $getVirtualAccount = null;
                     }
@@ -570,4 +575,5 @@ class WebhookController extends Controller
 
         return $virtualAccount;
     }
+
 }

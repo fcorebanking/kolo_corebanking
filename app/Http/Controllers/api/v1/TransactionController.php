@@ -1818,7 +1818,7 @@ class TransactionController extends Controller
             $providusController = new ProvidusController();
 
             //remove providus verification
-
+/*
             $verifyWebhook = $providusController->verifyIncomingWebhook($request);
 
             if (! $verifyWebhook['status']) {
@@ -1832,13 +1832,23 @@ class TransactionController extends Controller
             }
 
             //remove providus verification
-
-            $providusController->transactionReference = $request->settlementId;
+*/
+        /*    $providusController->transactionReference = $request->settlementId;
             $providusController->wbaCharge            = getWbaTransferCharges(9, $request->transactionAmount);
             $providusController->virtualAccount       = $request->accountNumber;
             $providusController->amount               = $request->transactionAmount;
             $providusController->webhookType          = 'providus';
             $providusController->description          = "You received Funds from $request->sourceAccountName";
+            $providusController->transactionDate      = date('Y-m-d');
+            $providusController->request              = $request;
+            $providusController->fromTempWebhook      = 'false';*/
+
+            $providusController->transactionReference = $request->reference;
+            $providusController->wbaCharge            = getWbaTransferCharges(9, $request->$request->amount);
+            $providusController->virtualAccount       = $request->accountNumber;
+            $providusController->amount               = $request->amount;
+            $providusController->webhookType          = 'providus';
+            $providusController->description          = "You received Funds from $request->accountName";
             $providusController->transactionDate      = date('Y-m-d');
             $providusController->request              = $request;
             $providusController->fromTempWebhook      = 'false';

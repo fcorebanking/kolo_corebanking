@@ -1,14 +1,9 @@
 <?php
-
 namespace App\Http\Controllers\ThirdParty;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\CustomClasses\WebhookController;
-use App\Models\status;
-use App\Models\UnusedProvidusAccounts;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class ProvidusController extends WebhookController
@@ -21,25 +16,25 @@ class ProvidusController extends WebhookController
     private $clientSecret;
     private $xAuthSignature;
 
-    function __construct()
+    public function __construct()
     {
 
         if (env('APP_MODE') == 'test') {
 
-            $this->baseUrl = config('providus.base_url_test');
-            $this->xAuthSignature = config('providus.auth_signature_test');
-            $this->appId = config('providus.app_id_test');
-            $this->appKey = config('providus.app_key_test');
-            $this->clientId = config('providus.client_id_test');
-            $this->clientSecret = config('providus.client_secret_test');
+            $this->baseUrl            = config('providus.base_url_test');
+            $this->xAuthSignature     = config('providus.auth_signature_test');
+            $this->appId              = config('providus.app_id_test');
+            $this->appKey             = config('providus.app_key_test');
+            $this->clientId           = config('providus.client_id_test');
+            $this->clientSecret       = config('providus.client_secret_test');
             $this->clientSecretXpress = config('providus.base_xpress_secret_test');
         } else {
-            $this->baseUrl = config('providus.base_url_live');
-            $this->xAuthSignature = config('providus.auth_signature_live');
-            $this->appId = config('providus.app_id_live');
-            $this->appKey = config('providus.app_key_live');
-            $this->clientId = config('providus.client_id_live');
-            $this->clientSecret = config('providus.client_secret_live');
+            $this->baseUrl            = config('providus.base_url_live');
+            $this->xAuthSignature     = config('providus.auth_signature_live');
+            $this->appId              = config('providus.app_id_live');
+            $this->appKey             = config('providus.app_key_live');
+            $this->clientId           = config('providus.client_id_live');
+            $this->clientSecret       = config('providus.client_secret_live');
             $this->clientSecretXpress = config('providus.base_xpress_secret_live');
         }
     }
@@ -47,17 +42,17 @@ class ProvidusController extends WebhookController
     public function createPhysicalCard($request, $transactionId)
     {
         $body = [
-            "appId" => $this->appId,
-            "appKey" => $this->appKey,
-            "currencyCode" => "566",
+            "appId"           => $this->appId,
+            "appKey"          => $this->appKey,
+            "currencyCode"    => "566",
             "MeansOfIdNumber" => "National ID",
-            "emailAddress" => $request->email,
-            "firstName" => $request->first_name,
-            "lastName" => $request->last_name,
-            "mobileNr" => $request->phone,
-            "streetAddress" => $request->address,
-            "bvn" => $request->bvn,
-            "PaymentRef" => $transactionId
+            "emailAddress"    => $request->email,
+            "firstName"       => $request->first_name,
+            "lastName"        => $request->last_name,
+            "mobileNr"        => $request->phone,
+            "streetAddress"   => $request->address,
+            "bvn"             => $request->bvn,
+            "PaymentRef"      => $transactionId,
         ];
 
         logInfo($body, "Providus request body");
@@ -83,7 +78,6 @@ class ProvidusController extends WebhookController
         }
     }
 
-
     public function verifyProvidusTransaction($transactionReference)
     {
 
@@ -94,11 +88,11 @@ class ProvidusController extends WebhookController
 
             if (isset($verifyPaymentResponse['sessionId'])) {
                 return [
-                    'status' => true,
+                    'status'  => true,
                     'message' => "Transaction verified successfully",
-                    'data' => [
-                        'amount' => $verifyPaymentResponse['transactionAmount']
-                    ]
+                    'data'    => [
+                        'amount' => $verifyPaymentResponse['transactionAmount'],
+                    ],
                 ];
             } else {
                 return ['status' => false, 'message' => "Failed to verify Transaction"];
@@ -118,9 +112,8 @@ class ProvidusController extends WebhookController
 
         if ($signature != $localSignature) {
             // return ['responseCode' => "02", 'status' => false, "requestSuccessful" => true, 'sessionId' => $request->sessionId, 'responseMessage' => "rejected transaction " . env('APP_MODE')];
-                    return ['responseCode' => "02", "requestSuccessful" => true, 'sessionId' => $request->sessionId, 'responseMessage' => "rejected transaction"];
+            return ['responseCode' => "02", "requestSuccessful" => true, 'sessionId' => $request->sessionId, 'responseMessage' => "rejected transaction"];
 
-            
         }
 
         return ['status' => true, 'message' => 'Webhook Verified Successfully'];
@@ -129,12 +122,10 @@ class ProvidusController extends WebhookController
     public function getProvidusHeader()
     {
 
-
         $stringTxt = "$this->clientId:$this->clientSecret";
 
         return hash('sha512', $stringTxt);
     }
-
 
     public function createAccount($accountName)
     {
@@ -142,7 +133,6 @@ class ProvidusController extends WebhookController
         // // $accountName = $isCorpoerate ? $request->company_name : $request->first_name . ' ' . $request->last_name;
 
         // $unusedAccount = UnusedProvidusAccounts::where('assigned_status', '0')->first();
-
 
         // if (!$unusedAccount) {
         //     \logInfo("No Accoumnt found", "Newly selected Account Number");
@@ -154,10 +144,10 @@ class ProvidusController extends WebhookController
         //     "bvn" => "",
         //     "account_number" => $unusedAccount->account_number
         // ];
-        
+
         $body = [
             "account_name" => $accountName,
-            "bvn" => ""
+            "bvn"          => "",
         ];
 
         logInfo($body, "Providus request body");
@@ -171,13 +161,12 @@ class ProvidusController extends WebhookController
             if (isset($createAccount['requestSuccessful'])) {
                 if ($createAccount['requestSuccessful']) {
 
-
                     return [
-                        'status' => true,
+                        'status'  => true,
                         'message' => $createAccount['responseMessage'],
-                        'data' => [
-                            'account_number' => $createAccount['account_number']
-                        ]
+                        'data'    => [
+                            'account_number' => $createAccount['account_number'],
+                        ],
                     ];
                 } else {
                     return ['status' => false, 'message' => $createAccount['responseMessage']];
@@ -234,16 +223,16 @@ class ProvidusController extends WebhookController
     public function fundPhysicalCard($email, $phone, $amount, $pan, $firstName, $lastName, $transactionId)
     {
         $body = [
-            "appId" => $this->appId,
-            "appKey" => $this->appKey,
+            "appId"        => $this->appId,
+            "appKey"       => $this->appKey,
             "currencyCode" => "566",
             "emailAddress" => $email,
-            "firstName" => $firstName,
-            "lastName" => $lastName,
-            "mobileNr" => $phone,
-            "amount" => $amount,
-            "pan" => $pan,
-            "PaymentRef" => $transactionId
+            "firstName"    => $firstName,
+            "lastName"     => $lastName,
+            "mobileNr"     => $phone,
+            "amount"       => $amount,
+            "pan"          => $pan,
+            "PaymentRef"   => $transactionId,
         ];
 
         logInfo($body, "Providus request body");
@@ -273,7 +262,6 @@ class ProvidusController extends WebhookController
     public function getPhysicalCardBalance($cardNumber)
     {
 
-
         logInfo($cardNumber, "getPhysicalCardBalance request body");
 
         $url = "PrepaidCardGetCardBalance?CardNo=$cardNumber&appId=wired_banking&appKey=w!r39_6A4k1n9.P0";
@@ -299,46 +287,48 @@ class ProvidusController extends WebhookController
         }
     }
 
-    public function createVirtualAccount($name, $bvn)
+    public function createVirtualAccount(VirtualAccountType $virtualAccount)
     {
+        $data = [
+            "bvn"         => $virtualAccount->bvn,
+            "firstName"   => $virtualAccount->firstName,
+            "lastName"    => $virtualAccount->lastName,
+            "dateOfBirth" => $virtualAccount->dob,
+            "phoneNumber" => $virtualAccount->phone,
+            "address"     => $virtualAccount->address,
+        ];
+
+        $data_string = json_encode($data);
+
+        \logInfo($data_string, "Providus Request body");
 
         $curl = curl_init();
-        $bvn = $bvn == '' ? '' : $bvn;
+        // $bvn = $bvn == '' ? '' : $bvn;
 
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://vps.providusbank.com/vps/api/PiPCreateReservedAccountNumber',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => '{
-            "account_name":"' . $name . '",
-            "bvn":"' . $bvn . '"
-            
-        }',
-            CURLOPT_HTTPHEADER => array(
-                'Content-Type: application/json',
-                'Client-Id: key',
-                'X-Auth-Signature: key'
-            ),
-        ));
+        $ch = curl_init('https://payment.xpress-wallet.com/api/v1/wallet');
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt(
+            $ch,
+            CURLOPT_HTTPHEADER,
+            [
+                'Content-Type: application/json', "Authorization: Bearer $token",
+            ]
+        );
 
-        $response = curl_exec($curl);
-
-        curl_close($curl);
+        $response      = curl_exec($ch);
         $createAccount = \json_decode($response, true);
 
-        if (isset($createAccount['requestSuccessful'])) {
-            if ($createAccount['requestSuccessful']) {
+        if (isset($createAccount['status'])) {
+            if ($createAccount['status']) {
                 return [
-                    'status' => true,
-                    'message' => $createAccount['responseMessage'],
-                    'data' => [
-                        'account_number' => $createAccount['account_number']
-                    ]
+                    'status'  => true,
+                    'message' => $createAccount['wallet']['accountName'],
+                    'data'    => [
+                        'account_number' => $createAccount['wallet']['accountNumber'],
+                    ],
                 ];
             } else {
                 return ['status' => false, 'message' => $createAccount['responseMessage']];
@@ -350,25 +340,25 @@ class ProvidusController extends WebhookController
 
     public function vtpassGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->providusHeaderV2())->get("$this->baseUrl$endpoint");
+        $response = Http::withHeaders($this->providusHeaderV2())->get("$this->baseUrl $endpoint");
         return $response->json();
     }
 
     public function providusPostRequest($endpoint, $body)
     {
-        $response = Http::withHeaders($this->providusHeader())->post("$this->baseUrl$endpoint", $body);
+        $response = Http::withHeaders($this->providusHeader())->post("$this->baseUrl $endpoint", $body);
         return $response->json();
     }
 
     public function providusPutRequest($endpoint, $body)
     {
-        $response = Http::withHeaders($this->providusHeader())->put("$this->baseUrl$endpoint", $body);
+        $response = Http::withHeaders($this->providusHeader())->put("$this->baseUrl $endpoint", $body);
         return $response->json();
     }
 
     public function providusGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->providusHeader())->get("$this->baseUrl$endpoint");
+        $response = Http::withHeaders($this->providusHeader())->get("$this->baseUrl $endpoint");
         return $response->json();
     }
 
@@ -376,9 +366,9 @@ class ProvidusController extends WebhookController
     {
         $header = [];
         $header = [
-            'Content-Type' => 'application/json',
-            'Client-Id' => $this->clientId,
-            'X-Auth-Signature' => $this->xAuthSignature
+            'Content-Type'     => 'application/json',
+            'Client-Id'        => $this->clientId,
+            'X-Auth-Signature' => $this->xAuthSignature,
         ];
 
         return $header;
@@ -392,5 +382,4 @@ class ProvidusController extends WebhookController
         return $header;
     }
 
-  
 }

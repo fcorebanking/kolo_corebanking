@@ -434,7 +434,7 @@ class ProvidusController extends WebhookController
     {
         $header = [];
         $header = ['Content-Type' => 'application/json',
-            'Authorization'           => "Bearer $this->clientId",
+            'Authorization'           => "Bearer $this->clientSecretXpress",
         ];
 
         return $header;

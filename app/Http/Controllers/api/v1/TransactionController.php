@@ -1814,7 +1814,7 @@ class TransactionController extends Controller
     public function providusWebhook(Request $request)
     {
         try {
-            if ($request->event == "customer_account_created") {
+            if ($request->event == "customer_account_created" || $request->data->status == "pending" ) {
                 return \response()->json(['status' => false, 'message' => 'Transaction is not a Credit Transaction']);
             }
             $providusController = new ProvidusController();

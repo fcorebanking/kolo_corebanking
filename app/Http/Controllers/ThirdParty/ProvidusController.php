@@ -399,7 +399,7 @@ class ProvidusController extends WebhookController
 
     public function providusGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->providusHeaderV3())->get("$this->baseUrl $endpoint");
+        $response = Http::withHeaders($this->providusHeaderV3())->get("$endpoint");
         return $response->json();
     }
 

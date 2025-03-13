@@ -1814,7 +1814,7 @@ class TransactionController extends Controller
     public function providusWebhook(Request $request)
     {
         try {
-            if ($request->event == "customer_account_created" || $request->input('REQUEST_BODY.data.status') == "pending") {
+            if ($request->event == "customer_account_created" || $request->input('data.status') == "pending") {
                 return \response()->json(['status' => false, 'message' => 'Transaction is not a Credit Transaction']);
             }
             $providusController = new ProvidusController();
@@ -1845,12 +1845,12 @@ class TransactionController extends Controller
             $providusController->request              = $request;
             $providusController->fromTempWebhook      = 'false';*/
 
-            $providusController->transactionReference = $request->input('REQUEST_BODY.data.reference');
-            $providusController->wbaCharge            = getWbaTransferCharges(9, $request->input('REQUEST_BODY.data.amount'));
-            $providusController->virtualAccount       = $request->input('REQUEST_BODY.data.beneficiaryAccountNumber');
-            $providusController->amount               = $request->input('REQUEST_BODY.data.amount');
+            $providusController->transactionReference = $request->input('data.reference');
+            $providusController->wbaCharge            = getWbaTransferCharges(9, $request->input('data.amount'));
+            $providusController->virtualAccount       = $request->input('data.beneficiaryAccountNumber');
+            $providusController->amount               = $request->input('data.amount');
             $providusController->webhookType          = 'providus';
-            $providusController->description          = "You received Funds from {$request->input('REQUEST_BODY.data.originatorAccountName')}";
+            $providusController->description          = "You received Funds from {$request->input('data.originatorAccountName')}";
             $providusController->transactionDate      = date('Y-m-d');
             $providusController->request              = $request;
             $providusController->fromTempWebhook      = 'false';

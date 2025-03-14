@@ -1,9 +1,6 @@
 <?php
-
 namespace App\Http\Controllers\ThirdParty;
 
-
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\CustomClasses\WebhookController;
 use Exception;
 use Illuminate\Http\Request;
@@ -22,23 +19,27 @@ class SafehavenController extends WebhookController
     private $token;
     private $sendingAccount;
     private $debitAccount;
+    private $baseSudoUrl;
+    private $baseSudoKey;
+    private $fundingSourceId;
 
-    function __construct()
+    public function __construct()
     {
-        $this->token = "";
-        $this->ibsClientId = "";
-        $this->sessionId = "";
-        $this->sendingAccount = "0117187948";
-        $this->grantType = env('APP_MODE') == 'test' ? config('safehaven.grant_type_test') : config('safehaven.grant_type_live');
+        $this->token               = "";
+        $this->ibsClientId         = "";
+        $this->sessionId           = "";
+        $this->sendingAccount      = "0117187948";
+        $this->grantType           = env('APP_MODE') == 'test' ? config('safehaven.grant_type_test') : config('safehaven.grant_type_live');
         $this->clientAssertionType = env('APP_MODE') == 'test' ? config('safehaven.client_assertion_type_test') : config('safehaven.client_assertion_type_live');
-        $this->clientId = env('APP_MODE') == 'test' ? config('safehaven.client_id_test') : config('safehaven.client_id_live');
-        $this->clientAssertion = env('APP_MODE') == 'test' ? config('safehaven.client_assertion_test') : config('safehaven.client_assertion_live');
-        $this->baseUrl = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
-        $this->debitAccount = "0115361250";
-      //  $this->baseSudoUrl = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
-      //  $this->baseSudoKey = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
-        $this->baseSudoUrl = config('safehaven.base_url_sudo_test') ;
-       $this->baseSudoKey =  config('safehaven.base_url_sudo_test_key');
+        $this->clientId            = env('APP_MODE') == 'test' ? config('safehaven.client_id_test') : config('safehaven.client_id_live');
+        $this->clientAssertion     = env('APP_MODE') == 'test' ? config('safehaven.client_assertion_test') : config('safehaven.client_assertion_live');
+        $this->baseUrl             = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
+        $this->debitAccount        = "0115361250";
+        //  $this->baseSudoUrl = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
+        //  $this->baseSudoKey = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
+        $this->baseSudoUrl     = config('safehaven.base_url_sudo_test');
+        $this->baseSudoKey     = config('safehaven.base_url_sudo_test_key');
+        $this->fundingSourceId = "67d40044ad1be81c57ff0684";
 
     }
 
@@ -46,10 +47,10 @@ class SafehavenController extends WebhookController
     {
 
         $body = [
-            'grant_type' => $this->grantType,
+            'grant_type'            => $this->grantType,
             'client_assertion_type' => $this->clientAssertionType,
-            'client_id' => $this->clientId,
-            'client_assertion' => $this->clientAssertion
+            'client_id'             => $this->clientId,
+            'client_assertion'      => $this->clientAssertion,
         ];
 
         logInfo($body, "Exchange cliient assertion");
@@ -75,25 +76,23 @@ class SafehavenController extends WebhookController
         }
     }
 
-
     public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId)
     {
 
-
         $body = [
-            "autoSweepDetails" => [
-                "schedule" => "Instant",
-                "accountNumber" => $this->debitAccount
+            "autoSweepDetails"  => [
+                "schedule"      => "Instant",
+                "accountNumber" => $this->debitAccount,
             ],
-            "autoSweep" => "true",
-            "phoneNumber" => $phone,
-            "emailAddress" => $email,
+            "autoSweep"         => "true",
+            "phoneNumber"       => $phone,
+            "emailAddress"      => $email,
             "externalReference" => $customerReference,
-            "identityId" => $bvnId,
-            "identityNumber" => $bvn,
-            "identityType" => "BVN",
-            "otp" => $otp,
-            "callbackUrl" => "https://core.finova.ng/api/v1/transactions/safehaven-webhook"
+            "identityId"        => $bvnId,
+            "identityNumber"    => $bvn,
+            "identityType"      => "BVN",
+            "otp"               => $otp,
+            "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
 
         ];
 
@@ -105,7 +104,7 @@ class SafehavenController extends WebhookController
 
             $loginResult = $this->getToken();
 
-            if (!$loginResult['status']) {
+            if (! $loginResult['status']) {
                 return ['status' => false, 'message' => 'Failed to complete transfer'];
             }
 
@@ -128,26 +127,25 @@ class SafehavenController extends WebhookController
         }
     }
 
-
     public function createVirtualAccountV2($firstName, $lastName, $email, $phone, $customerReference, $otp)
     {
 
         $body = [
-            "metadata" => [],
-            "autoSweepDetails" => [
-                "schedule" => "Instant",
-                "accountNumber" => $this->debitAccount
+            "metadata"          => [],
+            "autoSweepDetails"  => [
+                "schedule"      => "Instant",
+                "accountNumber" => $this->debitAccount,
             ],
-            "autoSweep" => true,
-            "firstName" => $firstName,
-            "lastName" => $lastName,
-            "phoneNumber" => $phone,
-            "identityType" => "BVN",
-            "autoSweep" => false,
-            "emailAddress" => $email,
-            "otp" => $otp,
+            "autoSweep"         => true,
+            "firstName"         => $firstName,
+            "lastName"          => $lastName,
+            "phoneNumber"       => $phone,
+            "identityType"      => "BVN",
+            "autoSweep"         => false,
+            "emailAddress"      => $email,
+            "otp"               => $otp,
             "externalReference" => $customerReference,
-            "bvn" => "222222222",
+            "bvn"               => "222222222",
         ];
 
         $endpoint = "accounts/subaccount";
@@ -156,7 +154,7 @@ class SafehavenController extends WebhookController
 
             $loginResult = $this->getToken();
 
-            if (!$loginResult['status']) {
+            if (! $loginResult['status']) {
                 return ['status' => false, 'message' => 'Failed to complete transfer'];
             }
 
@@ -179,25 +177,24 @@ class SafehavenController extends WebhookController
         }
     }
 
-
     public function bankTransfer($amount, $transactionReference, $description, $bankCode, $accountNumber, $sessionId)
     {
         $body = [
-            "amount" => floatval($amount),
-            "nameEnquiryReference" => $sessionId,
-            "debitAccountNumber" => $this->sendingAccount,
-            "narration" => $description,
-            "beneficiaryBankCode" => $bankCode,
+            "amount"                   => floatval($amount),
+            "nameEnquiryReference"     => $sessionId,
+            "debitAccountNumber"       => $this->sendingAccount,
+            "narration"                => $description,
+            "beneficiaryBankCode"      => $bankCode,
             "beneficiaryAccountNumber" => $accountNumber,
-            "saveBeneficiary" => false,
-            "paymentReference" => $transactionReference
+            "saveBeneficiary"          => false,
+            "paymentReference"         => $transactionReference,
         ];
 
         try {
 
             $loginResult = $this->getToken();
 
-            if (!$loginResult['status']) {
+            if (! $loginResult['status']) {
                 return ['status' => false, 'message' => 'Failed to complete transfer'];
             }
 
@@ -212,11 +209,11 @@ class SafehavenController extends WebhookController
             if (isset($result["responseCode"])) {
                 if ($result["responseCode"] == "00") {
                     return [
-                        "status" => true,
+                        "status"  => true,
                         'message' => "Bank Transfer Successful",
-                        'data' => [
-                            'session_id' => $sessionId
-                        ]
+                        'data'    => [
+                            'session_id' => $sessionId,
+                        ],
                     ];
                 } else {
                     return ['status' => false, 'message' => 'Failed to complete transfer'];
@@ -240,13 +237,13 @@ class SafehavenController extends WebhookController
 
             $loginSafehaven = $this->getToken();
 
-            if (!$loginSafehaven['status']) {
+            if (! $loginSafehaven['status']) {
                 $loginSafehaven['status'] = "01";
                 return $loginSafehaven;
             }
 
             $body = [
-                "paymentReference" => $reference
+                "paymentReference" => $reference,
             ];
 
             $result = $this->safehavenPostRequest("transfers/tqs", $body);
@@ -277,18 +274,17 @@ class SafehavenController extends WebhookController
     public function verifyBVN($bvn)
     {
         $body = [
-            "type" => "BVN",
-            "async" => false,
-            "number" => $bvn,
+            "type"               => "BVN",
+            "async"              => false,
+            "number"             => $bvn,
             "debitAccountNumber" => $this->debitAccount,
         ];
 
         $url = "identity/v2";
 
-
         $loginResult = $this->getToken();
 
-        if (!$loginResult['status']) {
+        if (! $loginResult['status']) {
             return ['status' => false, 'message' => 'Failed to connect to Server. Please contact support'];
         }
 
@@ -301,9 +297,9 @@ class SafehavenController extends WebhookController
                 if ($response['statusCode'] == 200) {
 
                     return [
-                        'status' => true,
+                        'status'  => true,
                         'message' => "BVN Verified Successfully",
-                        'data' => $response['data']
+                        'data'    => $response['data'],
                     ];
                 } else {
                     return ['status' => false, 'message' => 'Failed to Verify BVN'];
@@ -321,16 +317,15 @@ class SafehavenController extends WebhookController
     public function verifyAccount($bankCode, $accountNumber)
     {
         $body = [
-            "bankCode" => $bankCode,
-            "accountNumber" => $accountNumber
+            "bankCode"      => $bankCode,
+            "accountNumber" => $accountNumber,
         ];
 
         $url = "transfers/name-enquiry";
 
-
         $loginResult = $this->getToken();
 
-        if (!$loginResult['status']) {
+        if (! $loginResult['status']) {
             return ['status' => false, 'message' => 'Failed to complete transfer'];
         }
 
@@ -345,13 +340,13 @@ class SafehavenController extends WebhookController
                     $this->sessionId = $exhangeRate["data"]["sessionId"];
 
                     return [
-                        'status' => true,
+                        'status'  => true,
                         'message' => "Account Verified Successfully",
-                        'data' => [
+                        'data'    => [
                             'account_name' => $exhangeRate["data"]["accountName"],
-                            'bank_code' => $exhangeRate["data"]["bankCode"],
-                            'session_id' => $exhangeRate["data"]["sessionId"]
-                        ]
+                            'bank_code'    => $exhangeRate["data"]["bankCode"],
+                            'session_id'   => $exhangeRate["data"]["sessionId"],
+                        ],
                     ];
                 } else {
                     return ['status' => false, 'message' => 'Failed to validate bank account'];
@@ -369,16 +364,15 @@ class SafehavenController extends WebhookController
     public function verifyAccountFull($bankCode, $accountNumber)
     {
         $body = [
-            "bankCode" => $bankCode,
-            "accountNumber" => $accountNumber
+            "bankCode"      => $bankCode,
+            "accountNumber" => $accountNumber,
         ];
 
         $url = "transfers/name-enquiry";
 
-
         $loginResult = $this->getToken();
 
-        if (!$loginResult['status']) {
+        if (! $loginResult['status']) {
             return ['status' => false, 'message' => 'Failed to complete transfer'];
         }
 
@@ -393,14 +387,14 @@ class SafehavenController extends WebhookController
                     $this->sessionId = $exhangeRate["data"]["sessionId"];
 
                     return [
-                        'status' => true,
+                        'status'  => true,
                         'message' => "Account Verified Successfully",
-                        'data' => [
+                        'data'    => [
                             'account_name' => $exhangeRate["data"]["accountName"],
-                            'bank_code' => $exhangeRate["data"]["bankCode"],
-                            'bvn' => $exhangeRate["data"]["bvn"],
-                            'session_id' => $exhangeRate["data"]["sessionId"]
-                        ]
+                            'bank_code'    => $exhangeRate["data"]["bankCode"],
+                            'bvn'          => $exhangeRate["data"]["bvn"],
+                            'session_id'   => $exhangeRate["data"]["sessionId"],
+                        ],
                     ];
                 } else {
                     return ['status' => false, 'message' => 'Failed to validate bank account'];
@@ -418,7 +412,7 @@ class SafehavenController extends WebhookController
     public function getExchangeRate($exchangeAmount, $sourceCurrency, $destinationCurrency)
     {
         $body = ["amount" => $exchangeAmount, "destination_currency" => $sourceCurrency, "source_currency" => $destinationCurrency];
-        $url = "transfers/rates?amount=$exchangeAmount&destination_currency=$destinationCurrency&source_currency=$sourceCurrency";
+        $url  = "transfers/rates?amount=$exchangeAmount&destination_currency=$destinationCurrency&source_currency=$sourceCurrency";
 
         logInfo("We are converting $exchangeAmount from $sourceCurrency to $destinationCurrency");
         try {
@@ -427,19 +421,19 @@ class SafehavenController extends WebhookController
             logInfo($exhangeRate, "Exchange Rates");
 
             if ($exhangeRate['status'] == 'success') {
-                $rate = $exhangeRate["data"]["rate"];
+                $rate   = $exhangeRate["data"]["rate"];
                 $amount = $exhangeRate["data"]["source"]["amount"];
 
                 $finalAmount = $amount;
 
                 return [
-                    'status' => true,
+                    'status'  => true,
                     'message' => "Exchange rate received",
-                    'data' => [
-                        'rate' => $rate,
-                        'amount' => $amount,
-                        'final_amount' => $finalAmount
-                    ]
+                    'data'    => [
+                        'rate'         => $rate,
+                        'amount'       => $amount,
+                        'final_amount' => $finalAmount,
+                    ],
                 ];
             } else {
                 return ['status' => false, 'message' => 'Failed to get Exchange rates'];
@@ -450,7 +444,6 @@ class SafehavenController extends WebhookController
             return ['status' => false, 'message' => 'Failed to get Exchange rates'];
         }
     }
-
 
     public function verifyIncomingWebhook(Request $request)
     {
@@ -468,24 +461,24 @@ class SafehavenController extends WebhookController
 
     public function safehavenPostRequest($endpoint, $body)
     {
-        logInfo("$this->baseUrl$endpoint", "Complete url");
+        logInfo("$this->baseUrl $endpoint", "Complete url");
         logInfo($this->safehavenHeader(), "Safe haven header");
-        $response = Http::withHeaders($this->safehavenHeader())->post("$this->baseUrl$endpoint", $body);
+        $response = Http::withHeaders($this->safehavenHeader())->post("$this->baseUrl $endpoint", $body);
         return $response->json();
     }
 
     public function safehavenGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->safehavenHeader())->get("$this->baseUrl$endpoint");
+        $response = Http::withHeaders($this->safehavenHeader())->get("$this->baseUrl $endpoint");
         return $response->json();
     }
 
     public function safehavenHeader()
     {
         $header = [
-            'Content-Type' => 'application/json',
+            'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer ' . $this->token,
-            'ClientID' => $this->ibsClientId
+            'ClientID'      => $this->ibsClientId,
         ];
 
         return $header;
@@ -507,9 +500,9 @@ class SafehavenController extends WebhookController
     public function sudoHeader()
     {
         $header = [
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer ' . $this->baseSudoKey
-           
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . $this->baseSudoKey,
+
         ];
 
         return $header;
@@ -517,29 +510,28 @@ class SafehavenController extends WebhookController
 
     public function createPhysicalCard($request, $transactionId)
     {
-        $body = [
-            "appId"           => $this->appId,
-            "appKey"          => $this->appKey,
-            "currencyCode"    => "566",
-            "MeansOfIdNumber" => "National ID",
-            "emailAddress"    => $request->email,
-            "firstName"       => $request->first_name,
-            "lastName"        => $request->last_name,
-            "mobileNr"        => $request->phone,
-            "streetAddress"   => $request->address,
-            "bvn"             => $request->bvn,
-            "PaymentRef"      => $transactionId,
+
+        $customer = $this->createSudoCustomer($request);
+        $body     = [
+
+            "customerId"      => "",
+            "fundingSourceId" => $this->fundingSourceId,
+            "type"            => "physical",
+            "currency"        => "NGN",
+            "status"          => "active",
         ];
 
-        logInfo($body, "Providus request body");
+        logInfo($body, "Sudo Customer Register Physical Card request body");
+
+        $endpoint = " $this->baseSudoUrl/cards ";
 
         try {
-            $cardResult = $this->providusPostRequest('PrepaidCardNewCardRequest', $body);
+            $result = $this->sudoPostRequest($endpoint, $body);
 
-            logInfo($cardResult, "Providus Result");
+            logInfo(jsnon_encode($result), "Sudo Customer Register Physical Card Result");
 
-            if (isset($cardResult['StatusCode'])) {
-                if ($cardResult['StatusCode'] == "00") {
+            if (isset($cardResult['status'])) {
+                if ($cardResult['status'] == "00") {
                     return ['status' => true, 'message' => $cardResult['JsonData']];
                 } else {
                     return ['status' => false, 'message' => $cardResult['JsonData']];
@@ -548,7 +540,7 @@ class SafehavenController extends WebhookController
                 return ['status' => false, 'message' => "Failed to create card... Please contact support"];
             }
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Providus Error");
+            logInfo($e->getMessage(), "Sudo Customer Register Physical Error");
 
             return ['status' => false, 'message' => "Failed to create card... Please contact support"];
         }
@@ -557,25 +549,21 @@ class SafehavenController extends WebhookController
     public function createVirtualCard($request, $transactionId)
     {
         $body = [
-            "appId"           => $this->appId,
-            "appKey"          => $this->appKey,
-            "currencyCode"    => "566",
-            "MeansOfIdNumber" => "National ID",
-            "emailAddress"    => $request->email,
-            "firstName"       => $request->first_name,
-            "lastName"        => $request->last_name,
-            "mobileNr"        => $request->phone,
-            "streetAddress"   => $request->address,
-            "bvn"             => $request->bvn,
-            "PaymentRef"      => $transactionId,
+            "customerId"      => "",
+            "fundingSourceId" => $this->fundingSourceId,
+            "type"            => "virtual",
+            "currency"        => "NGN",
+            "status"          => "active",
         ];
 
-        logInfo($body, "Providus request body");
+        logInfo($body, "Sudo Customer Register Virtual Card body");
+
+        $endpoint = " $this->baseSudoUrl/cards ";
 
         try {
-            $cardResult = $this->providusPostRequest('PrepaidCardNewCardRequest', $body);
+            $result = $this->sudoPostRequest($endpoint, $body);
 
-            logInfo($cardResult, "Providus Result");
+            logInfo(jsnon_encode($result), "Sudo Customer Register Virtual Card Result");
 
             if (isset($cardResult['StatusCode'])) {
                 if ($cardResult['StatusCode'] == "00") {
@@ -587,9 +575,48 @@ class SafehavenController extends WebhookController
                 return ['status' => false, 'message' => "Failed to create card... Please contact support"];
             }
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Providus Error");
+            logInfo($e->getMessage(), "Sudo Customer Register Virtual Card Error");
 
             return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+        }
+    }
+
+    public function createSudoCustomer($request)
+    {
+        $body = [
+
+            "emailAddress"   => $request->email,
+            "name"           => "{$request->first_name} {$request->last_name}",
+            "status"         => "active",
+            "phoneNumber"    => $request->phone,
+            "billingAddress" => [
+                "line1"      => $request->address,
+                "line2"      => "",
+                "city"       => "LA",
+                "state"      => "LA",
+                "postalCode" => "23401",
+                "country"    => "Nigeria",
+
+            ]];
+
+        logInfo($body, "Sudo Customer Register request body");
+
+        $endpoint = " $this->baseSudoUrl/customers";
+
+        try {
+            $result = $this->sudoPostRequest($endpoint, $body);
+
+            logInfo(jsnon_encode($result), "Sudo Customer Register Result");
+
+            if (isset($result['status'])) {
+                return $result;
+            } else {
+                return ['status' => false, 'message' => "Failed to create customer... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Sudo Customer Register Error");
+
+            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
         }
     }
 

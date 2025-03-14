@@ -588,7 +588,7 @@ class CustomerController extends Controller
     public function createPhysicalCard(Request $request)
     {
 
-        return response()->json(['status' => 0, 'message' => 'This service has been disabled. Kindly contact support for updates']);
+        //  return response()->json(['status' => 0, 'message' => 'This service has been disabled. Kindly contact support for updates']);
 
         $transactionId = generateTransactionReference();
         $auth          = auth()->user();
@@ -627,11 +627,11 @@ class CustomerController extends Controller
 
         if ($customer) {
 
-            $userCard = CardRequestLog::where(['user_id' => $customer->id]);
+            /*   $userCard = CardRequestLog::where(['user_id' => $customer->id]);
 
             if (! $userCard) {
                 return response()->json(['status' => 0, 'message' => 'User has already requested for Cards']);
-            }
+            }*/
 
             DB::beginTransaction();
             try {
@@ -686,19 +686,19 @@ class CustomerController extends Controller
                     "ledger_dr"              => $ledger_dr,
                 ]);
 
-                CardRequestLog::create([
+                /*   CardRequestLog::create([
                     'user_id'    => $customer->id,
                     'company_id' => auth()->user()->company->id,
-                ]);
+                ]);*/
 
                 $customer->user_card_status_id = 2;
                 $customer->bvn                 = $request->bvn;
                 $customer->address             = $request->address;
                 $customer->save();
 
-                $providusController = new ProvidusController();
+                $safehavenController = new SafehavenController();
 
-                $createCardResult = $providusController->createPhysicalCard($request, $transactionId);
+                $createCardResult = $safehavenController->createPhysicalCard($request, $transactionId);
 
                 logInfo($createCardResult, "Card Request Result");
 
@@ -2383,7 +2383,7 @@ class CustomerController extends Controller
             if ($saving) {
                 if ($user) {
                     $wb = wb_account_details::where(['account_product_id' => $saving->id, 'user_id' => $user->id])->first();
-                    if ($wb && ($request->replace_account != "yes") ) {
+                    if ($wb && ($request->replace_account != "yes")) {
                         return response()->json(['status' => 0, 'message' => 'Error! Account Type Already Exist']);
                     }
 

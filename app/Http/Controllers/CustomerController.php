@@ -699,7 +699,8 @@ class CustomerController extends Controller
 
                 $safehavenController = new SafehavenController();
 
-                $createCardResult = $safehavenController->createPhysicalCard($request, $transactionId);
+
+                $createCardResult = $safehavenController->createPhysicalCard($request, $transactionId, $customer);
 
                 logInfo($createCardResult, "Card Request Result");
 

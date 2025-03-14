@@ -508,10 +508,10 @@ class SafehavenController extends WebhookController
         return $header;
     }
 
-    public function createPhysicalCard($request, $transactionId)
+    public function createPhysicalCard($request, $transactionId, $customer)
     {
 
-        $customer = $this->createSudoCustomer($request);
+        $customer = $this->createSudoCustomer($request . $customer);
         $body     = [
 
             "customerId"      => "",
@@ -581,7 +581,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function createSudoCustomer($request)
+    public function createSudoCustomer($request, $customer)
     {
         $body = [
             "type"           => "individual",
@@ -589,11 +589,17 @@ class SafehavenController extends WebhookController
             "name"           => "{$request->first_name} {$request->last_name}",
             "status"         => "active",
             "phoneNumber"    => $request->phone,
+            "individual"     => [
+                "firstName" => $request->first_name,
+                "lastName"  => $request->last_name,
+                "dob"       => $customer->dob,
+
+            ],
             "billingAddress" => [
                 "line1"      => $request->address,
                 "line2"      => "",
-                "city"       => "LA",
-                "state"      => "LA",
+                "city"       => $customer->state_of_origin,
+                "state"      => $customer->state_of_origin,
                 "postalCode" => "23401",
                 "country"    => "Nigeria",
 
@@ -608,7 +614,7 @@ class SafehavenController extends WebhookController
 
             logInfo(json_encode($result), "Sudo Customer Register Result");
 
-            if (isset($result['status'])) {
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
                 return $result;
             } else {
                 return ['status' => false, 'message' => "Failed to create customer... Please contact support"];

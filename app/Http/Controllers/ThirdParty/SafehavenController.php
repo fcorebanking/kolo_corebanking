@@ -485,15 +485,15 @@ class SafehavenController extends WebhookController
     }
     public function sudoPostRequest($endpoint, $body)
     {
-        logInfo("$this->baseSudoUrl/$endpoint", "Complete Sudo url");
+        logInfo("$endpoint", "Complete Sudo url");
         logInfo($this->sudoHeader(), "Sudo header");
-        $response = Http::withHeaders($this->sudoHeader())->post("$this->baseSudoUrl/$endpoint", $body);
+        $response = Http::withHeaders($this->sudoHeader())->post("$endpoint", $body);
         return $response->json();
     }
 
     public function sudoGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->sudoHeader())->get("$this->baseSudoUrl/$endpoint");
+        $response = Http::withHeaders($this->sudoHeader())->get("$endpoint");
         return $response->json();
     }
 

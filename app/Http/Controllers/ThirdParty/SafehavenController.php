@@ -584,7 +584,7 @@ class SafehavenController extends WebhookController
     public function createSudoCustomer($request)
     {
         $body = [
-
+            "type"           => "individual",
             "emailAddress"   => $request->email,
             "name"           => "{$request->first_name} {$request->last_name}",
             "status"         => "active",

@@ -601,12 +601,12 @@ class SafehavenController extends WebhookController
 
         logInfo($body, "Sudo Customer Register request body");
 
-        $endpoint = " $this->baseSudoUrl/customers";
+        $endpoint = "$this->baseSudoUrl/customers";
 
         try {
             $result = $this->sudoPostRequest($endpoint, $body);
 
-            logInfo(jsnon_encode($result), "Sudo Customer Register Result");
+            logInfo(json_encode($result), "Sudo Customer Register Result");
 
             if (isset($result['status'])) {
                 return $result;

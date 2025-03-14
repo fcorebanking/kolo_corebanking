@@ -511,7 +511,7 @@ class SafehavenController extends WebhookController
     public function createPhysicalCard($request, $transactionId, $customer)
     {
 
-        $customer = $this->createSudoCustomer($request . $customer);
+        $customer = $this->createSudoCustomer($request, $customer);
         $body     = [
 
             "customerId"      => "",

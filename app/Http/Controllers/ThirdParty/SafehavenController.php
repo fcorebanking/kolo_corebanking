@@ -598,8 +598,8 @@ class SafehavenController extends WebhookController
             "billingAddress" => [
                 "line1"      => $request->address,
                 "line2"      => "",
-                "city"       => $customer->state_of_origin,
-                "state"      => $customer->state_of_origin,
+                "city"       => $customer->state_of_origin ?? "LA",
+                "state"      => $customer->state_of_origin ?? "Lagos",
                 "postalCode" => "23401",
                 "country"    => "Nigeria",
 

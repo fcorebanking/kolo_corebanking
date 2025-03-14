@@ -35,6 +35,11 @@ class SafehavenController extends WebhookController
         $this->clientAssertion = env('APP_MODE') == 'test' ? config('safehaven.client_assertion_test') : config('safehaven.client_assertion_live');
         $this->baseUrl = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
         $this->debitAccount = "0115361250";
+      //  $this->baseSudoUrl = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
+      //  $this->baseSudoKey = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
+        $this->baseSudoUrl = config('safehaven.base_url_sudo_test') ;
+       $this->baseSudoKey =  config('safehaven.base_url_sudo_test_key');
+
     }
 
     public function getToken()
@@ -484,5 +489,146 @@ class SafehavenController extends WebhookController
         ];
 
         return $header;
+    }
+    public function sudoPostRequest($endpoint, $body)
+    {
+        logInfo("$this->baseSudoUrl/$endpoint", "Complete Sudo url");
+        logInfo($this->sudoHeader(), "Sudo header");
+        $response = Http::withHeaders($this->sudoHeader())->post("$this->baseSudoUrl/$endpoint", $body);
+        return $response->json();
+    }
+
+    public function sudoGetRequest($endpoint)
+    {
+        $response = Http::withHeaders($this->sudoHeader())->get("$this->baseSudoUrl/$endpoint");
+        return $response->json();
+    }
+
+    public function sudoHeader()
+    {
+        $header = [
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer ' . $this->baseSudoKey
+           
+        ];
+
+        return $header;
+    }
+
+    public function createPhysicalCard($request, $transactionId)
+    {
+        $body = [
+            "appId"           => $this->appId,
+            "appKey"          => $this->appKey,
+            "currencyCode"    => "566",
+            "MeansOfIdNumber" => "National ID",
+            "emailAddress"    => $request->email,
+            "firstName"       => $request->first_name,
+            "lastName"        => $request->last_name,
+            "mobileNr"        => $request->phone,
+            "streetAddress"   => $request->address,
+            "bvn"             => $request->bvn,
+            "PaymentRef"      => $transactionId,
+        ];
+
+        logInfo($body, "Providus request body");
+
+        try {
+            $cardResult = $this->providusPostRequest('PrepaidCardNewCardRequest', $body);
+
+            logInfo($cardResult, "Providus Result");
+
+            if (isset($cardResult['StatusCode'])) {
+                if ($cardResult['StatusCode'] == "00") {
+                    return ['status' => true, 'message' => $cardResult['JsonData']];
+                } else {
+                    return ['status' => false, 'message' => $cardResult['JsonData']];
+                }
+            } else {
+                return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Providus Error");
+
+            return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+        }
+    }
+
+    public function createVirtualCard($request, $transactionId)
+    {
+        $body = [
+            "appId"           => $this->appId,
+            "appKey"          => $this->appKey,
+            "currencyCode"    => "566",
+            "MeansOfIdNumber" => "National ID",
+            "emailAddress"    => $request->email,
+            "firstName"       => $request->first_name,
+            "lastName"        => $request->last_name,
+            "mobileNr"        => $request->phone,
+            "streetAddress"   => $request->address,
+            "bvn"             => $request->bvn,
+            "PaymentRef"      => $transactionId,
+        ];
+
+        logInfo($body, "Providus request body");
+
+        try {
+            $cardResult = $this->providusPostRequest('PrepaidCardNewCardRequest', $body);
+
+            logInfo($cardResult, "Providus Result");
+
+            if (isset($cardResult['StatusCode'])) {
+                if ($cardResult['StatusCode'] == "00") {
+                    return ['status' => true, 'message' => $cardResult['JsonData']];
+                } else {
+                    return ['status' => false, 'message' => $cardResult['JsonData']];
+                }
+            } else {
+                return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Providus Error");
+
+            return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+        }
+    }
+
+    public function getPhysicalCardDetials($request, $transactionId)
+    {
+        $body = [
+            "appId"           => $this->appId,
+            "appKey"          => $this->appKey,
+            "currencyCode"    => "566",
+            "MeansOfIdNumber" => "National ID",
+            "emailAddress"    => $request->email,
+            "firstName"       => $request->first_name,
+            "lastName"        => $request->last_name,
+            "mobileNr"        => $request->phone,
+            "streetAddress"   => $request->address,
+            "bvn"             => $request->bvn,
+            "PaymentRef"      => $transactionId,
+        ];
+
+        logInfo($body, "Providus request body");
+
+        try {
+            $cardResult = $this->providusPostRequest('PrepaidCardNewCardRequest', $body);
+
+            logInfo($cardResult, "Providus Result");
+
+            if (isset($cardResult['StatusCode'])) {
+                if ($cardResult['StatusCode'] == "00") {
+                    return ['status' => true, 'message' => $cardResult['JsonData']];
+                } else {
+                    return ['status' => false, 'message' => $cardResult['JsonData']];
+                }
+            } else {
+                return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Providus Error");
+
+            return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+        }
     }
 }

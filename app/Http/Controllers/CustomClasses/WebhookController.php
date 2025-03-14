@@ -563,6 +563,10 @@ class WebhookController extends Controller
         return $sweepAccount;
     }
 
+    public function handleSudoWebhook(){
+
+    }
+    
     private function getVirtualAccountNumber($kudaVirtualNumber)
     {
         if (isset($kudaVirtualNumber->payingBank) && $kudaVirtualNumber->payingBank == "Paycom(OPay)") {

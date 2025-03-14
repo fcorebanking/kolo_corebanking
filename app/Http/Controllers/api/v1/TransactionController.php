@@ -1811,6 +1811,7 @@ class TransactionController extends Controller
         return response()->json($handleWebhook, isset($handleWebhook['httpCode']) ? $handleWebhook['httpCode'] : 200);
     }
 
+       
     public function providusWebhook(Request $request)
     {
         try {
@@ -2168,6 +2169,38 @@ class TransactionController extends Controller
         return response()->json($handleWebhook, $httpCode);
     }
 
+    public function  safeHavenSudoWebhook(Request $request)
+    {
+
+        $safeHavenController = new SafehavenController();
+        // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
+
+        if (! $request['type'] != "transfer") {
+            response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
+        }
+
+        $currentRequest = $request->all();
+
+       // $safeHavenController->transactionReference = $currentRequest['data']['settlementId'];
+     //   $safeHavenController->wbaCharge            = getWbaTransferCharges(38, $currentRequest['data']['amount']);
+     //   $safeHavenController->virtualAccount       = $currentRequest['data']['creditAccountNumber'];
+     //   $safeHavenController->amount               = $currentRequest['data']['amount'];
+     //   $safeHavenController->webhookType          = 'safehaven';
+   //     $safeHavenController->senderName           = $currentRequest['data']['debitAccountName'];
+    //    $safeHavenController->description          = "You received Funds from" . $currentRequest['data']['debitAccountName'];
+   //     $safeHavenController->transactionDate      = $currentRequest['data']['createdAt'];
+   //     $safeHavenController->request              = $request;
+    //    $safeHavenController->fromTempWebhook      = 'false';
+
+        $handleWebhook = $safeHavenController->handleSudoWebhook();
+
+        $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
+
+        return response()->json($handleWebhook, $httpCode);
+    }
+
+
+   
     public function errandPaycheckBalance(Request $request)
     {
 

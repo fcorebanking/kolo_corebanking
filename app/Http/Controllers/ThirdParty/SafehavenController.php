@@ -514,7 +514,7 @@ class SafehavenController extends WebhookController
         $customer = $this->createSudoCustomer($request, $customer);
         $body     = [
 
-            "customerId"      => "",
+            "customerId"      => $customer['data']['_id'],
             "fundingSourceId" => $this->fundingSourceId,
             "type"            => "physical",
             "currency"        => "NGN",
@@ -523,18 +523,18 @@ class SafehavenController extends WebhookController
 
         logInfo($body, "Sudo Customer Register Physical Card request body");
 
-        $endpoint = " $this->baseSudoUrl/cards ";
+        $endpoint = "$this->baseSudoUrl/cards";
 
         try {
             $result = $this->sudoPostRequest($endpoint, $body);
 
             logInfo(jsnon_encode($result), "Sudo Customer Register Physical Card Result");
 
-            if (isset($cardResult['status'])) {
-                if ($cardResult['status'] == "00") {
-                    return ['status' => true, 'message' => $cardResult['JsonData']];
+            if (isset($result['statusCode'])) {
+                if ($result['statusCode'] == 200) {
+                    return ['status' => true, 'message' => $result['JsonData']];
                 } else {
-                    return ['status' => false, 'message' => $cardResult['JsonData']];
+                    return ['status' => false, 'message' => $result['JsonData']];
                 }
             } else {
                 return ['status' => false, 'message' => "Failed to create card... Please contact support"];
@@ -546,8 +546,10 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function createVirtualCard($request, $transactionId)
+    public function createVirtualCard($request, $transactionId, $customer)
     {
+        $customer = $this->createSudoCustomer($request, $customer);
+
         $body = [
             "customerId"      => "",
             "fundingSourceId" => $this->fundingSourceId,

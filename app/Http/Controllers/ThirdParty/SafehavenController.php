@@ -592,9 +592,10 @@ class SafehavenController extends WebhookController
             "status"         => "active",
             "phoneNumber"    => $request->phone,
             "individual"     => [
-                "firstName" => $request->first_name,
-                "lastName"  => $request->last_name,
-                "dob"       => $customer->dob,
+                "firstName"  => $request->first_name,
+                "lastName"   => $request->last_name,
+                "dob"        => $customer->dob,
+                "otherNames" => $customer->id,
 
             ],
             "billingAddress" => [
@@ -605,7 +606,9 @@ class SafehavenController extends WebhookController
                 "postalCode" => "23401",
                 "country"    => "Nigeria",
 
-            ]];
+            ],
+            "number"         => "506321001880749383",
+        ];
 
         logInfo($body, "Sudo Customer Register request body");
 

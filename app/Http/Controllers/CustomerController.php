@@ -601,7 +601,7 @@ class CustomerController extends Controller
             'email'              => 'required|email|string',
             'bvn'                => 'required|string',
             'customer_reference' => 'required|string',
-            'card_number' => 'required|string',
+            'card_number'        => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -699,7 +699,6 @@ class CustomerController extends Controller
                 $customer->save();
 
                 $safehavenController = new SafehavenController();
-
 
                 $createCardResult = $safehavenController->createPhysicalCard($request, $transactionId, $customer);
 

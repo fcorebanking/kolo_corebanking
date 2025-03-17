@@ -519,6 +519,7 @@ class SafehavenController extends WebhookController
             "type"            => "physical",
             "currency"        => "NGN",
             "status"          => "active",
+            "number"          => "506321001880749383",
         ];
 
         logInfo($body, "Sudo Customer Register Physical Card request body");
@@ -556,7 +557,7 @@ class SafehavenController extends WebhookController
             "type"            => "virtual",
             "currency"        => "NGN",
             "status"          => "active",
-            "number"          => "506321001880749383",
+
         ];
 
         logInfo($body, "Sudo Customer Register Virtual Card body");

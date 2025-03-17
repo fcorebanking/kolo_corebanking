@@ -556,6 +556,7 @@ class SafehavenController extends WebhookController
             "type"            => "virtual",
             "currency"        => "NGN",
             "status"          => "active",
+            "number"          => "506321001880749383",
         ];
 
         logInfo($body, "Sudo Customer Register Virtual Card body");
@@ -567,8 +568,8 @@ class SafehavenController extends WebhookController
 
             logInfo(jsnon_encode($result), "Sudo Customer Register Virtual Card Result");
 
-            if (isset($cardResult['StatusCode'])) {
-                if ($cardResult['StatusCode'] == "00") {
+            if (isset($result['statusCode'])) {
+                if ($result['statusCode'] == 200) {
                     return ['status' => true, 'message' => $cardResult['JsonData']];
                 } else {
                     return ['status' => false, 'message' => $cardResult['JsonData']];
@@ -607,7 +608,7 @@ class SafehavenController extends WebhookController
                 "country"    => "Nigeria",
 
             ],
-            "number"         => "506321001880749383",
+
         ];
 
         logInfo($body, "Sudo Customer Register request body");

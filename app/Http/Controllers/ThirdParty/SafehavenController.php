@@ -595,7 +595,7 @@ class SafehavenController extends WebhookController
                 "firstName"  => $request->first_name,
                 "lastName"   => $request->last_name,
                 "dob"        => $customer->dob,
-                "otherNames" => $customer->id,
+                "otherNames" => "$customer->id",
 
             ],
             "billingAddress" => [

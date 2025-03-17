@@ -657,6 +657,7 @@ function createPhysicalCard() {
     var address = $('#c-address').val();
     var bvn = $('#c-bvn').val();
     var customer_reference = $('#staff_id').val();
+    var card_number = $('#c-cardnmber').val();
 
     $('.validation-text').html();
 
@@ -695,7 +696,15 @@ function createPhysicalCard() {
         _getValidationField[4].style.display = 'none';
     }
 
-    if (firstName == "" || lastName == "" || email == "" || phone == "" || address == "") return false
+    if (card_number == "") {
+        _getValidationField[5].innerHTML = 'Address is Required';
+        _getValidationField[5].style.display = 'block';
+    } else {
+        _getValidationField[5].style.display = 'none';
+    }
+
+
+    if (firstName == "" || lastName == "" || email == "" || phone == "" || address == "" || card_number == "") return false
 
 
     data_info = {
@@ -707,7 +716,7 @@ function createPhysicalCard() {
         email: email,
         bvn: bvn,
         customer_reference: customer_reference,
-
+        card_number: card_number,
     };
 
     console.log(data_info);

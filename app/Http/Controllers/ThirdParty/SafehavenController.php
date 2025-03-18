@@ -564,7 +564,7 @@ class SafehavenController extends WebhookController
             "type"            => "virtual",
             "currency"        => "NGN",
             "status"          => "active",
-            "debitAccountId"  => $customer['data']['business'],
+            "debitAccountId"  => "67d9ba1c39198caf19512516",
             "brand"           => "Verve",
             "amount"          => 123,
 

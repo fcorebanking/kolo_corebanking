@@ -726,7 +726,7 @@ class CustomerController extends Controller
                 DB::commit();
 
                 $createCardResult['status'] = 1;
-                $userCard = UserCard::create([
+                $userCard                   = UserCard::create([
                     "user_id"          => $user->id,
                     "card_name"        => "{$user->first_name} {$user->last_name}",
                     "card_type_id"     => 2,

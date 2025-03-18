@@ -565,7 +565,7 @@ class SafehavenController extends WebhookController
 
         logInfo($body, "Sudo Customer Register Virtual Card body");
 
-        $endpoint = " $this->baseSudoUrl/cards ";
+        $endpoint = " $this->baseSudoUrl/cards";
 
         try {
             $result = $this->sudoPostRequest($endpoint, $body);

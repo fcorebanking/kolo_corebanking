@@ -508,13 +508,15 @@ class SafehavenController extends WebhookController
         return $header;
     }
 
-    public function createPhysicalCard($request, $transactionId, $customer)
+    public function createPhysicalCard($request, $transactionId, $customer, $customer_sudo_account_id)
     {
+        if (isset($customer_sudo_account_id) && $customer_sudo_account_id == null) {
+            $customer = $this->createSudoCustomer($request, $customer);
+        }
 
-        $customer = $this->createSudoCustomer($request, $customer);
-        $body     = [
+        $body = [
 
-            "customerId"      => $customer['data']['_id'],
+            "customerId"      => $customer_sudo_account_id ?? $customer['data']['_id'],
             "fundingSourceId" => $this->fundingSourceId,
             "type"            => "physical",
             "currency"        => "NGN",
@@ -548,9 +550,9 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function createVirtualCard($request, $transactionId, $customer)
+    public function createVirtualCard($request, $customer)
     {
-        $customer = $this->createSudoCustomer($request, $customer);
+        $customer = $this->createSudoCustomer($request, $customer, $customer_sudo_account_id);
 
         $body = [
             "customerId"      => "",

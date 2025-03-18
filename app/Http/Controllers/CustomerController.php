@@ -626,6 +626,8 @@ class CustomerController extends Controller
         }
 
         $customer = User::where('uuid', $request->customer_reference)->first();
+        $checkCard                = UserCard::where('user_id', $customer->id)->first();
+        $customer_sudo_account_id = $checkCard->card_reference ?? null;
 
         if ($customer) {
 
@@ -700,17 +702,17 @@ class CustomerController extends Controller
 
                 $safehavenController = new SafehavenController();
 
-                $createCardResult = $safehavenController->createPhysicalCard($request, $transactionId, $customer);
+                $createCardResult = $safehavenController->createPhysicalCard($request, $transactionId, $customer,   $customer_sudo_account_id);
 
                 logInfo($createCardResult, "Card Request Result");
 
-                if (! $createCardResult['status']) {
-                    $createCardResult['status'] = 0;
+                if (! $createCardResult['statusCode']) {
+                    $createCardResult['statusCode'] = 0;
                     // $customerBalance = \creditCustomerAndCompanyWithCharge($customer->accounts->first()->id, auth()->user()->company_id, $companySettings->new_physical_card_charge, 0, 0);
 
                     DB::rollback();
 
-                    return response()->json($createCardResult);
+                    return response()->json($createCardResult['message']);
                 }
 
                 //Debit source Company Wallet
@@ -720,6 +722,20 @@ class CustomerController extends Controller
                 DB::commit();
 
                 $createCardResult['status'] = 1;
+                $userCard = UserCard::create([
+                    "user_id"          => $customer->id,
+                    "card_name"        => $createVirtualCard['data']["name_on_card"],
+                    "card_type_id"     => 1,
+                    "card_category_id" => 1,
+                    "card_number"      => $request->card_number,
+                    "masked_pan"       => $createVirtualCard['data']["masked_pan"],
+                    "card_reference"   => $createVirtualCard['data']["id"],
+                    "currency_id"      =>  $companySettings->preferred_virtual_card_currency,
+                    "exp_date"         => $createVirtualCard['data']["expiration"],
+                    "cvv"              => $createVirtualCard['data']["cvv"],
+                    "created_by"       => $user->id,
+                ]);
+                
                 return response()->json($createCardResult);
             } catch (Exception $e) {
                 DB::rollback();

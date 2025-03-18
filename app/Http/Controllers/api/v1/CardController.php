@@ -146,8 +146,8 @@ class CardController extends Controller
             "masked_pan"       => $createVirtualCard['result']['data']["maskedPan"],
             "card_reference"   => $createVirtualCard['result']['data']["_id"],
             "currency_id"      => $companySettings->preferred_virtual_card_currency,
-            "exp_date"         => $createVirtualCard['result']['data']["expiration"],
-            "cvv"              => $createVirtualCard['result']['data']["cvv"],
+            "exp_date"         => $createVirtualCard['result']['data']["expiryYear"],
+            "cvv"              => $createVirtualCard['result']['data']["expiryYear"],
             "created_by"       => $createVirtualCard['result']['data']["customer"],
         ]);
 

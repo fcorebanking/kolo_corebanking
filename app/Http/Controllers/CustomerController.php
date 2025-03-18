@@ -710,8 +710,8 @@ class CustomerController extends Controller
 
                 logInfo($createCardResult, "Card Request Result");
 
-                if (! $createCardResult['statusCode']) {
-                    $createCardResult['statusCode'] = 0;
+                if (! $createCardResult['status']) {
+                    $createCardResult['status'] = 0;
                     // $customerBalance = \creditCustomerAndCompanyWithCharge($customer->accounts->first()->id, auth()->user()->company_id, $companySettings->new_physical_card_charge, 0, 0);
 
                     DB::rollback();
@@ -726,18 +726,18 @@ class CustomerController extends Controller
                 DB::commit();
 
                 $createCardResult['status'] = 1;
-                $userCard                   = UserCard::create([
-                    "user_id"          => $customer->id,
-                    "card_name"        => $createVirtualCard['data']["name_on_card"],
-                    "card_type_id"     => 1,
-                    "card_category_id" => 1,
-                    "card_number"      => $request->card_number,
-                    "masked_pan"       => $createVirtualCard['data']["masked_pan"],
-                    "card_reference"   => $createVirtualCard['data']["id"],
+                $userCard = UserCard::create([
+                    "user_id"          => $user->id,
+                    "card_name"        => "{$user->first_name} {$user->last_name}",
+                    "card_type_id"     => 2,
+                    "card_category_id" => $request->card_category,
+                    "card_number"      => $createCardResult['result']['data']["card_pan"] ?? $createVirtualCard['result']['data']["maskedPan"],
+                    "masked_pan"       => $createCardResult['result']['data']["maskedPan"],
+                    "card_reference"   => $createCardResult['result']['data']["_id"],
                     "currency_id"      => $companySettings->preferred_virtual_card_currency,
-                    "exp_date"         => $createVirtualCard['data']["expiration"],
-                    "cvv"              => $createVirtualCard['data']["cvv"],
-                    "created_by"       => $user->id,
+                    "exp_date"         => $createCardResult['result']['data']["expiration"],
+                    "cvv"              => $createCardResult['result']['data']["cvv"],
+                    "created_by"       => $createCardResult['result']['data']["customer"],
                 ]);
 
                 return response()->json($createCardResult);

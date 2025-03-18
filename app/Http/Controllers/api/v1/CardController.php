@@ -131,7 +131,7 @@ class CardController extends Controller
 
         $createVirtualCard = $safehavenController->createVirtualCard($request, $user, $customer_sudo_account_id);
 
-        if ($createVirtualCard['statusCode'] == 400) {
+        if (! $createVirtualCard['status']) {
             return \response()->json($createVirtualCard['message'], 400);
         }
 
@@ -140,7 +140,7 @@ class CardController extends Controller
         $userCard = UserCard::create([
             "user_id"          => $user->id,
             "card_name"        => "{$user->first_name} {$user->last_name}",
-            "card_type_id"     => $createVirtualCard['result']['data']["card_type"],
+            "card_type_id"     => 2,
             "card_category_id" => $request->card_category,
             "card_number"      => $createVirtualCard['result']['data']["card_pan"] ?? $createVirtualCard['result']['data']["maskedPan"],
             "masked_pan"       => $createVirtualCard['result']['data']["maskedPan"],

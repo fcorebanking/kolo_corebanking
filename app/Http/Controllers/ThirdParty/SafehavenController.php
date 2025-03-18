@@ -519,7 +519,8 @@ class SafehavenController extends WebhookController
             "type"            => "physical",
             "currency"        => "NGN",
             "status"          => "active",
-            "number"          => "506321001880749383",
+            "number"          => $request->card_number,
+
         ];
 
         logInfo($body, "Sudo Customer Register Physical Card request body");

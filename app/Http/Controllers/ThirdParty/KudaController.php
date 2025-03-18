@@ -111,7 +111,7 @@ class KudaController extends WebhookController
             "serviceType" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
             "requestRef"  => $requestReference,
             "data"        => [
-                "Amount"        => 50000000,
+                "Amount"        => 0,
                 "AccountName"   => "$firstName $lastName",
                 "IsPassThrough" => true,
 

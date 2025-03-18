@@ -151,7 +151,7 @@ class CardController extends Controller
             "created_by"       => $createVirtualCard['result']['data']["customer"],
         ]);
 
-        $msg = "You have successfully created a Virtual Card, \nCard No: " . $createVirtualCard['data']["masked_pan"] . "\nExp Date: " . $createVirtualCard['data']["expiration"] . "\nCVV: " . $createVirtualCard['data']["cvv"];
+        $msg = "You have successfully created a Virtual Card, \nCard No: " . $createVirtualCard['data']["maskedPan"] . "\nExp Date: " . $createVirtualCard['data']["expiryYear"] . "\nCVV: " . $createVirtualCard['data']["expiryYear"];
 
         \sendSMS($user->id, $msg, true, true, "Virtual Card Creation");
 

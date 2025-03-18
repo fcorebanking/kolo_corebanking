@@ -550,7 +550,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function createVirtualCard($request, $customer)
+    public function createVirtualCard($request, $customer, $customer_sudo_account_id)
     {
         $customer = $this->createSudoCustomer($request, $customer, $customer_sudo_account_id);
 

@@ -590,21 +590,26 @@ class SafehavenController extends WebhookController
 
     public function createSudoCustomer($request, $customer)
     {
+        $firstName = $request->first_name ?? $customer->first_name;
+        $lastName  = $request->last_name ?? $customer->last_name;
+        $email     = $request->email ?? $customer->email;
+        $phone     = $request->phone ?? $customer->phone;
+        $address   = $request->address ?? $customer->address;
+
         $body = [
             "type"           => "individual",
-            "emailAddress"   => $request->email,
-            "name"           => "{$request->first_name} {$request->last_name}",
+            "emailAddress"   => $email,
+            "name"           => "{$firstName} {$lastName}",
             "status"         => "active",
-            "phoneNumber"    => $request->phone,
+            "phoneNumber"    => $phone,
             "individual"     => [
-                "firstName"  => $request->first_name,
-                "lastName"   => $request->last_name,
-                "dob"        => $customer->dob,
-                "otherNames" => "$customer->id",
+                "firstName" => $firstName,
+                "lastName"  => $lastName,
+                "dob"       => $customer->dob,
 
             ],
             "billingAddress" => [
-                "line1"      => $request->address,
+                "line1"      => $address ?? "",
                 "line2"      => "",
                 "city"       => $customer->state_of_origin ?? "LA",
                 "state"      => $customer->state_of_origin ?? "Lagos",

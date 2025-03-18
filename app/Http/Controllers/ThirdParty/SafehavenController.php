@@ -560,6 +560,7 @@ class SafehavenController extends WebhookController
             "type"            => "virtual",
             "currency"        => "NGN",
             "status"          => "active",
+            "debitAccountId"  => $this->fundingSourceId,
 
         ];
 

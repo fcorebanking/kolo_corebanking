@@ -552,10 +552,12 @@ class SafehavenController extends WebhookController
 
     public function createVirtualCard($request, $customer, $customer_sudo_account_id)
     {
-        $customer = $this->createSudoCustomer($request, $customer, $customer_sudo_account_id);
+        if (isset($customer_sudo_account_id) && $customer_sudo_account_id == null) {
+            $customer = $this->createSudoCustomer($request, $customer);
+        }
 
         $body = [
-            "customerId"      => "",
+            "customerId"      => $customer_sudo_account_id ?? $customer['data']['_id'],
             "fundingSourceId" => $this->fundingSourceId,
             "type"            => "virtual",
             "currency"        => "NGN",

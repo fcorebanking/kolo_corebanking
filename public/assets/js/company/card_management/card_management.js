@@ -657,7 +657,7 @@ function createPhysicalCard() {
     var address = $('#c-address').val();
     var bvn = $('#c-bvn').val();
     var customer_reference = $('#staff_id').val();
-    var cardNumber = $('#c-cardnmber').val();
+    var cardNumber = $('#c-cardnumber').val();
 
     console.log(cardNumber);
 
@@ -698,7 +698,7 @@ function createPhysicalCard() {
         _getValidationField[4].style.display = 'none';
     }
 
-    if (card_number == "") {
+    if (cardNumber == "") {
         _getValidationField[5].innerHTML = 'Card Number is Required';
         _getValidationField[5].style.display = 'block';
     } else {

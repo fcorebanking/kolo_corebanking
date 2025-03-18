@@ -126,7 +126,7 @@
 
                                 <div class="form-group mb-4 col-sm-12">
                                     <label for="description">Card Number</label>
-                                    <textarea class="form-control" placeholder="Enter Card Number" id="c-cardnmber" name="card" rows="1"></textarea>
+                                    <textarea class="form-control" placeholder="Enter Card Number" id="c-cardnumber" name="card" rows="1"></textarea>
                                     <span class="validation-text"></span>
                                 </div>
                             </div>

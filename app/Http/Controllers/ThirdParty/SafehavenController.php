@@ -554,6 +554,8 @@ class SafehavenController extends WebhookController
     {
         if ($customer_sudo_account_id == null) {
             $customer = $this->createSudoCustomer($request, $customer);
+        } else {
+            $customer = $this->getSudoCustomerSudoCustomer($customer_sudo_account_id);
         }
 
         $body = [
@@ -562,7 +564,7 @@ class SafehavenController extends WebhookController
             "type"            => "virtual",
             "currency"        => "NGN",
             "status"          => "active",
-            "debitAccountId"  => $this->fundingSourceId,
+            "debitAccountId"  => $customer['data']['business'],
             "brand"           => "Verve",
             "amount"          => 123,
 
@@ -641,6 +643,28 @@ class SafehavenController extends WebhookController
             }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Sudo Customer Register Error");
+
+            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
+        }
+    }
+
+    public function getSudoCustomer($customer)
+    {
+
+        $endpoint = "$this->baseSudoUrl/customers/$customer";
+
+        try {
+            $result = $this->sudoGetRequest($endpoint);
+
+            logInfo(json_encode($result), "Sudo Customer Get Result");
+
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return $result;
+            } else {
+                return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Sudo Customer Get Result Error");
 
             return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
         }

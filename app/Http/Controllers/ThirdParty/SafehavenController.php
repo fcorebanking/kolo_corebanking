@@ -570,7 +570,7 @@ class SafehavenController extends WebhookController
         try {
             $result = $this->sudoPostRequest($endpoint, $body);
 
-            logInfo(jsnon_encode($result), "Sudo Customer Register Virtual Card Result");
+            logInfo(json_encode($result), "Sudo Customer Register Virtual Card Result");
 
             if (isset($result['statusCode'])) {
                 if ($result['statusCode'] == 200) {

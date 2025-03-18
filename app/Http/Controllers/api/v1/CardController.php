@@ -51,7 +51,7 @@ class CardController extends Controller
         $cardCurrency = $companySettings->preferred_virtual_card_currency == "1" ? "NGN" : "USD";
 
         $checkCard                = UserCard::where('user_id', $user->id)->where('card_category_id', 1)->first();
-        $customer_sudo_account_id = $checkCard->card_reference;
+        $customer_sudo_account_id = $checkCard->card_reference ?? null;
 
         if ($checkCard) {
             return \response()->json(['status' => false, 'message' => "Virtual Card already exists"], 400);

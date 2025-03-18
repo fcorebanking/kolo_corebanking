@@ -139,16 +139,16 @@ class CardController extends Controller
 
         $userCard = UserCard::create([
             "user_id"          => $user->id,
-            "card_name"        => $createVirtualCard['data']["name_on_card"],
-            "card_type_id"     => $createVirtualCard['data']["card_type"],
+            "card_name"        => "{$user->first_name} {$user->last_name}",
+            "card_type_id"     => $createVirtualCard['result']['data']["card_type"],
             "card_category_id" => $request->card_category,
-            "card_number"      => $createVirtualCard['data']["card_pan"],
-            "masked_pan"       => $createVirtualCard['data']["masked_pan"],
-            "card_reference"   => $createVirtualCard['data']["id"],
+            "card_number"      => $createVirtualCard['result']['data']["card_pan"] ?? $createVirtualCard['result']['data']["maskedPan"],
+            "masked_pan"       => $createVirtualCard['result']['data']["maskedPan"],
+            "card_reference"   => $createVirtualCard['result']['data']["_id"],
             "currency_id"      => $companySettings->preferred_virtual_card_currency,
-            "exp_date"         => $createVirtualCard['data']["expiration"],
-            "cvv"              => $createVirtualCard['data']["cvv"],
-            "created_by"       => $user->id,
+            "exp_date"         => $createVirtualCard['result']['data']["expiration"],
+            "cvv"              => $createVirtualCard['result']['data']["cvv"],
+            "created_by"       => $createVirtualCard['result']['data']["customer"],
         ]);
 
         $msg = "You have successfully created a Virtual Card, \nCard No: " . $createVirtualCard['data']["masked_pan"] . "\nExp Date: " . $createVirtualCard['data']["expiration"] . "\nCVV: " . $createVirtualCard['data']["cvv"];

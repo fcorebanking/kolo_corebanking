@@ -581,9 +581,9 @@ class SafehavenController extends WebhookController
 
             if (isset($result['statusCode'])) {
                 if ($result['statusCode'] == 200) {
-                    return ['status' => true, 'message' => $cardResult['JsonData']];
+                    return ['status' => true, 'message' => $result['message'], 'result' => $result];
                 } else {
-                    return ['status' => false, 'message' => $cardResult['JsonData']];
+                    return ['status' => false, 'message' => $result['message']];
                 }
             } else {
                 return ['status' => false, 'message' => "Failed to create card... Please contact support"];

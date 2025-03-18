@@ -562,6 +562,7 @@ class SafehavenController extends WebhookController
             "status"          => "active",
             "debitAccountId"  => $this->fundingSourceId,
             "brand"           => "Visa",
+            "amount"          => 123,
 
         ];
 

@@ -30,7 +30,7 @@ class CardController extends Controller
 
     public function createUserCard(Request $request)
     {
-        return \response()->json(['status' => false, 'message' => 'This service is currently unavailable and will be restored soon']);
+        //return \response()->json(['status' => false, 'message' => 'This service is currently unavailable and will be restored soon']);
 
         $transactionId = \generateTransactionReference();
 
@@ -50,7 +50,7 @@ class CardController extends Controller
 
         $cardCurrency = $companySettings->preferred_virtual_card_currency == "1" ? "NGN" : "USD";
 
-        $checkCard                = UserCard::where('user_id', $user->id)->first();
+        $checkCard                = UserCard::where('user_id', $user->id)->where('card_category_id', 1)->first();
         $customer_sudo_account_id = $checkCard->card_reference;
 
         if ($checkCard) {

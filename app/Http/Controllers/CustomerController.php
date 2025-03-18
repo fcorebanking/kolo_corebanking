@@ -626,7 +626,7 @@ class CustomerController extends Controller
         }
 
         $customer = User::where('uuid', $request->customer_reference)->first();
-        $checkCard                = UserCard::where('user_id', $customer->id)->first();
+        $checkCard                = UserCard::where('user_id', $customer->id)->where('card_category_id', 2)->first();
         $customer_sudo_account_id = $checkCard->card_reference ?? null;
 
         if ($customer) {

@@ -2,82 +2,82 @@ try {
     $('.all-dashboard').hide();
 
     var d_2options1 = {
-            chart: {
-                height: 160,
-                type: 'bar',
-                stacked: true,
-                stackType: '100%',
-                toolbar: {
-                    show: false,
+        chart: {
+            height: 160,
+            type: 'bar',
+            stacked: true,
+            stackType: '100%',
+            toolbar: {
+                show: false,
+            }
+        },
+        dataLabels: {
+            enabled: false,
+        },
+        stroke: {
+            show: true,
+            width: 1,
+        },
+        colors: ['fc2020', '#e0e6ed'],
+        responsive: [{
+            breakpoint: 480,
+            options: {
+                legend: {
+                    position: 'bottom',
+                    offsetX: -10,
+                    offsetY: 0
                 }
+            }
+        }],
+        series: [{
+            name: 'Sales',
+            data: [44, 55, 41, 67, 22, 43, 21]
+        }, {
+            name: 'Last Week',
+            data: [13, 23, 20, 8, 13, 27, 33]
+        }],
+        xaxis: {
+            labels: {
+                show: false,
             },
-            dataLabels: {
-                enabled: false,
-            },
-            stroke: {
-                show: true,
-                width: 1,
-            },
-            colors: ['fc2020', '#e0e6ed'],
-            responsive: [{
-                breakpoint: 480,
-                options: {
-                    legend: {
-                        position: 'bottom',
-                        offsetX: -10,
-                        offsetY: 0
-                    }
-                }
-            }],
-            series: [{
-                name: 'Sales',
-                data: [44, 55, 41, 67, 22, 43, 21]
-            }, {
-                name: 'Last Week',
-                data: [13, 23, 20, 8, 13, 27, 33]
-            }],
+            categories: ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'],
+        },
+        yaxis: {
+            show: false
+        },
+        fill: {
+            opacity: 1
+        },
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                endingShape: 'rounded',
+                columnWidth: '25%',
+            }
+        },
+        legend: {
+            show: false,
+        },
+        grid: {
+            show: false,
             xaxis: {
-                labels: {
-                    show: false,
-                },
-                categories: ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'],
-            },
-            yaxis: {
-                show: false
-            },
-            fill: {
-                opacity: 1
-            },
-            plotOptions: {
-                bar: {
-                    horizontal: false,
-                    endingShape: 'rounded',
-                    columnWidth: '25%',
+                lines: {
+                    show: false
                 }
             },
-            legend: {
-                show: false,
+            padding: {
+                top: 10,
+                right: 0,
+                bottom: -40,
+                left: 0
             },
-            grid: {
-                show: false,
-                xaxis: {
-                    lines: {
-                        show: false
-                    }
-                },
-                padding: {
-                    top: 10,
-                    right: 0,
-                    bottom: -40,
-                    left: 0
-                },
-            },
-        }
-        //     /*
-        //         ============================
-        //             Daily Sales | Render
-        //         ============================
-        //     */
+        },
+    }
+    //     /*
+    //         ============================
+    //             Daily Sales | Render
+    //         ============================
+    //     */
     var d_2C_1 = new ApexCharts(document.querySelector("#daily-sales"), d_2options1);
     d_2C_1.render();
     //     /*
@@ -256,13 +256,13 @@ try {
     //   //     });
 
     //   //   }
-    const company_n_data = async() => {
+    const company_n_data = async () => {
         $.ajax({
             url: '/dashboarddata?page=company_n_data',
             type: 'get',
             dataType: 'json',
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(data) {
+            success: function (data) {
                 if (data.permission_to_see) {
                     currency = data.currency;
                     $('.link_cards').html(data.user_has_card);
@@ -272,10 +272,12 @@ try {
                     $sms = data.wallet_data.sms;
                     $ussd = data.wallet_data.ussd;
                     $whatsapp = data.wallet_data.whatsapp;
+                    $card_balance = data.wallet_data.card_balance;
                     $('.acc-amount').html(currency + formatToCurrency($balance));
                     $('.sms').html(currency + formatToCurrency($sms));
                     $('.ussd').html(currency + formatToCurrency($ussd));
                     $('.whatsapp').html(currency + formatToCurrency($whatsapp));
+                    $('.card-balance').html(currency + formatToCurrency($card_balance));
                     $auth_wallet = currency + formatToCurrency((data.auth_wallet));
                     $('.auth_wallet').html($auth_wallet);
                 }
@@ -285,13 +287,13 @@ try {
         });
 
     }
-    const BranchData = async() => {
+    const BranchData = async () => {
         $.ajax({
             url: '/dashboarddata?page=branch_customer_Stat',
             type: 'get',
             dataType: 'json',
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(data) {
+            success: function (data) {
                 if (data.permission_to_see) {
                     currency = data.currency;
                     $('.total-branches').html(data.user.data[2]);
@@ -303,7 +305,7 @@ try {
                     $branch = data.branch;
 
                     if ($branch) {
-                        $branch.forEach(function(branch) {
+                        $branch.forEach(function (branch) {
                             $badge_txn = (1 == 1) ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-up"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-down"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>';
                             $updown = '';
 
@@ -356,7 +358,7 @@ try {
                                             fontFamily: 'Nunito, sans-serif',
                                             color: '20',
                                             offsetY: 16,
-                                            formatter: function(val) {
+                                            formatter: function (val) {
                                                 return val
                                             }
                                         },
@@ -365,8 +367,8 @@ try {
                                             showAlways: true,
                                             label: 'Total',
                                             color: '#888ea8',
-                                            formatter: function(w) {
-                                                return w.globals.seriesTotals.reduce(function(a, b) {
+                                            formatter: function (w) {
+                                                return w.globals.seriesTotals.reduce(function (a, b) {
                                                     return a + b
                                                 }, 0)
                                             }
@@ -424,7 +426,7 @@ try {
         });
 
     }
-    const largest_LatestTXN = async() => {
+    const largest_LatestTXN = async () => {
         $('#recent_txt').html('<i class="fa fa-spinner fa-spin" style="font-size:20px"></i>');
         $('#largest_txn').html('<i class="fa fa-spinner fa-spin" style="font-size:20px"></i>');
         $.ajax({
@@ -432,18 +434,18 @@ try {
             type: 'get',
             dataType: 'json',
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(data) {
+            success: function (data) {
                 var currency = data.currency;
                 $('#recent_txt').empty();
                 $('#largest_txn').empty();
                 $recent_txn = data.latest_txn;
                 $lagest_txn = data.largest_txn;
                 // step 1 restriction
-                $recent_txn.forEach(function(txn) {
+                $recent_txn.forEach(function (txn) {
                     $badge = (txn.credit_debit_type_id == 1) ? 'outline-badge-success' : 'outline-badge-warning';
                     $('#recent_txt').append('<tr><td><div class="td-content customer-name">' + txn.first_name + ' ' + txn.last_name + '</div></td><td><div class="td-content product-brand">' + txn.virtual_accnum + '</div></td><td><div class="td-content product-brand">' + txn.transaction_type + '</div></td><td><div class="td-content"><a class="btn btn-flat"  href="/transaction-receipt/' + txn.transaction_reference + '">' + txn.transaction_reference + '</a></div></td><td><div class="td-content pricing"><span class="">' + currency + formatToCurrency(txn.amount) + '</span></div></td><td><div class="td-content"><span class="badge ' + $badge + '">' + txn.type + '</span></div></td></tr>');
                 });
-                $lagest_txn.forEach(function(largetxn) {
+                $lagest_txn.forEach(function (largetxn) {
                     $badge = (largetxn.credit_debit_type_id == 1) ? 'outline-badge-success' : 'outline-badge-warning';
                     $('#largest_txn').append('<tr><td><div class="td-content customer-name">' + largetxn.first_name + ' ' + largetxn.last_name + '</div></td><td><div class="td-content product-brand">' + largetxn.virtual_accnum + '</div></td><td><div class="td-content product-brand">' + largetxn.transaction_type + '</div></td><td><div class="td-content"><a class="btn btn-flat" href="/transaction-receipt/' + largetxn.transaction_reference + '">' + largetxn.transaction_reference + '</a></div></td><td><div class="td-content pricing"><span class="">' + currency + formatToCurrency(largetxn.amount) + '</span></div></td><td><div class="td-content"><span class="badge ' + $badge + '">' + largetxn.type + '</span></div></td></tr>');
                 });
@@ -452,13 +454,13 @@ try {
         });
 
     }
-    const txn_type = async() => {
+    const txn_type = async () => {
         $.ajax({
             url: '/dashboarddata?page=txn_type',
             type: 'get',
             dataType: 'json',
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(data) {
+            success: function (data) {
                 $('#total-orders').empty();
 
                 $permission_to_see = data.permission_to_see;
@@ -472,7 +474,7 @@ try {
                     $transaction_type = data.transaction_type;
                     $('.transaction_type').empty();
                     $today_deposit = $today_withdraw = 0;
-                    $transaction_type.forEach(function(txntype) {
+                    $transaction_type.forEach(function (txntype) {
                         $badge_txn = (txntype.credit_debit_type_id == 1) ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-up"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-down"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>';
                         $updown = (txntype.credit_debit_type_id == 1) ? 'rate-inc' : 'rate-dec';
                         if (txntype.credit_debit_type_id == 1) {
@@ -497,7 +499,7 @@ try {
                     $('.transaction_type').empty();
 
                     $today_deposit = $today_withdraw = 0;
-                    $transaction_type.forEach(function(txntype) {
+                    $transaction_type.forEach(function (txntype) {
                         $badge_txn = (txntype.credit_debit_type_id == 1) ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-up"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-down"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>';
                         $updown = (txntype.credit_debit_type_id == 1) ? 'rate-inc' : 'rate-dec';
                         if (txntype.credit_debit_type_id == 1) {
@@ -517,13 +519,13 @@ try {
         });
 
     }
-    const transaction_hist_txn = async() => {
+    const transaction_hist_txn = async () => {
         $.ajax({
             url: '/dashboarddata?page=transaction_hist_txn',
             type: 'get',
             dataType: 'json',
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(data) {
+            success: function (data) {
                 $permission_to_see = data.permission_to_see;
                 currency = data.currency;
                 $('.deposit-total').html(currency + formatToCurrency(Number(data.display_card.deposit.total)));
@@ -544,13 +546,13 @@ try {
         });
 
     }
-    const monthly_txn = async() => {
+    const monthly_txn = async () => {
         $.ajax({
             url: '/dashboarddata?page=monthly_txn',
             type: 'get',
             dataType: 'json',
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(data) {
+            success: function (data) {
                 $permission_to_see = data.permission_to_see;
 
                 monthlydata = data.monthly_data.txn.monthly_TXN;
@@ -561,7 +563,7 @@ try {
                 $('.total_daily').html(currency + formatToCurrency(Number(total_daily)));
                 $transaction_type = data.transaction_type;
                 $today_deposit = $today_withdraw = 0;
-                $transaction_type.forEach(function(txntype) {
+                $transaction_type.forEach(function (txntype) {
                     $badge_txn = (txntype.credit_debit_type_id == 1) ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-up"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-down"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>';
                     $updown = (txntype.credit_debit_type_id == 1) ? 'rate-inc' : 'rate-dec';
                     if (txntype.credit_debit_type_id == 1) {
@@ -593,7 +595,7 @@ try {
                             show: false
                         },
                         events: {
-                            mounted: function(ctx, config) {
+                            mounted: function (ctx, config) {
                                 const highest1 = ctx.getHighestValueInSeries(0);
                                 const highest2 = ctx.getHighestValueInSeries(1);
 
@@ -707,7 +709,7 @@ try {
                     },
                     yaxis: {
                         labels: {
-                            formatter: function(value, index) {
+                            formatter: function (value, index) {
                                 return (value / 1000) + 'K'
                             },
                             offsetX: -22,
@@ -803,107 +805,107 @@ try {
         });
         return false;
     }
-    const loadallpage = async(page) => {
-            setModalButtonLoading(true);
+    const loadallpage = async (page) => {
+        setModalButtonLoading(true);
 
-            $.ajax({
-                url: '/dashboarddatafull?page=' + page,
-                type: 'get',
-                dataType: 'json',
-                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-                success: function(data) {
-                    dailytxn = data.transaction_type_day;
-                    total_daily = data.total_daily;
-                    currency = data.currency;
-                    $permission_to_see = data.permission_to_see;
-
-
-                    //investment
-                    if (page == "investment") {
-                        $('.total_investment').html(data.total);
-                        $('.active_investment').html(data.active);
-                        $('.complete_investment').html(data.complete);
-                        // $investment = data.display_card.investment;
-                        setModalButtonLoading(false);
-                        return false;
-                    }
-                    //staffwallet
-                    if (page == 'staffwallet') {
-                        $('.staff_comission').html(currency + (formatToCurrency(data.staff.comission)))
-                        $('.staff_balance').html(currency + (formatToCurrency(data.staff.balance)))
-                    }
-                    if (page == 'expenses') {
-                        $('.expenses').html(data.expenses)
-                    }
-                    //loan
-                    if (page == "loan") {
-                        $('.loanActiveCount').html(data.loanActiveCount);
-                        $('.completeCount').html(data.completeCount);
-                        $('.pendingCount').html(data.pendingCount);
-                        $('.writeOff').html(data.writeOff);
-                        $('.disbursmentCount').html(data.disbursmentCount);
-                        $('.Ipaidamount').html(formatToCurrency(data.paymentData[0].Ipaidamount));
-                        $('.Ppaidamount').html(formatToCurrency(data.paymentData[0].Ppaidamount));
-                        $('.mgrtFeePaid').html(formatToCurrency(data.paymentData[0].mgrtFeePaid));
-                        $('.loanFeePaid').html(formatToCurrency(data.paymentData[0].loanFeePaid));
-                        $('.paidamount').html(formatToCurrency(data.paymentData[0].paidamount));
-                        $('.InitPamount').html(formatToCurrency(data.activeData[0].InitPamount));
-                        $('.TloanBalance').html(formatToCurrency(data.activeData[0].TloanBalance));
-                        $('.TprincipalLeft').html(formatToCurrency(data.activeData[0].TprincipalLeft));
-                        $('.TInterestLeft').html(formatToCurrency(data.activeData[0].TInterestLeft));
-                        setModalButtonLoading(false);
-
-                        return false;
-                    }
-                    //esusu
-                    if (page == "esusu") {
-                        $('.esusu_count').html(data.esusu.count);
-                        $('.esusu_wallet').html(formatToCurrency(data.esusu.record[0].wallet));
-                        $('.esusu_withdrawable').html(formatToCurrency(data.esusu.record[0].withdrawable));
-                        setModalButtonLoading(false);
-                        return false
-                    }
+        $.ajax({
+            url: '/dashboarddatafull?page=' + page,
+            type: 'get',
+            dataType: 'json',
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            success: function (data) {
+                dailytxn = data.transaction_type_day;
+                total_daily = data.total_daily;
+                currency = data.currency;
+                $permission_to_see = data.permission_to_see;
 
 
-                    $transaction_type = data.transaction_type;
-                    if (page == "dom") {
-                        $dom = data.dom;
-                        $('.dom_account').html($dom);
-                        setModalButtonLoading(false);
-                        return false
-                    }
-                    if (page == "product") {
-                        $product = data.product;
-                        $product.forEach(function(txnsaving) {
-                            $('.savingsdata').append(' <div class="col-md-3"><div class="card-counter danger"> <i class="fa fa-dollar"></i> <span style="font-size:14px" class="count-numbers">' + currency + (formatToCurrency(txnsaving.balance)) + '</span><span class="count-name">' + txnsaving.savings_product + '</span></div></div>');
-                        });
-                        setModalButtonLoading(false);
-                        return false
-                    }
-                    // step 1 restriction
-                    if (page == "pending") {
-                        $('.pending_entry').html((Number(data.total_new_entry)));
-                        $('.reg-charge').html(currency + formatToCurrency(Number(data.total_new_entry)));
-                        setModalButtonLoading(false);
-                        return false
-                    }
-                    if (page == "txncharge") { //ewithdraw-charge
-                        $('.ewithdraw-charge').html(data.currency + formatToCurrency(data.withdrawCharge2));
-                        $('.withdraw-charge').html(data.currency + formatToCurrency(data.withdrawCharge));
-                        $('.deposit-charge').html(data.currency + formatToCurrency(Number(data.Depositcharge)));
-                        $('.sms-charge').html(data.currency + formatToCurrency(Number(data.smscharge)));
-                    }
-                    // unpaid_sms_Charges
-                    if (page == "unpaid_sms_Charges") {
-                        $('.unpaid-sms').html(currency + formatToCurrency(Number(data.unpaidsms)));
-                        setModalButtonLoading(false);
-                        return false
-                    }
+                //investment
+                if (page == "investment") {
+                    $('.total_investment').html(data.total);
+                    $('.active_investment').html(data.active);
+                    $('.complete_investment').html(data.complete);
+                    // $investment = data.display_card.investment;
+                    setModalButtonLoading(false);
+                    return false;
                 }
-            });
-        }
-        // function loadallpage(page) {
-        //     setModalButtonLoading(true);
+                //staffwallet
+                if (page == 'staffwallet') {
+                    $('.staff_comission').html(currency + (formatToCurrency(data.staff.comission)))
+                    $('.staff_balance').html(currency + (formatToCurrency(data.staff.balance)))
+                }
+                if (page == 'expenses') {
+                    $('.expenses').html(data.expenses)
+                }
+                //loan
+                if (page == "loan") {
+                    $('.loanActiveCount').html(data.loanActiveCount);
+                    $('.completeCount').html(data.completeCount);
+                    $('.pendingCount').html(data.pendingCount);
+                    $('.writeOff').html(data.writeOff);
+                    $('.disbursmentCount').html(data.disbursmentCount);
+                    $('.Ipaidamount').html(formatToCurrency(data.paymentData[0].Ipaidamount));
+                    $('.Ppaidamount').html(formatToCurrency(data.paymentData[0].Ppaidamount));
+                    $('.mgrtFeePaid').html(formatToCurrency(data.paymentData[0].mgrtFeePaid));
+                    $('.loanFeePaid').html(formatToCurrency(data.paymentData[0].loanFeePaid));
+                    $('.paidamount').html(formatToCurrency(data.paymentData[0].paidamount));
+                    $('.InitPamount').html(formatToCurrency(data.activeData[0].InitPamount));
+                    $('.TloanBalance').html(formatToCurrency(data.activeData[0].TloanBalance));
+                    $('.TprincipalLeft').html(formatToCurrency(data.activeData[0].TprincipalLeft));
+                    $('.TInterestLeft').html(formatToCurrency(data.activeData[0].TInterestLeft));
+                    setModalButtonLoading(false);
+
+                    return false;
+                }
+                //esusu
+                if (page == "esusu") {
+                    $('.esusu_count').html(data.esusu.count);
+                    $('.esusu_wallet').html(formatToCurrency(data.esusu.record[0].wallet));
+                    $('.esusu_withdrawable').html(formatToCurrency(data.esusu.record[0].withdrawable));
+                    setModalButtonLoading(false);
+                    return false
+                }
+
+
+                $transaction_type = data.transaction_type;
+                if (page == "dom") {
+                    $dom = data.dom;
+                    $('.dom_account').html($dom);
+                    setModalButtonLoading(false);
+                    return false
+                }
+                if (page == "product") {
+                    $product = data.product;
+                    $product.forEach(function (txnsaving) {
+                        $('.savingsdata').append(' <div class="col-md-3"><div class="card-counter danger"> <i class="fa fa-dollar"></i> <span style="font-size:14px" class="count-numbers">' + currency + (formatToCurrency(txnsaving.balance)) + '</span><span class="count-name">' + txnsaving.savings_product + '</span></div></div>');
+                    });
+                    setModalButtonLoading(false);
+                    return false
+                }
+                // step 1 restriction
+                if (page == "pending") {
+                    $('.pending_entry').html((Number(data.total_new_entry)));
+                    $('.reg-charge').html(currency + formatToCurrency(Number(data.total_new_entry)));
+                    setModalButtonLoading(false);
+                    return false
+                }
+                if (page == "txncharge") { //ewithdraw-charge
+                    $('.ewithdraw-charge').html(data.currency + formatToCurrency(data.withdrawCharge2));
+                    $('.withdraw-charge').html(data.currency + formatToCurrency(data.withdrawCharge));
+                    $('.deposit-charge').html(data.currency + formatToCurrency(Number(data.Depositcharge)));
+                    $('.sms-charge').html(data.currency + formatToCurrency(Number(data.smscharge)));
+                }
+                // unpaid_sms_Charges
+                if (page == "unpaid_sms_Charges") {
+                    $('.unpaid-sms').html(currency + formatToCurrency(Number(data.unpaidsms)));
+                    setModalButtonLoading(false);
+                    return false
+                }
+            }
+        });
+    }
+    // function loadallpage(page) {
+    //     setModalButtonLoading(true);
 
     //     $.ajax({
     //       url: '/dashboarddatafull?page=' + page,
@@ -1077,7 +1079,7 @@ try {
             data: { wallet: $wallet, amount: $amount },
             dataType: 'json',
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(data) {
+            success: function (data) {
                 company_n_data()
 
                 if (data.status == 1) {
@@ -1124,7 +1126,7 @@ try {
             showCancelButton: true,
             confirmButtonText: 'Proceed',
             padding: '2em'
-        }).then(function(result) {
+        }).then(function (result) {
             if (result.value) {
                 $.ajax({
                     url: '/dashboard/generate-ussd-string',
@@ -1132,7 +1134,7 @@ try {
 
                     dataType: 'json',
                     headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-                    success: function(data) {
+                    success: function (data) {
                         $status = '';
                         $complete = '';
                         if (data.status) {
@@ -1167,12 +1169,12 @@ try {
         //  company_n_data()
     }
     company_n_data()
-        //   const ll = setTimeout(largest_LatestTXN, 2000);
-        //   const bt = setTimeout(BranchData, 8000);
-        //   const tp = setTimeout(txn_type, 10000);
-        //   const mt = setTimeout(monthly_txn, 15000);
-        //   const th = setTimeout(transaction_hist_txn, 20000);
-        //   const cd = setTimeout(company_n_data, 25000);
+    //   const ll = setTimeout(largest_LatestTXN, 2000);
+    //   const bt = setTimeout(BranchData, 8000);
+    //   const tp = setTimeout(txn_type, 10000);
+    //   const mt = setTimeout(monthly_txn, 15000);
+    //   const th = setTimeout(transaction_hist_txn, 20000);
+    //   const cd = setTimeout(company_n_data, 25000);
     function load_data_full() {
         console.log("We want to load full dashboard");
 

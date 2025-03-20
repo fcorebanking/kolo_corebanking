@@ -1139,6 +1139,9 @@ class HomeController extends Controller
         if ($amount < 1000) {
             return response()->json(['status' => 0, 'message' => 'Minimum wallet fund is 1000!']);
         }
+        if ($amount < 500000 && $wallet == "card_balance") {
+            return response()->json(['status' => 0, 'message' => 'Minimum wallet fund is 1000!']);
+        }
         if ($company_wallet->balance > $amount) {
             $balanceBefore = $company_wallet->balance;
 

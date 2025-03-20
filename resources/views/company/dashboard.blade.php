@@ -1277,7 +1277,7 @@
                                 <option value='sms'>SMS</option>
                                 <option value='ussd'>USSD</option>
                                 <option value='whatsapp'>WhatsApp</option>
-                                <option value='whatsapp'>Card</option>
+                                <option value='card_balance'>Card</option>
                             </select>
                         </div>
                         <div class="form-group">

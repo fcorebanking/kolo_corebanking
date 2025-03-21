@@ -2180,6 +2180,7 @@ class TransactionController extends Controller
         }
 
         $currentRequest = $request->all();
+        $request->input('data.reference');
 
        // $safeHavenController->transactionReference = $currentRequest['data']['settlementId'];
      //   $safeHavenController->wbaCharge            = getWbaTransferCharges(38, $currentRequest['data']['amount']);

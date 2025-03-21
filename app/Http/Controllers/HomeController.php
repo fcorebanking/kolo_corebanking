@@ -1156,6 +1156,9 @@ class HomeController extends Controller
             } else if ($wallet == 'whatsapp') {
                 $company_wallet->whatsapp += $amount;
                 $txnType = 29;
+            } else if ($wallet == 'card_balance') {
+                $company_wallet->card_balance += $amount;
+                $txnType = 9;
             }
             $desc          = strtoupper($wallet) . " Wallet Topup!";
             $transactionId = generate_txnID();

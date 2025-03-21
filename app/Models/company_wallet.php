@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,15 +14,15 @@ class company_wallet extends Model
         'company_id',
         'bank_id',
         'whatsapp',
-        'currency_code'
-
+        'currency_code',
+        'card_balance',
     ];
 
-    public function company(){
+    public function company()
+    {
         return $this->belongsTo(Company::class, 'company_id', 'id');
 
     }
-
 
     public function bank()
     {

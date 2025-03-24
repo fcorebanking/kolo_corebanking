@@ -143,7 +143,7 @@ class RegisterController extends Controller
 
             $virtualAccount->bankCode         = "090267";
             $virtualAccount->currencyCode     = $currency->code;
-            $virtualAccount->firstName        = $request->companyname;
+            $virtualAccount->firstName        = "";
             $virtualAccount->companyShortName = $request->companyshort;
             $virtualAccount->companyName      = $request->companyname;
             $virtualAccount->lastName         = $request->companyname;

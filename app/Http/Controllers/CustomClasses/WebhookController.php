@@ -564,7 +564,12 @@ class WebhookController extends Controller
     }
 
     public function handleSudoWebhook(){
-
+        $account = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
+        $mainAccount =  wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
+        $companyId   = $account->user->company->id;
+        $branchId    = $account->user->branch->id;
+        $accountId   = $mainAccount->id;
+        $userId      = $account->user_id;
     }
     
     private function getVirtualAccountNumber($kudaVirtualNumber)

@@ -141,6 +141,11 @@ class AccountCreationService
             $requestReference  = generateTransactionReference();
             $trackingReference = generateTransactionReference();
 
+            if ($virtualAccount->accountType == 'coperate') {
+                $virtualAccount->firstName = "";
+                $virtualAccount->lastName  = $virtualAccount->companyName;
+            }
+
             //     logInfo($requestReference, "Kuda Bank Code in requestReference");
             //      logInfo($trackingReference, "Kuda Bank Code in trackingReference");
             //     logInfo(json_encode($virtualAccount), "Kuda Bank Virtual account");

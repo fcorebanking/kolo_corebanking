@@ -39,7 +39,7 @@ class SafehavenController extends WebhookController
         //  $this->baseSudoKey = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
         $this->baseSudoUrl     = config('safehaven.base_url_sudo_test');
         $this->baseSudoKey     = config('safehaven.base_url_sudo_test_key');
-        $this->fundingSourceId = "6733cff1e110c50024da47fc" ?? "67d40044ad1be81c57ff0684";
+        $this->fundingSourceId = "67d40044ad1be81c57ff0684";
 
     }
 

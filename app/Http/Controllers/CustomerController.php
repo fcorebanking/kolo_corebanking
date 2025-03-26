@@ -282,6 +282,14 @@ class CustomerController extends Controller
             return response()->json($datax);
         }
 
+        if ($request->account_category == 'coperate') {
+            $safeHavenController = new SafehavenController();
+
+            $result = $safeHavenController->verifyCAC($bvn);
+
+            return response()->json($result, $result['status'] ? 200 : 400);
+        }
+
         $company_setting  = $auth->company->setting;
         $regfee           = $company_setting->registration_fee;
         $ussd_control     = $company_setting->ussd_control;

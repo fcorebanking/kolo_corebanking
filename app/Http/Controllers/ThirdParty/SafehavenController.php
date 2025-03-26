@@ -591,15 +591,15 @@ class SafehavenController extends WebhookController
 
     public function safehavenPostRequest($endpoint, $body)
     {
-        logInfo("$this->baseUrl $endpoint", "Complete url");
+        logInfo("{$this->baseUrl}{$endpoint}", "Complete url");
         logInfo($this->safehavenHeader(), "Safe haven header");
-        $response = Http::withHeaders($this->safehavenHeader())->post("$this->baseUrl $endpoint", $body);
+        $response = Http::withHeaders($this->safehavenHeader())->post("{$this->baseUrl}{$endpoint}", $body);
         return $response->json();
     }
 
     public function safehavenGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->safehavenHeader())->get("$this->baseUrl $endpoint");
+        $response = Http::withHeaders($this->safehavenHeader())->get("{$this->baseUrl}{$endpoint}");
         return $response->json();
     }
 

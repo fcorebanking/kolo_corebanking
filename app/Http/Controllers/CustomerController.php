@@ -281,6 +281,7 @@ class CustomerController extends Controller
             ];
             return response()->json($datax);
         }
+
         $company_setting  = $auth->company->setting;
         $regfee           = $company_setting->registration_fee;
         $ussd_control     = $company_setting->ussd_control;
@@ -3583,5 +3584,37 @@ class CustomerController extends Controller
         } catch (Exception $e) {
             return response()->json(["status" => false, "message" => "Operation Failed" . $e->getMessage()], 400);
         }
+    }
+
+    public function check_cac()
+    {
+        $validator = Validator::make($request->all(), [
+
+            'reg_number' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+
+            $errors = '';
+            foreach ($validator->messages()->getMessages() as $field_name => $messages) {
+
+                // Go through each message for this field.
+                $loop = 0;
+                foreach ($messages as $message) {
+                    if ($loop > 0) {
+                        $errors .= ',';
+                    }
+                    $errors .= "$message ";
+                }
+            }
+
+            return response()->json(['status' => 0, 'message' => $errors]);
+        }
+
+        $safeHavenController = new SafehavenController();
+
+        $result = $safeHavenController->verifyCAC($request->reg_number);
+
+        return response()->json($result, $result['status'] ? 200 : 400);
     }
 }

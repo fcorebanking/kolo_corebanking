@@ -141,7 +141,9 @@ class AccountCreationService
             $requestReference  = generateTransactionReference();
             $trackingReference = generateTransactionReference();
 
-            if ($virtualAccount->accountType == 'coperate') {
+            logInfo($virtualAccount->accountType, "Virtual Account Type");
+
+            if ($virtualAccount->accountType == "coperate") {
                 $virtualAccount->firstName = "";
                 $virtualAccount->lastName  = $virtualAccount->companyName;
             }

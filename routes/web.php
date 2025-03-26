@@ -820,6 +820,8 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
 
                     Route::post('/update_profilex', [App\Http\Controllers\CustomerController::class, 'update_profilex'])->name('update_profilex');
 
+                    Route::post('/check_cac_data', [App\Http\Controllers\CustomerController::class, 'check_cac'])->name('check_cacx')->middleware('log.route');
+
                     Route::get('/account_creation_success', [App\Http\Controllers\CustomerController::class, 'account_creation_success'])->name('account_creation_success');
 
                     Route::get('/userDataSource/{page}', [App\Http\Controllers\CustomerController::class, 'userDataSource'])->name('userDataSource');

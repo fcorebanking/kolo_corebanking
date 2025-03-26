@@ -314,6 +314,136 @@ class SafehavenController extends WebhookController
         }
     }
 
+    public function verifyNIN($nin)
+    {
+        $body = [
+            "type"               => "NIN",
+            "async"              => false,
+            "number"             => $nin,
+            "debitAccountNumber" => $this->debitAccount,
+        ];
+
+        $url = "identity/v2";
+
+        $loginResult = $this->getToken();
+
+        if (! $loginResult['status']) {
+            return ['status' => false, 'message' => 'Failed to connect to Server. Please contact support'];
+        }
+
+        try {
+            $response = $this->safehavenPostRequest($url, $body);
+
+            logInfo($response, "Safehaven response");
+
+            if (isset($response['statusCode'])) {
+                if ($response['statusCode'] == 200) {
+
+                    return [
+                        'status'  => true,
+                        'message' => "NIN Verified Successfully",
+                        'data'    => $response['data'],
+                    ];
+                } else {
+                    return ['status' => false, 'message' => 'Failed to Verify NIN'];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Failed to Verify NIN'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Safehaven Error");
+
+            return ['status' => false, 'message' => 'Error verifying NIN account'];
+        }
+    }
+
+    public function verifyCAC($cac)
+    {
+        $body = [
+            "type"               => "CAC",
+            "async"              => false,
+            "number"             => $cac,
+            "debitAccountNumber" => $this->debitAccount,
+        ];
+
+        $url = "identity/v2";
+
+        $loginResult = $this->getToken();
+
+        if (! $loginResult['status']) {
+            return ['status' => false, 'message' => 'Failed to connect to Server. Please contact support'];
+        }
+
+        try {
+            $response = $this->safehavenPostRequest($url, $body);
+
+            logInfo($response, "Safehaven response");
+
+            if (isset($response['statusCode'])) {
+                if ($response['statusCode'] == 200) {
+
+                    return [
+                        'status'  => true,
+                        'message' => "CAC Verified Successfully",
+                        'data'    => $response['data'],
+                    ];
+                } else {
+                    return ['status' => false, 'message' => 'Failed to Verify CAC'];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Failed to Verify CAC'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Safehaven Error");
+
+            return ['status' => false, 'message' => 'Error verifying CAC account'];
+        }
+    }
+
+    public function creditCheck($cac)
+    {
+        $body = [
+            "type"               => "CREDITCHECK",
+            "async"              => false,
+            "number"             => $cac,
+            "provider"           => "firstCentral",
+            "debitAccountNumber" => $this->debitAccount,
+        ];
+
+        $url = "identity/v2";
+
+        $loginResult = $this->getToken();
+
+        if (! $loginResult['status']) {
+            return ['status' => false, 'message' => 'Failed to connect to Server. Please contact support'];
+        }
+
+        try {
+            $response = $this->safehavenPostRequest($url, $body);
+
+            logInfo($response, "Safehaven response");
+
+            if (isset($response['statusCode'])) {
+                if ($response['statusCode'] == 200) {
+
+                    return [
+                        'status'  => true,
+                        'message' => "CAC Verified Successfully",
+                        'data'    => $response['data'],
+                    ];
+                } else {
+                    return ['status' => false, 'message' => 'Failed to Verify CAC'];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Failed to Verify CAC'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Safehaven Error");
+
+            return ['status' => false, 'message' => 'Error verifying CAC account'];
+        }
+    }
+
     public function verifyAccount($bankCode, $accountNumber)
     {
         $body = [

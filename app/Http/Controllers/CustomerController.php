@@ -3586,7 +3586,7 @@ class CustomerController extends Controller
         }
     }
 
-    public function check_cac()
+    public function check_cac(Request $request)
     {
         $validator = Validator::make($request->all(), [
 

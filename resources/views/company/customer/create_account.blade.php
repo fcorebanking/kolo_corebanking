@@ -153,6 +153,7 @@
                                         <label for="">Reg Number</label>
                                         <input onchange="check_cac()" type="text" class="form-control  "
                                             name="reg_number" id="cac_number" value="" placeholder="Reg Number">
+                                        <div id="cac_response" class="mt-2 alert alert-info" style="display: none;"></div>
 
                                     </div>
                                 </div>
@@ -478,36 +479,36 @@
                                 <!-- <div class="col-md-6 p-3">
 
 
-                                                        <div class="form-group mx-auto text-center">
-                                                            <img id="previewImg3" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
-                                                        </div>
+                                                            <div class="form-group mx-auto text-center">
+                                                                <img id="previewImg3" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
+                                                            </div>
 
-                                                        <div class="form-group col-md-9">
-                                                            <label >Upload Other Documents (Optional)</label>
-                                                            <input onchange="previewFile2(this.id);" type="file" name="other_doc" class="form-control-file" id="customFile3">
+                                                            <div class="form-group col-md-9">
+                                                                <label >Upload Other Documents (Optional)</label>
+                                                                <input onchange="previewFile2(this.id);" type="file" name="other_doc" class="form-control-file" id="customFile3">
 
-                                                        </div>
+                                                            </div>
 
-
-                                                    </div>
-
-
-                                                    <div class="col-md-6 p-3">
-
-
-                                                        <div class="form-group mx-auto text-center">
-                                                            <img id="previewImg4" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
-                                                        </div>
-
-                                                        <div class="form-group col-md-9">
-                                                            <label >Signature (Optional)</label>
-                                                            <input onchange="previewFile1(this.id);" type="file" name="signature" class="form-control-file" id="customFile4">
 
                                                         </div>
 
 
+                                                        <div class="col-md-6 p-3">
 
-                                                    </div> -->
+
+                                                            <div class="form-group mx-auto text-center">
+                                                                <img id="previewImg4" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
+                                                            </div>
+
+                                                            <div class="form-group col-md-9">
+                                                                <label >Signature (Optional)</label>
+                                                                <input onchange="previewFile1(this.id);" type="file" name="signature" class="form-control-file" id="customFile4">
+
+                                                            </div>
+
+
+
+                                                        </div> -->
 
 
                             </div>
@@ -682,6 +683,8 @@
 
         function check_cac() {
             reg_number = $('#cac_number').val();
+            let responseDiv = $('#cac_response');
+
             console.log(reg_number);
             $.ajax({
                 url: '/check_cac_data',
@@ -695,9 +698,21 @@
                 },
                 success: function(data) {
                     console.log(data);
+                    if (data.success) {
+                        responseDiv.removeClass('alert-danger').addClass('alert-success');
+                        responseDiv.html(`<strong>Success:</strong> ${data.message}`);
+                    } else {
+                        responseDiv.removeClass('alert-success').addClass('alert-danger');
+                        responseDiv.html(`<strong>Error:</strong> ${data.message}`);
+                    }
+                    responseDiv.show();
 
 
-
+                },
+                error: function(xhr) {
+                    responseDiv.removeClass('alert-success').addClass('alert-danger');
+                    responseDiv.html(`<strong>Error:</strong> An error occurred while fetching data.`);
+                    responseDiv.show();
                 }
             });
         }

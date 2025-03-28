@@ -63,9 +63,9 @@ class UserCard extends Model implements MustVerifyEmail
     {
     }
 
-    protected $appends = ['card_token'];
+    protected $appends = ['token'];
 
-    public function getFundedAttribute()
+    public function getTokenAttribute()
     {
 
         $safehavenController = new SafehavenController();

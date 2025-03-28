@@ -803,6 +803,28 @@ class SafehavenController extends WebhookController
         }
     }
 
+    public function getCardToken($cardReference)
+    {
+
+        $endpoint = "$this->baseSudoUrl/cards/$cardReference/token";
+
+        try {
+            $result = $this->sudoGetRequest($endpoint);
+
+            logInfo(json_encode($result), "Sudo Customer Get Token");
+
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return $result;
+            } else {
+                return ['status' => false, 'message' => "Failed to get card... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Sudo Customer Get Result Error");
+
+            return ['status' => false, 'message' => "Failed to create card ... Please contact support"];
+        }
+    }
+
     public function getPhysicalCardDetials($request, $transactionId)
     {
         $body = [

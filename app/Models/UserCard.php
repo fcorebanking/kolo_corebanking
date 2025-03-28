@@ -1,16 +1,14 @@
 <?php
-
 namespace App\Models;
 
+use App\Http\Controllers\ThirdParty\SafehavenController;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-
 
 class UserCard extends Model implements MustVerifyEmail
 {
     use HasFactory;
-
 
     protected $fillable = [
         'user_id',
@@ -63,5 +61,22 @@ class UserCard extends Model implements MustVerifyEmail
 
     public function getEmailForVerification()
     {
+    }
+
+    protected $appends = ['card_token'];
+
+    public function getFundedAttribute()
+    {
+
+        $safehavenController = new SafehavenController();
+
+        $getCardToken = $safehavenController->getCardToken($this->card_reference);
+
+        if (isset($getCardToken['data']['token']) && $getCardToken['data']['token'] != null) {
+            return $getCardToken['data']['token'];
+        } else {
+            return null;
+        }
+
     }
 }

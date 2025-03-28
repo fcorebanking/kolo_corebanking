@@ -556,17 +556,8 @@ class CardController extends Controller
 
         $virtualFirstCard = UserCard::where('user_id', auth()->user()->id)->first();
 
-        $safehavenController = new SafehavenController();
-
-        $getCardToken = $safehavenController->getCardToken($virtualFirstCard->card_reference);
-
-        if (isset($getCardToken['status']) && ! $getCardToken['status']) {
-            return response()->json($getCardToken, 400);
-        }
-
         if ($virtualCard) {
-            return response()->json(['status' => true, 'message' => 'Cards fetched successfully', 'data' => $virtualCard, 'card
-            _token'               => $getCardToken]);
+            return response()->json(['status' => true, 'message' => 'Cards fetched successfully', 'data' => $virtualCard]);
         }
     }
 

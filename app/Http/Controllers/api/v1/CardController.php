@@ -558,7 +558,7 @@ class CardController extends Controller
 
         $safehavenController = new SafehavenController();
 
-        $getCardToken = $safehavenController->createVirtualCard($virtualFirstCard->card_reference);
+        $getCardToken = $safehavenController->getCardToken($virtualFirstCard->card_reference);
 
         if (! $getCardToken['status']) {
             return response()->json($getCardToken, 400);

@@ -560,7 +560,7 @@ class CardController extends Controller
 
         $getCardToken = $safehavenController->getCardToken($virtualFirstCard->card_reference);
 
-        if (! $getCardToken['status']) {
+        if (isset($getCardToken['status']) && ! $getCardToken['status']) {
             return response()->json($getCardToken, 400);
         }
 

@@ -217,7 +217,7 @@ class RegisterController extends Controller
                 $companyWallet->ussd            = 0;
                 $companyWallet->vaccount        = $request->companycountry != 1 ? $createCompanyAccount["data"]["virtual_account"] . "_" : $createCompanyAccount["data"]["virtual_account"];
                 $companyWallet->refaccount      = $createCompanyAccount["data"]["account_reference"];
-                $companyWallet->bank_id         = 231;
+                $companyWallet->bank_id         = 126;
                 $companyWallet->sms_type_id     = 1;
                 $companyWallet->withdraw_charge = 0.0;
                 $companyWallet->sms_charge      = 0.0;

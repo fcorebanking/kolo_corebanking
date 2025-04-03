@@ -359,11 +359,11 @@ class SafehavenController extends WebhookController
 
     public function verifyCAC($cac)
     {
-        logInfo($cac, "CAC-SEARCH");
+        logInfo($cac, "CAC");
         logInfo($this->debitAccount, "DEBIT Account");
 
         $body = [
-            "type"               => "CAC",
+            "type"               => "CAC-SEARCH",
             "async"              => false,
             "number"             => $cac,
             "debitAccountNumber" => $this->debitAccount,

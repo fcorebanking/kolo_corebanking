@@ -363,7 +363,7 @@ class SafehavenController extends WebhookController
         logInfo($this->debitAccount, "DEBIT Account");
 
         $body = [
-            "type"               => "CAC-SEARCH",
+            "type"               => "cac-search",
             "async"              => false,
             "number"             => $cac,
             "debitAccountNumber" => $this->debitAccount,
@@ -380,7 +380,7 @@ class SafehavenController extends WebhookController
         try {
             $response = $this->safehavenPostRequest($url, $body);
 
-            logInfo($response, "Safehaven response");
+            logInfo($response, "Safehaven response CAC");
 
             if (isset($response['statusCode'])) {
                 if ($response['statusCode'] == 200) {

@@ -596,6 +596,7 @@ class SafehavenController extends WebhookController
     {
         logInfo("{$this->baseUrl}{$endpoint}", "Complete url");
         logInfo($this->safehavenHeader(), "Safe haven header");
+        logInfo(json_encode($body), "Safe haven Body Request");
         $response = Http::withHeaders($this->safehavenHeader())->post("{$this->baseUrl}{$endpoint}", $body);
         return $response->json();
     }

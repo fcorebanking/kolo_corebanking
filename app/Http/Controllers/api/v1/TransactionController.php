@@ -1811,7 +1811,6 @@ class TransactionController extends Controller
         return response()->json($handleWebhook, isset($handleWebhook['httpCode']) ? $handleWebhook['httpCode'] : 200);
     }
 
-       
     public function providusWebhook(Request $request)
     {
         try {
@@ -2169,7 +2168,7 @@ class TransactionController extends Controller
         return response()->json($handleWebhook, $httpCode);
     }
 
-    public function  safeHavenSudoWebhook(Request $request)
+    public function safeHavenSudoWebhook(Request $request)
     {
 
         $safeHavenController = new SafehavenController();
@@ -2182,16 +2181,16 @@ class TransactionController extends Controller
         $currentRequest = $request->all();
         $request->input('data.reference');
 
-       // $safeHavenController->transactionReference = $currentRequest['data']['settlementId'];
-     //   $safeHavenController->wbaCharge            = getWbaTransferCharges(38, $currentRequest['data']['amount']);
-     //   $safeHavenController->virtualAccount       = $currentRequest['data']['creditAccountNumber'];
-     //   $safeHavenController->amount               = $currentRequest['data']['amount'];
-     //   $safeHavenController->webhookType          = 'safehaven';
-   //     $safeHavenController->senderName           = $currentRequest['data']['debitAccountName'];
-    //    $safeHavenController->description          = "You received Funds from" . $currentRequest['data']['debitAccountName'];
-   //     $safeHavenController->transactionDate      = $currentRequest['data']['createdAt'];
-   //     $safeHavenController->request              = $request;
-    //    $safeHavenController->fromTempWebhook      = 'false';
+        // $safeHavenController->transactionReference = $currentRequest['data']['settlementId'];
+        //   $safeHavenController->wbaCharge            = getWbaTransferCharges(38, $currentRequest['data']['amount']);
+        //   $safeHavenController->virtualAccount       = $currentRequest['data']['creditAccountNumber'];
+        //   $safeHavenController->amount               = $currentRequest['data']['amount'];
+        //   $safeHavenController->webhookType          = 'safehaven';
+        //     $safeHavenController->senderName           = $currentRequest['data']['debitAccountName'];
+        //    $safeHavenController->description          = "You received Funds from" . $currentRequest['data']['debitAccountName'];
+        //     $safeHavenController->transactionDate      = $currentRequest['data']['createdAt'];
+        //     $safeHavenController->request              = $request;
+        //    $safeHavenController->fromTempWebhook      = 'false';
 
         $handleWebhook = $safeHavenController->handleSudoWebhook();
 
@@ -2200,8 +2199,6 @@ class TransactionController extends Controller
         return response()->json($handleWebhook, $httpCode);
     }
 
-
-   
     public function errandPaycheckBalance(Request $request)
     {
 
@@ -4795,7 +4792,7 @@ class TransactionController extends Controller
         $hidecharge = auth()->user()->company->Transactionsettings->hide_charge_on_statement ?? '1';
         if ($hidecharge == '1') {
             // $get_list_of_excluded_transaction_ids = getTransactionIdByName(['USSD Session Charge','Physical Card Funding Charge','Virtual Card Funding Charge','USSD Wallet Funding Charge','Customer Whatsapp Charge','Company Whatsapp Charge','POS Credit Charge']);
-            $get_list_of_excluded_transaction_ids = [108, 107, 100, 99, 92, 91, 76, 62, 58, 55, 54, 51, 42, 41, 39, 38, 33, 27];
+            $get_list_of_excluded_transaction_ids = [108, 107, 100, 99, 92, 91, 76, 62, 58, 55, 54, 51, 42, 41, 39, 38, 33, 27, 6];
             $transactions                         = $transactions->whereNotIn('transaction_type_id', $get_list_of_excluded_transaction_ids);
         }
         if ($request->from != null && $request->to != null) {

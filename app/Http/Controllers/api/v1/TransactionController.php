@@ -4791,8 +4791,7 @@ class TransactionController extends Controller
         // exclude bank transfer,sms charges,registration,
         $hidecharge = auth()->user()->company->Transactionsettings->hide_charge_on_statement ?? '1';
 
-        \logInfo(${auth()->user()->company->Transactionsettings->hide_charge_on_statement}, "Hide Charge ");
-
+        \logInfo(auth()->user()->company->Transactionsettings->hide_charge_on_statement, "Hide Charge ");
 
         if ($hidecharge == '1') {
             // $get_list_of_excluded_transaction_ids = getTransactionIdByName(['USSD Session Charge','Physical Card Funding Charge','Virtual Card Funding Charge','USSD Wallet Funding Charge','Customer Whatsapp Charge','Company Whatsapp Charge','POS Credit Charge']);

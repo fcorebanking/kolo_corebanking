@@ -231,7 +231,7 @@ class WebhookController extends Controller
                         "parent_transaction_id"  => $transaction->id,
                         "transaction_reference"  => $transactionId,
                         "transaction_remarks_id" => 2,
-                        "transaction_type_id"    => $this->webhookType == "cgate" ? 97 : 6,
+                        "transaction_type_id"    => $this->webhookType == "cgate" ? 97 : 126,
                         "credit_debit_type_id"   => 2,
                         "created_date"           => $this->transactionDate,
                         "created_by"             => 1,
@@ -563,15 +563,16 @@ class WebhookController extends Controller
         return $sweepAccount;
     }
 
-    public function handleSudoWebhook(){
-        $account = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
-        $mainAccount =  wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
+    public function handleSudoWebhook()
+    {
+        $account     = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
+        $mainAccount = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
         $companyId   = $account->user->company->id;
         $branchId    = $account->user->branch->id;
         $accountId   = $mainAccount->id;
         $userId      = $account->user_id;
     }
-    
+
     private function getVirtualAccountNumber($kudaVirtualNumber)
     {
         if (isset($kudaVirtualNumber->payingBank) && $kudaVirtualNumber->payingBank == "Paycom(OPay)") {

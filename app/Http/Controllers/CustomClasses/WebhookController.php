@@ -231,7 +231,7 @@ class WebhookController extends Controller
                         "parent_transaction_id"  => $transaction->id,
                         "transaction_reference"  => $transactionId,
                         "transaction_remarks_id" => 2,
-                        "transaction_type_id"    => $this->webhookType == "cgate" ? 97 : 126,
+                        "transaction_type_id"    => $this->webhookType == "cgate" ? 97 : 125,
                         "credit_debit_type_id"   => 2,
                         "created_date"           => $this->transactionDate,
                         "created_by"             => 1,

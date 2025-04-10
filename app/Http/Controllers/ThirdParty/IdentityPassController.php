@@ -46,6 +46,9 @@ class IdentityPassController extends Controller
 
         try {
             $bvn_response = $this->identitypassPostRequest($url, $body);
+
+            logInfo($bvn_response, "Verify BVN");
+
             if (isset($bvn_response['response_code']) && $bvn_response['response_code'] == "00") {
                 return [
                     'status'  => true,

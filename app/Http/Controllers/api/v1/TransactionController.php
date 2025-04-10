@@ -19,6 +19,7 @@ use App\Http\Controllers\ThirdParty\Trylux\TryluxPayload;
 use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Http\Controllers\ThirdParty\WovenController;
+use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Models\AgentTerminal;
 use App\Models\ApiKey;
 use App\Models\banks;
@@ -4652,6 +4653,14 @@ class TransactionController extends Controller
 
         logInfo($debitCompany, "Debit company log");
 
+        $time        = strtotime($request->dob);
+
+        $identityPassController = new IdentityPassController();
+
+        $bvnResponse = $identityPassController->verifyBVN($request->bvn);
+
+        return $bvnResponse;
+/*
         $header = [
             'Content-Type'  => 'application/json',
             'Authorization' => 'prod_sk_O4XNi5PieXhZTEpHXleNPxTZq',
@@ -4689,7 +4698,7 @@ class TransactionController extends Controller
                         ],
                     ]
                 );
-            } else {
+            }else {
 
                 return response()->json(
                     [
@@ -4709,7 +4718,7 @@ class TransactionController extends Controller
                 ],
                 400
             );
-        }
+        }*/
     }
 
     public function verifyBVNAlt(Request $request, $bvn)

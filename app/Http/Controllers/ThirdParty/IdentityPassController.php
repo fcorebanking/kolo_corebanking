@@ -35,22 +35,27 @@ class IdentityPassController extends Controller
 
     public function verifyBVN($bvn)
     {
-        $url = "kyc/bvn/advance?bvn=$bvn";
+        logInfo($bvn, "BVN Number");
 
-        logInfo("getting bvn details for $bvn from identitypass");
+        $url = "{$this->baseUrl}verification/bvn_validation";
+
+        $body = [
+            'number' => $bvn,
+
+        ];
 
         try {
-            $exhangeRate = $this->identitypassGetRequest($url);
-            if (isset($exhangeRate['entity'])) {
+            $bvn_response = $this->identitypassPostRequest($url, $body);
+            if (isset($bvn_response['response_code']) && $bvn_response['response_code'] == "00") {
                 return [
                     'status'  => true,
-                    'message' => 'BVN Verified Successfuly', 'data' => $exhangeRate['entity'],
+                    'message' => 'BVN Verified Successfuly', 'data' => $bvn_response['data'],
                 ];
             } else {
                 return ['status' => false, 'message' => 'Failed to verify BVN'];
             }
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Dojah Error");
+            logInfo($e->getMessage(), "Identitypass Error");
 
             return ['status' => false, 'message' => 'Failed to Verify BVN'];
         }
@@ -58,26 +63,32 @@ class IdentityPassController extends Controller
 
     public function verifyNIN($nin)
     {
-        $url = "kyc/vnin?vnin=$nin";
 
         logInfo("getting nin details for $nin");
 
+        $url = "{$this->baseUrl}/verification/vnin";
+
+        $body = [
+            'number_nin' => nin,
+
+        ];
+
         try {
-            $verifyNIN = $this->identitypassGetRequest($url);
+            $verifyNIN = $$this->identitypassPostRequest($url, $body);
 
             logInfo($verifyNIN, "Verify NIN Rates");
 
-            if (isset($verifyNIN['entity'])) {
+            if (isset($verifyNIN['response_code']) && $verifyNIN['response_code'] == "00") {
 
                 return [
                     'status'  => true,
-                    'message' => 'NIN Verified Successfuly', 'data' => $verifyNIN['entity'],
+                    'message' => 'NIN Verified Successfuly', 'data' => $verifyNIN['data'],
                 ];
             } else {
                 return ['status' => false, 'message' => 'Failed to verify NIN'];
             }
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Dojah Error");
+            logInfo($e->getMessage(), "Identitypass Error");
 
             return ['status' => false, 'message' => 'Failed to Verify NIN'];
         }
@@ -85,12 +96,18 @@ class IdentityPassController extends Controller
 
     public function verifyDriverLicense($licenseNo)
     {
-        $url = "kyc/dl?license_number=$licenseNo";
+        $url = "{$this->baseUrl}verification/bvn_validation";
 
-        logInfo("getting nin details for $licenseNo");
+        logInfo($company_no, "RC Number");
+        logInfo($company_type, "Company Type");
+
+        $body = [
+            'rc_number'    => $company_no,
+            'company_type' => $company_type,
+        ];
 
         try {
-            $driverLicense = $this->identitypassGetRequest($url);
+            $bvn = $this->identitypassPostRequest($url, $body);
 
             logInfo($driverLicense, "Verify Driver License");
 

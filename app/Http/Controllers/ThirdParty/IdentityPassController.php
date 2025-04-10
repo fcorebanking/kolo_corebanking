@@ -52,7 +52,7 @@ class IdentityPassController extends Controller
             if (isset($bvn_response['response_code']) && $bvn_response['response_code'] == "00") {
                 return [
                     'status'  => true,
-                    'message' => 'BVN Verified Successfuly', 'data' => $bvn_response['data'],
+                    'message' => 'BVN Verified Successfuly', 'data' => $bvn_response,
                 ];
             } else {
                 return ['status' => false, 'message' => 'Failed to verify BVN'];

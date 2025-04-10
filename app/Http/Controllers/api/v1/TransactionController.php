@@ -4659,12 +4659,12 @@ class TransactionController extends Controller
 
         $bvnResponse = $identityPassController->verifyBVN($request->bvn);
 
-        if (isset($bvnResponse['verification']['status']) &&  $bvnResponse['verification']['status'] == "VERIFIED") {
-            $firstName       = $bvnResponse["firstName"];
-            $lastName        = $bvnResponse["lastName"];
-            $dob             = $bvnResponse["dateOfBirth"];
+        if (isset($bvnResponse['data']['verification']['status']) && $bvnResponse['data']['verification']['status'] == "VERIFIED") {
+            $firstName       = $bvnResponse['data']['data']["firstName"];
+            $lastName        = $bvnResponse['data']['data']["lastName"];
+            $dob             = $bvnResponse['data']['data']["dateOfBirth"];
             $bvnFromResponse = $request->bvn;
-            $phone           = $bvnResponse["phoneNumber"];
+            $phone           = $bvnResponse['data']['data']["phoneNumber"];
 
             $newformat = date('Y-m-d', $time);
 
@@ -4685,7 +4685,7 @@ class TransactionController extends Controller
                         ],
                     ]
                 );
-            }else {
+            } else {
 
                 return response()->json(
                     [

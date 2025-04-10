@@ -127,11 +127,11 @@ class IdentityPassController extends Controller
 
             logInfo($cac, "Verify CAC");
 
-            if (isset($driverLicense['status'])) {
+            if (isset($cac['response_code']) && $cac['response_code'] == "00") {
 
                 return [
                     'status'  => true,
-                    'message' => 'Driver License Verified Successfuly', 'data' => $driverLicense['entity'],
+                    'message' => 'CAC Verified Successfuly', 'data' => $cac['data'],
                 ];
             } else {
                 return ['status' => false, 'message' => 'Failed to CAC'];

@@ -3611,10 +3611,18 @@ class CustomerController extends Controller
             return response()->json(['status' => 0, 'message' => $errors]);
         }
 
-        $safeHavenController = new SafehavenController();
+        $company_type = substr($request->reg_number, 0, 2);
 
-        $result = $safeHavenController->verifyCAC($request->reg_number);
+// Get the rest of the string
+        $company_no = substr($request->reg_number, 2);
+
+        $identityPassController = new IdentityPassController();
+
+        $result = $identityPassController->verifyCAC($company_type, $company_no);
 
         return response()->json($result, $result['status'] ? 200 : 400);
+
+        // Separate first two characters
+
     }
 }

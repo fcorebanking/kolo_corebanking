@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Http\Controllers\ThirdParty\WovenController;

@@ -164,7 +164,7 @@ class IdentityPassController extends Controller
         $header = [
             "Content-Type" => "application/json",
             "app_id"       => $this->appId,
-            "x-api-key"    => $this->$appKey,
+            "x-api-key"    => $this->appKey,
         ];
 
         return $header;

@@ -153,11 +153,12 @@
                                         <label for="">Reg Number</label>
                                         <input onchange="check_cac()" type="text" class="form-control  "
                                             name="reg_number" id="cac_number" value="" placeholder="Reg Number">
-                                        <input id="check_cac" type="hidden" name="check_cac_status"
-                                            value="{{ old('check_cac_status') }}">
+
                                         <div id="cac_response" class="mt-2 alert alert-info" style="display: none;"></div>
 
                                     </div>
+                                    <input id="check_cac" type="hidden" name="check_cac_status"
+                                        value="{{ old('check_cac_status') }}">
                                 </div>
                                 <div class="col-md-6">
                                     <div id="tin_number" class="form-group">
@@ -481,36 +482,36 @@
                                 <!-- <div class="col-md-6 p-3">
 
 
-                                                                <div class="form-group mx-auto text-center">
-                                                                    <img id="previewImg3" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
-                                                                </div>
+                                                                    <div class="form-group mx-auto text-center">
+                                                                        <img id="previewImg3" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
+                                                                    </div>
 
-                                                                <div class="form-group col-md-9">
-                                                                    <label >Upload Other Documents (Optional)</label>
-                                                                    <input onchange="previewFile2(this.id);" type="file" name="other_doc" class="form-control-file" id="customFile3">
+                                                                    <div class="form-group col-md-9">
+                                                                        <label >Upload Other Documents (Optional)</label>
+                                                                        <input onchange="previewFile2(this.id);" type="file" name="other_doc" class="form-control-file" id="customFile3">
 
-                                                                </div>
+                                                                    </div>
 
-
-                                                            </div>
-
-
-                                                            <div class="col-md-6 p-3">
-
-
-                                                                <div class="form-group mx-auto text-center">
-                                                                    <img id="previewImg4" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
-                                                                </div>
-
-                                                                <div class="form-group col-md-9">
-                                                                    <label >Signature (Optional)</label>
-                                                                    <input onchange="previewFile1(this.id);" type="file" name="signature" class="form-control-file" id="customFile4">
 
                                                                 </div>
 
 
+                                                                <div class="col-md-6 p-3">
 
-                                                            </div> -->
+
+                                                                    <div class="form-group mx-auto text-center">
+                                                                        <img id="previewImg4" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
+                                                                    </div>
+
+                                                                    <div class="form-group col-md-9">
+                                                                        <label >Signature (Optional)</label>
+                                                                        <input onchange="previewFile1(this.id);" type="file" name="signature" class="form-control-file" id="customFile4">
+
+                                                                    </div>
+
+
+
+                                                                </div> -->
 
 
                             </div>

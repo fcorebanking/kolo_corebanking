@@ -152,8 +152,8 @@ class IdentityPassController extends Controller
 
     public function identitypassGetRequest($endpoint)
     {
-        logInfo("$this->baseUrl $endpoint", "Convertion url");
-        logInfo("$this->$appKey", "Authorization key");
+        logInfo("$endpoint", "Convertion url");
+        logInfo("$this->appKey", "Authorization key");
         $response = Http::withHeaders($this->identitypassHeader())->get("$this->baseUrl $endpoint");
         return $response->json();
     }

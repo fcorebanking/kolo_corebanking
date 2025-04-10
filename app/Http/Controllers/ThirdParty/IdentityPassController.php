@@ -112,7 +112,7 @@ class IdentityPassController extends Controller
 
     public function verifyCAC($company_type, $company_no)
     {
-        $url = "{$this->baseUrl}/verification/cac";
+        $url = "{$this->baseUrl}verification/cac";
 
         logInfo($company_no, "RC Number");
         logInfo($company_type, "Company Type");
@@ -134,12 +134,12 @@ class IdentityPassController extends Controller
                     'message' => 'Driver License Verified Successfuly', 'data' => $driverLicense['entity'],
                 ];
             } else {
-                return ['status' => false, 'message' => 'Failed to Drivers License'];
+                return ['status' => false, 'message' => 'Failed to CAC'];
             }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Dojah Error");
 
-            return ['status' => false, 'message' => 'Failed to Drivers License'];
+            return ['status' => false, 'message' => 'Failed to  CAC'];
         }
     }
 

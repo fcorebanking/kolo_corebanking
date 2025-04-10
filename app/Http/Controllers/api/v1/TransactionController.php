@@ -9,6 +9,7 @@ use App\Http\Controllers\ThirdParty\CgateController;
 use App\Http\Controllers\ThirdParty\CyberpayControllelr;
 use App\Http\Controllers\ThirdParty\FairMoneyController;
 use App\Http\Controllers\ThirdParty\GTBController;
+use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Http\Controllers\ThirdParty\KudaBusinessController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\MonnifyController;
@@ -19,7 +20,6 @@ use App\Http\Controllers\ThirdParty\Trylux\TryluxPayload;
 use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Http\Controllers\ThirdParty\WovenController;
-use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Models\AgentTerminal;
 use App\Models\ApiKey;
 use App\Models\banks;
@@ -4653,7 +4653,7 @@ class TransactionController extends Controller
 
         logInfo($debitCompany, "Debit company log");
 
-        $time        = strtotime($request->dob);
+        $time = strtotime($request->dob);
 
         $identityPassController = new IdentityPassController();
 

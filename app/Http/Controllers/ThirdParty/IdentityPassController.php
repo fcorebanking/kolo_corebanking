@@ -137,7 +137,7 @@ class IdentityPassController extends Controller
                 return ['status' => false, 'message' => 'Failed to CAC'];
             }
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Dojah Error");
+            logInfo($e->getMessage(), "IdentityPass Error");
 
             return ['status' => false, 'message' => 'Failed to  CAC'];
         }

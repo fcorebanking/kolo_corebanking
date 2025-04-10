@@ -20,14 +20,14 @@ class IdentityPassController extends Controller
             $this->authorization = config('identitypass.authorization_test');
             $this->appId         = config('identitypass.app_id_test');
             $this->baseUrl       = config('identitypass.base_url_test');
-            $this->$appKey       = config('identitypass.app_key_test');
+            $this->appKey        = config('identitypass.app_key_test');
 
         } else {
 
             $this->authorization = config('identitypass.authorization_live');
             $this->appId         = config('identitypass.app_id_live');
             $this->baseUrl       = config('identitypass.base_url_live');
-            $this->$appKey       = config('identitypass.app_key_live');
+            $this->appKey        = config('identitypass.app_key_live');
         }
 
         \logInfo($this->baseUrl, "Dojah Base Url");

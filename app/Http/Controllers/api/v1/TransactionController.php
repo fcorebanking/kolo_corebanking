@@ -4645,13 +4645,13 @@ class TransactionController extends Controller
 
         logInfo($companyId, "Debit company id");
 
-        $debitCompany = debitCompanyWithCharge($companyId, 0, 0, );
+      /*  $debitCompany = debitCompanyWithCharge($companyId, 0, 0, );
 
         if (! $debitCompany['status']) {
             return response()->json(['status' => false, 'message' => 'Switcher Error. Kindly contact support'], 400);
         }
 
-        logInfo($debitCompany, "Debit company log");
+        logInfo($debitCompany, "Debit company log");*/
 
         $time = strtotime($request->dob);
 

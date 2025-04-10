@@ -4659,6 +4659,54 @@ class TransactionController extends Controller
 
         $bvnResponse = $identityPassController->verifyBVN($request->bvn);
 
+        if (isset($bvnResponse['verification']['status']) &&  $bvnResponse['verification']['status'] == "VERIFIED") {
+            $firstName       = $bvnResponse["firstName"];
+            $lastName        = $bvnResponse["lastName"];
+            $dob             = $bvnResponse["dateOfBirth"];
+            $bvnFromResponse = $request->bvn;
+            $phone           = $bvnResponse["phoneNumber"];
+
+            $newformat = date('Y-m-d', $time);
+
+            $bvnDob = strtotime($dob);
+
+            if ($time == $bvnDob) {
+
+                return response()->json(
+                    [
+                        'status'  => true,
+                        'message' => "Account Verified Successfully",
+                        'data'    => [
+                            'first_name' => trim($firstName),
+                            "last_name"  => trim($lastName),
+                            "dob"        => $newformat,
+                            "bvn"        => trim($bvnFromResponse),
+                            "phone"      => trim($phone),
+                        ],
+                    ]
+                );
+            }else {
+
+                return response()->json(
+                    [
+                        'status'  => false,
+                        'message' => "Failed to verify BVN with Date of birth",
+                        'data'    => $request->bvn,
+                    ],
+                    400
+                );
+            }
+        } else {
+
+            return response()->json(
+                [
+                    'status'  => false,
+                    'message' => "Failed to verify BVN",
+                ],
+                400
+            );
+        }
+
         return $bvnResponse;
 /*
         $header = [

@@ -118,7 +118,7 @@ class UserController extends Controller
         // \logInfo($request->all(), "uploadFile request log");
 
         $validate = Validator::make($request->all(), [
-            'image_file' => 'required|mimes:jpg,jpeg,png|file|max:512',
+            'image_file' => 'required|mimes:jpg,jpeg,png|file|max:5120',
             'type'       => 'required',
         ]);
 

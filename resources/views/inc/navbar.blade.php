@@ -26,7 +26,7 @@
                 <ul class="navbar-nav theme-brand flex-row  text-center">
                     <li class="nav-item theme-logo d-none d-sm-none d-md-block d-lg-block">
                         <a href="javascript:void(0);" class="sidebarCollapse">
-                            <?php $logo = url(str_replace('public', 'storage', @($auth->company->logo ?? 'storage/company/profile/14/finova_favicon.png'))); ?>
+                            <?php $logo = url('storage/company/profile/14/finova_favicon.png'); ?>
                             <img src="{{ $logo }}" class="navbar-logo" id="companyLogo" alt="logo"
                                 onerror="">
                             {{-- onerror="loadDefaultLogo()"  --}}

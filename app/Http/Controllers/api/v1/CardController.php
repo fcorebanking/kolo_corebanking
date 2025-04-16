@@ -46,6 +46,10 @@ class CardController extends Controller
 
         $user = auth()->user();
 
+        if ($user->company_id != 14) {
+            return \response()->json(['status' => false, 'message' => 'This service is currently unavailable and will be restored soon']);
+        }
+
         $companySettings = company_settings::where('company_id', $user->company_id)->first();
 
         $cardCurrency = $companySettings->preferred_virtual_card_currency == "1" ? "NGN" : "USD";

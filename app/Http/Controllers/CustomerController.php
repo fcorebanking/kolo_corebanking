@@ -627,6 +627,10 @@ class CustomerController extends Controller
             return response()->json($datax);
         }
 
+        if (auth()->user()->company_id != 14) {
+            return response()->json(['status' => 0, 'message' => 'This service has been disabled. Kindly contact support for updates']);
+        }
+
         $customer  = User::where('uuid', $request->customer_reference)->first();
         $checkCard = UserCard::where('user_id', $customer->id)->where('card_category_id', 2)->first();
         if ($checkCard != null) {

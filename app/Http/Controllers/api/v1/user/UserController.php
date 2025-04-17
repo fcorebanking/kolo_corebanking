@@ -141,7 +141,7 @@ class UserController extends Controller
             $pathLocation = "other_doc";
         }
 
-        $result = $request->file("image_file")->store($pathLocation);
+        $result = $request->file("image_file")->store("public/$pathLocation");
 
         // $request->image->move(public_path("images") , $imageName) // Store file in public folder
         if ($result) {

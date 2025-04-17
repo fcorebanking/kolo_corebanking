@@ -162,7 +162,7 @@ class UserController extends Controller
 
             // $userAccunt->save();
 
-            return response()->json(["status" => true, "message" => "Image Upload successful", "data" => ["image_url" => \url("$result")]]);
+            return response()->json(["status" => true, "message" => "Image Upload successful", "data" => ["image_url" => \url("storage/$result")]]);
         } else {
             return response()->json(["status" => false, "message" => "Failed to upload image"], 400);
         }

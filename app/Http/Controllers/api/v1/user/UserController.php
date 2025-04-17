@@ -146,7 +146,8 @@ class UserController extends Controller
         // $request->image->move(public_path("images") , $imageName) // Store file in public folder
         if ($result) {
 
-            $imageUrl = \url("wba/storage/app/" . $result);
+            //   $imageUrl = \url("wba/storage/app/" . $result);
+            $imageUrl = \url("$result");
 
             // return $result;
             // if ($request->type == "passport") {
@@ -1641,5 +1642,4 @@ class UserController extends Controller
         } catch (Exception $e) {
             return response()->json(["status" => false, "message" => "Operation Failed" . $e->getMessage()], 400);
         }
-    }
-}
+    

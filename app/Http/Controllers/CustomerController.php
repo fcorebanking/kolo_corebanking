@@ -8,6 +8,7 @@ use App\Http\Controllers\ThirdParty\WovenController;
 use App\Http\Controllers\TransactionController;
 use App\Imports\UsersImport;
 use App\Models\AddedLoanLog;
+use App\Models\ApiKey;
 use App\Models\banks;
 use App\Models\branch;
 use App\Models\CardRequestLog;
@@ -3607,6 +3608,7 @@ class CustomerController extends Controller
         $validator = Validator::make($request->all(), [
 
             'reg_number' => 'required',
+
         ]);
 
         if ($validator->fails()) {
@@ -3635,6 +3637,55 @@ class CustomerController extends Controller
         $identityPassController = new IdentityPassController();
 
         $result = $identityPassController->verifyCAC($company_type, $company_no);
+
+        $transactionId = generateTransactionReference();
+
+        $chargeAmount = 3000;
+
+        $checkApiKey = ApiKey::where('api_key', $header)->first();
+
+        $company = Company::where('id', $checkApiKey->company_id)->first();
+
+        $adminUser = User::where('company_id', $company->id)->first();
+
+        $ledger_cr       = null;
+        $ledger_dr       = null;
+        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(18, $adminUser->company_id);
+        if ($ledger_Settings) {
+            $ledger_cr = $ledger_Settings->ledger_cr;
+            $ledger_dr = $ledger_Settings->ledger_dr;
+        }
+
+        $myDescription = $adminUser->first_name . " " . $adminUser->last_name . " / " . $adminUser->company->company_name . '/' . "CAC Search Charge";
+
+        $customerBalance = debitCompanyWithCharge($adminUser->company_id, $chargeAmount, $chargeAmount, $adminUser);
+
+        if (! $customerBalance['status']) {
+            return response()->json($customerBalance, 400);
+        }
+
+        $transaction = transactions::create([
+            "balance_before"         => 0,
+            "amount"                 => 0,
+            "balance_after"          => 0,
+            "description"            => $myDescription,
+            "branch_id"              => $adminUser->branch_id,
+            "company_id"             => $adminUser->company_id,
+            "company_balance_before" => $customerBalance['balance_before'],
+            "company_balance_after"  => $customerBalance['charge_balance_after'],
+            "company_amount"         => $request->amount + $chargeAmount,
+            "company_id"             => $company->id,
+            "transaction_reference"  => $transactionId,
+            "transaction_remarks_id" => 1,
+            "transaction_type_id"    => 8,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $adminUser->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
+        ]);
+
+        DB::commit();
 
         return response()->json($result, $result['status'] ? 200 : 400);
 

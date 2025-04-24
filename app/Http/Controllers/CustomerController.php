@@ -210,6 +210,17 @@ class CustomerController extends Controller
             abort(403);
             return 0;
         }
+
+        if ($request->has('cac_status_response') && $request->cac_status_response == "error") {
+            $messages = "There was error with CAC Registration Number";
+            $datax    = [
+                'message' => $messages,
+                'subtext' => $messages,
+                'status'  => 0,
+            ];
+            return response()->json($datax);
+        }
+
         $request->branch = Crypt::decryptString($request->branch);
         $validator       = Validator::make($request->all(), [
             'first_name'   => 'required|string|max:50|min:2',

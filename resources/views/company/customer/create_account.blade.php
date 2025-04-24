@@ -159,6 +159,9 @@
                                     </div>
 
                                 </div>
+
+                                <input type='hidden' name="cac_status_response" id="cac_status_response" value="">
+
                                 <div class="col-md-6">
                                     <div id="tin_number" class="form-group">
                                         <label for="">TIN Number (Optional)</label>
@@ -481,36 +484,36 @@
                                 <!-- <div class="col-md-6 p-3">
 
 
-                                                                                        <div class="form-group mx-auto text-center">
-                                                                                            <img id="previewImg3" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
-                                                                                        </div>
+                                                                                                            <div class="form-group mx-auto text-center">
+                                                                                                                <img id="previewImg3" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
+                                                                                                            </div>
 
-                                                                                        <div class="form-group col-md-9">
-                                                                                            <label >Upload Other Documents (Optional)</label>
-                                                                                            <input onchange="previewFile2(this.id);" type="file" name="other_doc" class="form-control-file" id="customFile3">
+                                                                                                            <div class="form-group col-md-9">
+                                                                                                                <label >Upload Other Documents (Optional)</label>
+                                                                                                                <input onchange="previewFile2(this.id);" type="file" name="other_doc" class="form-control-file" id="customFile3">
 
-                                                                                        </div>
-
-
-                                                                                    </div>
+                                                                                                            </div>
 
 
-                                                                                    <div class="col-md-6 p-3">
+                                                                                                        </div>
 
 
-                                                                                        <div class="form-group mx-auto text-center">
-                                                                                            <img id="previewImg4" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
-                                                                                        </div>
-
-                                                                                        <div class="form-group col-md-9">
-                                                                                            <label >Signature (Optional)</label>
-                                                                                            <input onchange="previewFile1(this.id);" type="file" name="signature" class="form-control-file" id="customFile4">
-
-                                                                                        </div>
+                                                                                                        <div class="col-md-6 p-3">
 
 
+                                                                                                            <div class="form-group mx-auto text-center">
+                                                                                                                <img id="previewImg4" style="height: 150px; width: 150px; object-fit: cover; border-radius: 20px;" class="shadow" src="{{ config('app.url') }}placholder/default.png" >
+                                                                                                            </div>
 
-                                                                                    </div> -->
+                                                                                                            <div class="form-group col-md-9">
+                                                                                                                <label >Signature (Optional)</label>
+                                                                                                                <input onchange="previewFile1(this.id);" type="file" name="signature" class="form-control-file" id="customFile4">
+
+                                                                                                            </div>
+
+
+
+                                                                                                        </div> -->
 
 
                             </div>
@@ -686,6 +689,7 @@
         function check_cac() {
             reg_number = $('#cac_number').val();
             let responseDiv = $('#cac_response');
+            let responseInput = $('#cac_status_response'); // Hidden input field
 
             console.log(reg_number);
             $.ajax({
@@ -703,9 +707,11 @@
                     if (data.status) {
                         responseDiv.removeClass('alert-danger').addClass('alert-success');
                         responseDiv.html(`<strong>Success:</strong> ${data.message}`);
+                        responseInput.val('success'); // 
                     } else {
                         responseDiv.removeClass('alert-success').addClass('alert-danger');
                         responseDiv.html(`<strong>Error:</strong> ${data.message}`);
+                        responseInput.val('error');
                     }
                     responseDiv.show();
 

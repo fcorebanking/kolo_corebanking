@@ -212,7 +212,7 @@ class CustomerController extends Controller
             return 0;
         }
 
-        if ($request->has('cac_status_response') && $request->cac_status_response == "error") {
+        if (isset($request->cac_status_response) && ($request->has('cac_status_response') && $request->cac_status_response == "error")) {
             $messages = "There was error with CAC Registration Number";
             $datax    = [
                 'message' => $messages,

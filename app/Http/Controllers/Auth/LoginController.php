@@ -148,7 +148,7 @@ class LoginController extends Controller
         $login     = ['username' => $request->username, 'password' => $request->password];
         $authLogin = Auth::attempt($login);
 
-        logInfo("{$user}", "User Details");
+        //  logInfo("{$user}", "User Details");
 
         logInfo("{$authLogin}", "User Details Auth Attempt");
 

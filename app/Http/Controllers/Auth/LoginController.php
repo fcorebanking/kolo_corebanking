@@ -63,12 +63,12 @@ class LoginController extends Controller
 
             return $this->sendLockoutResponse($request);
         }
-        logInfo("attempt login first", "Working");
+        logInfo("Working", "attempt login first");
         if ($this->attemptLogin($request)) {
             if ($request->hasSession()) {
-                $request->session()->put('auth.password_confirmed_at', time());
+                //      $request->session()->put('auth.password_confirmed_at', time());
             }
-            logInfo("attempt login", "Working");
+            logInfo("Working", " attempt login");
             return $this->sendLoginResponse($request);
         }
 

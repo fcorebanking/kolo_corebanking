@@ -9,6 +9,7 @@ use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
@@ -112,8 +113,16 @@ class LoginController extends Controller
         } else {
             $credentials['company_id'] = 'hello';
         }
+        $user = User::where('username', $credentials['username'])->first();
+
+        $checkpassword = Hash::check($credentials['password'], $user->password);
+
+        logInfo("{$checkpassword}", "Attempt Login Password Hash");
+
         $password = json_encode($credentials);
+
         logInfo("{$password}", "Company login credential");
+
         return $credentials;
     }
 

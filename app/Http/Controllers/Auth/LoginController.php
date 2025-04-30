@@ -90,13 +90,6 @@ class LoginController extends Controller
     protected function attemptLogin(Request $request)
     {
 
-        $attemptPassword = $this->credentials($request);
-        logInfo(json_encode($attemptPassword), "try attempt login passwod");
-
-        $attempt = $this->guard()->attempt(
-            $this->credentials($request), $request->filled('remember')
-        );
-        logInfo("$attempt", "try attempt login");
         return $this->guard()->attempt(
             $this->credentials($request), $request->filled('remember')
         );
@@ -117,7 +110,7 @@ class LoginController extends Controller
             $credentials['company_id'] = 'hello';
         }
         $password = json_encode($credentials);
-        // logInfo("{$password}", "Company login credential");
+        logInfo("{$password}", "Company login credential");
         return $credentials;
     }
 

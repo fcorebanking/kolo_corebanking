@@ -144,11 +144,16 @@ class LoginController extends Controller
 
         $this->clearLoginAttempts($request);
 
-        $user = json_encode(Auth()->user());
+        $user = json_encode(User::where('username', $request->username)->first());
 
         logInfo("{$user}", "User Details");
 
-        $auth = $this->guard()->user() ?? Auth()->user();
+        if ($this->guard()->user() != null) {
+            $auth = $this->guard()->user();
+        } else {
+            $auth = Auth()->user();
+        }
+
         if ($response = $this->authenticated($request, $auth)) {
             return $response;
         }

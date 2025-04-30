@@ -65,6 +65,7 @@ class LoginController extends Controller
         }
         logInfo("Working", "attempt login first");
         if ($this->attemptLogin($request)) {
+            logInfo("Session reqest Working", "Session Request");
             if ($request->hasSession()) {
                 $request->session()->put('auth.password_confirmed_at', time());
             }

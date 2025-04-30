@@ -68,7 +68,7 @@ class LoginController extends Controller
             if ($request->hasSession()) {
                 $request->session()->put('auth.password_confirmed_at', time());
             }
-
+            logInfo("attempt login", "Working");
             return $this->sendLoginResponse($request);
         }
 
@@ -108,7 +108,7 @@ class LoginController extends Controller
             $credentials['company_id'] = 'hello';
         }
         $password = json_encode($credentials);
-        logInfo("{$password}", "Company login credential");
+        // logInfo("{$password}", "Company login credential");
         return $credentials;
     }
 

@@ -96,6 +96,10 @@ class LoginController extends Controller
 
         logInfo("{$attempt}", "Attempt Login Password Guard");
 
+        $attemptHashPassword = $this->hashCredentials($request);
+
+        logInfo("{$attemptHashPassword}", "Attempt Login Password Hash");
+
         return $attempt;
     }
 
@@ -113,17 +117,25 @@ class LoginController extends Controller
         } else {
             $credentials['company_id'] = 'hello';
         }
-        $user = User::where('username', $credentials['username'])->first();
-
-        $checkpassword = Hash::check($credentials['password'], $user->password);
-
-        logInfo("{$checkpassword}", "Attempt Login Password Hash");
 
         $password = json_encode($credentials);
 
         logInfo("{$password}", "Company login credential");
 
         return $credentials;
+    }
+
+    public function hashCredentials(Request $request)
+    {
+        $credentials = $request->only($this->username(), 'password');
+
+        $user = User::where('username', $credentials['username'])->first();
+
+        $checkpassword = Hash::check($credentials['password'], $user->password);
+
+        logInfo("{$checkpassword}", "Attempt Login Password Hash");
+
+        return $checkpassword;
     }
 
     protected function sendLoginResponse(Request $request)

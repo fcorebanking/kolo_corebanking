@@ -91,7 +91,7 @@ class LoginController extends Controller
     {
 
         $attemptPassword = $this->credentials($request);
-        logInfo("$attempt", "try attempt login passwod");
+        logInfo("$attemptPassword", "try attempt login passwod");
 
         $attempt = $this->guard()->attempt(
             $this->credentials($request), $request->filled('remember')

@@ -151,7 +151,7 @@ class LoginController extends Controller
         if ($this->guard()->user() != null) {
             $auth = $this->guard()->user();
         } else {
-            $auth = Auth()->user();
+            $auth = $user;
         }
 
         if ($response = $this->authenticated($request, $auth)) {

@@ -89,6 +89,10 @@ class LoginController extends Controller
 
     protected function attemptLogin(Request $request)
     {
+        $attempt = $this->guard()->attempt(
+            $this->credentials($request), $request->filled('remember')
+        );
+        logInfo("$attempt", "trry attempt login");
         return $this->guard()->attempt(
             $this->credentials($request), $request->filled('remember')
         );

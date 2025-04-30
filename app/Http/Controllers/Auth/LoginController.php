@@ -144,9 +144,13 @@ class LoginController extends Controller
 
         $this->clearLoginAttempts($request);
 
-        $user = json_encode(User::where('username', $request->username)->first());
+        $user      = json_encode(User::where('username', $request->username)->first());
+        $login     = ['username' => $request->username, 'password' => $request->password];
+        $authLogin = Auth::attempt($login);
 
         logInfo("{$user}", "User Details");
+
+        logInfo("{$authLogin}", "User Details Auth Attempt");
 
         if ($this->guard()->user() != null) {
             $auth = $this->guard()->user();
@@ -162,9 +166,9 @@ class LoginController extends Controller
         $last_name  = $auth->last_name ?? $user->last_name;
 
         // User::where('id',$auth->id)->update(['login_sms_otp_status'=>0]);
-        $msg = "<p>Hi {$first_name} $last_name, we noticed a new login on your account around " . now() . " and we thought it wise to notify you.</p>
-            <p>If this is not You ... please quickly reset your password and enable 2factor SMS or Google 2factor to protect your account.</p>
-            ";
+        //   $msg = "<p>Hi {$first_name} $last_name, we noticed a new login on your account around " . now() . " and we thought it wise to notify you.</p>
+        //       <p>If this is not You ... please quickly reset your password and enable 2factor SMS or Google 2factor to protect your account.</p>
+        //       ";
         // sendSMS($auth->id, $msg, true, false, 'WBA Login Security','',0,false,3);
 
         return $request->wantsJson()

@@ -91,7 +91,7 @@ class LoginController extends Controller
     {
 
         $attemptPassword = $this->credentials($request);
-        logInfo("$attemptPassword", "try attempt login passwod");
+        logInfo(json_encode($attemptPassword), "try attempt login passwod");
 
         $attempt = $this->guard()->attempt(
             $this->credentials($request), $request->filled('remember')

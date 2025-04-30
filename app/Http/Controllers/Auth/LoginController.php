@@ -98,7 +98,7 @@ class LoginController extends Controller
 
         $attemptHashPassword = $this->hashCredentials($request);
 
-        logInfo("{$attemptHashPassword}", "Attempt Login Password Hash");
+        $attempt = $attemptHashPassword;
 
         return $attempt;
     }

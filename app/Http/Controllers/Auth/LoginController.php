@@ -96,11 +96,13 @@ class LoginController extends Controller
 
         logInfo("{$attempt}", "Attempt Login Password Guard");
 
-        $attemptHashPassword = $this->hashCredentials($request);
+        if ($attempt != null) {
+            return $attempt;
+        } else {
+            $attemptHashPassword = $this->hashCredentials($request);
+            return $attemptHashPassword;
+        }
 
-        $attempt = $attemptHashPassword;
-
-        return $attempt;
     }
 
     protected function credentials(Request $request)
@@ -120,7 +122,7 @@ class LoginController extends Controller
 
         $password = json_encode($credentials);
 
-        logInfo("{$password}", "Company login credential");
+        //    logInfo("{$password}", "Company login credential");
 
         return $credentials;
     }

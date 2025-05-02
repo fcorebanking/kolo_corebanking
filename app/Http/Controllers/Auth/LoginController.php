@@ -197,9 +197,9 @@ class LoginController extends Controller
             ]);
         }
 
-        throw ValidationException::withMessages([
-            $this->username() => [trans('auth.failed')],
-        ]);
+        //   throw ValidationException::withMessages([
+        //         $this->username() => [trans('auth.failed')],
+        //     ]);
     }
 
     public function username()

@@ -65,6 +65,9 @@ class LoginController extends Controller
             return $this->sendLockoutResponse($request);
         }
         logInfo("Working", "attempt login first");
+
+        $this->sendFailedLoginResponse($request);
+
         if ($this->attemptLogin($request)) {
             logInfo("Session reqest Working", "Session Request");
             if ($request->hasSession()) {
@@ -74,9 +77,9 @@ class LoginController extends Controller
             return $this->sendLoginResponse($request);
         }
 
-        $this->incrementLoginAttempts($request);
+      //  $this->incrementLoginAttempts($request);
 
-        return $this->sendFailedLoginResponse($request);
+      //  return $this->sendFailedLoginResponse($request);
     }
 
     protected function validateLogin(Request $request)
@@ -186,8 +189,9 @@ class LoginController extends Controller
     protected function sendFailedLoginResponse(Request $request)
     {
         $company = Company::where('loginCode', $request->company_code)->first();
-
+      
         if (! $company) {
+            $this->C($request);
             throw ValidationException::withMessages([
                 'company_code' => ['Invalid company code.'],
             ]);

@@ -582,11 +582,13 @@ class WebhookController extends Controller
         logInfo($user->$virtualAccount, "User Virtual Accont");
 
         $account     = wb_account_details::where('virtual_accnum', $virtualAccount)->first();
-        $mainAccount = wb_account_details::where('virtual_accnum', $$virtualAccount)->first();
+        $mainAccount = wb_account_details::where('virtual_accnum', $virtualAccount)->first();
         $companyId   = $account->user->company->id;
         $branchId    = $account->user->branch->id;
         $accountId   = $mainAccount->id;
         $userId      = $account->user_id;
+
+        logInfo(son_encode($account), "Virtual Accont");
     }
 
     private function getVirtualAccountNumber($kudaVirtualNumber)

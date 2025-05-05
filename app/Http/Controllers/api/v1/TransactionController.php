@@ -2182,7 +2182,7 @@ class TransactionController extends Controller
         $currentRequest = $request->all();
         $request->input('data.reference');
 
-        // $safeHavenController->transactionReference = $currentRequest['data']['settlementId'];
+        $safeHavenController->transactionReference = $request->input('data.object.maskedPan');
         //   $safeHavenController->wbaCharge            = getWbaTransferCharges(38, $currentRequest['data']['amount']);
         //   $safeHavenController->virtualAccount       = $currentRequest['data']['creditAccountNumber'];
         //   $safeHavenController->amount               = $currentRequest['data']['amount'];
@@ -2192,6 +2192,8 @@ class TransactionController extends Controller
         //     $safeHavenController->transactionDate      = $currentRequest['data']['createdAt'];
         //     $safeHavenController->request              = $request;
         //    $safeHavenController->fromTempWebhook      = 'false';
+
+        $safeHavenController->accountReference = $request->input('data.object.customer.name');
 
         $handleWebhook = $safeHavenController->handleSudoWebhook();
 

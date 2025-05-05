@@ -15,6 +15,7 @@ use App\Models\loan;
 use App\Models\TempWebhook;
 use App\Models\transactions;
 use App\Models\User;
+use App\Models\UserCard;
 use App\Models\wb_account_details;
 use App\Models\WebhookLog;
 use Carbon\Carbon;
@@ -565,8 +566,23 @@ class WebhookController extends Controller
 
     public function handleSudoWebhook()
     {
-        $account     = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
-        $mainAccount = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
+        logInfo($this->accountReference, "Card Name");
+        logInfo($this->transactionReference, "Masked Pan");
+
+        $userCard = UserCard::where('card_name', $this->accountReference)->orWhere('masked_pan', $this->transactionReference)->first();
+
+        logInfo($userCard->user_id, "User Card username ID");
+
+        $user = User::where('id', $userCard->user_id)->first();
+
+        logInfo($user->first_name, "User first name");
+
+        $virtualAccount = $user->virtual_account;
+
+        logInfo($user->$virtualAccount, "User Virtual Accont");
+
+        $account     = wb_account_details::where('virtual_accnum', $virtualAccount)->first();
+        $mainAccount = wb_account_details::where('virtual_accnum', $$virtualAccount)->first();
         $companyId   = $account->user->company->id;
         $branchId    = $account->user->branch->id;
         $accountId   = $mainAccount->id;

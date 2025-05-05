@@ -590,7 +590,7 @@ class WebhookController extends Controller
         $userId      = $account->user_id;
 
         logInfo(json_encode($account), "Virtual Accont");
-        $user_wallet = user_wallet::where('virtual_accnum', $account->id)->first();
+        $user_wallet = user_wallet::where('wb_account_detail_id', $account->id)->first();
 
         logInfo($user_wallet->balance, "Virtual Accont Amount");
         $data = [

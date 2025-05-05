@@ -588,7 +588,13 @@ class WebhookController extends Controller
         $accountId   = $mainAccount->id;
         $userId      = $account->user_id;
 
-        logInfo(son_encode($account), "Virtual Accont");
+        logInfo(json_encode($account), "Virtual Accont");
+        $user_wallet = user_wallet::where('virtual_accnum', $account->id)->first();
+
+        logInfo($user_wallet->balance, "Virtual Accont Amount");
+        $data = [
+            "balance" => $user_wallet->balance,
+        ];
     }
 
     private function getVirtualAccountNumber($kudaVirtualNumber)

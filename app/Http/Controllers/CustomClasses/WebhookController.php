@@ -16,6 +16,7 @@ use App\Models\TempWebhook;
 use App\Models\transactions;
 use App\Models\User;
 use App\Models\UserCard;
+use App\Models\user_wallet;
 use App\Models\wb_account_details;
 use App\Models\WebhookLog;
 use Carbon\Carbon;

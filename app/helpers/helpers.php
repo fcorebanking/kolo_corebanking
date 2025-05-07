@@ -1524,8 +1524,10 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                 }
                             } else {
                                 if ($smsapi->authorization == null && $smsapi->authorization == null) {
+                                    logInfo("{$apicur}", "SMS 2FA Get api response");
                                     $response = Http::get($apicur);
                                 } else {
+                                    logInfo("{$apicur}", "SMS 2FA Get api response with Headers");
                                     $response = Http::withHeaders($header)->get($apicur);
                                 }
                             }
@@ -1542,7 +1544,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                     'created_by' => (Auth::check()) ? auth()->user()->id : $session->id,
                                 ];
                                 $result_sms_data = json_encode($sms_logdata);
-                                logInfo("{$result_sms_data}", "SMS 2FA sms api response");
+                                logInfo("{$result_sms_data}", "SMS 2FA sms api log Data");
 
                                 $notify = Notification::create($sms_logdata);
                             }

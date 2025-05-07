@@ -72,7 +72,7 @@ class IdentityPassController extends Controller
         $url = "{$this->baseUrl}/verification/vnin";
 
         $body = [
-            'number_nin' => nin,
+            'number_nin' => $nin,
 
         ];
 
@@ -85,7 +85,7 @@ class IdentityPassController extends Controller
 
                 return [
                     'status'  => true,
-                    'message' => 'NIN Verified Successfuly', 'data' => $verifyNIN['data'],
+                    'message' => 'NIN Verified Successfuly', 'data' => $verifyNIN,
                 ];
             } else {
                 return ['status' => false, 'message' => 'Failed to verify NIN'];

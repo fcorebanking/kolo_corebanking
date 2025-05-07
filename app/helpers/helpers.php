@@ -54,7 +54,8 @@ if (! function_exists('generateAccountReference')) {
 if (! function_exists('generateTransactionReference')) {
     function generateTransactionReference()
     {
-        return "BM" . mt_rand(10000000000, 99999999999);
+        // return "BM" . mt_rand(10000000000, 99999999999);
+        return 'BM' . now()->format('YmdHis') . random_int(10000000000, 99999999999);
     }
 }
 

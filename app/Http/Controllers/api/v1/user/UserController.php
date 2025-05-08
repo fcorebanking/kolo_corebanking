@@ -915,7 +915,7 @@ class UserController extends Controller
                     $userAccunt->save();
 
                     $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone.";
-
+//                             sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 'Create Account', $accno = '', $usesms = 0, $isApi = false, $all_sms_email = 1, $sms_logdata = [])
                     $sendSMS = \sendSMS($userAccunt->id, $msg, \true, false, "OTP Confirmation", '', 0, false);
 
                     return response(['status' => true, 'message' => 'OTP Sent Successfully']);

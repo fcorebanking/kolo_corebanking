@@ -95,7 +95,7 @@ class RegisterController extends Controller
         // }
         // }
         $companyRecord = Company::where(['company_reference' => $request->company])->orWhere(['id' => $request->company])->first();
-        if (! $companyRecord) {
+        if (! $companyRecord || $companyRecord == 27 ) {
             $ra = ["status" => false, "message" => "Invalid company provided"];
             return response()->json($ra, 400);
         }
@@ -310,7 +310,7 @@ class RegisterController extends Controller
             $welcomeMessage = "Welcome $request->first_name. Account No: $accountNumber, Bank: $bank->bank_name. Kindly upload your Valid ID & Recent Utility bill. T&Cs apply";
 
             // $welcomeMessage = "Welcome FirstName! Your account number is 5080135881. Bank Name: Asset Matrix MFB.  upload your Valid ID and link BVN. Have Access via USSD. Simply dial *7006*10#. T&Cs applyEnjoy 24/7.";
-
+         //             sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 'Create Account', $accno = '', $usesms = 0, $isApi = false, $all_sms_email = 1, $sms_logdata = [])
             $smsstate = sendSMS($user->id, "Welcome to " . $companyRecord->company_name . ". Your OTP is $otp. Alternatively, dial *7006*80*00%23 To verify your phone from the registered phone number", true, false, 'Verify OTP', '');
             $smsstate = sendSMS($user->id, $welcomeMessage, true, false, 'Welcome Message', '', 0, false);
             // $sendSMS = \sendVansoSMS($userPhone, $welcomeMessage);

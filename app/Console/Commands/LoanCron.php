@@ -55,7 +55,7 @@ class LoanCron extends Command
             $repayment = json_decode(app('App\Http\Controllers\LoanController')->loanRepaymentBreakDown($EncloanID, new Request));
             $dateNow   = date("Y-m-d");
 
-            if (isset($repayment->missed) && $repayment->missed != null) {
+            if (isset($repayment) && $repayment != null) {
                 if ($repayment->missed <= 0) {
                     foreach ($repayment->repaymentTable as $repaymentData) {
                         if (isset($repaymentData->repaymentDateDueloan)) {

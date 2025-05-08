@@ -111,6 +111,8 @@ class LoginController extends Controller
 
             }
 
+            \logInfo(json_encode($myUserWallets), "User Wallets");
+
             $adminUser = User::where('company_id', $request->user()->company_id)->first();
 
             $sliders = CarouselImage::where(['status_id' => 1, 'company_id' => auth()->user()->company_id])->get();

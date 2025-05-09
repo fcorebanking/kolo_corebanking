@@ -61,12 +61,14 @@ class UserController extends Controller
                 }
 
                 if ($request->user()->terminals != null) {
-                    \logInfo(json_encode(Auth::user()->terminals), "Login terminals");
+                    \logInfo(json_encode($request->user()->terminals), "Login terminals");
                     foreach ($request->user()->terminals as $key => $terminal) {
                         $myUserWallets[] = ["account_id" => $terminal->terminal_code, "account_number" => $terminal->terminal_code, "bank_id" => $terminal->terminal_code, "bank" => "Nomba", 'product_name' => "POS Account $wallet->terminal_code", "wallet_balance" => $terminal->balance, "currency" => 'NGN'];
                     }
 
                 }
+
+                \logInfo(json_encode($myUserWallets), "User Wallets");
 
                 $virtualCard = UserCard::where('user_id', auth()->user()->id)->get();
 

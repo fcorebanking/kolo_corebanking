@@ -4870,6 +4870,47 @@ class TransactionController extends Controller
         return response()->json(['status' => true, 'message' => 'Transactions fetched successfully', 'data' => $transactions]);
     }
 
+    public function posTransactionHistory(Request $request)
+    {
+
+        $pageLimit = isset($request->limit) ? $request->limit : 10;
+
+        $transactions = transactions::where(['account_id' => $request->user()->accounts->first()->id]);
+        // exclude bank transfer,sms charges,registration,
+        $hidecharge = auth()->user()->company->Transactionsettings->hide_charge_on_statement ?? '1';
+
+        \logInfo(auth()->user()->company->Transactionsettings->hide_charge_on_statement, "Hide Charge ");
+
+        $userId = auth()->user()->id;
+
+        if ($hidecharge == '2') {
+            // $get_list_of_excluded_transaction_ids = getTransactionIdByName(['USSD Session Charge','Physical Card Funding Charge','Virtual Card Funding Charge','USSD Wallet Funding Charge','Customer Whatsapp Charge','Company Whatsapp Charge','POS Credit Charge']);
+            //$get_list_of_excluded_transaction_ids = [108, 107, 100, 99, 92, 91, 76, 62, 58, 55, 54, 51, 42, 41, 39, 38, 33, 27, 6];
+            $get_list_of_excluded_transaction_ids = [125, 108, 107, 100, 99, 92, 91, 76, 55, 51, 27];
+            $transactions                         = $transactions->whereNotIn('transaction_type_id', $get_list_of_excluded_transaction_ids);
+        }
+        if ($request->from != null && $request->to != null) {
+            $transactions = $transactions::where('description', 'like', '%WirelessPay miniPos%')
+                ->where('created_at', '>=', $request->from)
+                ->where('created_at', '<=', $request->to)
+                ->where(function ($query) use ($userId) {
+                    $query->where('created_by', $userId)
+                        ->orWhere('account_id', $userId);
+                });
+
+            $transactions = $transactions->orderBy('created_at', 'DESC')->get();
+        } else {
+
+            $transactions = $transactions::where('description', 'like', '%WirelessPay miniPos%')
+                ->where(function ($query) use ($userId) {
+                    $query->where('created_by', $userId)
+                        ->orWhere('account_id', $userId);
+                })->orderBy('created_at', 'DESC')->paginate($pageLimit);
+        }
+
+        return response()->json(['status' => true, 'message' => 'Transactions fetched successfully', 'data' => $transactions]);
+    }
+
     public function getDataBundles($networkProvider)
     {
         $vtPassController = new VTPassController();

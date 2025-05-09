@@ -4469,3 +4469,25 @@ function debitCreditCompany($data)
     $company_wallet->save();
     return $txn;
 }
+
+function smsCustomer($phone, $message)
+    {
+        $apikey = env('SMS_API_KEY');
+
+        $data = array(
+            'api_key' => $apikey,
+            'to' => $phone,
+            'from' => 'Oxymon',
+            'sms' => $message,
+            'type' => 'plain',
+            'channel' => "generic",
+
+        );
+// terma
+        $url = "https://api.ng.termii.com/api/sms/send";
+        $response = Http::post($url, $data);
+        $result = json_decode($response->getBody()->getContents());
+        return $result;
+        Log::info('SMS:' . json_encode($result));
+
+    }

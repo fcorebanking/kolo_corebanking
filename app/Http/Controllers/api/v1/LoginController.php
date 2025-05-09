@@ -103,14 +103,6 @@ class LoginController extends Controller
                 $myUserWallets[] = ["account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN'];
             }
 
-            if (Auth::user()->terminals != null) {
-                \logInfo(json_encode(Auth::user()->terminals), "Login terminals");
-                foreach (Auth::user()->terminals as $key => $terminal) {
-                    $myUserWallets[] = ["account_id" => $terminal->terminal_code, "account_number" => $terminal->terminal_code, "bank_id" => $terminal->terminal_code, "bank" => "Nomba", 'product_name' => "POS Account $wallet->terminal_code", "wallet_balance" => $terminal->balance, "currency" => 'NGN'];
-                }
-
-            }
-
             \logInfo(json_encode($myUserWallets), "User Wallets");
 
             $adminUser = User::where('company_id', $request->user()->company_id)->first();

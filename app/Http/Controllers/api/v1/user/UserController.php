@@ -79,7 +79,7 @@ class UserController extends Controller
 
                 $wb_accounts = wb_account_details::with('currency')->with('user_wallet')->with('accountType')->with('bank')->where('user_id', $request->user()->id)->get();
 
-                \logInfo(json_encode($wb_accounts), "User Wallets");
+                \logInfo(json_encode($wb_accounts), "User Wallets Get Details");
                 $userDetails = [
                     "currency"                     => $request->user()->branch->currency ?? 'NGN',
                     "first_name"                   => $request->user()->first_name,

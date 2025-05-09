@@ -103,7 +103,7 @@ class LoginController extends Controller
                 $myUserWallets[] = ["account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN'];
             }
 
-            \logInfo(json_encode($myUserWallets), "User Wallets");
+            //   \logInfo(json_encode($myUserWallets), "User Wallets");
 
             $adminUser = User::where('company_id', $request->user()->company_id)->first();
 

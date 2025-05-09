@@ -62,7 +62,7 @@ class UserController extends Controller
 
                 if ($request->user()->terminals != null) {
                     \logInfo(json_encode(Auth::user()->terminals), "Login terminals");
-                    foreach (Auth::user()->terminals as $key => $terminal) {
+                    foreach ($request->user()->terminals as $key => $terminal) {
                         $myUserWallets[] = ["account_id" => $terminal->terminal_code, "account_number" => $terminal->terminal_code, "bank_id" => $terminal->terminal_code, "bank" => "Nomba", 'product_name' => "POS Account $wallet->terminal_code", "wallet_balance" => $terminal->balance, "currency" => 'NGN'];
                     }
 

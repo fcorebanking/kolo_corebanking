@@ -53,7 +53,8 @@ class UserController extends Controller
 
                 $userWallet = user_wallet::where('wb_account_detail_id', $request->user()->accounts->first()->id)->first();
 
-                $myUserWallets = [];
+                $myUserWallets   = [];
+                $myUserTerminals = [];
 
                 foreach ($request->user()->accounts as $key => $wallet) {
                     $userWallet      = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
@@ -63,7 +64,7 @@ class UserController extends Controller
                 if ($request->user()->terminals != null) {
                     \logInfo(json_encode($request->user()->terminals), "Login terminals");
                     foreach ($request->user()->terminals as $key => $terminal) {
-                        $myUserWallets[] = ["account_id" => $terminal->terminal_code, "account_number" => $terminal->terminal_code, "bank_id" => $terminal->terminal_code, "bank" => "Nomba", 'product_name' => "POS Account $wallet->terminal_code", "wallet_balance" => $terminal->balance, "currency" => 'NGN'];
+                        $myUserTerminals[] = ["account_id" => $terminal->terminal_code, "account_number" => $terminal->terminal_code, "bank_id" => $terminal->terminal_code, "bank" => "Nomba", 'product_name' => "POS Account $wallet->terminal_code", "wallet_balance" => $terminal->balance, "currency" => 'NGN'];
                     }
 
                 }
@@ -111,7 +112,9 @@ class UserController extends Controller
                     "cards"                        => $virtualCard,
                     "sliders"                      => $sliders,
                     "is_card_available"            => count($virtualCard) > 0,
-                    "accounts"                     => $wb_accounts, //$request->user()->wb_account_details,
+                    "accounts"                     => $wb_accounts,
+                    "terminals"                    => $myUserTerminals,
+                    //$request->user()->wb_account_details,
                 ];
 
                 return response()->json(['status' => true, 'message' => 'User Details Fetched successfully', 'data' => $userDetails]);

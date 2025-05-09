@@ -68,8 +68,6 @@ class UserController extends Controller
 
                 }
 
-                \logInfo(json_encode($myUserWallets), "User Wallets");
-
                 $virtualCard = UserCard::where('user_id', auth()->user()->id)->get();
 
                 // $sliders = CarouselImage::where('status_id', 1)->get("image_url");
@@ -79,6 +77,9 @@ class UserController extends Controller
                     $virtualCard = [];
                 }
 
+                $wb_accounts = wb_account_details::with('currency')->with('user_wallet')->with('accountType')->with('bank')->where('user_id', $request->user()->id)->get();
+
+                \logInfo(json_encode($wb_accounts), "User Wallets");
                 $userDetails = [
                     "currency"                     => $request->user()->branch->currency ?? 'NGN',
                     "first_name"                   => $request->user()->first_name,
@@ -110,7 +111,7 @@ class UserController extends Controller
                     "cards"                        => $virtualCard,
                     "sliders"                      => $sliders,
                     "is_card_available"            => count($virtualCard) > 0,
-                    "accounts"                     => wb_account_details::with('currency')->with('user_wallet')->with('accountType')->with('bank')->where('user_id', $request->user()->id)->get(), //$request->user()->wb_account_details,
+                    "accounts"                     => $wb_accounts, //$request->user()->wb_account_details,
                 ];
 
                 return response()->json(['status' => true, 'message' => 'User Details Fetched successfully', 'data' => $userDetails]);

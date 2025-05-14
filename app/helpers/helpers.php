@@ -1533,7 +1533,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                     $response = Http::withHeaders($header)->get($apicur);
                                 }
                             }
-                            $result = json_encode($response);
+                            $result = $response->body();
                             logInfo("{$result}", "SMS 2FA sms api response");
                             if (isset($userinfo->id)) {
                                 $sms_logdata = [

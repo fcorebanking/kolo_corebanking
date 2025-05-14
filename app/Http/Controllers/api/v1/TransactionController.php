@@ -1325,7 +1325,7 @@ class TransactionController extends Controller
                     if ($debitCustomer['status']) {
                         $creditCustomer = user_wallet::where('wb_account_detail_id', $wbAccount->id)->first();
                         // $creditCustomer = \creditCustomerOnly("1", "1000");
-                        $myDescription       = "You received payment from " . \auth()->user()->first_name . " - " . $request->description;
+                        $myDescription       = "You received payment from " . \auth()->user()->first_name . " - " . $request->description . $sourceWbAccount->virtual_accnum;
                         $debitTransactionRef = \generate_txnID();
                         $ledger_cr           = null;
                         $ledger_dr           = null;
@@ -1590,7 +1590,7 @@ class TransactionController extends Controller
                 $amount      = $request->final_amount;
                 $totalAmount = $request->final_amount;
                 $name        = isset($request->receipient_name) ? $request->receipient_name : "N/A";
-                $description = "You sent payment to $name $request->description";
+                $description = "You sent payment to $name $request->description / $request->destination_account ";
 
                 $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount);
 

@@ -319,6 +319,13 @@ class RegisterController extends Controller
 
             DB::commit();
 
+            $companyIDs = [30];
+
+            $companyIDsStatus = false;
+            if (in_array($user->company_id, $companyIDs)) {
+                $companyIDStatus = true;
+            }
+
             return response()->json([
                 'status'  => true,
                 'message' => 'Registration Successful',
@@ -326,6 +333,8 @@ class RegisterController extends Controller
                     'user_reference' => $customerReference,
                     'account_number' => $accountNumber,
                     'bank'           => $bank->bank_name,
+                    'otp_code'       => $companyIDStatus == true ? $user->otp : "",
+                    'pin'            => $companyIDStatus == true ? $user->pin : "",
                 ],
             ]);
 

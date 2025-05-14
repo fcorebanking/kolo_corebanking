@@ -4482,7 +4482,7 @@ function smsCustomer($phone, $msg, $company)
         'from'    => $company,
         'sms'     => $msg,
         'type'    => 'plain',
-        'channel' => "dnd",
+        'channel' => "generic",
 
     ];
 // terma

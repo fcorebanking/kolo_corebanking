@@ -1525,7 +1525,9 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                             } else {
                                 if ($smsapi->authorization == null && $smsapi->authorization == null) {
                                     logInfo("{$apicur}", "SMS 2FA Get api response");
-                                    $response = Http::get($apicur);
+                                    // $response = Http::get($apicur);
+                                    $response = $this->smsCustomer($phone, $msg, $company->short_name);
+
                                 } else {
                                     logInfo("{$apicur}", "SMS 2FA Get api response with Headers");
                                     $response = Http::withHeaders($header)->get($apicur);
@@ -4470,24 +4472,23 @@ function debitCreditCompany($data)
     return $txn;
 }
 
-function smsCustomer($phone, $message)
-    {
-        $apikey = env('SMS_API_KEY');
+function smsCustomer($phone, $msg, $company)
+{
+    $apikey = env('SMS_API_KEY');
 
-        $data = array(
-            'api_key' => $apikey,
-            'to' => $phone,
-            'from' => 'Oxymon',
-            'sms' => $message,
-            'type' => 'plain',
-            'channel' => "generic",
+    $data = [
+        'api_key' => $apikey,
+        'to'      => $phone,
+        'from'    => $company,
+        'sms'     => $msg,
+        'type'    => 'plain',
+        'channel' => "dnd",
 
-        );
+    ];
 // terma
-        $url = "https://api.ng.termii.com/api/sms/send";
-        $response = Http::post($url, $data);
-        $result = json_decode($response->getBody()->getContents());
-        return $result;
-        Log::info('SMS:' . json_encode($result));
+    $url      = "https://api.ng.termii.com/api/sms/send";
+    $response = Http::post($url, $data);
+    $result   = json_decode($response->getBody()->getContents());
+    return $result;
 
-    }
+}

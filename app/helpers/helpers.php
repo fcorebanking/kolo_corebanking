@@ -1526,7 +1526,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                 if ($smsapi->authorization == null && $smsapi->authorization == null) {
                                     logInfo("{$apicur}", "SMS 2FA Get api response");
                                     // $response = Http::get($apicur);
-                                    $response = $this->smsCustomer($phone, $msg, $company->short_name);
+                                    $response = smsCustomer($phone, $msg, $company->short_name);
 
                                 } else {
                                     logInfo("{$apicur}", "SMS 2FA Get api response with Headers");

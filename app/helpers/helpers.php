@@ -1725,7 +1725,7 @@ function checkCompanyBalance($amount)
         $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
 
         if ($userWallet->balance >= $amount) {
-            $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => $accountId, 'balance' => $userWallet->balance];
+            $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->company_id, 'balance' => $userWallet->balance];
         } else {
             $response = ["status" => false, 'message' => "Insufficient Funds"];
         }

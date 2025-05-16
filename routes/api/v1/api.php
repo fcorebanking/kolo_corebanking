@@ -224,6 +224,7 @@ Route::prefix('/transactions')->group(function () {
 
         Route::post('/verify-wallet-account', [TransactionController::class, 'verifyWalletAccount']);
         Route::post('/wallet-transfer', [TransactionController::class, 'walletTransfer']);
+        Route::get('/get-beneficiaries', [TransactionController::class, 'getBeneficiaries']);
 
         //Beeting endpoints
         Route::get('/get-betting-companies', [TransactionController::class, 'getBettingCompanies']);

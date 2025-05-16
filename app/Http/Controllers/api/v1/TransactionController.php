@@ -23,6 +23,7 @@ use App\Http\Controllers\ThirdParty\WovenController;
 use App\Models\AgentTerminal;
 use App\Models\ApiKey;
 use App\Models\banks;
+use App\Models\Beneficiary;
 use App\Models\Company;
 use App\Models\company_settings;
 use App\Models\company_wallet;
@@ -1142,6 +1143,12 @@ class TransactionController extends Controller
 
                     $transaction->transaction_remarks_id = 2;
                     $transaction->save();
+
+                    $transfer_log            = new Beneficiary;
+                    $transfer_log->name      = $request->receipient_name;
+                    $transfer_log->bank_id   = $bank->id;
+                    $transfer_log->accountNo = $request->destination_account;
+                    $transfer_log->user_id   = auth()->user()->id;
 
                     return response()->json([
                         "status"  => true,

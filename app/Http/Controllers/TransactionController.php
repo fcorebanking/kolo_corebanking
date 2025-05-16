@@ -1777,6 +1777,7 @@ class TransactionController extends Controller
                         $transfer_log->name      = $request->transferAccountName;
                         $transfer_log->bank_id   = $bank->id;
                         $transfer_log->accountNo = $request->transferAccountNumber;
+                        $transfer_log->user_id   = auth()->user()->id;
                         $isUserAttached          = false;
                         if ($request->customer != null) {
                             $user = User::where('uuid', $request->customer)->first();

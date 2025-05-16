@@ -164,7 +164,9 @@ class LoginController extends Controller
             $userAccunt->otp_expiration_date = $date;
             $userAccunt->save();
 
-            $msg = "kindly find OTP.. $otpCode  Do not share with anyone. alternative dial *7006*80*00%23 to verify your phone without OTP.";
+            $getCompanyName = $adminUser->company->short_name;
+
+            $msg = "kindly find OTP.. $otpCode  Do not share with anyone. ($getCompanyName) alternative dial *7006*80*00%23 to verify your phone without OTP.";
 
             $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, true);
 

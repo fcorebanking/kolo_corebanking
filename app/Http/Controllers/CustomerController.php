@@ -2583,12 +2583,13 @@ class CustomerController extends Controller
         if (! $is_root && $user_checkself == 0) {
             $user = $user->where('account_officer_id', auth()->user()->id);
         }
-        $getuser = $user->first();
+        $getuser        = $user->first();
+        $getcompanyName = company::where('id', auth()->user()->company_id)->first()->short_name;
         if ($getuser) {
             $newpsw = substr(str_shuffle(str_repeat('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', mt_rand(1, 8))), 1, 8);
             $newPSW = bcrypt($newpsw);
             $user->update(['password' => $newPSW]);
-            $smssent = sendSMS($getuser->id, "Your Account Password Has just Been reset! <br> Your new Password is: $newpsw <br> You can login and reset your password!", true, true, 'Password reset');
+            $smssent = sendSMS($getuser->id, "Your Account Password Has just Been reset! <br> Your new Password is: $newpsw <br> ($getcompanyName) You can login and reset your password!", true, true, 'Password reset');
             return response()->json(['status' => 1, 'message' => 'Password reset Sent!']);
         }
         return response()->json(['status' => 0, 'message' => 'Error sending reset code!']);

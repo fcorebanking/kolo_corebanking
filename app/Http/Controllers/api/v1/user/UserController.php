@@ -552,6 +552,8 @@ class UserController extends Controller
 
         $userAccunt = User::where(['uuid' => $request->user_reference, 'user_type_id' => 1])->first();
 
+        $getCompanyName = $userAccunt->company->short_name;
+
         if ($userAccunt) {
 
             //Third party SMS (Send OTP Code goes here)
@@ -569,7 +571,7 @@ class UserController extends Controller
                 $userAccunt->otp_expiration_date = $date;
                 $userAccunt->save();
 
-                $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone. Alternatively, dial *7006*80*00";
+                $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone.($getCompanyName) Alternatively, dial *7006*80*00";
 
                 $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, false);
                 \logInfo($sendSMS, "resend OTP response");
@@ -885,6 +887,8 @@ class UserController extends Controller
 
         $userAccunt = User::where(['uuid' => $request->user_reference, 'user_type_id' => 1])->first();
 
+        $getCompanyName = $userAccunt->company->short_name;
+
         if ($userAccunt) {
 
             //Third party SMS (Send OTP Code goes here)
@@ -909,7 +913,7 @@ class UserController extends Controller
                 $userAccunt->otp_expiration_date = $date;
                 $userAccunt->save();
 
-                $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone.";
+                $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone. $getCompanyName";
 
                 $sendSMS = \sendSMS($checkPhoneWithAccountReference->id, $msg, \true, false, "OTP Confirmation", '', 0, false);
 

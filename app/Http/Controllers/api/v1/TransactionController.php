@@ -4026,7 +4026,7 @@ class TransactionController extends Controller
 
         $wb_account_details = wb_account_details::where('user_id', auth()->user()->id)->where('acc_reference', auth()->user()->account_reference)->first();
 
-        $checkCompanyBalance = checkCompanyBalance($wb_account_details->id, $request->final_amount);
+        $checkCompanyBalance = checkCompanyBalance($request->final_amount);
 
         if (! $checkCompanyBalance['status']) {
             return \response()->json($checkCompanyBalance, 400);
@@ -4166,12 +4166,12 @@ class TransactionController extends Controller
 
         $wb_account_details = wb_account_details::where('user_id', auth()->user()->id)->where('acc_reference', auth()->user()->account_reference)->first();
 
-        $checkCompanyBalance = checkCompanyBalance($wb_account_details->id, $request->final_amount);
+        $checkCompanyBalance = checkCompanyBalance($request->final_amount);
 
         if (! $checkCompanyBalance['status']) {
             return \response()->json($checkCompanyBalance, 400);
         }
-        $checkCustomerBalance = checkCustomerBalance($accountId, $request->final_amount);
+        $checkCustomerBalance = checkCustomerBalance($wb_account_details->id, $request->final_amount);
 
         if (! $checkCustomerBalance['status']) {
             return \response()->json($checkCustomerBalancee, 400);
@@ -4430,7 +4430,7 @@ class TransactionController extends Controller
 
         $checkCompanyBalanceAmount = $companySettings->bills_payment_charge + $request->final_amount;
 
-        $checkCompanyBalance = checkCompanyBalance($wb_account_details->id, $checkCompanyBalanceAmount);
+        $checkCompanyBalance = checkCompanyBalance($checkCompanyBalanceAmount);
 
         if (! $checkCompanyBalance['status']) {
             return \response()->json($checkCompanyBalance, 400);
@@ -4596,12 +4596,12 @@ class TransactionController extends Controller
 
         $wb_account_details = wb_account_details::where('user_id', auth()->user()->id)->where('acc_reference', auth()->user()->account_reference)->first();
 
-        $checkCompanyBalance = checkCompanyBalance($wb_account_details->id, $request->final_amount);
+        $checkCompanyBalance = checkCompanyBalance($request->final_amount);
 
         if (! $checkCompanyBalance['status']) {
             return \response()->json($checkCompanyBalance, 400);
         }
-        $checkCustomerBalance = checkCustomerBalance($accountId, $request->final_amount);
+        $checkCustomerBalance = checkCustomerBalance($wb_account_details->id, $request->final_amount);
 
         if (! $checkCustomerBalance['status']) {
             return \response()->json($checkCustomerBalancee, 400);

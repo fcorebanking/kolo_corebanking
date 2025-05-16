@@ -1237,9 +1237,9 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
 
         // }
         if (! $isApi) {
-            $company_short = $company->short_name;
+            $company_short = "N-Alert" ?? $company->short_name;
         } else {
-            $company_short = "Finova";
+            $company_short = "N-Alert";
         }
 
         if (($all_sms_email == 1 || $all_sms_email == 3) && ! empty($to)) {

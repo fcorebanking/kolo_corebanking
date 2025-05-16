@@ -1149,6 +1149,7 @@ class TransactionController extends Controller
                     $transfer_log->bank_id   = $bank->id;
                     $transfer_log->accountNo = $request->destination_account;
                     $transfer_log->user_id   = auth()->user()->id;
+                    $transfer_log->save();
 
                     return response()->json([
                         "status"  => true,

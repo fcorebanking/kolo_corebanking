@@ -1167,6 +1167,21 @@ class TransactionController extends Controller
         }
     }
 
+    public function getBeneficiaries(Request $request)
+    {
+        $beneficiaries = Beneficiary::where('user_id', auth()->user()->id)->distinct();
+        if ($beneficiaries != null) {
+            return response()->json([
+                "status"  => true,
+                'message' => "Beneficiary Retieved Successful",
+                'data'    => [
+                    'accounts' => $beneficiaries,
+                ],
+            ]);
+        }
+
+    }
+
     public function transferToBankAccountUSSD(Request $request)
     {
 

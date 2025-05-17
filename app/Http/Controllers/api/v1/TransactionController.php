@@ -1144,13 +1144,20 @@ class TransactionController extends Controller
                     $transaction->transaction_remarks_id = 2;
                     $transaction->save();
 
-                    $transfer_log                 = new Beneficiary;
-                    $transfer_log->name           = $request->receipient_name;
-                    $transfer_log->bank_id        = $bank->id;
-                    $transfer_log->accountNo      = $request->destination_account;
-                    $transfer_log->user_id        = auth()->user()->id;
-                    $transfer_log->transaction_id = $transaction->id;
-                    $transfer_log->save();
+                    $check_transfer_log = Beneficiary::where('accountNo', $request->destination_account)
+                        ->whereNull('transaction_id')
+                        ->first();
+
+                    if ($check_transfer_log) {
+
+                    } else {
+                        $transfer_log            = new Beneficiary;
+                        $transfer_log->name      = $request->receipient_name;
+                        $transfer_log->bank_id   = $bank->id;
+                        $transfer_log->accountNo = $request->destination_account;
+                        $transfer_log->user_id   = auth()->user()->id;
+                        $transfer_log->save();
+                    }
 
                     return response()->json([
                         "status"  => true,

@@ -1169,7 +1169,7 @@ class TransactionController extends Controller
 
     public function getBeneficiaries(Request $request)
     {
-        $beneficiaries = Beneficiary::where('user_id', auth()->user()->id)->distinct();
+        $beneficiaries = Beneficiary::where('user_id', auth()->user()->id)->distinct()->get();
         if ($beneficiaries != null) {
             return response()->json([
                 "status"  => true,

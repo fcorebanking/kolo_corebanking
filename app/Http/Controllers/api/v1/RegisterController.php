@@ -100,6 +100,8 @@ class RegisterController extends Controller
             return response()->json($ra, 400);
         }
 
+        \logInfo($companyRecord->id, "Current company ID");
+
         $savings_product = $companyRecord->savingsProducts[0];
         $selectedProduct = $savings_product;
 

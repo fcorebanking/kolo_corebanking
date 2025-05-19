@@ -961,7 +961,7 @@ class UserController extends Controller
             $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
             return response()->json($ra, 406);
         }
-        $userAccunt     = User::where(['phone' => $request->phone_number, 'user_type_id' => 1])->orwhere(['virtual_account' => $request->phone_number, 'user_type_id' => 1])->latest()->first();
+        $userAccunt     = User::where(['phone' => $request->phone_number, 'user_type_id' => 1])->orwhere(['virtual_account' => $request->phone_number, 'user_type_id' => 1])->first();
         $getCompanyName = $userAccunt->company->short_name;
         if ($userAccunt) {
             //Third party SMS (Send OTP Code goes here)

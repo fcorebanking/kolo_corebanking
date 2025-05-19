@@ -573,7 +573,7 @@ class UserController extends Controller
 
                 // $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone.($getCompanyName) Alternatively, dial *7006*80*00";
 
-                $msg     = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins. (FINOVA)";
+                $msg     = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
                 $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, false);
                 \logInfo($sendSMS, "resend OTP response");
 
@@ -593,7 +593,7 @@ class UserController extends Controller
                     $userAccunt->save();
 
                     //   $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone. Alternatively, dial *7006*80*00";
-                    $msg = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins. (FINOVA)";
+                    $msg = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
 
                     $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, \false);
                     \logInfo($sendSMS, "resend OTP response");
@@ -916,7 +916,7 @@ class UserController extends Controller
                 $userAccunt->save();
 
                 // $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone. $getCompanyName";
-                $msg = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins. (FINOVA)";
+                $msg = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
 
                 $sendSMS = \sendSMS($checkPhoneWithAccountReference->id, $msg, \true, false, "OTP Confirmation", '', 0, false);
 
@@ -938,7 +938,7 @@ class UserController extends Controller
                     $userAccunt->save();
 
                     //     $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone.";
-                    $msg = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins. (FINOVA)";
+                    $msg = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
 //                             sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 'Create Account', $accno = '', $usesms = 0, $isApi = false, $all_sms_email = 1, $sms_logdata = [])
                     $sendSMS = \sendSMS($userAccunt->id, $msg, \true, false, "OTP Confirmation", '', 0, false);
 
@@ -972,7 +972,7 @@ class UserController extends Controller
             $userAccunt->otp_expiration_date = $date;
             $userAccunt->save();
             // $msg     = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone.";
-            $msg     = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins. (FINOVA)";
+            $msg     = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
             $sendSMS = \sendSMS($userAccunt->id, $msg, true, true, 'Reset Password OTP');
             return response(['status' => true, 'message' => 'OTP Sent Successfully']);
         } else {

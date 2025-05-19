@@ -325,7 +325,7 @@ class RegisterController extends Controller
 
             $companyIDsStatus = false;
             if (in_array($user->company_id, $companyIDs)) {
-                $companyIDStatus = true;
+                $companyIDsStatus = true;
             }
 
             return response()->json([
@@ -335,8 +335,8 @@ class RegisterController extends Controller
                     'user_reference' => $customerReference,
                     'account_number' => $accountNumber,
                     'bank'           => $bank->bank_name,
-                    'otp_code'       => $companyIDStatus == true ? $user->otp : "",
-                    'pin'            => $companyIDStatus == true ? $user->pin : "",
+                    'otp_code'       => $companyIDsStatus == true ? $user->otp : "",
+                    'pin'            => $companyIDsStatus == true ? $user->pin : "",
                 ],
             ]);
 

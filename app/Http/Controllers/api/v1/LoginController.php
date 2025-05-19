@@ -163,7 +163,7 @@ class LoginController extends Controller
 
             $userAccunt->otp_expiration_date = $date;
             $userAccunt->save();
-
+            $adminUser      = User::where('company_id', $request->user()->company_id)->first();
             $getCompanyName = $adminUser->company->short_name;
 
             $msg = "kindly find OTP.. $otpCode  Do not share with anyone. ($getCompanyName) alternative dial *7006*80*00%23 to verify your phone without OTP.";

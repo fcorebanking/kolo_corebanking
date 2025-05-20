@@ -2774,6 +2774,9 @@ class TransactionController extends Controller
         try {
             DB::beginTransaction();
             $transaction = transactions::where(['transaction_reference' => $request->transactionId])->lockForUpdate()->first();
+
+            logInfo(json_encode($transaction), "transaction reference");
+
             if ($transaction) {
                 if ($transaction->transaction_remarks_id == 2) {
                     return ["status" => 0, 'message' => "Transaction has already been completed"];
@@ -2823,9 +2826,15 @@ class TransactionController extends Controller
                         return $checkAllowedTransaction;
                     }
 
+                    logInfo(json_encode($checkAllowedTransaction), "checkAllowedTransaction");
+
                     $companyCharge = getWbaTransferCharges(1, $request->amount);
 
+                    logInfo(json_encode($companyCharge), "companyCharge");
+
                     $validateTransferAmount = $this->validateTransfer($request->amount);
+
+                    logInfo(json_encode($validateTransferAmount), "validateTransferAmount");
 
                     if ($validateTransferAmount['status'] == 0) {
                         return $validateTransferAmount;
@@ -2899,6 +2908,8 @@ class TransactionController extends Controller
                             return $debitCompanyWithCharge;
                         }
 
+                        logInfo($debitCustomerAndCompany, "Debit Tagged company Log");
+
                         $companyBalanceBefore       = $debitCompanyWithCharge['balance_before'];
                         $companyBalanceAfter        = $debitCompanyWithCharge['balance_after'];
                         $companyChargeBalanceBefore = $debitCompanyWithCharge['charge_balance_before'];
@@ -2940,6 +2951,8 @@ class TransactionController extends Controller
                     $bankTransferType->transactionReference = $transaction->transaction_reference;
 
                     $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
+
+                    logInfo($bankTransfer, "Transfer Bank Log");
 
                     // if ($bankTransfer['status'] == "01") {
                     //     $reversalResult = debitReversal($transaction->id, $transaction->account_id, $transaction->company_id, $transaction->amount, $bankTransferInfo->charge + $bankTransferInfo->amount, $bankTransferInfo->transfer_entity_type);

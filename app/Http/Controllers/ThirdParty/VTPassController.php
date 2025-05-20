@@ -1,18 +1,16 @@
 <?php
-
 namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Carbon\Carbon;
 use App\Models\CustomerRestrictionLog;
 use App\Models\MainCustomerRestriction;
+use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Http;
 
 class VTPassController extends Controller
 {
-    function __construct()
+    public function __construct()
     {
     }
 
@@ -22,9 +20,9 @@ class VTPassController extends Controller
         try {
             $body = [
                 "request_id" => $transactionId,
-                "serviceID" => $network,
-                "amount" => $amount,
-                "phone" => $phoneNumber
+                "serviceID"  => $network,
+                "amount"     => $amount,
+                "phone"      => $phoneNumber,
             ];
 
             $buyAirtime = $this->vtpassPostRequest('pay', $body);
@@ -50,11 +48,11 @@ class VTPassController extends Controller
     {
         try {
             $body = [
-                "request_id" => $transactionId,
-                "serviceID" => $network,
+                "request_id"     => $transactionId,
+                "serviceID"      => $network,
                 "variation_code" => $dataPlain,
-                "amount" => $amount,
-                "phone" => $phoneNumber
+                "amount"         => $amount,
+                "phone"          => $phoneNumber,
             ];
 
             $endpoint = "pay";
@@ -84,7 +82,7 @@ class VTPassController extends Controller
 
             $body = [
                 "billersCode" => $smart_card_number,
-                "serviceID" => $cable_tv_type,
+                "serviceID"   => $cable_tv_type,
             ];
 
             $endpoint = "merchant-verify";
@@ -98,27 +96,27 @@ class VTPassController extends Controller
 
                     if (isset($verifyCableResponse['content']['error'])) {
                         return [
-                            'status' => false,
-                            'message' => $verifyCableResponse['content']['error']
+                            'status'  => false,
+                            'message' => $verifyCableResponse['content']['error'],
                         ];
                     }
 
                     return [
-                        'status' => true,
+                        'status'  => true,
                         'message' => "Cable TV Verified Successfully",
-                        'data' => [
-                            'customer_name' => trim($verifyCableResponse['content']['Customer_Name']),
-                            'cable_tv' => trim($verifyCableResponse['content']['Customer_Type']),
-                            'current_bouquet' => trim($verifyCableResponse['content']['Current_Bouquet']),
+                        'data'    => [
+                            'customer_name'        => trim($verifyCableResponse['content']['Customer_Name']),
+                            'cable_tv'             => trim($verifyCableResponse['content']['Customer_Type']),
+                            'current_bouquet'      => trim($verifyCableResponse['content']['Current_Bouquet']),
                             'current_bouquet_code' => trim($verifyCableResponse['content']['Current_Bouquet_Code']),
-                            'renewal_amount' => trim($verifyCableResponse['content']['Renewal_Amount']),
-                        ]
+                            'renewal_amount'       => trim($verifyCableResponse['content']['Renewal_Amount']),
+                        ],
                     ];
                 } else {
 
                     return [
-                        'status' => false,
-                        'message' => "Failed to verify meter number"
+                        'status'  => false,
+                        'message' => "Failed to verify meter number",
                     ];
                 }
             } else {
@@ -135,13 +133,13 @@ class VTPassController extends Controller
         try {
 
             $body = [
-                "request_id" => $transactionId,
-                "serviceID" => $cableTVType,
-                "variation_code" => $subscriptionPlan,
-                "billersCode" => $smartCardNumber,
+                "request_id"        => $transactionId,
+                "serviceID"         => $cableTVType,
+                "variation_code"    => $subscriptionPlan,
+                "billersCode"       => $smartCardNumber,
                 "subscription_type" => "change",
-                "amount" => $amount,
-                "phone" => $phone
+                "amount"            => $amount,
+                "phone"             => $phone,
             ];
 
             $endpoint = "pay";
@@ -155,9 +153,9 @@ class VTPassController extends Controller
 
                     return
                         [
-                            "status" => true,
-                            'message' => "Cable TV Purchase Successful"
-                        ];
+                        "status"  => true,
+                        'message' => "Cable TV Purchase Successful",
+                    ];
                 } else {
                     return ["status" => false, 'message' => $meterResponse['response_description']];
                 }
@@ -183,15 +181,14 @@ class VTPassController extends Controller
         }
     }
 
-
     public function verifyMeterNumber($meterNumber, $electrictyDisco, $type)
     {
         $endpoint = "merchant-verify";
 
         $body = [
             "billersCode" => $meterNumber,
-            "serviceID" => $electrictyDisco,
-            "type" => $type
+            "serviceID"   => $electrictyDisco,
+            "type"        => $type,
         ];
 
         $verifyMeterResult = $this->vtpassPostRequest($endpoint, $body);
@@ -204,33 +201,33 @@ class VTPassController extends Controller
                 if (isset($verifyMeterResult['content']['error'])) {
 
                     return [
-                        'status' => false,
-                        'message' => $verifyMeterResult['content']['error']
+                        'status'  => false,
+                        'message' => $verifyMeterResult['content']['error'],
                     ];
                 }
 
                 return [
-                    'status' => true,
+                    'status'  => true,
                     'message' => "Meter Verified Successfully",
-                    'data' => [
-                        'meter_name' => trim($verifyMeterResult['content']['Customer_Name']),
-                        'address' => trim($verifyMeterResult['content']['Address']),
-                        'meter_type' => trim($type),
-                        'meter_number' => $electrictyDisco == "abuja-electric" ? trim($verifyMeterResult['content']['MeterNumber']) : trim($verifyMeterResult['content']['Meter_Number']),
-                    ]
+                    'data'    => [
+                        'meter_name'   => trim($verifyMeterResult['content']['Customer_Name']),
+                        'address'      => trim($verifyMeterResult['content']['Address']),
+                        'meter_type'   => trim($type),
+                        'meter_number' => $electrictyDisco == "abuja-electric" ? trim($verifyMeterResult['content']['MeterNumber']) : trim($verifyMeterResult['content']['MeterNumber']),
+                    ],
                 ];
             } else {
 
                 return [
-                    'status' => false,
-                    'message' => "Failed to verify meter number"
+                    'status'  => false,
+                    'message' => "Failed to verify meter number",
                 ];
             }
         } else {
 
             return [
-                'status' => false,
-                'message' => "Failed to verify meter number. Please contact support"
+                'status'  => false,
+                'message' => "Failed to verify meter number. Please contact support",
             ];
         }
     }
@@ -252,12 +249,12 @@ class VTPassController extends Controller
     {
 
         $body = [
-            "request_id" => $transactionId,
-            "serviceID" => $electrictyDisco,
+            "request_id"     => $transactionId,
+            "serviceID"      => $electrictyDisco,
             "variation_code" => $meterType,
-            "billersCode" => $meterNumber,
-            "amount" => $amount,
-            "phone" => $phoneNumber
+            "billersCode"    => $meterNumber,
+            "amount"         => $amount,
+            "phone"          => $phoneNumber,
         ];
 
         $endpoint = "pay";
@@ -273,25 +270,25 @@ class VTPassController extends Controller
 
                     if ($buyElectricity['content']['transactions']['status'] == 'pending') {
                         return [
-                            "status" => true,
-                            'message' => "Transaction is Processing. you will receive a token shortly"
+                            "status"  => true,
+                            'message' => "Transaction is Processing. you will receive a token shortly",
                         ];
                     }
 
                     $electricityToken = isset($buyElectricity['Token']) ? $buyElectricity['Token'] : $buyElectricity['token'];
 
                     $returnTypeResponse = $meterType == 'prepaid' ? [
-                        'balance' => "0.0",
-                        'token' => $electricityToken,
-                        'purchased_units' => isset($buyElectricity['PurchasedUnits']) ? $buyElectricity['PurchasedUnits'] : $buyElectricity['Units']
+                        'balance'         => "0.0",
+                        'token'           => $electricityToken,
+                        'purchased_units' => isset($buyElectricity['PurchasedUnits']) ? $buyElectricity['PurchasedUnits'] : $buyElectricity['Units'],
                     ] : [
                         'balance' => "0.0",
                     ];
 
                     return [
-                        "status" => true,
+                        "status"  => true,
                         'message' => "Electricity Unit Purchase Successful",
-                        'data' => $returnTypeResponse
+                        'data'    => $returnTypeResponse,
                     ];
                 } else {
                     return ["status" => false, 'message' => $buyElectricity['response_description']];
@@ -304,7 +301,6 @@ class VTPassController extends Controller
         }
     }
 
-
     public function restrictUserAccount($restrictionId, $remark)
     {
         if (count(auth()->user()->customerPermissions) > 0) {
@@ -315,19 +311,19 @@ class VTPassController extends Controller
                     // auth()->user()->customerPermissions()->attach($restrictionId);
 
                     MainCustomerRestriction::create([
-                        'user_id' => auth()->user()->id,
-                        'company_id' => \auth()->user()->company_id,
+                        'user_id'                => auth()->user()->id,
+                        'company_id'             => \auth()->user()->company_id,
                         'customer_permission_id' => $restrictionId,
-                        "remark" => $remark,
-                        "created_by" => auth()->user()->id
+                        "remark"                 => $remark,
+                        "created_by"             => auth()->user()->id,
                     ]);
 
                     CustomerRestrictionLog::create([
-                        "user_id" => auth()->user()->id,
-                        "customer_permission_id" => $restrictionId,
-                        "remark" => $remark,
-                        "restricted_by_system" => 1,
-                        "restriction_log_type_id" => 1
+                        "user_id"                 => auth()->user()->id,
+                        "customer_permission_id"  => $restrictionId,
+                        "remark"                  => $remark,
+                        "restricted_by_system"    => 1,
+                        "restriction_log_type_id" => 1,
                     ]);
                 }
             }
@@ -336,7 +332,7 @@ class VTPassController extends Controller
 
     public function vtPassRequestId()
     {
-        $result = '';
+        $result     = '';
         $dateString = \str_replace("-", "", Carbon::now()->format('Y-m-d H:i:s'));
         $dateString = \str_replace(" ", "", $dateString);
         $dateString = \str_replace(":", "", $dateString);
@@ -362,10 +358,9 @@ class VTPassController extends Controller
         return $response->json();
     }
 
-
     public function vtpassHeader()
     {
-        $header = [];
+        $header         = [];
         $basicAuthToken = '';
 
         if (env('APP_MODE') == 'test') {

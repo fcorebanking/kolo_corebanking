@@ -2197,7 +2197,7 @@ function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, 
             $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
         }
 
-        // logInfo($userWallet, "User to be debitted");
+       //  logInfo($userWallet, "User to be debitted");
 
         $customerInitialBalance = $userWallet->balance;
 

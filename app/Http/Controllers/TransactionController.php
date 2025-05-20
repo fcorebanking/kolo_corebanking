@@ -2814,6 +2814,8 @@ class TransactionController extends Controller
 
                     $transactionRef2 = generateTransactionReference();
 
+                    logInfo($transactionRef2, "transref 2");
+
                     $checkAllowedTransaction = checkCompanyAllowedTransactionStatus(auth()->user()->company_id);
 
                     if ($checkAllowedTransaction['status'] != 1) {

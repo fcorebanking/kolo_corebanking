@@ -2543,6 +2543,8 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
 
         $company_wallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
 
+        logInfo(json_encode($company_wallet), "Company Wallet debitCompanyWithCharge");
+
         $companyInitialBalance = $company_wallet->balance;
 
         $debitAmount = $originalAmount + $companyCharge;

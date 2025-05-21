@@ -2095,6 +2095,8 @@ function debitPOSTerminalWithCharge($terminalId, $originalAmount, $charge, $comp
 
 function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
 {
+    logInfo($customerAccountId, "customerAccountId");
+    logInfo($companyId, "companyId");
 
     $response = [];
 
@@ -2112,7 +2114,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
             $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
         }
 
-        logInfo($userWallet, "User to be debitted");
+        logInfo(json_encode($userWallet), "User to be debitted");
 
         $customerInitialBalance = $userWallet->balance;
 
@@ -2197,7 +2199,7 @@ function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, 
             $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
         }
 
-       //  logInfo($userWallet, "User to be debitted");
+        //  logInfo($userWallet, "User to be debitted");
 
         $customerInitialBalance = $userWallet->balance;
 

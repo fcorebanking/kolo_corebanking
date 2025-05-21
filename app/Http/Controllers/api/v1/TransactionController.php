@@ -4457,6 +4457,9 @@ class TransactionController extends Controller
         if (! $validateTransferAmount['status']) {
             return \response()->json($validateTransferAmount, 400);
         }
+
+          $accountId = auth()->user()->accounts->first()->id;
+          
         $wb_account_details = wb_account_details::where('user_id', auth()->user()->id)->where('acc_reference', auth()->user()->account_reference)->first();
 
         $checkCompanyBalanceAmount = $companySettings->bills_payment_charge + $request->final_amount;

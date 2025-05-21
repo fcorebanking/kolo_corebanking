@@ -2859,6 +2859,8 @@ class TransactionController extends Controller
 
                     $entityType = "both";
 
+                    logInfo(json_encode($entityType), "entityType");
+
                     if (isset($transaction->TXNBankDetails->user_id)) {
                         if ($transaction->TXNBankDetails->user_id > 0) {
 

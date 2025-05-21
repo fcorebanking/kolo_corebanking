@@ -1778,7 +1778,8 @@ class TransactionController extends Controller
                         $transfer_log->bank_id   = $bank->id;
                         $transfer_log->accountNo = $request->transferAccountNumber;
                         $transfer_log->user_id   = auth()->user()->id;
-                        $isUserAttached          = false;
+
+                        $isUserAttached = false;
                         if ($request->customer != null) {
                             $user = User::where('uuid', $request->customer)->first();
                             if ($user) {
@@ -2863,7 +2864,7 @@ class TransactionController extends Controller
 
                     logInfo(json_encode($transaction), "TXNBankDetails");
 
-                    if (isset($transaction->TXNBankDetails->user_id)) {
+                    if (isset($transaction->TXNBankDetails->user_id ) && $transaction->TXNBankDetails->account_id != null) {
                         if ($transaction->TXNBankDetails->user_id > 0) {
 
                             $entityType = "both";

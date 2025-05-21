@@ -2861,6 +2861,8 @@ class TransactionController extends Controller
 
                     logInfo(json_encode($entityType), "entityType");
 
+                    logInfo(json_encode($transaction), "TXNBankDetails");
+
                     if (isset($transaction->TXNBankDetails->user_id)) {
                         if ($transaction->TXNBankDetails->user_id > 0) {
 
@@ -2871,7 +2873,7 @@ class TransactionController extends Controller
                             }
 
                             $debitCustomerAndCompany = debitCustomerAndCompanyWithCharge($transaction->TXNBankDetails->account_id, auth()->user()->company_id, $request->amount, $customerCharge, $companyCharge);
-
+                            logInfo(json_encode($debitCustomerAndCompany), "debitCustomerAndCompany Entity");
                             if (! $debitCustomerAndCompany['status']) {
                                 $debitCustomerAndCompany['status'] = 0;
                                 return $debitCustomerAndCompany;
@@ -2905,6 +2907,8 @@ class TransactionController extends Controller
                         $chargeAmount = $request->amount > 1000000 ? 100 : $chargeAmount;
 
                         $debitCompanyWithCharge = \debitCompanyWithCharge(\auth()->user()->company_id, $request->amount, $chargeAmount);
+
+                        logInfo(json_encode($debitCompanyWithCharge), "debitCompanyWithCharg Entity");
                         if (! $debitCompanyWithCharge['status']) {
                             $debitCompanyWithCharge['status'] = $debitCompanyWithCharge['responseCode'];
                             return $debitCompanyWithCharge;

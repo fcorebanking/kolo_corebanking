@@ -2864,7 +2864,7 @@ class TransactionController extends Controller
 
                     logInfo(json_encode($transaction), "TXNBankDetails");
 
-                    if (isset($transaction->TXNBankDetails->user_id ) && $transaction->TXNBankDetails->account_id != null) {
+                    if (isset($transaction->TXNBankDetails->user_id) && $transaction->TXNBankDetails->account_id != null) {
                         if ($transaction->TXNBankDetails->user_id > 0) {
 
                             $entityType = "both";
@@ -2915,7 +2915,7 @@ class TransactionController extends Controller
                             return $debitCompanyWithCharge;
                         }
 
-                        logInfo($debitCustomerAndCompany, "Debit Tagged company Log");
+                        logInfo($debitCompanyWithCharge, "Debit Tagged company Log");
 
                         $companyBalanceBefore       = $debitCompanyWithCharge['balance_before'];
                         $companyBalanceAfter        = $debitCompanyWithCharge['balance_after'];

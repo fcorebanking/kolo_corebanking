@@ -295,7 +295,7 @@ class RegisterController extends Controller
                 return response()->json(['status' => false, 'message' => 'Failed to complete Registration Err::11'], 400);
             }
 
-            \restrictUserAccountAPI($user->id, 2, "New Account Restriction");
+            // \restrictUserAccountAPI($user->id, 2, "New Account Restriction");
 
             $bank = banks::where('id', $bank_id)->first();
 

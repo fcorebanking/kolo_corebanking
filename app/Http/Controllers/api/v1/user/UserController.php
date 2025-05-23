@@ -967,6 +967,7 @@ class UserController extends Controller
             $query->where('phone', $request->phone_number)
                 ->orWhere('virtual_account', $request->phone_number);
         })->where('user_type_id', 1)->first();
+        
         \logInfo(json_encode($userAccunt), "User Accont first");
         $getCompanyName = $userAccunt->company->short_name;
         if ($userAccunt) {

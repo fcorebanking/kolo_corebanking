@@ -37,7 +37,7 @@ class IdentityPassController extends Controller
     {
         logInfo($bvn, "BVN Number");
 
-        $url = "{$this->baseUrl}verification/bvn_validation";
+        $url = "{$this->baseUrl}verification/bvn";
 
         $body = [
             'number' => $bvn,

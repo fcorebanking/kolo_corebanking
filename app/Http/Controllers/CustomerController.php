@@ -1335,16 +1335,16 @@ class CustomerController extends Controller
                 // return $verifyBVN;
                 $GetUserByUUID->bvn_status_id     = 1;
                 $GetUserByUUID->BVN               = $request->bvn;
-                $GetUserByUUID->first_name        = $verifyBVN->data->first_name;
-                $GetUserByUUID->last_name         = $verifyBVN->data->last_name;
-                $GetUserByUUID->alternative_phone = $verifyBVN->data->phone_number1 ?? $GetUserByUUID->alternative_phone;
-                $GetUserByUUID->dob               = $verifyBVN->data->date_of_birth ? date("Y-m-d", strtotime($verifyBVN->data->date_of_birth)) : $GetUserByUUID->dob;
-                $GetUserByUUID->address .= ' BVN Address: ' . $verifyBVN->data->residential_address . ' Resident State: ' . $verifyBVN->data->state_of_residence;
-                $GetUserByUUID->sex       = $verifyBVN->data->gender;
-                $GetUserByUUID->bvn_image = $verifyBVN->data->image;
+                $GetUserByUUID->first_name        = $verifyBVN->data->data->firstName;
+                $GetUserByUUID->last_name         = $verifyBVN->data->data->lastName;
+                $GetUserByUUID->alternative_phone = $verifyBVN->data->data->phoneNumber1 ?? $GetUserByUUID->alternative_phone;
+                $GetUserByUUID->dob               = $verifyBVN->data->data->dateOfBirth ? date("Y-m-d", strtotime($verifyBVN->data->data->dateOfBirth)) : $GetUserByUUID->dob;
+                $GetUserByUUID->address .= ' BVN Address: ' . $verifyBVN->data->data->residentialAddress . ' Resident State: ' . $verifyBVN->data->data->stateOfResidence;
+                $GetUserByUUID->sex       = $verifyBVN->data->data->gender;
+                $GetUserByUUID->bvn_image = $verifyBVN->data->data->base64Image;
 
-                $GetUserByUUID->state_of_origin = $verifyBVN->data->state_of_origin;
-                $GetUserByUUID->nike_name       = $GetUserByUUID->nike_name ?? $verifyBVN->data->middle_name;
+                $GetUserByUUID->state_of_origin = $verifyBVN->data->data->stateOfOrigin;
+                $GetUserByUUID->nike_name       = $GetUserByUUID->nike_name ?? $verifyBVN->data->data->middleName;
 
                 $GetUserByUUID->save();
                 return response()->json(['status' => true, 'message' => 'BVN record Updated', 'bvn' => $verifyBVN]);

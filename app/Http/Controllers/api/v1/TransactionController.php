@@ -4755,7 +4755,7 @@ class TransactionController extends Controller
             $lastName        = $bvnResponse['data']['data']["lastName"];
             $dob             = $bvnResponse['data']['data']["dateOfBirth"];
             $bvnFromResponse = $request->bvn;
-            $phone           = $bvnResponse['data']['data']["phoneNumber"];
+            $phone           = $bvnResponse['data']['data']["phoneNumber1"];
 
             $newformat = date('Y-m-d', $time);
 

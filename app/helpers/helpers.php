@@ -2124,8 +2124,21 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
             $company = Company::find($companyId);
 
+            $companyIDs = [17, 30, 33, 35, 36];
+
+            $companyIDsStatus = false;
+
+            if (in_array($company->id, $companyIDs)) {
+                $companyIDsStatus = true;
+            }
+
             $companyWallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
-            if ($companyWallet->balance > ($originalAmount + $customerCharge)) {
+            
+            if ($companyWallet->balance > 100000) {
+                $companyIDsStatus = true;
+            }
+
+            if (($companyWallet->balance > ($originalAmount + $customerCharge)) && ($companyIDsStatus)) {
 
                 $customerBalanceAfter = $customerInitialBalance - $originalAmount;
                 $paymentcash          = ($originalAmount + $customerCharge);
@@ -2551,7 +2564,19 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
 
         $debitAmount = $originalAmount + $companyCharge;
 
-        if ($companyInitialBalance > $debitAmount) {
+        $companyIDs = [17, 30, 33, 35, 36];
+
+        $companyIDsStatus = false;
+
+        if (in_array($company->id, $companyIDs)) {
+            $companyIDsStatus = true;
+        }
+
+        if ($companyInitialBalance > 100000) {
+            $companyIDsStatus = true;
+        }
+
+        if ($companyInitialBalance > $debitAmount && $companyIDsStatus) {
 
             $companyBalanceAfter = $companyInitialBalance - $originalAmount;
             $companyFinalBalance = $company_wallet->balance -= $debitAmount;
@@ -2573,6 +2598,8 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
             if ($currentUser->balance_fails < 4) {
                 $currentUser->balance_fails += 1;
                 $currentUser->save();
+                $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
+            } else if (! $companyIDsStatus) {
                 $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
             } else {
                 restrictUserAccount(2, "Multiple Insuficient balance trials", $currentUser);

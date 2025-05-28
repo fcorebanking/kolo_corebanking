@@ -79,7 +79,7 @@ function verifyBVN() {
                     displayInfo('state_of_residence_div', 'state_of_residence', data.data.state_of_residence)
                     displayInfo('watch_listed_div', 'watch_listed', data.data.watch_listed)
                     $('#bvn_image').show();
-
+                    console.log(data.data.base64Image);
                     $('#bvn_image').attr("src", "data:image/png;base64," + data.data.base64Image);
                 } else if (verificationType == "nin") {
 
@@ -91,7 +91,7 @@ function verifyBVN() {
                     displayInfo('phone_number1_div', 'phone_number1', data.data.phone)
                     displayInfo('gender_div', 'gender', data.data.gender == "M" ? "Male" : "Female")
                     $('#bvn_image').show();
-
+                    console.log(data.data.base64Image);
                     $('#bvn_image').attr("src", "data:image/png;base64," + data.data.photo);
                 } else {
 

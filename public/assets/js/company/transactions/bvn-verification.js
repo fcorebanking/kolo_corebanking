@@ -58,7 +58,7 @@ function verifyBVN() {
                 // $('#printBtnDiv').show();
 
                 if (verificationType == "bvn") {
-
+                    console.log(data.data.base64Image);
                     $('#titleHeader').html("BVN Details")
 
                     displayInfo('first_name_div', 'first_name', data.data.firstName)
@@ -79,7 +79,7 @@ function verifyBVN() {
                     displayInfo('state_of_residence_div', 'state_of_residence', data.data.stateOfResidence)
                     displayInfo('watch_listed_div', 'watch_listed', data.data.watchListed)
                     $('#bvn_image').show();
-                    console.log(data.data.base64Image);
+
                     //$('#bvn_image').attr("src", "data:image/png;base64," + data.data.base64Image);
                 } else if (verificationType == "nin") {
 

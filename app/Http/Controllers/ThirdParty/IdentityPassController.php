@@ -79,7 +79,7 @@ class IdentityPassController extends Controller
         try {
             $verifyNIN = $$this->identitypassPostRequest($url, $body);
 
-            logInfo($verifyNIN, "Verify NIN Rates");
+            logInfo(json_encode($verifyNIN), "Verify NIN Rates");
 
             if (isset($verifyNIN['response_code']) && $verifyNIN['response_code'] == "00") {
 

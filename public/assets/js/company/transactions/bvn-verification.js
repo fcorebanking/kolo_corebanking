@@ -80,7 +80,7 @@ function verifyBVN() {
                     displayInfo('watch_listed_div', 'watch_listed', data.data.watch_listed)
                     $('#bvn_image').show();
 
-                    $('#bvn_image').attr("src", "data:image/png;base64," + data.data.image);
+                    $('#bvn_image').attr("src", "data:image/png;base64," + data.data.base64Image);
                 } else if (verificationType == "nin") {
 
                     displayInfo('titleHeader_div', 'titleHeader', "NIN Details")

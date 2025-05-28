@@ -58,7 +58,8 @@ function verifyBVN() {
                 // $('#printBtnDiv').show();
 
                 if (verificationType == "bvn") {
-                    console.log(data.data.base64Image);
+                    console.log(data.data.firstName)
+                    console.log(data.data.base64Image)
                     $('#titleHeader').html("BVN Details")
 
                     displayInfo('first_name_div', 'first_name', data.data.firstName)

@@ -2133,8 +2133,10 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
             }
 
             $companyWallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
-            
-            if ($companyWallet->balance > 100000) {
+
+            $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge);
+
+            if ($companyWallet->balance > 100000 && ($companyAfterBalance > 100000)) {
                 $companyIDsStatus = true;
             }
 
@@ -2564,6 +2566,8 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
 
         $debitAmount = $originalAmount + $companyCharge;
 
+        $companyAfterBalance = $companyInitialBalance - $debitAmount;
+
         $companyIDs = [17, 30, 33, 35, 36];
 
         $companyIDsStatus = false;
@@ -2572,7 +2576,7 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
             $companyIDsStatus = true;
         }
 
-        if ($companyInitialBalance > 100000) {
+        if ($companyInitialBalance > 100000 && $companyAfterBalance > 100000) {
             $companyIDsStatus = true;
         }
 

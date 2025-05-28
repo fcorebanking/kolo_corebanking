@@ -92,7 +92,7 @@ function verifyBVN() {
                     displayInfo('gender_div', 'gender', data.data.gender == "M" ? "Male" : "Female")
                     $('#bvn_image').show();
                     console.log(data.data.base64Image);
-                    $('#bvn_image').attr("src", "data:image/png;base64," + data.data.photo);
+                    //  $('#bvn_image').attr("src", "data:image/png;base64," + data.data.photo);
                 } else {
 
                     displayInfo('titleHeader_div', 'titleHeader', "Driver License Details")

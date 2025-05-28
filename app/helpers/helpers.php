@@ -2136,7 +2136,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
             $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge);
 
-            if ($companyWallet->balance > 100000 && ($companyAfterBalance > 100000)) {
+            if ($companyWallet->balance > 99999 && ($companyAfterBalance > 99999)) {
                 $companyIDsStatus = true;
             }
 
@@ -2576,7 +2576,7 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
             $companyIDsStatus = true;
         }
 
-        if ($companyInitialBalance > 100000 && $companyAfterBalance > 100000) {
+        if ($companyInitialBalance > 99999 && $companyAfterBalance > 99999) {
             $companyIDsStatus = true;
         }
 

@@ -2093,7 +2093,7 @@ class TransactionController extends Controller
         $baniController->virtualAccount       = $currentRequest["data"]["transaction"]["aliasAccountNumber"];
         $baniController->amount               = $currentRequest["data"]["transaction"]["transactionAmount"];
         $baniController->webhookType          = 'amucha';
-        $baniController->description          = "you received payment from " . $currentRequest["data"]["customer"]["billerId"];
+        $baniController->description          = "you received payment from " . ($currentRequest["data"]["customer"]["billerId"] ?? $currentRequest["data"]["customer"]["senderName"] ?? 'Unknown');
         $baniController->transactionDate      = $currentRequest["data"]["transaction"]["time"];
         $baniController->request              = $request;
         $baniController->fromTempWebhook      = 'false';

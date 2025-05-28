@@ -2124,7 +2124,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
             $company = Company::find($companyId);
 
-            $companyIDs = [17, 30, 33, 35, 36];
+            $companyIDs = [1, 17, 30, 33, 35, 36];
 
             $companyIDsStatus = false;
 

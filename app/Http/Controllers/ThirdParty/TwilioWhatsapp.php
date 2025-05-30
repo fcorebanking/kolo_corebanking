@@ -8,6 +8,7 @@ use App\Models\user_wallet;
 use App\Models\wb_account_details;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Twilio\Rest\Client;
 
 class TwilioWhatsapp extends Controller
@@ -77,7 +78,7 @@ class TwilioWhatsapp extends Controller
             $message = $this->openAccount($request, $stringArray);
         }
         if ($string == "B" || $string == strtolower("B")) {
-            $message = $this->transfer($request, $stringArray);
+            $message = $this->getTransferMessage($request, $stringArray);
         }
         if ($string == "C" || $string == strtolower("C")) {
             $message = $this->getAccountBalance($request, $stringArray);
@@ -86,23 +87,43 @@ class TwilioWhatsapp extends Controller
             $message = $this->getPOSBalance($request, $stringArrayt);
         }
         if ($string == "E" || $string == strtolower("E")) {
-            $message = $this->changePin($request, $stringArray);
+            $message = $this->getChangePinMessage($request, $stringArray);
         }
 
         if ($string == "F" || $string == strtolower("F")) {
-            $message = $this->getOperatorResult($request);
+            $message = $this->getChangePasswordMessage($request, $stringArray);
         }
 
         if ($string == "G" || $string == strtolower("G")) {
-            $message = $this->getOperatorResult($request);
+            $message = $this->getBuyDataMessage($request);
         }
 
         if ($string == "H" || $string == strtolower("H")) {
-            $message = $this->getOperatorResult($request);
+            $message = $this->getPayBillMessage($request);
         }
 
         if ($string == "I" || $string == strtolower("I")) {
-            $message = $this->getOperatorResult($request);
+            $message = $this->getOtp($request);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "changepin" || $stringArray[0] == strtolower("changepin"))) {
+            $message = $this->changePin($request, $stringArray);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "changepassword" || $stringArray[0] == strtolower("changepassword"))) {
+
+            $message = $this->changePassword($request, $stringArray);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "transfer" || $stringArray[0] == strtolower("transfer"))) {
+            $transferOption = $this->cleanString($stringArray[1]);
+
+            if (($transferOption == "A" || $transferOption == strtolower("A")) || ($transferOption == "B" || $transferOption == strtolower("B"))) {
+                $message = $this->changePassword($request, $stringArray);
+            } else {
+                $message = $this->changePassword($request, $stringArray);
+            }
+
         }
 
         \logInfo($message, "Twilio Respond Whatsapp Message");
@@ -167,9 +188,9 @@ class TwilioWhatsapp extends Controller
         $user = $this->getUser($request);
 
         if ($user != null) {
-            $otp = $this->otpcode($user);
-            $message .= "*{otpcode}* - {$otp}\n\n";
-            $message .= "*Type Transaction Pin. (changepin, pin, otpcode).\n\nFollow the example below*\n\n *Example* - changepin, 1234, 5678 \n";
+            $otp = $this->otpCode($user);
+            $message .= $otp;
+            $message .= "*Type Transaction Pin. (changepin, newpin, otpcode).\n\nFollow the example below to change your Pin*\n\n *Example* - changepin, 1234, 5678 \n";
             return $message;
         } else {
             return "User does not exist";
@@ -179,24 +200,118 @@ class TwilioWhatsapp extends Controller
 
     public function changePin(Request $request, $stringArray)
     {
+        $newPin = $this->cleanString($stringArray[1]);
+        $otp    = $this->cleanString($stringArray[2]);
+        $user   = $this->getUser($request);
+        if ($user != null) {
+            $checkOTP = $this->validateOTP($user, $otp);
+            if ($checkOTP) {
+                $user->pin = $newPin;
+                $user->save();
+                $message .= "*Pin has been changed successfully*\n";
+            } else {
+                $message .= $checkOTP;
+            }
 
-        if (isset($stringArray[1]) && ($stringArray[0] == "changepin" || $stringArray[0] == strtolower("changepin"))) {
-         
-         
-            $checkGame = $this->checkOperatorGame($stringArray[1]);
-            file_put_contents(public_path('twilio.txt'), PHP_EOL . json_encode($checkGame), FILE_APPEND);
-            $message = $this->getForecastGame($request, $stringArray);
+            return $message;
+        } else {
+            return "User does not exist";
+        }
+
+    }
+
+    public function getChangePasswordMessage(Request $request, $stringArray)
+    {
+        $user = $this->getUser($request);
+
+        if ($user != null) {
+            $otp = $this->otpCode($user);
+            $message .= $otp;
+            $message .= "*Type Transaction Pin. (changepassword, newpassword, otpcode).\n\nFollow the example below to change yor password*\n\n *Example* - changepassword, 1234, 5678 \n";
+            return $message;
+        } else {
+            return "User does not exist";
+        }
+
+    }
+
+    public function changePassword(Request $request, $stringArray)
+    {
+        $newPassword = $this->cleanString($stringArray[1]);
+        $otp         = $this->cleanString($stringArray[2]);
+        $user        = $this->getUser($request);
+
+        if ($user != null) {
+            $checkOTP = $this->validateOTP($user, $otp);
+            if ($checkOTP) {
+                $user->password    = Hash::make($newPassword);
+                $user->login_fails = 0;
+                $user->status_id   = 1;
+                $user->save();
+                $message .= "*Password has been changed successfully*\n";
+            } else {
+                $message .= $checkOTP;
+            }
+
+            return $message;
+        } else {
+            return "User does not exist";
+        }
+
+    }
+
+    public function getTransferMessage($request, $stringArray)
+    {
+        $user = $this->getUser($request);
+
+        if ($user != null) {
+
+            $message .= "*Choose Type of Transfer*.\n\nFollow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
+            return $message;
+        } else {
+            return "User does not exist";
         }
     }
 
-    public function otpcode($user)
+    public function getTransferAccountMessage($request, $stringArray)
+    {
+        $user = $this->getUser($request);
+
+        if ($user != null) {
+
+            $message .= "*Choose Type of Transfer*.\n\nFollow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
+            return $message;
+        } else {
+            return "User does not exist";
+        }
+    }
+
+    public function otpCode($user)
     {
         $otpCode                   = generateOtp();
         $user->otp                 = $otpCode;
         $date                      = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
         $user->otp_expiration_date = $date;
         $user->save();
-        return $otpCode;
+        return "*{otpcode}* - {$otp}\n\n";
+    }
+
+    public function validateOTP($user, $otp)
+    {
+        if ($user->otp == $otp) {
+            return true;
+        } else {
+            return "*OTP is invalid*";
+        }
+    }
+
+    public function validatePin($user, $pin)
+    {
+        if ($user->pin == $pin) {
+            return true;
+        } else {
+            return "*PIN is invalid*";
+        }
     }
 
     public function getUser(Request $request)
@@ -244,6 +359,11 @@ class TwilioWhatsapp extends Controller
         }
         \logInfo($tell, "Twilio Area Phone Proccessed");
         return $tell;
+    }
+
+    public function cleanString($input)
+    {
+        return str_replace(' ', '', $input);
     }
 
 }

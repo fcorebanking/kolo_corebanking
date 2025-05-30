@@ -150,6 +150,14 @@ class RegisterController extends Controller
         // $response = $assetMatrix->createAccount($customerReference, $request->email, $request->phone, $request->first_name, $request->last_name, "");
         // echo \json_encode($createAdminAccount);
 
+        $companyIDs = [33];
+
+        $companyIDsStatus = false;
+
+        if (in_array($companyRecord->id, $companyIDs)) {
+            $companyIDsStatus = true;
+        }
+
         $bank_id      = $companyRecord->setting->preferred_bank_id ?? 126;
         $selectedBank = banks::where('id', $bank_id)->first();
         if (! isset($request->account_type) || $request->account_type != 'regular') {
@@ -158,7 +166,13 @@ class RegisterController extends Controller
             \logInfo($bank_id, "Register Bank Id ");
             \logInfo($selectedBank->bank_code, "Register Bank code ");
 
-            $virtualAccount->bankCode                     = $selectedBank->bank_code;
+            if ($companyIDsStatus) {
+                $customSelectedBank = "090645";
+            } else {
+                $customSelectedBank = $selectedBank->bank_code;
+            }
+
+            $virtualAccount->bankCode                     = $customSelectedBank;
             $virtualAccount->currencyCode                 = $companyRecord->currency->code;
             $virtualAccount->firstName                    = $request->first_name;
             $virtualAccount->companyShortName             = $companyRecord->short_name;

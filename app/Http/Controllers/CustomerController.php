@@ -340,9 +340,23 @@ class CustomerController extends Controller
             $bankId           = $bank->id;
             $account_type_msg = 'Virtual';
 
+            $companyIDs = [33];
+
+            $companyIDsStatus = false;
+
+            if (in_array($auth->company_id, $companyIDs)) {
+                $companyIDsStatus = true;
+            }
+
+            if ($companyIDsStatus) {
+                $customSelectedBank = "090645";
+            } else {
+                $customSelectedBank = $request->account_bank;
+            }
+
             $virtualAccount = new VirtualAccountType();
 
-            $virtualAccount->bankCode                     = $request->account_bank;
+            $virtualAccount->bankCode                     = $customSelectedBank;
             $virtualAccount->currencyCode                 = $auth->company->currency->code;
             $virtualAccount->firstName                    = $request->first_name;
             $virtualAccount->companyShortName             = $auth->company->short_name;

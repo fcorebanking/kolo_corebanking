@@ -14,7 +14,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('wb_account_details', function (Blueprint $table) {
-            //
+            $table->date('next_maintenance_date')->nullable();
         });
     }
 

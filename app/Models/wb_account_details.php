@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -8,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class wb_account_details extends Model
 {
     use HasFactory;
-    protected $table = 'wb_account_details';
+    protected $table    = 'wb_account_details';
     protected $fillable = [
         "user_id",
         "account_product_id",
@@ -16,12 +15,13 @@ class wb_account_details extends Model
         "virtual_accnum",
         "acc_reference",
         "has_atm_card",
-        "currency_id"
+        "currency_id",
+        "next_maintenance_date",
     ];
 
     public function user_wallet()
     {
-        return $this->belongsTo(user_wallet::class,'id','wb_account_detail_id');
+        return $this->belongsTo(user_wallet::class, 'id', 'wb_account_detail_id');
     }
     public function currency()
     {
@@ -33,7 +33,7 @@ class wb_account_details extends Model
     }
     public function bank()
     {
-        return $this->hasOne(banks::class,'id','bankid');
+        return $this->hasOne(banks::class, 'id', 'bankid');
     }
 
     public function user()
@@ -43,11 +43,11 @@ class wb_account_details extends Model
 
     public function accountType()
     {
-        return $this->belongsTo(savings_product::class,'account_product_id','id');
+        return $this->belongsTo(savings_product::class, 'account_product_id', 'id');
     }
     public function investment()
     {
-        return $this->hasMany(Investmentbooking::class,'wb_accountdetails_id','id')->where('status',1);
+        return $this->hasMany(Investmentbooking::class, 'wb_accountdetails_id', 'id')->where('status', 1);
     }
 
 }

@@ -812682,3 +812682,463 @@
   2025-06-01 05:59:06 Running ['artisan' pendingmaintenance:charge]  410ms DONE
   ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
 
+
+  2025-06-01 06:00:07 Running ['artisan' bank_tranfer:cron] ..... 1,317ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:00:08 Running ['artisan' salary_payment:cron] ..... 488ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:00:09 Running ['artisan' pendingsms:cron] ......... 525ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:00:10 Running ['artisan' reset_salary_payment:cron]  475ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:00:10 Running ['artisan' pending_tier:cron] ....... 527ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pending_tier:cron > '/dev/null' 2>&1  
+  2025-06-01 06:00:11 Running ['artisan' investment:cron] ......... 512ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:00:11 Running ['artisan' birthday:cron] ........... 480ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:00:11 Running ['artisan' loan:cron] ............... 565ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:00:12 Running ['artisan' LoanExtend:cron] ......... 519ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:00:13 Running ['artisan' CompanySettimentThreshold:cron]  459ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:00:13 Running ['artisan' pendingpenalty:cron] ..... 414ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:00:13 Running ['artisan' pendingmaintenance:charge]  461ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:01:02 Running ['artisan' bank_tranfer:cron] ....... 605ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:01:02 Running ['artisan' salary_payment:cron] ..... 512ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:01:03 Running ['artisan' pendingsms:cron] ......... 486ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:01:03 Running ['artisan' reset_salary_payment:cron]  477ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:01:04 Running ['artisan' investment:cron] ......... 427ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:01:04 Running ['artisan' birthday:cron] ........... 419ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:01:05 Running ['artisan' loan:cron] ............... 480ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:01:05 Running ['artisan' LoanExtend:cron] ......... 471ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:01:06 Running ['artisan' CompanySettimentThreshold:cron]  452ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:01:06 Running ['artisan' pendingpenalty:cron] ..... 485ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:01:07 Running ['artisan' pendingmaintenance:charge]  500ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:02:02 Running ['artisan' bank_tranfer:cron] ....... 471ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:02:03 Running ['artisan' salary_payment:cron] ..... 514ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:02:03 Running ['artisan' pendingsms:cron] ......... 481ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:02:04 Running ['artisan' reset_salary_payment:cron]  472ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:02:04 Running ['artisan' investment:cron] ......... 443ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:02:04 Running ['artisan' birthday:cron] ........... 434ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:02:05 Running ['artisan' loan:cron] ............... 490ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:02:05 Running ['artisan' LoanExtend:cron] ......... 408ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:02:06 Running ['artisan' CompanySettimentThreshold:cron]  405ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:02:06 Running ['artisan' pendingpenalty:cron] ..... 396ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:02:07 Running ['artisan' pendingmaintenance:charge]  402ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:03:02 Running ['artisan' bank_tranfer:cron] ....... 504ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:03:02 Running ['artisan' salary_payment:cron] ..... 461ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:03:03 Running ['artisan' pendingsms:cron] ......... 526ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:03:03 Running ['artisan' reset_salary_payment:cron]  506ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:03:04 Running ['artisan' investment:cron] ......... 432ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:03:04 Running ['artisan' birthday:cron] ........... 434ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:03:05 Running ['artisan' loan:cron] ............... 549ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:03:05 Running ['artisan' LoanExtend:cron] ......... 444ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:03:06 Running ['artisan' CompanySettimentThreshold:cron]  442ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:03:06 Running ['artisan' pendingpenalty:cron] ..... 404ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:03:07 Running ['artisan' pendingmaintenance:charge]  414ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:04:02 Running ['artisan' bank_tranfer:cron] ....... 534ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:04:02 Running ['artisan' salary_payment:cron] ..... 479ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:04:03 Running ['artisan' pendingsms:cron] ......... 475ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:04:03 Running ['artisan' reset_salary_payment:cron]  449ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:04:04 Running ['artisan' investment:cron] ......... 456ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:04:04 Running ['artisan' birthday:cron] ........... 431ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:04:05 Running ['artisan' loan:cron] ............... 495ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:04:05 Running ['artisan' LoanExtend:cron] ......... 446ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:04:05 Running ['artisan' CompanySettimentThreshold:cron]  442ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:04:06 Running ['artisan' pendingpenalty:cron] ..... 442ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:04:06 Running ['artisan' pendingmaintenance:charge]  446ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:05:03 Running ['artisan' bank_tranfer:cron] ....... 634ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:05:03 Running ['artisan' salary_payment:cron] ..... 570ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:05:04 Running ['artisan' pendingsms:cron] ......... 519ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:05:05 Running ['artisan' reset_salary_payment:cron]  471ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:05:05 Running ['artisan' investment:cron] ......... 467ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:05:05 Running ['artisan' birthday:cron] ........... 466ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:05:06 Running ['artisan' loan:cron] ............... 512ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:05:06 Running ['artisan' LoanExtend:cron] ......... 458ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:05:07 Running ['artisan' CompanySettimentThreshold:cron]  415ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:05:07 Running ['artisan' pendingpenalty:cron] ..... 430ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:05:08 Running ['artisan' pendingmaintenance:charge]  435ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:06:02 Running ['artisan' bank_tranfer:cron] ....... 511ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:06:03 Running ['artisan' salary_payment:cron] ..... 472ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:06:03 Running ['artisan' pendingsms:cron] ......... 558ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:06:04 Running ['artisan' reset_salary_payment:cron]  448ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:06:04 Running ['artisan' investment:cron] ......... 459ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:06:05 Running ['artisan' birthday:cron] ........... 439ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:06:05 Running ['artisan' loan:cron] ............... 532ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:06:06 Running ['artisan' LoanExtend:cron] ......... 474ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:06:06 Running ['artisan' CompanySettimentThreshold:cron]  421ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:06:06 Running ['artisan' pendingpenalty:cron] ..... 400ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:06:07 Running ['artisan' pendingmaintenance:charge]  411ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:07:02 Running ['artisan' bank_tranfer:cron] ....... 452ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:07:03 Running ['artisan' salary_payment:cron] ..... 445ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:07:03 Running ['artisan' pendingsms:cron] ......... 437ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:07:03 Running ['artisan' reset_salary_payment:cron]  434ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:07:04 Running ['artisan' investment:cron] ......... 453ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:07:04 Running ['artisan' birthday:cron] ........... 427ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:07:05 Running ['artisan' loan:cron] ............... 570ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:07:05 Running ['artisan' LoanExtend:cron] ......... 428ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:07:06 Running ['artisan' CompanySettimentThreshold:cron]  410ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:07:06 Running ['artisan' pendingpenalty:cron] ..... 392ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:07:07 Running ['artisan' pendingmaintenance:charge]  413ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:08:02 Running ['artisan' bank_tranfer:cron] ....... 555ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:08:02 Running ['artisan' salary_payment:cron] ..... 509ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:08:03 Running ['artisan' pendingsms:cron] ......... 526ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:08:03 Running ['artisan' reset_salary_payment:cron]  453ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:08:04 Running ['artisan' investment:cron] ......... 428ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:08:04 Running ['artisan' birthday:cron] ........... 428ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:08:05 Running ['artisan' loan:cron] ............... 497ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:08:05 Running ['artisan' LoanExtend:cron] ......... 482ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:08:06 Running ['artisan' CompanySettimentThreshold:cron]  398ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:08:06 Running ['artisan' pendingpenalty:cron] ..... 437ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:08:07 Running ['artisan' pendingmaintenance:charge]  435ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:09:02 Running ['artisan' bank_tranfer:cron] ....... 654ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:09:03 Running ['artisan' salary_payment:cron] ..... 624ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:09:04 Running ['artisan' pendingsms:cron] ......... 611ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:09:04 Running ['artisan' reset_salary_payment:cron]  546ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:09:05 Running ['artisan' investment:cron] ......... 462ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:09:05 Running ['artisan' birthday:cron] ........... 449ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:09:06 Running ['artisan' loan:cron] ............... 557ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:09:06 Running ['artisan' LoanExtend:cron] ......... 419ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:09:07 Running ['artisan' CompanySettimentThreshold:cron]  403ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:09:07 Running ['artisan' pendingpenalty:cron] ..... 387ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:09:07 Running ['artisan' pendingmaintenance:charge]  417ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:10:02 Running ['artisan' bank_tranfer:cron] ....... 903ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:10:03 Running ['artisan' salary_payment:cron] ..... 843ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:10:04 Running ['artisan' pendingsms:cron] ......... 897ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:10:05 Running ['artisan' reset_salary_payment:cron]  630ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:10:05 Running ['artisan' pending_tier:cron] ....... 481ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pending_tier:cron > '/dev/null' 2>&1  
+  2025-06-01 06:10:06 Running ['artisan' investment:cron] ......... 536ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:10:07 Running ['artisan' birthday:cron] ........... 457ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:10:07 Running ['artisan' loan:cron] ............... 541ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:10:08 Running ['artisan' LoanExtend:cron] ......... 459ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:10:08 Running ['artisan' CompanySettimentThreshold:cron]  423ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:10:08 Running ['artisan' pendingpenalty:cron] ..... 433ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:10:09 Running ['artisan' pendingmaintenance:charge]  459ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:11:02 Running ['artisan' bank_tranfer:cron] ....... 473ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:11:03 Running ['artisan' salary_payment:cron] ..... 427ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:11:03 Running ['artisan' pendingsms:cron] ......... 436ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:11:03 Running ['artisan' reset_salary_payment:cron]  436ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:11:04 Running ['artisan' investment:cron] ......... 440ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:11:04 Running ['artisan' birthday:cron] ........... 515ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:11:05 Running ['artisan' loan:cron] ............... 505ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:11:05 Running ['artisan' LoanExtend:cron] ......... 440ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:11:06 Running ['artisan' CompanySettimentThreshold:cron]  411ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:11:06 Running ['artisan' pendingpenalty:cron] ..... 384ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:11:07 Running ['artisan' pendingmaintenance:charge]  403ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:12:02 Running ['artisan' bank_tranfer:cron] ....... 463ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:12:02 Running ['artisan' salary_payment:cron] ..... 488ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:12:03 Running ['artisan' pendingsms:cron] ......... 523ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:12:03 Running ['artisan' reset_salary_payment:cron]  508ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:12:04 Running ['artisan' investment:cron] ......... 426ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:12:04 Running ['artisan' birthday:cron] ........... 418ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:12:05 Running ['artisan' loan:cron] ............... 491ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:12:05 Running ['artisan' LoanExtend:cron] ......... 439ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:12:06 Running ['artisan' CompanySettimentThreshold:cron]  392ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:12:06 Running ['artisan' pendingpenalty:cron] ..... 446ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:12:07 Running ['artisan' pendingmaintenance:charge]  426ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:13:02 Running ['artisan' bank_tranfer:cron] ....... 557ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:13:02 Running ['artisan' salary_payment:cron] ..... 531ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:13:03 Running ['artisan' pendingsms:cron] ......... 455ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:13:03 Running ['artisan' reset_salary_payment:cron]  459ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:13:04 Running ['artisan' investment:cron] ......... 472ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:13:04 Running ['artisan' birthday:cron] ........... 406ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:13:05 Running ['artisan' loan:cron] ............... 514ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:13:05 Running ['artisan' LoanExtend:cron] ......... 409ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:13:06 Running ['artisan' CompanySettimentThreshold:cron]  375ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:13:06 Running ['artisan' pendingpenalty:cron] ..... 379ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:13:06 Running ['artisan' pendingmaintenance:charge]  392ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:14:02 Running ['artisan' bank_tranfer:cron] ....... 512ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:14:02 Running ['artisan' salary_payment:cron] ..... 490ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:14:03 Running ['artisan' pendingsms:cron] ......... 580ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:14:03 Running ['artisan' reset_salary_payment:cron]  453ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:14:04 Running ['artisan' investment:cron] ......... 442ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:14:04 Running ['artisan' birthday:cron] ........... 406ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:14:04 Running ['artisan' loan:cron] ............... 494ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:14:05 Running ['artisan' LoanExtend:cron] ......... 399ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:14:05 Running ['artisan' CompanySettimentThreshold:cron]  425ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:14:06 Running ['artisan' pendingpenalty:cron] ..... 391ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:14:06 Running ['artisan' pendingmaintenance:charge]  397ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:15:03 Running ['artisan' bank_tranfer:cron] ....... 533ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:15:03 Running ['artisan' salary_payment:cron] ..... 499ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:15:04 Running ['artisan' pendingsms:cron] ......... 653ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:15:04 Running ['artisan' reset_salary_payment:cron]  620ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:15:05 Running ['artisan' investment:cron] ......... 546ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:15:06 Running ['artisan' birthday:cron] ........... 467ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:15:06 Running ['artisan' loan:cron] ............... 546ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:15:07 Running ['artisan' LoanExtend:cron] ......... 453ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:15:07 Running ['artisan' CompanySettimentThreshold:cron]  446ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:15:08 Running ['artisan' pendingpenalty:cron] ..... 457ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:15:08 Running ['artisan' pendingmaintenance:charge]  434ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:16:02 Running ['artisan' bank_tranfer:cron] ....... 467ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:16:03 Running ['artisan' salary_payment:cron] ..... 487ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:16:03 Running ['artisan' pendingsms:cron] ......... 552ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:16:04 Running ['artisan' reset_salary_payment:cron]  469ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:16:04 Running ['artisan' investment:cron] ......... 452ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:16:05 Running ['artisan' birthday:cron] ........... 416ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:16:05 Running ['artisan' loan:cron] ............... 502ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:16:06 Running ['artisan' LoanExtend:cron] ......... 424ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:16:06 Running ['artisan' CompanySettimentThreshold:cron]  381ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:16:06 Running ['artisan' pendingpenalty:cron] ..... 402ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:16:07 Running ['artisan' pendingmaintenance:charge]  414ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:17:02 Running ['artisan' bank_tranfer:cron] ....... 506ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:17:03 Running ['artisan' salary_payment:cron] ..... 417ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:17:03 Running ['artisan' pendingsms:cron] ......... 460ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:17:04 Running ['artisan' reset_salary_payment:cron]  408ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:17:04 Running ['artisan' investment:cron] ......... 417ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:17:04 Running ['artisan' birthday:cron] ........... 407ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:17:05 Running ['artisan' loan:cron] ............... 479ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:17:05 Running ['artisan' LoanExtend:cron] ......... 417ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:17:06 Running ['artisan' CompanySettimentThreshold:cron]  387ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:17:06 Running ['artisan' pendingpenalty:cron] ..... 415ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:17:06 Running ['artisan' pendingmaintenance:charge]  412ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+
+
+  2025-06-01 06:18:02 Running ['artisan' bank_tranfer:cron] ....... 559ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' bank_tranfer:cron > '/dev/null' 2>&1  
+  2025-06-01 06:18:02 Running ['artisan' salary_payment:cron] ..... 519ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:18:03 Running ['artisan' pendingsms:cron] ......... 491ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingsms:cron > '/dev/null' 2>&1  
+  2025-06-01 06:18:03 Running ['artisan' reset_salary_payment:cron]  449ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' reset_salary_payment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:18:04 Running ['artisan' investment:cron] ......... 471ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' investment:cron > '/dev/null' 2>&1  
+  2025-06-01 06:18:04 Running ['artisan' birthday:cron] ........... 441ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' birthday:cron > '/dev/null' 2>&1  
+  2025-06-01 06:18:05 Running ['artisan' loan:cron] ............... 514ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' loan:cron > '/dev/null' 2>&1  
+  2025-06-01 06:18:05 Running ['artisan' LoanExtend:cron] ......... 430ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' LoanExtend:cron > '/dev/null' 2>&1  
+  2025-06-01 06:18:06 Running ['artisan' CompanySettimentThreshold:cron]  410ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' CompanySettimentThreshold:cron > '/dev/null' 2>&1  
+  2025-06-01 06:18:06 Running ['artisan' pendingpenalty:cron] ..... 435ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingpenalty:cron > '/dev/null' 2>&1  
+  2025-06-01 06:18:07 Running ['artisan' pendingmaintenance:charge]  404ms DONE
+  ⇂ '/usr/local/lsws/lsphp82/bin/php' 'artisan' pendingmaintenance:charge > '/dev/null' 2>&1  
+

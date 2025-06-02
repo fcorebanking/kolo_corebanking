@@ -5288,6 +5288,7 @@ class TransactionController extends Controller
 
     public function twilioWebhook(Request $request)
     {
+        \logInfo($request->all(), "Twilio Response Message");
         $twilioWebHook = new TwilioWhatsapp();
         return $twilioWebHook->getUpdates($request);
     }

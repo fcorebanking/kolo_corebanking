@@ -17,6 +17,7 @@ use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Http\Controllers\ThirdParty\TryluxController;
 use App\Http\Controllers\ThirdParty\Trylux\TryluxPayload;
+use App\Http\Controllers\ThirdParty\TwilioWhatsapp;
 use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Http\Controllers\ThirdParty\WovenController;
@@ -5283,5 +5284,11 @@ class TransactionController extends Controller
         $accountName    = auth()->user()->first_name;
         $kudaController = new KudaController();
         return $kudaController->getBiller($type, $network);
+    }
+
+    public function twilioWebhook(Request $request)
+    {
+        $twilioWebHook = new TwilioWhatsapp();
+        return $twilioWebHook->getUpdates($request);
     }
 }

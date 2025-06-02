@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\ThirdParty;
 
+use App\Http\Controllers\api\v1\TransactionController;
 use App\Http\Controllers\Controller;
 use App\Models\AgentTerminal;
 use App\Models\User;
@@ -119,9 +120,11 @@ class TwilioWhatsapp extends Controller
             $transferOption = $this->cleanString($stringArray[1]);
 
             if (($transferOption == "A" || $transferOption == strtolower("A")) || ($transferOption == "B" || $transferOption == strtolower("B"))) {
-                $message = $this->changePassword($request, $stringArray);
-            } else {
-                $message = $this->changePassword($request, $stringArray);
+                $message = $this->initializeTransactionMessage();
+            }
+
+            if (is_numeric($transferOption) || (int) $transferOption == $transferOption) {
+                $message = $this->initializeTransactionMessage();
             }
 
         }
@@ -167,20 +170,6 @@ class TwilioWhatsapp extends Controller
             file_put_contents(public_path('twilio.txt'), PHP_EOL . json_encode($checkGame), FILE_APPEND);
             $message = $this->getForecastGame($request, $stringArray);
         }
-    }
-
-    public function getTransactionPinMessage(Request $request, $stringArray)
-    {
-        $user = $this->getUser($request);
-        if ($user != null) {
-            $otp = $this->otpcode($user);
-            $message .= "*{otpcode}* - {$otp}\n\n";
-            $message .= "*Type Transaction Pin.*";
-            return $message;
-        } else {
-            return "User does not exist";
-        }
-
     }
 
     public function getChangePinMessage(Request $request, $stringArray)
@@ -262,6 +251,25 @@ class TwilioWhatsapp extends Controller
 
     public function getTransferMessage($request, $stringArray)
     {
+        $message .= "*Choose Type of Transfer*.\n\nFollow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
+        return $message;
+    }
+
+    public function getTransferAccountMessage($request, $stringArray)
+    {
+        $user = $this->getUser($request);
+
+        if ($user != null) {
+
+            $message .= "*Transfer to Bank Account (transfer, amount)*.\n\nFollow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
+            return $message;
+        } else {
+            return "User does not exist";
+        }
+    }
+
+    public function getTransferWalletMessage($request, $stringArray)
+    {
         $user = $this->getUser($request);
 
         if ($user != null) {
@@ -273,17 +281,38 @@ class TwilioWhatsapp extends Controller
         }
     }
 
-    public function getTransferAccountMessage($request, $stringArray)
+    public function initializeTransactionMessage()
     {
+        $message .= "*Initialise Transfer Trasaction*.\n\nFollow the example below to initialize transfer*\n\n *Example* - transfer, 5000, send to ola \n ";
+        return $message;
+
+    }
+
+    public function initializeTransaction($request, $stringArray)
+    {
+        $amount      = $this->cleanString($stringArray[1]);
+        $description = $this->cleanString($stringArray[1]);
+
         $user = $this->getUser($request);
 
-        if ($user != null) {
+        $transactionController     = new TransactionController();
+        $request                   = new Request;
+        $request->final_amount     = $amount;
+        $request->transaction_type = 4;
+        $request->description      = $description;
+        $transaction               = $transactionController->initiateTransaction($request);
 
-            $message .= "*Choose Type of Transfer*.\n\nFollow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
-            return $message;
-        } else {
-            return "User does not exist";
-        }
+        \logInfo($transaction, "Twilio Respond Whatsapp Message");
+
+        $initiateTransaction                     = json_decode($transaction, true);
+        $initiateTransactionMessage              = $initiateTransaction['message'];
+        $initiateTransactionCharge               = $initiateTransaction['data']['charge'];
+        $initiateTransactionTransactionReference = $initiateTransaction['data']['transaction_reference'];
+        $initiateTransactionTransactionTotal     = $initiateTransaction['data']['total'];
+
+        $message .= "*$initiateTransactionMessage*\n\n *charge* - $initiateTransactionCharge\n*transaction_reference* - $initiateTransactionTransactionReference\n ";
+        return $message;
+
     }
 
     public function otpCode($user)

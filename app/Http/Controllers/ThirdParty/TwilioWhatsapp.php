@@ -131,7 +131,7 @@ class TwilioWhatsapp extends Controller
 
         \logInfo($message, "Twilio Respond Whatsapp Message");
 
-        $this->send($message, $phone, $batch, $channel, $type);
+        $this->send($message, $phone, $type);
     }
 
     public function getAccountBalance(Request $request, $stringArray)

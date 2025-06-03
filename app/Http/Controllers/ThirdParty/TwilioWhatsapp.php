@@ -85,7 +85,7 @@ class TwilioWhatsapp extends Controller
             $message = $this->getAccountBalance($request, $stringArray);
         }
         if ($string == "D" || $string == strtolower("D")) {
-            $message = $this->getPOSBalance($request, $stringArrayt);
+            $message = $this->getPOSBalance($request, $stringArray);
         }
         if ($string == "E" || $string == strtolower("E")) {
             $message = $this->getChangePinMessage($request, $stringArray);

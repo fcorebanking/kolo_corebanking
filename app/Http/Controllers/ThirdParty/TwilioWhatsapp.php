@@ -139,7 +139,7 @@ class TwilioWhatsapp extends Controller
         $user = $this->getUser($request);
         \logInfo(json_encode($user), "Twilio get Account Balance Whatsapp Message");
         if ($user != null) {
-            $customerAccountId = wb_account_details::where('user_id', $user->virtual_account)->first()->id;
+            $customerAccountId = wb_account_details::where('user_id', $user->id)->first()->id;
             $userWallet        = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
 
             return "*Wallet Balance* - {$userWallet->balance}\n";

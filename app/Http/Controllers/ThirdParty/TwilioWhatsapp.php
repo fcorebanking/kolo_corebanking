@@ -346,6 +346,24 @@ class TwilioWhatsapp extends Controller
         }
     }
 
+    public function getOtp($request)
+    {
+        $user    = $this->getUser($request);
+        $message = "";
+        if ($user != null) {
+            $checkOTP = $this->validateOTP($user, $otp);
+            if ($checkOTP) {
+                $message .= $checkOTP;
+            } else {
+                $message .= $checkOTP;
+            }
+
+            return $message;
+        } else {
+            return "User does not exist";
+        }
+    }
+
     public function getUser(Request $request)
     {
         $cleanNumber = str_replace('whatsapp:', '', $request->From);

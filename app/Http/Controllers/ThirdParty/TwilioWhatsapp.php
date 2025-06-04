@@ -230,7 +230,7 @@ class TwilioWhatsapp extends Controller
         $newPassword = $this->cleanString($stringArray[1]);
         $otp         = $this->cleanString($stringArray[2]);
         $user        = $this->getUser($request);
-
+        $message     = "";
         if ($user != null) {
             $checkOTP = $this->validateOTP($user, $otp);
             if ($checkOTP) {
@@ -252,14 +252,15 @@ class TwilioWhatsapp extends Controller
 
     public function getTransferMessage($request, $stringArray)
     {
+        $message = "";
         $message .= "*Choose Type of Transfer*.\n\nFollow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
         return $message;
     }
 
     public function getTransferAccountMessage($request, $stringArray)
     {
-        $user = $this->getUser($request);
-
+        $user    = $this->getUser($request);
+        $message = "";
         if ($user != null) {
 
             $message .= "*Transfer to Bank Account (transfer, amount)*.\n\nFollow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
@@ -271,8 +272,8 @@ class TwilioWhatsapp extends Controller
 
     public function getTransferWalletMessage($request, $stringArray)
     {
-        $user = $this->getUser($request);
-
+        $user    = $this->getUser($request);
+        $message = "";
         if ($user != null) {
 
             $message .= "*Choose Type of Transfer*.\n\nFollow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
@@ -284,6 +285,7 @@ class TwilioWhatsapp extends Controller
 
     public function initializeTransactionMessage()
     {
+        $message = "";
         $message .= "*Initialise Transfer Trasaction*.\n\nFollow the example below to initialize transfer*\n\n *Example* - transfer, 5000, send to ola \n ";
         return $message;
 
@@ -293,8 +295,8 @@ class TwilioWhatsapp extends Controller
     {
         $amount      = $this->cleanString($stringArray[1]);
         $description = $this->cleanString($stringArray[1]);
-
-        $user = $this->getUser($request);
+        $message     = "";
+        $user        = $this->getUser($request);
 
         $transactionController     = new TransactionController();
         $request                   = new Request;

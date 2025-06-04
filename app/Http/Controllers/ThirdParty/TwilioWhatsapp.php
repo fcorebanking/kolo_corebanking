@@ -155,7 +155,7 @@ class TwilioWhatsapp extends Controller
         \logInfo(json_encode($user), "Twilio get Account Balance Whatsapp Message");
         \logInfo(json_encode($validatePin), "Twilio validate pin");
         if ($user != null) {
-            if ($validatePin) {
+            if ($validatePin != false) {
                 $customerAccountId = wb_account_details::where('user_id', $user->id)->first()->id;
                 $userWallet        = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
 
@@ -215,7 +215,7 @@ class TwilioWhatsapp extends Controller
         $message = "";
         if ($user != null) {
             $checkOTP = $this->validateOTP($user, $otp);
-            if ($checkOTP) {
+            if ($checkOTP != false) {
                 $user->pin = $newPin;
                 $user->save();
                 $message .= "*Pin has been changed successfully*\n";
@@ -255,7 +255,7 @@ class TwilioWhatsapp extends Controller
         if ($user != null) {
             $checkOTP    = $this->validateOTP($user, $otp);
             $validatePin = $this->validatePin($user, $transactionPin);
-            if ($checkOTP && $validatePin) {
+            if (($checkOTP != false) && ($validatePin != false)) {
                 $user->password    = Hash::make($newPassword);
                 $user->login_fails = 0;
                 $user->status_id   = 1;

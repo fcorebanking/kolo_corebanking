@@ -2,9 +2,13 @@
 namespace App\Services;
 
 use App\Models\Company;
+use App\Models\company_settings;
 use App\Models\company_wallet;
+use App\Models\savings_product;
 use App\Models\transactions;
+use App\Models\User;
 use App\Models\user_wallet;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Validator;
@@ -340,5 +344,58 @@ class TransactionService
             $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
         }
         return $response;
+    }
+
+    public function validateTransfer($amount)
+    {
+        $companySettings = company_settings::where('company_id', \auth()->user()->company_id)->first();
+        $accountTier     = auth()->user()->tier;
+        $wbaAccount      = auth()->user()->accounts->first();
+
+        if (! $companySettings) {
+            return ["status" => false, 'message' => "Contact support to resolve advanced settings"];
+        }
+
+        if ($amount > $accountTier->maximum_transfer) {
+            return ["status" => false, 'message' => "Maximum amount per transaction is NGN$accountTier->maximum_transfer. You are transfering $amount, Pls Upgrade your account to transfer higher amounts"];
+        }
+
+        $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
+        $amountLeft = $userWallet->balance - $amount;
+
+        $accoountProduct = savings_product::where('id', $wbaAccount->account_product_id)->first();
+
+        if (! $accoountProduct) {
+            return ["status" => false, 'message' => "Savings Product does not exist"];
+        }
+
+        if ($amountLeft < $accoountProduct->minimum_balance) {
+            return ["status" => false, 'message' => "Insufficient Customer balance"];
+        }
+
+        if ($amount < $accountTier->minimum_transfer) {
+            return ["status" => false, 'message' => "Minimum amount allowed is NGN$accountTier->minimum_transfer"];
+        }
+
+        // $sum = transactions::where(['transaction_remarks_id' => '2', 'account_id' => $wbAccount->id])->whereDate('created_at', Carbon::today())->sum('amount');
+        $sum      = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => auth()->user()->accounts->first()->id])->where('transaction_type_id', '<>', '27')->whereDate('created_at', Carbon::today())->count();
+        $dailySum = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => $wbaAccount->id])->where('transaction_type_id', '<>', '27')->whereDate('created_at', Carbon::today())->sum('amount');
+
+        $lastTransaction = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => $wbaAccount->id])->whereDate('created_at', Carbon::today())->orderBy('id', 'DESC')->first();
+
+        if ($lastTransaction) {
+            if ($lastTransaction->created_at > Carbon::now()->subSeconds(60)) {
+                return ["status" => false, 'message' => "Cannot make multiple transactions within 1 minute"];
+            }
+
+            if ($dailySum + $amount > $accountTier->daily_transaction_limit) {
+                return ["status" => false, 'message' => "Daily Transaction Limit Exceeded"];
+            }
+            if ($sum >= $accountTier->daily_transaction_count) {
+                return ["status" => false, 'message' => "Daily Transaction Count Exceeded"];
+            }
+        }
+
+        return ["status" => \true, 'message' => "Transaction Validated"];
     }
 }

@@ -351,13 +351,8 @@ class TwilioWhatsapp extends Controller
         $user    = $this->getUser($request);
         $message = "";
         if ($user != null) {
-            $checkOTP = $this->validateOTP($user, $otp);
-            if ($checkOTP) {
-                $message .= $checkOTP;
-            } else {
-                $message .= $checkOTP;
-            }
-
+            $otp = $this->otpCode($user);
+            $message .= $otp;
             return $message;
         } else {
             return "User does not exist";

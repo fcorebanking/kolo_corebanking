@@ -171,9 +171,10 @@ class TwilioWhatsapp extends Controller
 
     public function getPOSBalance(Request $request, $stringArray)
     {
-        $user        = $this->getUser($request);
-        $userPOS     = AgentTerminal::where('user_id', $user->id)->first();
-        $validatePin = $this->validatePin($user, $transactionPin);
+        $user           = $this->getUser($request);
+        $userPOS        = AgentTerminal::where('user_id', $user->id)->first();
+        $transactionPin = $this->cleanString($stringArray[1]);
+        $validatePin    = $this->validatePin($user, $transactionPin);
         if ($userPOS != null) {
             if ($validatePin != false) {return "*POS Balance* - {$userPOS->balance}\n";} else {
                 return $this->getInvalidOTPMessage();

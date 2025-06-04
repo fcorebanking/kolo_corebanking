@@ -153,6 +153,7 @@ class TwilioWhatsapp extends Controller
         $transactionPin = $this->cleanString($stringArray[1]);
         $validatePin    = $this->validatePin($user, $transactionPin);
         \logInfo(json_encode($user), "Twilio get Account Balance Whatsapp Message");
+        \logInfo(json_encode($validatePin), "Twilio validate pin");
         if ($user != null) {
             if ($validatePin) {
                 $customerAccountId = wb_account_details::where('user_id', $user->id)->first()->id;

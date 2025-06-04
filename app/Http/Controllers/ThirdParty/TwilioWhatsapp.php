@@ -99,11 +99,11 @@ class TwilioWhatsapp extends Controller
             $message = $this->getBuyDataMessage($request);
         }
 
-        if ($string == "8" || $string == strtolower("H")) {
+        if ($string == "8") {
             $message = $this->getPayBillMessage($request);
         }
 
-        if ($string == "9" || $string == strtolower("I")) {
+        if ($string == "9") {
             $message = $this->getOtp($request);
         }
 
@@ -171,12 +171,14 @@ class TwilioWhatsapp extends Controller
 
     public function getPOSBalance(Request $request, $stringArray)
     {
-        $user    = $this->getUser($request);
-        $userPOS = AgentTerminal::where('user_id', $user->id)->first();
-
+        $user        = $this->getUser($request);
+        $userPOS     = AgentTerminal::where('user_id', $user->id)->first();
+        $validatePin = $this->validatePin($user, $transactionPin);
         if ($userPOS != null) {
+            if ($validatePin != false) {return "*POS Balance* - {$userPOS->balance}\n";} else {
+                return $this->getInvalidOTPMessage();
+            }
 
-            return "*POS Balance* - {$userPOS->balance}\n";
         } else {
             return "User does not exist";
         }
@@ -370,7 +372,7 @@ class TwilioWhatsapp extends Controller
         if ($user->otp == $otp) {
             return true;
         } else {
-            return "*OTP is invalid*";
+            return false;
         }
     }
 
@@ -381,7 +383,7 @@ class TwilioWhatsapp extends Controller
         if ($user->pin == $pin) {
             return true;
         } else {
-            return "*PIN is invalid*";
+            return false;
         }
     }
 
@@ -400,7 +402,12 @@ class TwilioWhatsapp extends Controller
 
     public function getInvalidPinMessage()
     {
-        return "Invalid Pin";
+        return "*PIN is invalid*";
+    }
+
+    public function getInvalidOTPMessage()
+    {
+        return "*OTP is invalid*";
     }
 
     public function getUser(Request $request)

@@ -1,12 +1,12 @@
 <?php
 namespace App\Http\Controllers\ThirdParty;
 
-use App\Http\Controllers\api\v1\TransactionController;
 use App\Http\Controllers\Controller;
 use App\Models\AgentTerminal;
 use App\Models\User;
 use App\Models\user_wallet;
 use App\Models\wb_account_details;
+use App\Services\TransactionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -298,14 +298,14 @@ class TwilioWhatsapp extends Controller
         $message     = "";
         $user        = $this->getUser($request);
 
-        $transactionController = new TransactionController();
+        $transactionController = new TransactionService();
         $request->mergeIfMissing([
             'final_amount'     => $amount,
             'transaction_type' => 4,
             'description'      => $description,
         ]);
 
-        $transaction = $transactionController->initiateTransaction($request);
+        $transaction = $transactionController->initiateTransfer($request, $user);
 
         \logInfo($transaction, "Twilio Respond Whatsapp Message");
 

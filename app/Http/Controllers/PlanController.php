@@ -92,14 +92,15 @@ class PlanController extends Controller
                             // echo "myoldplanqrt: $myoldplanqrt <br>";
                             $txnamt = $sub->TXNlog->amount;
                             // echo "txn : $txnamt <br>";
-                            $oldunit = $txnamt / $myoldplanqrt;
+                            $oldunit    = $txnamt / $myoldplanqrt;
+                            $dailyRates = $sub->plan->daily_rates ?? $this->getDailyRates($sub);
                             // echo "oldunit : $oldunit <br>";
                             if ($myoldplanend > $fdate) {
                                 $daysleft = diff_btw_date($fdate, $myoldplanend);
                                 \logInfo(json_encode($daysleft), "TXNLog daysleft");
-                                \logInfo(json_encode($sub->plan->daily_rates), "TXNLog dailyrates");
+                                \logInfo(json_encode($dailyRates), "TXNLog dailyrates");
                                 // echo "$fdate, $myoldplanend <br>";
-                                $currencyExchange = $this->flutterwaveController->getExchangeRater($sub->plan->daily_rates, $auth->company->currency->code, "USD");
+                                $currencyExchange = $this->flutterwaveController->getExchangeRater($dailyRates, $auth->company->currency->code, "USD");
                                 if (! $currencyExchange['status']) {
                                     // return response()->json($currencyExchange);
                                     return redirect()->back()->with('fail', $currencyExchange['message']);
@@ -338,5 +339,10 @@ class PlanController extends Controller
         }
 
         return $json;
+    }
+
+    public function getDailyRates($sub)
+    {
+        return plans::where('id', $sub->plan_id)->first()->daily_rates;
     }
 }

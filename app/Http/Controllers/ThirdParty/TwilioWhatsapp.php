@@ -375,6 +375,8 @@ class TwilioWhatsapp extends Controller
 
     public function validatePin($user, $pin)
     {
+        \logInfo(json_encode($user->pin), "Twilio user pin");
+        \logInfo(json_encode($pin), "reqest user pin");
         if ($user->pin == $pin) {
             return true;
         } else {

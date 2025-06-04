@@ -179,7 +179,7 @@ class TwilioWhatsapp extends Controller
         if ($user != null) {
             $otp = $this->otpCode($user);
             $message .= $otp;
-            $message .= "*Type Transaction Pin. (changepin, newpin, otpcode).*\n\nFollow the example below to change your Pin*\n\n *Example* - changepin, 1234, 5678 \n";
+            $message .= "*Type Transaction Pin. (changepin, newpin, otpcode).*\n\n*Follow the example below to change your Pin*\n\n *Example* - changepin, 1234, 5678 \n";
             return $message;
         } else {
             return "User does not exist";
@@ -189,9 +189,10 @@ class TwilioWhatsapp extends Controller
 
     public function changePin(Request $request, $stringArray)
     {
-        $newPin = $this->cleanString($stringArray[1]);
-        $otp    = $this->cleanString($stringArray[2]);
-        $user   = $this->getUser($request);
+        $newPin  = $this->cleanString($stringArray[1]);
+        $otp     = $this->cleanString($stringArray[2]);
+        $user    = $this->getUser($request);
+        $message = "";
         if ($user != null) {
             $checkOTP = $this->validateOTP($user, $otp);
             if ($checkOTP) {
@@ -211,12 +212,12 @@ class TwilioWhatsapp extends Controller
 
     public function getChangePasswordMessage(Request $request, $stringArray)
     {
-        $user = $this->getUser($request);
-
+        $user    = $this->getUser($request);
+        $message = "";
         if ($user != null) {
             $otp = $this->otpCode($user);
             $message .= $otp;
-            $message .= "*Type Transaction Pin. (changepassword, newpassword, otpcode).*\n\nFollow the example below to change yor password*\n\n *Example* - changepassword, 1234, 5678 \n";
+            $message .= "*Type Transaction Pin. (changepassword, newpassword, otpcode).*\n\n*Follow the example below to change yor password*\n\n *Example* - changepassword, 1234, 5678 \n";
             return $message;
         } else {
             return "User does not exist";

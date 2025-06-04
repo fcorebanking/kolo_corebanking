@@ -32,7 +32,7 @@ class TransactionService
             return response()->json($ra, 406);
         }
 
-        $checkAllowedTransaction = checkCompanyAllowedTransactionStatus($user->company_id);
+        $checkAllowedTransaction = \checkCompanyAllowedTransactionStatus($user->company_id);
 
         if ($checkAllowedTransaction['status'] != 1) {
             $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;

@@ -171,7 +171,7 @@ class TransactionService
 
                 $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
 
-                $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount);
+                $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount, $user);
 
                 if (! $customerBalance['status']) {
                     return response()->json($customerBalance, 400);
@@ -238,7 +238,7 @@ class TransactionService
                 $name        = isset($request->receipient_name) ? $request->receipient_name : "N/A";
                 $description = "You sent payment to $name $request->description / $request->destination_account ";
 
-                $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount);
+                $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount, $user);
 
                 if (! $customerBalance['status']) {
                     return response()->json($customerBalance, 400);
@@ -308,25 +308,25 @@ class TransactionService
         }
     }
 
-    public function checkCustomerAndCompanyBalance($amount)
+    public function checkCustomerAndCompanyBalance($amount, $user)
     {
 
         $response = [];
 
         if ($amount > 0) {
 
-            $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
+            $userWallet = user_wallet::where('wb_account_detail_id', $user->accounts->first()->id)->first();
 
             if ($userWallet->balance >= $amount) {
 
-                $companyWallet = company_wallet::where('company_id', \auth()->user()->company_id)->first();
+                $companyWallet = company_wallet::where('company_id', $user->company_id)->first();
 
                 if ($companyWallet->balance >= $amount) {
 
                     $response = [
                         "status"          => true,
                         'message'         => "Amount is Valid",
-                        'account_id'      => auth()->user()->accounts->first()->id,
+                        'account_id'      => $user->accounts->first()->id,
                         'balance'         => $userWallet->balance,
                         'company_balance' => $companyWallet->balance,
                     ];

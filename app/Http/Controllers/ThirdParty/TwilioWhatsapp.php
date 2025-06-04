@@ -174,8 +174,8 @@ class TwilioWhatsapp extends Controller
 
     public function getChangePinMessage(Request $request, $stringArray)
     {
-        $user = $this->getUser($request);
-
+        $user    = $this->getUser($request);
+        $message = "";
         if ($user != null) {
             $otp = $this->otpCode($user);
             $message .= $otp;

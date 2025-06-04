@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use App\Models\Company;
+use App\Models\company_wallet;
 use App\Models\transactions;
 use App\Models\User;
 use App\Models\user_wallet;

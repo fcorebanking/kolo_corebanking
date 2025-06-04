@@ -124,7 +124,7 @@ class TwilioWhatsapp extends Controller
             }
 
             if (is_numeric($transferOption) || (int) $transferOption == $transferOption) {
-                $message = $this->initializeTransactionMessage();
+                $message = $this->initializeTransaction($request, $stringArray);
             }
 
         }
@@ -253,7 +253,7 @@ class TwilioWhatsapp extends Controller
     public function getTransferMessage($request, $stringArray)
     {
         $message = "";
-        $message .= "*Choose Type of Transfer*.\n\nFollow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
+        $message .= "*Choose Type of Transfer*.\n\n*Follow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
         return $message;
     }
 
@@ -286,7 +286,7 @@ class TwilioWhatsapp extends Controller
     public function initializeTransactionMessage()
     {
         $message = "";
-        $message .= "*Initialise Transfer Trasaction*.\n\nFollow the example below to initialize transfer*\n\n *Example* - transfer, 5000, send to ola \n ";
+        $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, 5000, send to ola \n ";
         return $message;
 
     }

@@ -4,7 +4,6 @@ namespace App\Services;
 use App\Models\Company;
 use App\Models\company_wallet;
 use App\Models\transactions;
-use App\Models\User;
 use App\Models\user_wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
@@ -64,7 +63,7 @@ class TransactionService
                     "transaction_type_id"    => $request->transaction_type,
                     "credit_debit_type_id"   => 1,
                     "created_date"           => date('Y-m-d'),
-                    "created_by"             => auth()->user()->id,
+                    "created_by"             => $user->id,
                     "ledger_cr"              => $ledger_cr,
                     "ledger_dr"              => $ledger_dr,
                 ]);
@@ -170,7 +169,7 @@ class TransactionService
                     $description = $description ?? "You sent money to $request->receipient_name via Bank Transfer";
                 }
 
-                $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
+                $userWallet = user_wallet::where('wb_account_detail_id', $user->accounts->first()->id)->first();
 
                 $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount, $user);
 
@@ -202,7 +201,7 @@ class TransactionService
                     "branch_id"              => $user->branch_id,
                     "company_balance_before" => $customerBalance['company_balance'],
                     "company_amount"         => $amount,
-                    "system_description"     => $user->company->company_name . " - " . auth()->user()->first_name . " sent money to " . $request->receipient_name,
+                    "system_description"     => $user->company->company_name . " - " . $user->first_name . " sent money to " . $request->receipient_name,
                     "company_id"             => $user->company_id,
                     "transaction_reference"  => $transactionId,
                     "transaction_remarks_id" => 6,
@@ -245,11 +244,11 @@ class TransactionService
                     return response()->json($customerBalance, 400);
                 }
 
-                if (\checkcustomerrestriction(\auth()->user()->id, '2')) {
+                if (\checkcustomerrestriction($user->id, '2')) {
                     return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
                 }
 
-                if ($request->destination_account == \auth()->user()->virtual_account) {
+                if ($request->destination_account == $user->virtual_account) {
                     return response()->json(["status" => false, 'message' => "Cannot transfer to self"], 409);
                 }
 

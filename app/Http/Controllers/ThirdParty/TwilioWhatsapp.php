@@ -325,7 +325,7 @@ class TwilioWhatsapp extends Controller
     public function initializeTransactionMessage()
     {
         $message = "";
-        $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, 5000, send to ola \n ";
+        $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, 5000, send to ola\n";
         return $message;
 
     }

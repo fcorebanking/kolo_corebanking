@@ -322,7 +322,7 @@ class TwilioWhatsapp extends Controller
         $date                      = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
         $user->otp_expiration_date = $date;
         $user->save();
-        return "*{otpcode}* - {$otp}\n\n";
+        return "*{otpcode}* - {$otpCode}\n\n";
     }
 
     public function validateOTP($user, $otp)

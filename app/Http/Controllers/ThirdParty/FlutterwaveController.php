@@ -1,13 +1,9 @@
 <?php
-
 namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\Controller;
 use Exception;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Http\Client\Pool;
-
 
 class FlutterwaveController extends Controller
 {
@@ -17,30 +13,29 @@ class FlutterwaveController extends Controller
     private $encryptionKey;
     private $secretHash;
 
-    function __construct()
+    public function __construct()
     {
 
         if (env('APP_MODE') == 'test') {
 
-            $this->secretKey = config('flutterwave.secret_key_test');
-            $this->publicKey = config('flutterwave.public_key_test');
+            $this->secretKey     = config('flutterwave.secret_key_test');
+            $this->publicKey     = config('flutterwave.public_key_test');
             $this->encryptionKey = config('flutterwave.encryption_key_test');
             // $this->secretHash = config('flutterwave.secret_key_test');
             $this->baseUrl = config('flutterwave.base_url_test');
         } else {
-            $this->secretKey = config('flutterwave.secret_key_live');
-            $this->publicKey = config('flutterwave.public_key_live');
+            $this->secretKey     = config('flutterwave.secret_key_live');
+            $this->publicKey     = config('flutterwave.public_key_live');
             $this->encryptionKey = config('flutterwave.encryption_key_live');
             // $this->secretHash = config('flutterwave.secret_key_live');
             $this->baseUrl = config('flutterwave.base_url_live');
         }
     }
 
-
     public function getExchangeRate($exchangeAmount, $sourceCurrency, $destinationCurrency)
     {
         $body = ["amount" => $exchangeAmount, "destination_currency" => $sourceCurrency, "source_currency" => $destinationCurrency];
-        $url = "transfers/rates?amount=$exchangeAmount&destination_currency=$destinationCurrency&source_currency=$sourceCurrency";
+        $url  = "transfers/rates?amount=$exchangeAmount&destination_currency=$destinationCurrency&source_currency=$sourceCurrency";
 
         logInfo("We are converting $exchangeAmount from $sourceCurrency to $destinationCurrency");
         try {
@@ -49,19 +44,19 @@ class FlutterwaveController extends Controller
             logInfo($exhangeRate, "Exchange Rates");
 
             if ($exhangeRate['status'] == 'success') {
-                $rate = $exhangeRate["data"]["rate"];
+                $rate   = $exhangeRate["data"]["rate"];
                 $amount = $exhangeRate["data"]["source"]["amount"];
 
                 $finalAmount = $amount;
 
                 return [
-                    'status' => true,
+                    'status'  => true,
                     'message' => "Exchange rate received",
-                    'data' => [
-                        'rate' => $rate,
-                        'amount' => $amount,
-                        'final_amount' => $finalAmount
-                    ]
+                    'data'    => [
+                        'rate'         => $rate,
+                        'amount'       => $amount,
+                        'final_amount' => $finalAmount,
+                    ],
                 ];
             } else {
                 return ['status' => false, 'message' => 'Failed to get Exchange rates'];
@@ -110,11 +105,11 @@ class FlutterwaveController extends Controller
                 if ($verifyTransaction['data']) {
 
                     return [
-                        'status' => true,
+                        'status'  => true,
                         'message' => "Transaction verified successfully",
-                        'data' => [
-                            'link' => $verifyTransaction['data']['link']
-                        ]
+                        'data'    => [
+                            'link' => $verifyTransaction['data']['link'],
+                        ],
                     ];
                 } else {
                     return ['status' => false, 'message' => "Failed to Initiate transaction"];
@@ -131,20 +126,19 @@ class FlutterwaveController extends Controller
 
     public function getExchangeRater($exchangeAmount, $sourceCurrency, $destinationCurrency)
     {
-      
 
-                    return [
-                        'status' => true,
-                        'message' => "Exchange rate received",
-                        'data' => [
-                            'rate' => 1600,
-                            'amount' => 1600 * $exchangeAmount,
-                            'final_amount' => 1600 * $exchangeAmount,
-                            'fee' => 0,
-                            'charge_by' => 'fee'
-                        ]
-                    ];
-             
+        return [
+            'status'  => true,
+            'message' => "Exchange rate received",
+            'data'    => [
+                'rate'         => 1600,
+                'amount'       => 1600 * $exchangeAmount,
+                'final_amount' => 1600 * $exchangeAmount,
+                'fee'          => 0,
+                'charge_by'    => 'fee',
+            ],
+        ];
+
     }
 
     public function getExchangeFees($exchangeAmount, $currency)
@@ -163,11 +157,11 @@ class FlutterwaveController extends Controller
                 $fee = $exhangeRate['data'][0]['fee'];
 
                 return [
-                    'status' => true,
+                    'status'  => true,
                     'message' => "Exchange fees received",
-                    'data' => [
-                        'fee' => $fee
-                    ]
+                    'data'    => [
+                        'fee' => $fee,
+                    ],
                 ];
             } else {
                 return ['status' => false, 'message' => 'Failed to get Exchange fees'];
@@ -182,8 +176,8 @@ class FlutterwaveController extends Controller
     public function flutterwaveHeader()
     {
         $header = [
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer ' . $this->secretKey
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . $this->secretKey,
         ];
 
         return $header;
@@ -194,24 +188,24 @@ class FlutterwaveController extends Controller
 
         try {
             $body = [
-                "currency" => $currency,
-                "amount" => $amount,
-                "billing_name" => $cardName,
-                "debit_currency" => "NGN",
-                "first_name" => $first_name,
-                "last_name" => $last_name,
-                "date_of_birth" => $date_of_birth,
-                "email" => $email,
-                "phone" => $phone,
-                "title" => "Mr",
-                "gender" => "M",
-                "billing_address" => "333 Freemont Road",
-                "billing_city" => "San Francisco",
-                "billing_state" => "CA",
+                "currency"            => $currency,
+                "amount"              => $amount,
+                "billing_name"        => $cardName,
+                "debit_currency"      => "NGN",
+                "first_name"          => $first_name,
+                "last_name"           => $last_name,
+                "date_of_birth"       => $date_of_birth,
+                "email"               => $email,
+                "phone"               => $phone,
+                "title"               => "Mr",
+                "gender"              => "M",
+                "billing_address"     => "333 Freemont Road",
+                "billing_city"        => "San Francisco",
+                "billing_state"       => "CA",
                 "billing_postal_code" => "984105",
-                "billing_country" => "US",
-                "debit_currency" => "NGN",
-                "callback_url" => url("/api/v1/transactions/flutterwave-webhook")
+                "billing_country"     => "US",
+                "debit_currency"      => "NGN",
+                "callback_url"        => url("/api/v1/transactions/flutterwave-webhook"),
             ];
             $endpoint = "virtual-cards";
 
@@ -233,17 +227,17 @@ class FlutterwaveController extends Controller
                     $cardTypeId = 3;
                 }
                 return [
-                    'status' => true,
+                    'status'  => true,
                     'message' => "Card Created Successfully",
-                    'data' => [
-                        'card_type' => $cardTypeId,
+                    'data'    => [
+                        'card_type'    => $cardTypeId,
                         'name_on_card' => $createCard['data']["name_on_card"],
-                        'card_pan' => $createCard['data']["card_pan"],
-                        'masked_pan' => $createCard['data']["masked_pan"],
-                        'id' => $createCard['data']["id"],
-                        'expiration' => $createCard['data']["expiration"],
-                        'cvv' => $createCard['data']["cvv"]
-                    ]
+                        'card_pan'     => $createCard['data']["card_pan"],
+                        'masked_pan'   => $createCard['data']["masked_pan"],
+                        'id'           => $createCard['data']["id"],
+                        'expiration'   => $createCard['data']["expiration"],
+                        'cvv'          => $createCard['data']["cvv"],
+                    ],
                 ];
             } else {
                 return ['status' => false, 'message' => "Failed to create virtual Card"];
@@ -256,13 +250,12 @@ class FlutterwaveController extends Controller
         }
     }
 
-
     public function fundVirtualCard($cardReference, $amount, $currencyCode)
     {
         try {
             $body = [
                 "debit_currency" => "NGN",
-                "amount" => $amount
+                "amount"         => $amount,
             ];
 
             $endpoint = "virtual-cards/$cardReference/fund";
@@ -273,8 +266,8 @@ class FlutterwaveController extends Controller
 
             if ($createCard["status"] == 'success') {
                 return [
-                    'status' => true,
-                    'message' => "Card Funded Successfully"
+                    'status'  => true,
+                    'message' => "Card Funded Successfully",
                 ];
             } else {
                 return ['status' => false, 'message' => "Failed to fund virtual Card"];
@@ -292,7 +285,7 @@ class FlutterwaveController extends Controller
         try {
 
             $body = [
-                "amount" => $amount
+                "amount" => $amount,
             ];
 
             $endpoint = "virtual-cards/$cardReference/withdraw";
@@ -304,8 +297,8 @@ class FlutterwaveController extends Controller
             if ($createCard["status"] == 'success') {
 
                 return [
-                    'status' => true,
-                    'message' => "Virtual Card Withdrawal Successful"
+                    'status'  => true,
+                    'message' => "Virtual Card Withdrawal Successful",
                 ];
             } else {
                 return ['status' => false, 'message' => "Failed to Withdraw virtual Card"];
@@ -318,26 +311,25 @@ class FlutterwaveController extends Controller
         }
     }
 
-
     public function getVirtualCardBalance($cardReference)
     {
         $endpoint = "virtual-cards/$cardReference";
 
         try {
 
-            $cardDetailsFromFlutterWave = $this->flutterwaveGetRequest($endpoint);;
+            $cardDetailsFromFlutterWave = $this->flutterwaveGetRequest($endpoint);
 
             logInfo($cardDetailsFromFlutterWave, "Flutterwave Get Virtual Card Response log");
 
-            if ($cardDetailsFromFlutterWave['status'] == 'success')
+            if ($cardDetailsFromFlutterWave['status'] == 'success') {
                 $availableCardBalance = [
-                    'status' => true,
+                    'status'  => true,
                     'message' => "Balance fetched successfully",
-                    'data' => [
-                        'balance' => $cardDetailsFromFlutterWave['data']['amount']
-                    ]
+                    'data'    => [
+                        'balance' => $cardDetailsFromFlutterWave['data']['amount'],
+                    ],
                 ];
-            else {
+            } else {
                 $availableCardBalance = ['status' => false, 'message' => "Failed to fetch balance", 'data' => ['balance' => "Not available"]];
             }
         } catch (Exception $e) {
@@ -353,7 +345,7 @@ class FlutterwaveController extends Controller
 
         try {
 
-            $cardDetailsFromFlutterWave = $this->flutterwaveGetRequest($endpoint);;
+            $cardDetailsFromFlutterWave = $this->flutterwaveGetRequest($endpoint);
 
             logInfo($cardDetailsFromFlutterWave);
 
@@ -369,17 +361,16 @@ class FlutterwaveController extends Controller
         return $availableCardBalance;
     }
 
-
     public function flutterwavePostRequest($endpoint, $body)
     {
-        $response = Http::withHeaders($this->flutterwaveHeader())->post("$this->baseUrl$endpoint", $body);
+        $response = Http::withHeaders($this->flutterwaveHeader())->post("$this->baseUrl $endpoint", $body);
         return $response->json();
     }
 
     public function flutterwaveGetRequest($endpoint)
     {
-        logInfo("$this->baseUrl$endpoint", "Convertion url");
-        $response = Http::withHeaders($this->flutterwaveHeader())->get("$this->baseUrl$endpoint");
+        logInfo("$this->baseUrl $endpoint", "Convertion url");
+        $response = Http::withHeaders($this->flutterwaveHeader())->get("$this->baseUrl $endpoint");
         return $response->json();
     }
 }

@@ -161,7 +161,7 @@ class TwilioWhatsapp extends Controller
 
                 return "*Wallet Balance* - {$userWallet->balance}\n";
             } else {
-                $this->getInvalidPinMessage();
+                return $this->getInvalidPinMessage();
             }
         } else {
             return "User does not exist";

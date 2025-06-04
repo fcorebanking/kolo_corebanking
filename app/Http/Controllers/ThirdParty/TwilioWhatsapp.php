@@ -177,7 +177,8 @@ class TwilioWhatsapp extends Controller
         $validatePin    = $this->validatePin($user, $transactionPin);
         if ($userPOS != null) {
             if ($validatePin != false) {return "*POS Balance* - {$userPOS->balance}\n";} else {
-                return $this->getInvalidOTPMessage();
+                return $this->getInvalidPinMessage();
+
             }
 
         } else {

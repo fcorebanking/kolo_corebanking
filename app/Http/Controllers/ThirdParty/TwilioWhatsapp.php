@@ -55,7 +55,7 @@ class TwilioWhatsapp extends Controller
     public function getUpdates(Request $request)
     {
 
-        $message = "*Quick Options*\n*A* - Open Account\n*B* - Transfer\n*C* - Check Account Balance\n*D* - POS Balance\n*E* - Change Pin\n*F* - Change Pasword\n*G* - Buy Data\n*H* - Pay Bills\n*I* - Get OTP\n";
+        $message = "*Quick Options*\n*1* - Open Account\n*2* - Transfer\n*3* - Check Account Balance\n*4* - POS Balance\n*5* - Change Pin\n*6* - Change Pasword\n*7* - Buy Data\n*8* - Pay Bills\n*9* - Get OTP\n";
 
         \logInfo(json_encode($request->From), "Twilio Response From");
 
@@ -75,35 +75,35 @@ class TwilioWhatsapp extends Controller
 
         }
 
-        if ($string == "A" || $string == strtolower("A")) {
+        if ($string == "1") {
             $message = $this->openAccount($request, $stringArray);
         }
-        if ($string == "B" || $string == strtolower("B")) {
+        if ($string == "2") {
             $message = $this->getTransferMessage($request, $stringArray);
         }
-        if ($string == "C" || $string == strtolower("C")) {
-            $message = $this->getAccountBalance($request, $stringArray);
+        if ($string == "3") {
+            $message = $this->getTransferPinMessage($request, $stringArray);
         }
-        if ($string == "D" || $string == strtolower("D")) {
-            $message = $this->getPOSBalance($request, $stringArray);
+        if ($string == "4") {
+            $message = $this->getTransferPinMessage($request, $stringArray);
         }
-        if ($string == "E" || $string == strtolower("E")) {
+        if ($string == "5") {
             $message = $this->getChangePinMessage($request, $stringArray);
         }
 
-        if ($string == "F" || $string == strtolower("F")) {
+        if ($string == "6") {
             $message = $this->getChangePasswordMessage($request, $stringArray);
         }
 
-        if ($string == "G" || $string == strtolower("G")) {
+        if ($string == "7") {
             $message = $this->getBuyDataMessage($request);
         }
 
-        if ($string == "H" || $string == strtolower("H")) {
+        if ($string == "8" || $string == strtolower("H")) {
             $message = $this->getPayBillMessage($request);
         }
 
-        if ($string == "I" || $string == strtolower("I")) {
+        if ($string == "9" || $string == strtolower("I")) {
             $message = $this->getOtp($request);
         }
 
@@ -114,6 +114,19 @@ class TwilioWhatsapp extends Controller
         if (isset($stringArray[1]) && ($stringArray[0] == "changepassword" || $stringArray[0] == strtolower("changepassword"))) {
 
             $message = $this->changePassword($request, $stringArray);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "transferservice" || $stringArray[0] == strtolower("transferservice"))) {
+            $message = $this->changePin($request, $stringArray);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "balance" || $stringArray[0] == strtolower("balance"))) {
+
+            $message = $this->getAccountBalance($request, $stringArray);
+        }
+        if (isset($stringArray[1]) && ($stringArray[0] == "posbalance" || $stringArray[0] == strtolower("posbalance"))) {
+
+            $message = $this->getPOSBalance($request, $stringArray);
         }
 
         if (isset($stringArray[1]) && ($stringArray[0] == "transfer" || $stringArray[0] == strtolower("transfer"))) {
@@ -217,7 +230,7 @@ class TwilioWhatsapp extends Controller
         if ($user != null) {
             $otp = $this->otpCode($user);
             $message .= $otp;
-            $message .= "*Type Transaction Pin. (changepassword, newpassword, otpcode).*\n\n*Follow the example below to change yor password*\n\n *Example* - changepassword, 1234, 5678 \n";
+            $message .= "*Type Transaction Pin. (changepassword, newpassword, otpcode, transactionpin).*\n\n*Follow the example below to change yor password*\n\n *Example* - changepassword, 1234, 5678, 1234\n";
             return $message;
         } else {
             return "User does not exist";
@@ -227,13 +240,15 @@ class TwilioWhatsapp extends Controller
 
     public function changePassword(Request $request, $stringArray)
     {
-        $newPassword = $this->cleanString($stringArray[1]);
-        $otp         = $this->cleanString($stringArray[2]);
-        $user        = $this->getUser($request);
-        $message     = "";
+        $newPassword    = $this->cleanString($stringArray[1]);
+        $otp            = $this->cleanString($stringArray[2]);
+        $transactionPin = $this->cleanString($stringArray[3]);
+        $user           = $this->getUser($request);
+        $message        = "";
         if ($user != null) {
-            $checkOTP = $this->validateOTP($user, $otp);
-            if ($checkOTP) {
+            $checkOTP    = $this->validateOTP($user, $otp);
+            $validatePin = $this->validatePin($user, $transactionPin);
+            if ($checkOTP && $validatePin) {
                 $user->password    = Hash::make($newPassword);
                 $user->login_fails = 0;
                 $user->status_id   = 1;
@@ -277,6 +292,19 @@ class TwilioWhatsapp extends Controller
         if ($user != null) {
 
             $message .= "*Choose Type of Transfer*.\n\nFollow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
+            return $message;
+        } else {
+            return "User does not exist";
+        }
+    }
+
+    public function getTransferPinMessage($request, $stringArray)
+    {
+        $user    = $this->getUser($request);
+        $message = "";
+        if ($user != null) {
+
+            $message .= "*Type Your Transaction Pin*\n\n *Example (Transfer)* - transferservice, 1234 \n\n*Example (Check Account Balance)* - balance, 1234 \n\n*Example (Check POS Balance)* - posbalance, 1234 \n\n*Example (Buy Data)* - buydata, 1234 \n\n*Example (Pay Bill)* - paybill, 1234 \n\n ";
             return $message;
         } else {
             return "User does not exist";

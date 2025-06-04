@@ -278,8 +278,8 @@ class TwilioWhatsapp extends Controller
 
     public function getTransferMessage($request, $stringArray)
     {
-
-        $message .= "*Choose Type of Transfer*.\n\n*Follow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n ";
+        $message = "";
+        $message .= "*Choose Type of Transfer*.\n\n*Follow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n";
         return $message;
     }
 

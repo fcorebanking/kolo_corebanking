@@ -298,12 +298,14 @@ class TwilioWhatsapp extends Controller
         $message     = "";
         $user        = $this->getUser($request);
 
-        $transactionController     = new TransactionController();
-        $request                   = new Request;
-        $request->final_amount     = $amount;
-        $request->transaction_type = 4;
-        $request->description      = $description;
-        $transaction               = $transactionController->initiateTransaction($request);
+        $transactionController = new TransactionController();
+        $request->mergeIfMissing([
+            'final_amount'     => $amount,
+            'transaction_type' => 4,
+            'description'      => $description,
+        ]);
+
+        $transaction = $transactionController->initiateTransaction($request);
 
         \logInfo($transaction, "Twilio Respond Whatsapp Message");
 

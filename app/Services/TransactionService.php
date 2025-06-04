@@ -307,4 +307,38 @@ class TransactionService
             return response()->json(["status" => false, 'message' => "Invalid Transaction Amount"], 400);
         }
     }
+
+    public function checkCustomerAndCompanyBalance($amount)
+    {
+
+        $response = [];
+
+        if ($amount > 0) {
+
+            $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
+
+            if ($userWallet->balance >= $amount) {
+
+                $companyWallet = company_wallet::where('company_id', \auth()->user()->company_id)->first();
+
+                if ($companyWallet->balance >= $amount) {
+
+                    $response = [
+                        "status"          => true,
+                        'message'         => "Amount is Valid",
+                        'account_id'      => auth()->user()->accounts->first()->id,
+                        'balance'         => $userWallet->balance,
+                        'company_balance' => $companyWallet->balance,
+                    ];
+                } else {
+                    $response = ["status" => false, 'message' => "Switcher Error... Please contact support $companyWallet->balance $amount"];
+                }
+            } else {
+                $response = ["status" => false, 'message' => "Insufficient Funds"];
+            }
+        } else {
+            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        }
+        return $response;
+    }
 }

@@ -149,13 +149,19 @@ class TwilioWhatsapp extends Controller
 
     public function getAccountBalance(Request $request, $stringArray)
     {
-        $user = $this->getUser($request);
+        $user           = $this->getUser($request);
+        $transactionPin = $this->cleanString($stringArray[1]);
+        $validatePin    = $this->validatePin($user, $transactionPin);
         \logInfo(json_encode($user), "Twilio get Account Balance Whatsapp Message");
         if ($user != null) {
-            $customerAccountId = wb_account_details::where('user_id', $user->id)->first()->id;
-            $userWallet        = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
+            if ($validatePin) {
+                $customerAccountId = wb_account_details::where('user_id', $user->id)->first()->id;
+                $userWallet        = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
 
-            return "*Wallet Balance* - {$userWallet->balance}\n";
+                return "*Wallet Balance* - {$userWallet->balance}\n";
+            } else {
+                $this->getInvalidPinMessage();
+            }
         } else {
             return "User does not exist";
         }
@@ -387,6 +393,11 @@ class TwilioWhatsapp extends Controller
         } else {
             return "User does not exist";
         }
+    }
+
+    public function getInvalidPinMessage()
+    {
+        return "Invalid Pin";
     }
 
     public function getUser(Request $request)

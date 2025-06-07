@@ -48,9 +48,11 @@ use App\Models\payLoanPenalty;
 use App\Models\PendingEsusu;
 use App\Models\PendingRepayment;
 use App\Models\PendingSaving;
+use App\Models\plans;
 use App\Models\savings_product;
 use App\Models\StaffWallet;
 use App\Models\status;
+use App\Models\sub;
 use App\Models\tempuser;
 use App\Models\Temp_Charges;
 use App\Models\transactions;
@@ -285,11 +287,11 @@ class CustomerController extends Controller
             $ra = ["status" => 0, "message" => $message];
             return response()->json($ra);
         }
-        $allcount = User::where(['company_id' => $auth->company_id, 'user_type_id' => 1])->where('status_id', '!=', 12)->where('status_id', '!=', 14)->count();
-      //  $max_count_customers = P
+        $allcount            = User::where(['company_id' => $auth->company_id, 'user_type_id' => 1])->where('status_id', '!=', 12)->where('status_id', '!=', 14)->count();
+        $max_count_customers = $auth->company->sub->plan->max_customers ?? $this->getMaxCuststomers($auth);
         if ($auth->company->sub->plan->max_customers < $allcount) {
             $datax = [
-                'message' => "Maximum Customer Reached, Upgrade Plan!" . $auth->company->sub->plan->max_customers,
+                'message' => "Maximum Customer Reached, Upgrade Plan!" .  $max_count_customers,
                 'subtext' => "Maximum Customer Reached, Upgrade Plan!",
                 'status'  => 0,
             ];
@@ -3708,4 +3710,12 @@ class CustomerController extends Controller
         // Separate first two characters
 
     }
+
+    public function getMaxCuststomers($auth)
+    {
+        $sub     = sub::where('company_id', $auth->company_id)->first();
+        $maxcust = plans::where('plan_id', $sub->plan_id)->first()->max_customers;
+        return $maxcust;
+    }
+
 }

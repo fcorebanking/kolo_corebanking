@@ -286,6 +286,7 @@ class CustomerController extends Controller
             return response()->json($ra);
         }
         $allcount = User::where(['company_id' => $auth->company_id, 'user_type_id' => 1])->where('status_id', '!=', 12)->where('status_id', '!=', 14)->count();
+      //  $max_count_customers = P
         if ($auth->company->sub->plan->max_customers < $allcount) {
             $datax = [
                 'message' => "Maximum Customer Reached, Upgrade Plan!" . $auth->company->sub->plan->max_customers,

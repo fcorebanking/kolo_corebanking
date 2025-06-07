@@ -291,7 +291,7 @@ class CustomerController extends Controller
         $max_count_customers = $auth->company->sub->plan->max_customers ?? $this->getMaxCuststomers($auth);
         if ($auth->company->sub->plan->max_customers < $allcount) {
             $datax = [
-                'message' => "Maximum Customer Reached, Upgrade Plan!" .  $max_count_customers,
+                'message' => "Maximum Customer Reached, Upgrade Plan!" . $max_count_customers,
                 'subtext' => "Maximum Customer Reached, Upgrade Plan!",
                 'status'  => 0,
             ];
@@ -3714,7 +3714,7 @@ class CustomerController extends Controller
     public function getMaxCuststomers($auth)
     {
         $sub     = sub::where('company_id', $auth->company_id)->first();
-        $maxcust = plans::where('plan_id', $sub->plan_id)->first()->max_customers;
+        $maxcust = plans::where('id', $sub->plan_id)->first()->max_customers;
         return $maxcust;
     }
 

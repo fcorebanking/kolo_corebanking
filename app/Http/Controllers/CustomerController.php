@@ -3713,8 +3713,10 @@ class CustomerController extends Controller
 
     public function getMaxCuststomers($auth)
     {
-        $sub     = sub::where('company_id', $auth->company_id)->first();
+        $sub = sub::where('company_id', $auth->company_id)->first();
+        logInfo(json_encode($sub), "max customers subs");
         $maxcust = plans::where('id', $sub->plan_id)->first()->max_customers;
+        logInfo(json_encode($maxcust), "max customers plans");
         return $maxcust;
     }
 

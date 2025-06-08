@@ -150,7 +150,7 @@ class RegisterController extends Controller
         // $response = $assetMatrix->createAccount($customerReference, $request->email, $request->phone, $request->first_name, $request->last_name, "");
         // echo \json_encode($createAdminAccount);
 
-        $companyIDs = [33];
+        $companyIDs = [];
 
         $companyIDsStatus = false;
 

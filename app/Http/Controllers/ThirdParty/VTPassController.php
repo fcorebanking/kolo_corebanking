@@ -213,7 +213,7 @@ class VTPassController extends Controller
                         'meter_name'   => trim($verifyMeterResult['content']['Customer_Name']),
                         'address'      => trim($verifyMeterResult['content']['Address']),
                         'meter_type'   => trim($type),
-                        'meter_number' => $electrictyDisco == "abuja-electric" ? trim($verifyMeterResult['content']['MeterNumber']) : trim($verifyMeterResult['content']['MeterNumber']),
+                        'meter_number' => $electrictyDisco == "abuja-electric" ? trim($verifyMeterResult['content']['Meter_Number']) : trim($verifyMeterResult['content']['Meter_Number']),
                     ],
                 ];
             } else {

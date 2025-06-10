@@ -1525,14 +1525,17 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                             } else {
                                 if ($smsapi->authorization == null && $smsapi->authorization == null) {
 
-                                    if ($company->short_name == "GCREDIT") {
+                                    /*  if ($company->short_name == "GCREDIT") {
                                         logInfo("{$smsapi->api_url}", "SMS 2FA Get api response Golden Credit");
 
                                     } else {
                                         logInfo("{$apicur}", "SMS 2FA Get api response");
 
                                         $response = Http::get($apicur);
-                                    }
+                                    }*/
+                                    logInfo("{$apicur}", "SMS 2FA Get api response");
+
+                                    $response = Http::get($apicur);
                                     //$response = smsCustomer($phone, $msg, $company->short_name);
 
                                 } else {

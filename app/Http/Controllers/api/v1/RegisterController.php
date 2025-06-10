@@ -172,6 +172,8 @@ class RegisterController extends Controller
                 $customSelectedBank = $selectedBank->bank_code;
             }
 
+            $customSelectedBank = $selectedBank->bank_code;
+
             $virtualAccount->bankCode                     = $customSelectedBank;
             $virtualAccount->currencyCode                 = $companyRecord->currency->code;
             $virtualAccount->firstName                    = $request->first_name;

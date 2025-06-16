@@ -1237,9 +1237,54 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
 
         // }
         if (! $isApi) {
-            $company_short = "N-Alert" ?? $company->short_name;
+            switch ($title) {
+
+                case 'Company Registration':
+                    $company_short = "N-Alert";
+                    break;
+                case 'Account Replacement':
+                    $company_short = "N-Alert";
+                    break;
+                case 'Account':
+                    $company_short = "N-Alert";
+                    break;
+                case 'Password reset':
+                    $company_short = "N-Alert";
+                    break;
+                case 'Account reset for':
+                    $company_short = "N-Alert";
+                    break;
+                case 'PIn reset':
+                    $company_short = "N-Alert";
+                    break;
+                case 'Customer Transfer':
+                    $company_short = "N-Alert";
+                    break;
+                case 'Finova Login Security':
+                    $company_short = "N-Alert";
+                    break;
+                case 'OTP Confirmation':
+                    $company_short = "N-Alert";
+                    break;
+                case 'Verify OTP':
+                    $company_short = "N-Alert";
+                    break;
+                case 'Welcome Message':
+                    $company_short = "N-Alert";
+                    break;
+                case 'OTP Confirmation':
+                    $company_short = "N-Alert";
+                    break;
+                case 'Reset Password OTP':
+                    $company_short = "N-Alert";
+                    break;
+
+                default:
+                    $company_short = $company->short_name;
+            }
+
         } else {
-            $company_short = "N-Alert";
+            $company_short = $company->short_name;
         }
 
         if (($all_sms_email == 1 || $all_sms_email == 3) && ! empty($to)) {

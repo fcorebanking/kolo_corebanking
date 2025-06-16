@@ -1269,9 +1269,6 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                 case 'Verify OTP':
                     $company_short = "N-Alert";
                     break;
-                case 'Welcome Message':
-                    $company_short = "N-Alert";
-                    break;
                 case 'OTP Confirmation':
                     $company_short = "N-Alert";
                     break;
@@ -1536,9 +1533,6 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                 $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
                                 break;
                             case 'Verify OTP':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'Welcome Message':
                                 $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
                                 break;
                             case 'OTP Confirmation':

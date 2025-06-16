@@ -1504,12 +1504,58 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                     }
                     logInfo("$can_proceed", "SMS 2FA can proceed status");
                     if ($can_proceed) {
-                        $smsapi          = $setting->smsapi;
-                        $msg1            = $msg;
-                        $smsapi->api_url = $smsapi->api_url . "&" . $smsapi->sender_variable . "=" . $company_short;
-                        $msg             = str_replace(' ', '%20', $msg);
-                        $apicur          = "$smsapi->api_url&$smsapi->phone_variable=$phone&$smsapi->message_variable=$msg";
-                        $method          = $smsapi->requestMethod->request_method;
+                        $smsapi = $setting->smsapi;
+                        $msg1   = $msg;
+                        switch ($title) {
+
+                            case 'Company Registration':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'Account Replacement':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'Account':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'Password reset':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'Account reset for':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'PIn reset':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'Customer Transfer':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'Finova Login Security':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'OTP Confirmation':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'Verify OTP':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'Welcome Message':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'OTP Confirmation':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+                            case 'Reset Password OTP':
+                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                                break;
+
+                            default:
+                                $smsapi->api_url = $smsapi->api_url . "generic" . "&" . $smsapi->sender_variable . "=" . $company_short;
+                        }
+
+                        //          $smsapi->api_url = $smsapi->api_url . "&" . $smsapi->sender_variable . "=" . $company_short;
+                        $msg    = str_replace(' ', '%20', $msg);
+                        $apicur = "$smsapi->api_url&$smsapi->phone_variable=$phone&$smsapi->message_variable=$msg";
+                        $method = $smsapi->requestMethod->request_method;
                         //wba SMS charge
                         $proceedTwo = false;
                         if ($smsapi->access_setup) {

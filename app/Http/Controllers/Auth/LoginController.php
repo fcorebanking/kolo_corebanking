@@ -136,6 +136,10 @@ class LoginController extends Controller
 
         $user = User::where('username', $credentials['username'])->first();
 
+        if ($user->password == null) {
+            return back()->with('error', "There is a problem with your login details");
+        }
+
         $checkpassword = Hash::check($credentials['password'], $user->password);
 
         logInfo("{$checkpassword}", "Attempt Login Password Hash");

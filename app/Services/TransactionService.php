@@ -257,7 +257,7 @@ class TransactionService
 
                 $charge = 0;
 
-                $validateTransferAmount = $this->validateTransfer($request->final_amount);
+                $validateTransferAmount = $this->validateTransfer($request->final_amount, $user);
 
                 if (! $validateTransferAmount['status']) {
                     return \response()->json($validateTransferAmount, 400);

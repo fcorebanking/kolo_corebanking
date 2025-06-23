@@ -127,19 +127,19 @@ class TransactionService
                             "ledger_dr"              => $ledger_dr,
                         ]);
 
-                        return response()->json(
-                            [
-                                "status"  => true,
-                                'message' => "Transaction initialized",
-                                'data'    => [
-                                    'charge'            => $charge ?? 0.00,
-                                    'transactionId'     => $transaction->id,
-                                    'transactionTypeId' => $request->transaction_type,
-                                    'exchangeAmount'    => $request->final_amount,
-                                    'total'             => $request->finalAmount,
-                                ],
-                            ]
-                        );
+                        $result = [
+                            "status"  => true,
+                            'message' => "Transaction initialized",
+                            'data'    => [
+                                'charge'            => $charge ?? 0.00,
+                                'transactionId'     => $transaction->id,
+                                'transactionTypeId' => $request->transaction_type,
+                                'exchangeAmount'    => $request->final_amount,
+                                'total'             => $request->finalAmount,
+                            ],
+                        ];
+
+                        return $result;
                     } else {
                         return response()->json(["status" => false, 'message' => "Insufficient Balance"], 400);
                     }

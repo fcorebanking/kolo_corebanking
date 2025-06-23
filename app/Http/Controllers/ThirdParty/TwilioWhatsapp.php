@@ -344,11 +344,10 @@ class TwilioWhatsapp extends Controller
             'description'      => $description,
         ]);
 
-        $transaction = $transactionController->initiateTransfer($request, $user);
+        $initiateTransaction = $transactionController->initiateTransfer($request, $user);
 
-        \logInfo($transaction, "Twilio Respond Whatsapp Message");
+        \logInfo(json_encode($initiateTransaction), "Twilio Respond Whatsapp Message");
 
-        $initiateTransaction                     = json_decode($transaction, true);
         $initiateTransactionMessage              = $initiateTransaction['message'];
         $initiateTransactionCharge               = $initiateTransaction['data']['charge'];
         $initiateTransactionTransactionReference = $initiateTransaction['data']['transaction_reference'];

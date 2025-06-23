@@ -6,7 +6,6 @@ use App\Models\company_settings;
 use App\Models\company_wallet;
 use App\Models\savings_product;
 use App\Models\transactions;
-use App\Models\User;
 use App\Models\user_wallet;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -185,7 +184,7 @@ class TransactionService
                     return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
                 }
 
-                $validateTransferAmount = $this->validateTransfer($request->final_amount);
+                $validateTransferAmount = $this->validateTransfer($request->final_amount, $user);
 
                 if (! $validateTransferAmount['status']) {
                     return \response()->json($validateTransferAmount, 400);
@@ -346,11 +345,11 @@ class TransactionService
         return $response;
     }
 
-    public function validateTransfer($amount)
+    public function validateTransfer($amount, $user)
     {
-        $companySettings = company_settings::where('company_id', \auth()->user()->company_id)->first();
-        $accountTier     = auth()->user()->tier;
-        $wbaAccount      = auth()->user()->accounts->first();
+        $companySettings = company_settings::where('company_id', $user->company_id)->first();
+        $accountTier     = $user->tier;
+        $wbaAccount      = $user->accounts->first();
 
         if (! $companySettings) {
             return ["status" => false, 'message' => "Contact support to resolve advanced settings"];
@@ -360,7 +359,7 @@ class TransactionService
             return ["status" => false, 'message' => "Maximum amount per transaction is NGN$accountTier->maximum_transfer. You are transfering $amount, Pls Upgrade your account to transfer higher amounts"];
         }
 
-        $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
+        $userWallet = user_wallet::where('wb_account_detail_id', $user->accounts->first()->id)->first();
         $amountLeft = $userWallet->balance - $amount;
 
         $accoountProduct = savings_product::where('id', $wbaAccount->account_product_id)->first();
@@ -378,7 +377,7 @@ class TransactionService
         }
 
         // $sum = transactions::where(['transaction_remarks_id' => '2', 'account_id' => $wbAccount->id])->whereDate('created_at', Carbon::today())->sum('amount');
-        $sum      = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => auth()->user()->accounts->first()->id])->where('transaction_type_id', '<>', '27')->whereDate('created_at', Carbon::today())->count();
+        $sum      = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => $user->accounts->first()->id])->where('transaction_type_id', '<>', '27')->whereDate('created_at', Carbon::today())->count();
         $dailySum = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => $wbaAccount->id])->where('transaction_type_id', '<>', '27')->whereDate('created_at', Carbon::today())->sum('amount');
 
         $lastTransaction = transactions::where(['transaction_remarks_id' => '2', 'credit_debit_type_id' => 2, 'account_id' => $wbaAccount->id])->whereDate('created_at', Carbon::today())->orderBy('id', 'DESC')->first();

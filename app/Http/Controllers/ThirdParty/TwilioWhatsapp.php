@@ -330,6 +330,14 @@ class TwilioWhatsapp extends Controller
 
     }
 
+    public function transferTransactionMessage()
+    {
+        $message = "";
+        $message .= "*Transfer Trasaction*.\n\n*Follow the example below to confirm transfer*\n\n *Example* - confirm-transfer, amount, transaction_reference\n\nconfirm-transfer, 5000, BM2025062315531556799348394";
+        return $message;
+
+    }
+
     public function initializeTransaction($request, $stringArray)
     {
         $amount      = $this->cleanString($stringArray[1]);
@@ -354,6 +362,7 @@ class TwilioWhatsapp extends Controller
         $initiateTransactionTransactionTotal     = $initiateTransaction['data']['total'];
 
         $message .= "*$initiateTransactionMessage*\n\n *charge* - $initiateTransactionCharge\n*transaction_reference* - $initiateTransactionTransactionReference\n ";
+        $message .= $this->transferTransactionMessage();
         return $message;
 
     }

@@ -216,19 +216,19 @@ class TransactionService
                     "ledger_dr"              => $ledger_dr,
                 ]);
 
-                return response()->json(
-                    [
-                        "status"  => true,
-                        'message' => "Transaction initialized",
-                        'data'    => [
-                            'charge'                => $charge ?? 0.00,
-                            'transaction_reference' => $transactionId,
-                            'transactionTypeId'     => $request->transaction_type,
-                            'transfer_amount'       => $amount,
-                            'total'                 => $totalAmount,
-                        ],
-                    ]
-                );
+                $result = [
+                    "status"  => true,
+                    'message' => "Transaction initialized",
+                    'data'    => [
+                        'charge'                => $charge ?? 0.00,
+                        'transaction_reference' => $transactionId,
+                        'transactionTypeId'     => $request->transaction_type,
+                        'transfer_amount'       => $amount,
+                        'total'                 => $totalAmount,
+                    ],
+                ];
+
+                return $result;
 
                 // return response()->json(["status" => false, 'message' => "Insufficient Balance ", 'data' => $userWallet->balance], 400);
             } else if ($request->transaction_type == 4) {
@@ -288,19 +288,20 @@ class TransactionService
                     "ledger_dr"              => $ledger_dr,
                 ]);
 
-                return response()->json(
+                $result =
                     [
-                        "status"  => true,
-                        'message' => "Transaction initialized",
-                        'data'    => [
-                            'charge'                => $charge ?? 0.00,
-                            'transaction_reference' => $transactionId,
-                            'transactionTypeId'     => $request->transaction_type,
-                            'transfer_amount'       => $amount,
-                            'total'                 => $totalAmount,
-                        ],
-                    ]
-                );
+                    "status"  => true,
+                    'message' => "Transaction initialized",
+                    'data'    => [
+                        'charge'                => $charge ?? 0.00,
+                        'transaction_reference' => $transactionId,
+                        'transactionTypeId'     => $request->transaction_type,
+                        'transfer_amount'       => $amount,
+                        'total'                 => $totalAmount,
+                    ],
+                ];
+
+                return $result;
 
                 // return response()->json(["status" => false, 'message' => "Insufficient Balance ", 'data' => $userWallet->balance], 400);
             } else {

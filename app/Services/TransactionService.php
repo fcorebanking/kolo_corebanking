@@ -349,7 +349,9 @@ class TransactionService
     {
         $companySettings = company_settings::where('company_id', $user->company_id)->first();
         $accountTier     = $user->tier;
-        $wbaAccount      = $user->accounts->first();
+        logInfo($accountTier, "accountTier Twilio");
+        logInfo($user->accounts->first(), "accounts Twilio");
+        $wbaAccount = $user->accounts->first();
 
         if (! $companySettings) {
             return ["status" => false, 'message' => "Contact support to resolve advanced settings"];

@@ -9,6 +9,7 @@ use App\Models\wb_account_details;
 use App\Services\TransactionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Twilio\Rest\Client;
 
@@ -325,7 +326,7 @@ class TwilioWhatsapp extends Controller
     public function initializeTransactionMessage()
     {
         $message = "";
-        $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, 5000, send to ola\n";
+        $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, amount, description, destination bank name, destination account number \n\n transfer, 5000, send to ola, zenith bank, 2001362794 \n";
         return $message;
 
     }
@@ -333,36 +334,60 @@ class TwilioWhatsapp extends Controller
     public function transferTransactionMessage()
     {
         $message = "";
-        $message .= "*Transfer Trasaction*.\n\n*Follow the example below to confirm transfer*\n\n *Example* - confirm-transfer, amount, transaction_reference\n\nconfirm-transfer, 5000, BM2025062315531556799348394";
+        $message .= "\n\n*Transfer Trasaction*.\n\n*Follow the example below to confirm transfer*\n\n *Example* - confirm-transfer, transaction_pin\n\nconfirm-transfer, 1234";
         return $message;
 
     }
 
     public function initializeTransaction($request, $stringArray)
     {
-        $amount      = $this->cleanString($stringArray[1]);
-        $description = $this->cleanString($stringArray[1]);
-        $message     = "";
-        $user        = $this->getUser($request);
+        $amount                          = $this->cleanString($stringArray[1]);
+        $description                     = $this->cleanString($stringArray[2]);
+        $destination_bank_name           = $this->cleanString($stringArray[3]);
+        $destination_bank_account_number = $this->cleanString($stringArray[4]);
 
+        $message               = "";
         $transactionController = new TransactionService();
+        $user                  = $this->getUser($request);
+        $bank_code             = $this->getBankCode($destination_bank_name);
+
         $request->mergeIfMissing([
             'final_amount'     => $amount,
             'transaction_type' => 4,
             'description'      => $description,
         ]);
 
-        $initiateTransaction = $transactionController->initiateTransfer($request, $user);
+        $initiateTransaction  = $transactionController->initiateTransfer($request, $user);
+        $destionation_account = $transactionController->verifyBankAccount($bank_code, $destination_bank_account_number);
 
-        \logInfo(json_encode($initiateTransaction), "Twilio Respond Whatsapp Message");
+        if (! $destionation_account) {
+            $message .= "Issue with Account Details";
+        } else {
 
-        $initiateTransactionMessage              = $initiateTransaction['message'];
-        $initiateTransactionCharge               = $initiateTransaction['data']['charge'];
-        $initiateTransactionTransactionReference = $initiateTransaction['data']['transaction_reference'];
-        $initiateTransactionTransactionTotal     = $initiateTransaction['data']['total'];
+            \logInfo(json_encode($initiateTransaction), "Twilio Respond Whatsapp Message");
 
-        $message .= "*$initiateTransactionMessage*\n\n *charge* - $initiateTransactionCharge\n*transaction_reference* - $initiateTransactionTransactionReference\n ";
-        $message .= $this->transferTransactionMessage();
+            $initiateTransactionMessage              = $initiateTransaction['message'];
+            $initiateTransactionCharge               = $initiateTransaction['data']['charge'];
+            $initiateTransactionTransactionReference = $initiateTransaction['data']['transaction_reference'];
+            $initiateTransactionTransactionTotal     = $initiateTransaction['data']['total'];
+            $bankCode                                = $bank_code;
+            $bankName                                = $destionation_account['data']['bank_name'];
+            $receipientName                          = $destionation_account['data']['first_name'] . $destionation_account['data']['last_name'];
+
+            Cache::put("whatsappTransfer:{$user->id}", [
+                'description'           => $description,
+                'amount'                => $initiateTransactionTransactionTotal,
+                'transaction_reference' => $initiateTransactionTransactionReference,
+                'receipientName'        => $receipientName,
+                'destination_account'   => $destination_bank_account_number,
+                'bank_code'             => $bankCode,
+                'bank'                  => $bankName,
+
+            ], 600);
+
+            $message .= "*Amount* - $initiateTransactionTransactionTotal\n*Charge* - $initiateTransactionCharge\n*Transaction Reference* - $initiateTransactionTransactionReference\n*Receipient Name* - $destination_bank_account_number\n*Destination Account* - $destination_bank_account_number\n*Bank Code* - $bankCode\n*Bank Code* - $bankCode\n*Bank Name* - $bankName\n";
+            $message .= $this->transferTransactionMessage();
+        }
         return $message;
 
     }
@@ -470,6 +495,12 @@ class TwilioWhatsapp extends Controller
     public function cleanString($input)
     {
         return str_replace(' ', '', $input);
+    }
+
+    public function getBankCode($input)
+    {
+        $transactionController = new TransactionService();
+        return $transactionController->getBankCode($input);
     }
 
 }

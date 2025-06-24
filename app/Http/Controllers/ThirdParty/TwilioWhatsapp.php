@@ -334,7 +334,7 @@ class TwilioWhatsapp extends Controller
     public function transferTransactionMessage()
     {
         $message = "";
-        $message .= "\n\n*Transfer Trasaction*.\n\n*Follow the example below to confirm transfer*\n\n *Example* - confirm-transfer, transaction_pin\n\nconfirm-transfer, 1234";
+        $message .= "\n\n*Follow the example below to confirm transfer shown above*\n\n *Example* - confirm-transfer, transaction_pin\n\nconfirm-transfer, 1234";
         return $message;
 
     }
@@ -385,7 +385,7 @@ class TwilioWhatsapp extends Controller
 
             ], 600);
 
-            $message .= "*Amount* - $initiateTransactionTransactionTotal\n*Charge* - $initiateTransactionCharge\n*Transaction Reference* - $initiateTransactionTransactionReference\n*Receipient Name* - $destination_bank_account_number\n*Destination Account* - $destination_bank_account_number\n*Bank Code* - $bankCode\n*Bank Code* - $bankCode\n*Bank Name* - $bankName\n";
+            $message .= "*Amount* - $initiateTransactionTransactionTotal\n*Charge* - $initiateTransactionCharge\n*Transaction Reference* - $initiateTransactionTransactionReference\n*Receipient Name* - $receipientName\n*Destination Account* - $destination_bank_account_number\n*Bank Code* - $bankCode\n*Bank Name* - $bankName\n";
             $message .= $this->transferTransactionMessage();
         }
         return $message;

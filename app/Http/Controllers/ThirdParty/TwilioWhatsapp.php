@@ -343,7 +343,7 @@ class TwilioWhatsapp extends Controller
     {
         $amount                          = $this->cleanString($stringArray[1]);
         $description                     = $this->cleanString($stringArray[2]);
-        $destination_bank_name           = $stringArray[3];
+        $destination_bank_name           = $this->cleanAccountNameString($stringArray[3]);
         $destination_bank_account_number = $this->cleanString($stringArray[4]);
 
         $message               = "";
@@ -495,6 +495,11 @@ class TwilioWhatsapp extends Controller
     public function cleanString($input)
     {
         return str_replace(' ', '', $input);
+    }
+
+    public function cleanAccountNameString($input)
+    {
+        return ltrim($input);
     }
 
     public function getBankCode($input)

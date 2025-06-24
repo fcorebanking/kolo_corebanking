@@ -92,6 +92,7 @@ class LoanController extends Controller
             $transactions_sum = transactions::where('account_id', $walletCheck->id)->sum('amount');
 
             logInfo("{$user->username}: $transactions_sum", "transactions_sum");
+            logInfo("{$user->username}:  $balance", " balance");
             $appdata = ApploanSettings::where(['company_id' => $user->company_id])->where('transactionMin', '<=', $transactions_sum)->where('transactionMax', '>=', $transactions_sum)->where('minWalletBalance', '<=', $balance)->where('maxWalletBalance', '>=', $balance)->where('NumOngoinAllowed', '>', $loanCount)->first();
 
             if ($appdata) {

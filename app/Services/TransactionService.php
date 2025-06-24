@@ -408,7 +408,7 @@ class TransactionService
         return ["status" => \true, 'message' => "Transaction Validated"];
     }
 
-    public function transferToBankAccount($description, $amount, $transaction_reference, $destination_account, $bank_code, $transaction_pin, $user)
+    public function transferToBankAccount($description, $amount, $transaction_reference, $destination_account, $bank_code, $transaction_pin, $user, $receipient_name)
     {
 
         $charge = 0;
@@ -418,12 +418,12 @@ class TransactionService
         $validateSavingsProduct = $this->accountProductCharges($amount);
 
         if (! $validateSavingsProduct['status']) {
-            return \response()->json($validateSavingsProduct, 400);
+            return $validateSavingsProduct;
         }
 
         $charge = isset($validateSavingsProduct['data']['charge']) ? $validateSavingsProduct['data']['charge'] : 0;
 
-        $totalAmount = $request->final_amount + $charge;
+        $totalAmount = $amount + $charge;
 
         $checkAllowedTransaction = checkCompanyAllowedTransactionStatus($currentUser->company_id);
 
@@ -432,17 +432,17 @@ class TransactionService
             return response()->json($checkAllowedTransaction);
         }
 
-        if ($request->final_amount > 3000000) {
+        if ($amount > 3000000) {
             return response()->json(['status' => false, 'message' => 'Maximum transfer amount is 3,000,000']);
         }
         DB::beginTransaction();
 
-        $transactionPinValidation = validatePinCheckCustomerBalance($request->transaction_pin, $totalAmount);
+        $transactionPinValidation = validatePinCheckCustomerBalance($transaction_pin, $totalAmount);
         if (! $transactionPinValidation['status']) {
             return response()->json($transactionPinValidation, 400);
         }
 
-        $transaction = transactions::lockForUpdate()->where(['transaction_reference' => $request->transaction_reference, 'amount' => $request->final_amount])->first();
+        $transaction = transactions::lockForUpdate()->where(['transaction_reference' => $transaction_reference, 'amount' => $amount])->first();
 
         if ($transaction) {
             if ($transaction->transaction_remarks_id == 2) {
@@ -466,22 +466,22 @@ class TransactionService
                         return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
                     }
 
-                    $validateTransferAmount = $this->validateTransfer($request->final_amount);
+                    $validateTransferAmount = $this->validateTransfer($amount);
 
                     if (! $validateTransferAmount['status']) {
-                        return \response()->json($validateTransferAmount, 400);
+                        return $validateTransferAmount;
                     }
 
-                    $wbaCharge = getWbaTransferCharges(1, $request->final_amount);
+                    $wbaCharge = getWbaTransferCharges(1, $amount);
 
-                    $wbaCharge = $request->final_amount > 1000000 ? 100 : $wbaCharge;
+                    $wbaCharge = $amount > 1000000 ? 100 : $wbaCharge;
 
                     // $charge =  $charge < $wbaCharge && $charge > 0 ?  ($wbaCharge + ($wbaCharge * 0.01)) : $charge;
 
-                    $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
+                    $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $amount, $charge, $wbaCharge);
 
                     if (! $debitCustomer["status"]) {
-                        return \response()->json($debitCustomer);
+                        return $debitCustomer;
                     }
 
                     $accountId                   = $debitCustomer['account_id'];
@@ -499,21 +499,21 @@ class TransactionService
                     $preferredEbankingPartner = PreferredEbankingPartner::all();
                     $ebankingService          = new EbankingService($preferredEbankingPartner);
 
-                    $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
+                    $bankAccount = $ebankingService->verifyAccountNumberFull($bank_code, $destination_account);
 
                     if (! $bankAccount['status']) {
                         $bankAccount['status'] = false;
-                        return response()->json($bankAccount);
+                        return $bankAccount;
                     }
 
-                    sendSMS($currentUser->id, "Debit Amt:$request->final_amount, Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . " Avail Bal:" . $debitCustomer['charge_balance_after'] . "Date:" . date('Y-m-d') . " Ref: " . $request->transaction_reference, true, true, 'Debit Transaction');
+                    sendSMS($currentUser->id, "Debit Amt:$amount, Desc: App/" . $bankAccount['data']['account_name'] . "$description" . " Avail Bal:" . $debitCustomer['charge_balance_after'] . "Date:" . date('Y-m-d') . " Ref: " . $transaction_reference, true, true, 'Debit Transaction');
                     // $transaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
 
-                    $newdescription = $request->description == "" ? $currentUser->first_name : $request->description;
+                    $newdescription = $request->description == "" ? $currentUser->first_name : $description;
 
-                    $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
+                    $bank = banks::where('bank_code', $bank_code)->orwhere('short_code', $bank_code)->first();
 
-                    $newdescription = $newdescription . "/" . $request->receipient_name . "/" . $request->destination_account . " - " . $bank->bank_name;
+                    $newdescription = $newdescription . "/" . $receipient_name . "/" . $destination_account . " - " . $bank->bank_name;
 
                     $gatewayDescription = $currentUser->first_name . " " . $currentUser->last_name . " / " . $currentUser->company->company_name;
                     $myDescription      = "You transferred funds to " . $bankAccount['data']['account_name'] . "/" . $request->destination_account . " / " . $bank->bank_name . " / " . $currentUser->company->company_name;
@@ -718,8 +718,8 @@ class TransactionService
     {
         logInfo(json_encode($account_name), "Transaction Service account_name");
 
-       $bank_code = banks::whereRaw('LOWER(bank_name) LIKE ?', ["%" . strtolower($account_name) . "%"])->first()->bank_code;
-      
+        $bank_code = banks::whereRaw('LOWER(bank_name) LIKE ?', ["%" . strtolower($account_name) . "%"])->first()->bank_code;
+
         return $bank_code;
     }
 

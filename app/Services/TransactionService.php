@@ -677,6 +677,8 @@ class TransactionService
 
         $bankAccount = $ebankingService->verifyAccountNumberFull($bank_code, $account_number);
 
+        logInfo(json_encode($bankAccount), "Transaction Service bank account");
+
         if (! $bankAccount['status']) {
             return $bankAccount;
         }

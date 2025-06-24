@@ -357,8 +357,8 @@ class TwilioWhatsapp extends Controller
             'description'      => $description,
         ]);
 
-        $initiateTransaction  = $transactionController->initiateTransfer($request, $user);
-        $destionation_account = $transactionController->verifyBankAccount($bank_code, $destination_bank_account_number);
+        $initiateTransaction  = $this->initiateTransfer($request, $user);
+        $destionation_account = $this->verifyBankAccount($bank_code, $destination_bank_account_number);
 
         if (! $destionation_account) {
             $message .= "Issue with Account Details";
@@ -501,6 +501,18 @@ class TwilioWhatsapp extends Controller
     {
         $transactionController = new TransactionService();
         return $transactionController->getBankCode($input);
+    }
+
+    public function initiateTransfer(Request $request, $user)
+    {
+        $transactionController = new TransactionService();
+        return $transactionController->initiateTransfer($request, $user);
+    }
+
+    public function verifyBankAccount($bank_code, $destination_bank_account_number)
+    {
+        $transactionController = new TransactionService();
+        return $transactionController->verifyBankAccount($bank_code, $destination_bank_account_number);
     }
 
 }

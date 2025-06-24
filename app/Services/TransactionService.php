@@ -717,7 +717,9 @@ class TransactionService
     public function getBankCode($account_name)
     {
         logInfo(json_encode($account_name), "Transaction Service account_name");
-        $bank_code = banks::where('bank_name', 'LIKE', "%{$account_name}%")->first()->bank_code;
+
+       $bank_code = banks::whereRaw('LOWER(bank_name) LIKE ?', ["%" . strtolower($account_name) . "%"])->first()->bank_code;
+      
         return $bank_code;
     }
 

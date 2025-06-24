@@ -143,6 +143,11 @@ class TwilioWhatsapp extends Controller
 
         }
 
+        if (isset($stringArray[1]) && ($stringArray[0] == "confirm-transfer" || $stringArray[0] == strtolower("comfirm-transfer"))) {
+            $message = $this->transferTransaction($request, $stringArray);
+
+        }
+
         \logInfo($message, "Twilio Respond Whatsapp Message");
 
         $this->send($message, $phone, $type);
@@ -372,7 +377,7 @@ class TwilioWhatsapp extends Controller
             $initiateTransactionTransactionTotal     = $initiateTransaction['data']['total'];
             $bankCode                                = $bank_code;
             $bankName                                = $destionation_account['data']['bank_name'];
-            $receipientName                          = $destionation_account['data']['first_name'] . $destionation_account['data']['last_name'];
+            $receipientName                          = $destionation_account['data']['first_name'] . " " . $destionation_account['data']['last_name'];
 
             Cache::put("whatsappTransfer:{$user->id}", [
                 'description'           => $description,
@@ -389,6 +394,36 @@ class TwilioWhatsapp extends Controller
             $message .= $this->transferTransactionMessage();
         }
         return $message;
+
+    }
+
+    public function transferTransaction($request, $stringArray)
+    {
+        $transactionPin = $this->cleanString($stringArray[1]);
+        $user           = $this->getUser($request);
+        $validatePin    = $this->validatePin($user, $transactionPin);
+        if ($validatePin != false) {
+            if (Cache::has("whatsappTransfer:{$user->id}")) {
+                $data = Cache::get("whatsapp:$user");
+                \logInfo(json_encode($data), "Twilio Cache Data Whatsapp Message");
+                $description           = $data['descriptio'];
+                $amount                = $data['amount'];
+                $transaction_reference = $data['transaction_reference'];
+                $destination_account   = $data['destination_account'];
+                $bank_code             = $data[''];
+                $transaction_pin       = $transactionPin;
+                $receipient_name       = $data['receipientName'];
+                $transactionController = new TransactionService();
+
+                $transferStatus = $transactionController->transferToBankAccount($description, $amount, $transaction_reference, $destination_account, $bank_code, $transaction_pin, $user, $receipient_name);
+            } else {
+                $message .= "*There was an issue with this transaction*\n";
+            }
+
+        } else {
+            return $this->getInvalidPinMessage();
+
+        }
 
     }
 

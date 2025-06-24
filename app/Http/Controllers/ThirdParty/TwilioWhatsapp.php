@@ -343,8 +343,8 @@ class TwilioWhatsapp extends Controller
     {
         $amount                          = $this->cleanString($stringArray[1]);
         $description                     = $this->cleanString($stringArray[2]);
-        $destination_bank_name           = $this->cleanString($stringArray[3]);
-        $destination_bank_account_number = $stringArray[4];
+        $destination_bank_name           = $stringArray[3];
+        $destination_bank_account_number = $this->cleanString($stringArray[4]);
 
         $message               = "";
         $transactionController = new TransactionService();

@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Models\banks;
 use App\Models\Beneficiary;
 use App\Models\Company;
@@ -18,7 +19,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use App\Http\Controllers\ThirdParty\VTPassController;
 
 class TransactionService
 {
@@ -766,6 +766,173 @@ class TransactionService
         } else {
             return ['status' => false, 'message' => 'Failed to fetch Data bundles', 'data' => []];
         }
+    }
+
+    public function buyDataBundle($transaction_pin, $amount, $user, $network_provider, $data_plan, $phone_number)
+    {
+
+        $transactionId = $this->vtPassRequestId();
+
+        $checkAllowedTransaction = checkCompanyAllowedTransactionStatus($user->company_id);
+
+        if ($checkAllowedTransaction['status'] == 3 || $checkAllowedTransaction['status'] == 4) {
+            $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
+            return response()->json($checkAllowedTransaction);
+        }
+
+        $transactionPinValidation = $this->validatePinCheckCustomerBalance($transaction_pin, 1);
+        if (! $transactionPinValidation['status']) {
+            return $transactionPinValidation;
+        }
+
+        if (\checkcustomerrestriction($user->id, '2')) {
+            return ["status" => false, 'message' => "Your account has been restricted. please contact support"];
+        }
+
+        $validateTransferAmount = $this->validateTransfer($amount);
+
+        if (! $validateTransferAmount['status']) {
+            return $validateTransferAmount;
+        }
+
+        $wb_account_details = wb_account_details::where('user_id', auth()->user()->id)->where('acc_reference', auth()->user()->account_reference)->first();
+
+        $checkCompanyBalance = checkCompanyBalance($amount);
+
+        if (! $checkCompanyBalance['status']) {
+            return $checkCompanyBalance;
+        }
+        $checkCustomerBalance = checkCustomerBalance($wb_account_details->id, $amount);
+
+        if (! $checkCustomerBalance['status']) {
+            return $checkCustomerBalance;
+        }
+
+        $body = [
+            "request_id"     => $transactionId,
+            "serviceID"      => $network_provider,
+            "variation_code" => $data_plan['plan']['variation_code'],
+            "amount"         => $data_plan['plan']['variation_amount'],
+            "phone"          => $phone_number,
+        ];
+
+        $endpoint = "pay";
+
+        $variation_amount = $data_plan['plan']['variation_amount'];
+        $variation_code   = $data_plan['plan']['variation_code'];
+
+        $vtPassController = new VTPassController();
+
+        $buyAirtime = $vtPassController->buyData($transactionId, $network_provider, $variation_code, $variation_amount, $phone_number);
+
+        if ($buyAirtime["status"]) {
+
+            $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback($user->accounts->first()->id, $user->company_id, $variation_amount, 0, 0.01);
+
+            /*   if (! $debitCustomer['status']) {
+            return response()->json($debitCustomer, 400);
+        }*/
+
+            $ledger_cr       = null;
+            $ledger_dr       = null;
+            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(12, auth()->user()->company_id);
+            if ($ledger_Settings) {
+                $ledger_cr = $ledger_Settings->ledger_cr;
+                $ledger_dr = $ledger_Settings->ledger_dr;
+            }
+
+            if (! $debitCustomer['status']) {
+                response()->json($debitCustomer, 400);
+            }
+
+            $transaction = transactions::create([
+                "balance_before"         => $debitCustomer['balance_before'],
+                "amount"                 => $selectedDataBundle['variation_amount'],
+                "balance_after"          => $debitCustomer["balance_after"],
+                "company_balance_before" => $debitCustomer["company_balance_before"],
+                "company_balance_after"  => $debitCustomer["company_balance_after"],
+                "company_amount"         => $debitCustomer["company_amount"],
+                "company_id"             => $user->company_id,
+                "branch_id"              => $user->branch_id,
+                "account_id"             => $transactionPinValidation['account_id'],
+                "description"            => "Purchase of Data worth " . $variation_amount . " for $phone_number",
+                "transaction_reference"  => $transactionId,
+                "transaction_remarks_id" => 1,
+                "transaction_type_id"    => 12,
+                "credit_debit_type_id"   => 2,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => auth()->user()->id,
+                "ledger_cr"              => $ledger_cr,
+                "ledger_dr"              => $ledger_dr,
+            ]);
+
+            $cashbackTransactionId = \generate_txnID();
+            $ledger_cr             = null;
+            $ledger_dr             = null;
+            $ledger_Settings       = get_CR_DR_TXN_Type_Ledger(66, $user->company_id);
+            if ($ledger_Settings) {
+                $ledger_cr = $ledger_Settings->ledger_cr;
+                $ledger_dr = $ledger_Settings->ledger_dr;
+            }
+            $cashbackTransaction = transactions::create([
+                "balance_before"         => $debitCustomer['cashback_balance_before'],
+                "amount"                 => $debitCustomer["customer_cashback"],
+                "account_id"             => $debitCustomer["customer_cashback"] > 0 ? $transactionPinValidation['account_id'] : null,
+                "balance_after"          => $debitCustomer["cashback_balance_after"],
+                "company_balance_before" => $debitCustomer["company_cashback_balance_before"],
+                "company_balance_after"  => $debitCustomer["company_cashback_balance_after"],
+                "company_amount"         => $debitCustomer["company_cashback"],
+                "description"            => "Cashback on Data Purchase",
+                "company_id"             => $user->company_id,
+                "branch_id"              => $user->branch_id,
+                "parent_transaction_id"  => $transaction->id,
+                "transaction_reference"  => $cashbackTransactionId,
+                "transaction_remarks_id" => 2,
+                "transaction_type_id"    => 66,
+                "credit_debit_type_id"   => 1,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => auth()->user()->id,
+                "ledger_cr"              => $ledger_cr,
+                "ledger_dr"              => $ledger_dr,
+            ]);
+
+            $this->updateTransactionAsSuccessful($transactionId, $debitCustomer['balance_after']);
+
+            return
+                [
+                "status"  => true,
+                'message' => "Data Plan Purchase Successful",
+                'data'    => [
+                    'balance' => $debitCustomer['balance_after'],
+                ],
+            ];
+        } else {
+            return ["status" => false, 'message' => $buyAirtime['message']];
+        }
+    }
+
+    public function updateTransactionAsSuccessful($transactionId, $balance = 0, $updateBalance = true)
+    {
+        $transaction = transactions::where('transaction_reference', $transactionId)->first();
+
+        if ($updateBalance) {
+            $transaction->balance_after = $balance;
+        }
+
+        $transaction->transaction_remarks_id = 2;
+        $transaction->updated_at             = Carbon::now();
+        $transaction->modified_by            = auth()->user()->id;
+        $transaction->save();
+    }
+
+    public function vtPassRequestId()
+    {
+        $result     = '';
+        $dateString = \str_replace("-", "", Carbon::now()->format('Y-m-d H:i:s'));
+        $dateString = \str_replace(" ", "", $dateString);
+        $dateString = \str_replace(":", "", $dateString);
+        // return $dateString . $this->randomNumber(8);
+        return $dateString;
     }
 
 }

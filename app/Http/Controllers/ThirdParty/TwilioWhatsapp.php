@@ -238,7 +238,15 @@ class TwilioWhatsapp extends Controller
         }
     }
 
-    public function initializeTransactionMessage()
+    public function initializeTransactionBankMessage()
+    {
+        $message = "";
+        $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, amount, description, destination bank name, destination account number \n\n transfer, 5000, send to ola, zenith bank, 2001362794 \n";
+        return $message;
+
+    }
+
+    public function initializeTransactionWalletMessage()
     {
         $message = "";
         $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, amount, description, destination bank name, destination account number \n\n transfer, 5000, send to ola, zenith bank, 2001362794 \n";
@@ -317,7 +325,7 @@ class TwilioWhatsapp extends Controller
             $networkProvider = $dataUpdate['network_provider'];
             $plan            = $dataUpdate['plan']['name'];
 
-            $message .= "*Network Provider* -  $networkProvider\n*Plan* - $plan\n*Amount* - $amount\n*Phone Number* - $phoneNuumber\n\n*Follow the example below to confirm data purchase as shown above*\n\n *Example* - confirm-data, transaction_pin\n\ncconfirm-data, 1234";
+            $message .= "*Network Provider* -  $networkProvider\n*Plan* - $plan\n*Amount* - $amount\n*Phone Number* - $phoneNuumber\n\n*Follow the example below to confirm data purchase as shown above*\n\n *Example* - confirm-data, transaction_pin\n\nconfirm-data, 1234";
         } else {
             $message .= "There is a problem with Data Plan Transaction";
         }
@@ -332,7 +340,7 @@ class TwilioWhatsapp extends Controller
         return $message;
     }
 
-    public function initializeTransaction($request, $stringArray)
+    public function initializeBankTransaction($request, $stringArray)
     {
         $amount                          = $this->cleanString($stringArray[1]);
         $description                     = $this->cleanString($stringArray[2]);
@@ -388,7 +396,63 @@ class TwilioWhatsapp extends Controller
 
     }
 
-    public function transferTransaction($request, $stringArray)
+    public function initializeWalletTransaction($request, $stringArray)
+    {
+        $amount                          = $this->cleanString($stringArray[1]);
+        $description                     = $this->cleanString($stringArray[2]);
+        $destination_bank_name           = $this->cleanAccountNameString($stringArray[3]);
+        $destination_bank_account_number = $this->cleanString($stringArray[4]);
+
+        $message               = "";
+        $transactionController = new TransactionService();
+        $user                  = $this->getUser($request);
+        $bank_code             = $this->getBankCode($destination_bank_name);
+
+        $request->mergeIfMissing([
+            'final_amount'     => $amount,
+            'transaction_type' => 4,
+            'description'      => $description,
+        ]);
+
+        $initiateTransaction  = $this->initiateTransfer($request, $user);
+        $destionation_account = $this->verifyBankAccount($bank_code, $destination_bank_account_number);
+
+        if (! isset($destionation_account['data'])) {
+            $message .= "Issue with Account Details";
+        } else {
+
+            \logInfo(json_encode($initiateTransaction), "Twilio Respond Whatsapp Message");
+
+            $initiateTransactionMessage              = $initiateTransaction['message'];
+            $initiateTransactionCharge               = $initiateTransaction['data']['charge'];
+            $initiateTransactionTransactionReference = $initiateTransaction['data']['transaction_reference'];
+            $initiateTransactionTransactionTotal     = $initiateTransaction['data']['total'];
+            $bankCode                                = $bank_code;
+            $bankName                                = $destionation_account['data']['bank_name'];
+            $receipientName                          = $destionation_account['data']['first_name'] . " " . $destionation_account['data']['last_name'];
+
+            Cache::put("whatsappTransfer:{$user->id}", [
+                'description'           => $description,
+                'amount'                => $initiateTransactionTransactionTotal,
+                'transaction_reference' => $initiateTransactionTransactionReference,
+                'receipientName'        => $receipientName,
+                'destination_account'   => $destination_bank_account_number,
+                'bank_code'             => $bankCode,
+                'bank'                  => $bankName,
+
+            ], 600);
+
+            $data = Cache::get("whatsappTransfer:{$user->id}");
+            \logInfo(json_encode($data), "Twilio Cache Data Whatsapp Message");
+
+            $message .= "*Amount* - $initiateTransactionTransactionTotal\n*Charge* - $initiateTransactionCharge\n*Transaction Reference* - $initiateTransactionTransactionReference\n*Receipient Name* - $receipientName\n*Destination Account* - $destination_bank_account_number\n*Bank Code* - $bankCode\n*Bank Name* - $bankName\n";
+            $message .= $this->transferTransactionMessage();
+        }
+        return $message;
+
+    }
+
+    public function bankTransferTransaction($request, $stringArray)
     {
         $transactionPin = $this->cleanString($stringArray[1]);
         $user           = $this->getUser($request);
@@ -426,6 +490,44 @@ class TwilioWhatsapp extends Controller
         }
         return $message;
 
+    }
+
+    public function buyData()
+    {
+        $transactionPin = $this->cleanString($stringArray[1]);
+        $user           = $this->getUser($request);
+        $validatePin    = $this->validatePin($user, $transactionPin);
+        $message        = "";
+        \logInfo(json_encode($validatePin), "Twilio validate pin for buy data transaction ");
+        if ($validatePin != false) {
+
+            $data = Cache::get("whatsappData:{$user->id}");
+
+            if ($data != null) {
+
+                \logInfo(json_encode($data), "Twilio Cache Data Whatsapp Message for Transfer");
+
+                $network_provider = $data['network_provider'];
+                $amount           = $data['amount'];
+                $data_plan        = $data;
+                $transaction_pin  = $transactionPin;
+                $phone_number     = $data['phone_number'];
+
+                $transactionController = new TransactionService();
+                $buyDataStatus         = $transactionController->buyDataBundle($transaction_pin, $amount, $user, $network_provider, $data_plan, $phone_number);
+
+                if ($buyDataStatus) {
+                    $message .= "*Transaction was successul*\n";
+                }
+            } else {
+                $message .= "*There was an issue with this transaction*\n";
+            }
+
+        } else {
+            $message .= $this->getInvalidPinMessage();
+
+        }
+        return $message;
     }
 
     public function otpCode($user)
@@ -629,18 +731,22 @@ class TwilioWhatsapp extends Controller
         if (isset($stringArray[1]) && ($stringArray[0] == "transfer" || $stringArray[0] == strtolower("transfer"))) {
             $transferOption = $this->cleanString($stringArray[1]);
 
-            if (($transferOption == "A" || $transferOption == strtolower("A")) || ($transferOption == "B" || $transferOption == strtolower("B"))) {
-                $message = $this->initializeTransactionMessage();
+            if ($transferOption == "A" || $transferOption == strtolower("A")) {
+                $message = $this->initializeTransactionBankMessage();
+            }
+
+            if ($transferOption == "B" || $transferOption == strtolower("B")) {
+                $message = $this->initializeTransactionWalletMessage();
             }
 
             if (is_numeric($transferOption) || (int) $transferOption == $transferOption) {
-                $message = $this->initializeTransaction($request, $stringArray);
+                $message = $this->initializeBankTransaction($request, $stringArray);
             }
 
         }
 
         if (isset($stringArray[1]) && ($stringArray[0] == "confirm-transfer" || $stringArray[0] == strtolower("comfirm-transfer"))) {
-            $message = $this->transferTransaction($request, $stringArray);
+            $message = $this->bankTransferTransaction($request, $stringArray);
 
         }
 
@@ -674,6 +780,10 @@ class TwilioWhatsapp extends Controller
         }
 
         if (isset($stringArray[1]) && ($stringArray[0] == "buy-data" || $stringArray[0] == strtolower("buy-data"))) {
+            $message = $this->initiateBuyDataMessage($request, $stringArray);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "confirm-data" || $stringArray[0] == strtolower("confirm-data"))) {
             $message = $this->initiateBuyDataMessage($request, $stringArray);
         }
 

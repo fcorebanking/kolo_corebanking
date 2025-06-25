@@ -390,6 +390,9 @@ class TwilioWhatsapp extends Controller
 
             ], 600);
 
+            $data = Cache::get("whatsappTransfer:{$user->id}");
+            \logInfo(json_encode($data), "Twilio Cache Data Whatsapp Message");
+
             $message .= "*Amount* - $initiateTransactionTransactionTotal\n*Charge* - $initiateTransactionCharge\n*Transaction Reference* - $initiateTransactionTransactionReference\n*Receipient Name* - $receipientName\n*Destination Account* - $destination_bank_account_number\n*Bank Code* - $bankCode\n*Bank Name* - $bankName\n";
             $message .= $this->transferTransactionMessage();
         }

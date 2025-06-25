@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\ThirdParty\VTPassController;
 
 class TransactionService
 {
@@ -753,6 +754,18 @@ class TransactionService
         }
 
         return $response;
+    }
+
+    public function getDataBundlesList($networkProvider)
+    {
+        $vtPassController = new VTPassController();
+        $dataBundles      = $vtPassController->getDataBundles($networkProvider);
+
+        if ($dataBundles['status']) {
+            return ['status' => true, 'message' => 'Data Bundles fetched successfully', 'data' => $dataBundles['data']];
+        } else {
+            return ['status' => false, 'message' => 'Failed to fetch Data bundles', 'data' => []];
+        }
     }
 
 }

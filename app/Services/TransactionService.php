@@ -165,7 +165,7 @@ class TransactionService
                     $amount      = $request->finalAmount;
                 } else if ($request->transaction_type == 8) {
 
-                    $validateSavingsProduct = $this->accountProductCharges($request->final_amount);
+                    $validateSavingsProduct = $this->accountProductCharges($amount);
 
                     if (! $validateSavingsProduct['status']) {
                         return \response()->json($validateSavingsProduct, 400);
@@ -415,7 +415,7 @@ class TransactionService
 
         $currentUser = $user;
 
-        $validateSavingsProduct = $this->accountProductCharges($amount);
+        $validateSavingsProduct = $this->accountProductCharges($amount, $user);
 
         if (! $validateSavingsProduct['status']) {
             return $validateSavingsProduct;

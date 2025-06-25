@@ -521,11 +521,11 @@ class TransactionService
                     $transaction->description = $myDescription;
 
                     $transaction->balance_before = $customerBalanceBefore;
-                    $transaction->amount         = $request->final_amount + $charge;
+                    $transaction->amount         = $amount + $charge;
                     $transaction->balance_after  = $customerChargeBalanceAfter;
 
                     $transaction->company_balance_before = $companyBalanceBefore;
-                    $transaction->company_amount         = $request->final_amount + $wbaCharge;
+                    $transaction->company_amount         = $amount + $wbaCharge;
                     $transaction->company_balance_after  = $companyChargeBalanceAfter;
 
                     $transaction->save();
@@ -543,11 +543,11 @@ class TransactionService
                     DB::commit();
 
                     $bankTransferType                       = new BankTransferType();
-                    $bankTransferType->bankCode             = $request->bank_code;
+                    $bankTransferType->bankCode             = $bank_code;
                     $bankTransferType->shortBankCode        = $bank->short_code;
-                    $bankTransferType->accountNumber        = $request->destination_account;
+                    $bankTransferType->accountNumber        = $destination_account;
                     $bankTransferType->description          = $gatewayDescription;
-                    $bankTransferType->amount               = $request->final_amount;
+                    $bankTransferType->amount               = $amount;
                     $bankTransferType->transactionReference = $transaction->transaction_reference;
                     $bankTransferType->sessionId            = $currentUser->virtual_account;
 

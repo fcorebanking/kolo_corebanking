@@ -509,7 +509,7 @@ class TransactionService
                     sendSMS($currentUser->id, "Debit Amt:$amount, Desc: App/" . $bankAccount['data']['account_name'] . "$description" . " Avail Bal:" . $debitCustomer['charge_balance_after'] . "Date:" . date('Y-m-d') . " Ref: " . $transaction_reference, true, true, 'Debit Transaction');
                     // $transaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
 
-                    $newdescription = $request->description == "" ? $currentUser->first_name : $description;
+                    $newdescription = $description == "" ? $currentUser->first_name : $description;
 
                     $bank = banks::where('bank_code', $bank_code)->orwhere('short_code', $bank_code)->first();
 

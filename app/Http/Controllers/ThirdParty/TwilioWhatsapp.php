@@ -97,11 +97,11 @@ class TwilioWhatsapp extends Controller
         }
 
         if ($string == "7") {
-            $message = $this->getBuyDataMessage($request);
+            $message = $this->getBuyDataMessage($request, $stringArray);
         }
 
         if ($string == "8") {
-            $message = $this->getPayBillMessage($request);
+            $message = $this->getPayBillMessage($request, $stringArray);
         }
 
         if ($string == "9") {

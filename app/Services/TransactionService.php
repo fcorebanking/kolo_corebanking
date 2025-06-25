@@ -575,7 +575,7 @@ class TransactionService
                     $transaction->transaction_remarks_id = 2;
                     $transaction->save();
 
-                    $check_transfer_log = Beneficiary::where('accountNo', $request->destination_account)
+                    $check_transfer_log = Beneficiary::where('accountNo', $destination_account)
                         ->whereNull('transaction_id')
                         ->first();
 

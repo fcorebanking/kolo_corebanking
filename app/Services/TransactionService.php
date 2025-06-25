@@ -516,7 +516,7 @@ class TransactionService
                     $newdescription = $newdescription . "/" . $receipient_name . "/" . $destination_account . " - " . $bank->bank_name;
 
                     $gatewayDescription = $currentUser->first_name . " " . $currentUser->last_name . " / " . $currentUser->company->company_name;
-                    $myDescription      = "You transferred funds to " . $bankAccount['data']['account_name'] . "/" . $request->destination_account . " / " . $bank->bank_name . " / " . $currentUser->company->company_name;
+                    $myDescription      = "You transferred funds to " . $bankAccount['data']['account_name'] . "/" . $destination_account . " / " . $bank->bank_name . " / " . $currentUser->company->company_name;
 
                     $transaction->description = $myDescription;
 

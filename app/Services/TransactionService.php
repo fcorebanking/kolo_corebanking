@@ -789,7 +789,7 @@ class TransactionService
             return ["status" => false, 'message' => "Your account has been restricted. please contact support"];
         }
 
-        $validateTransferAmount = $this->validateTransfer($amount);
+        $validateTransferAmount = $this->validateTransfer($amount, $user);
 
         if (! $validateTransferAmount['status']) {
             return $validateTransferAmount;

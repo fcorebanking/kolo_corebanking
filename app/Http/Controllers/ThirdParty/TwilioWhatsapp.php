@@ -365,7 +365,7 @@ class TwilioWhatsapp extends Controller
         $initiateTransaction  = $this->initiateTransfer($request, $user);
         $destionation_account = $this->verifyBankAccount($bank_code, $destination_bank_account_number);
 
-        if (! $destionation_account) {
+        if (! isset($destionation_account['data'])) {
             $message .= "Issue with Account Details";
         } else {
 

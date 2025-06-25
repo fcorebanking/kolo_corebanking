@@ -829,7 +829,7 @@ class TransactionService
 
         if ($buyAirtime["status"]) {
 
-            $debitCustomer = $this->debitCustomerAndCompanyWithCompanyCashback($user->accounts->first()->id, $user->company_id, $variation_amount, 0, 0.01);
+            $debitCustomer = $this->debitCustomerAndCompanyWithCompanyCashback($user->accounts->first()->id, $user->company_id, $variation_amount, 0, 0.01, $user);
 
             /*   if (! $debitCustomer['status']) {
             return response()->json($debitCustomer, 400);

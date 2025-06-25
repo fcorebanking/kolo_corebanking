@@ -414,7 +414,7 @@ class TwilioWhatsapp extends Controller
             if ($data != null) {
 
                 \logInfo(json_encode($data), "Twilio Cache Data Whatsapp Message for Transfer");
-                $description           = $data['descriptio'];
+                $description           = $data['description'];
                 $amount                = $data['amount'];
                 $transaction_reference = $data['transaction_reference'];
                 $destination_account   = $data['destination_account'];

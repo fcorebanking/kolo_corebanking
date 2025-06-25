@@ -798,7 +798,7 @@ class TransactionService
 
         $wb_account_details = wb_account_details::where('user_id', auth()->user()->id)->where('acc_reference', auth()->user()->account_reference)->first();
 
-        $checkCompanyBalance = checkCompanyBalance($amount);
+        $checkCompanyBalance = $this->checkCompanyBalance($amount, $user);
 
         if (! $checkCompanyBalance['status']) {
             return $checkCompanyBalance;
@@ -934,6 +934,27 @@ class TransactionService
         $dateString = \str_replace(":", "", $dateString);
         // return $dateString . $this->randomNumber(8);
         return $dateString;
+    }
+
+    function checkCompanyBalance($amount, $user)
+    {
+
+        $response = [];
+
+        if ($amount > 0) {
+
+            $userWallet = company_wallet::where('company_id', $user->company_id)->first();
+
+            if ($userWallet->balance >= $amount) {
+                $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => $user->company_id, 'balance' => $userWallet->balance];
+            } else {
+                $response = ["status" => false, 'message' => "Insufficient Funds"];
+            }
+        } else {
+            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        }
+        return $response;
+
     }
 
 }

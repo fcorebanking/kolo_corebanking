@@ -117,8 +117,33 @@ class TwilioWhatsapp extends Controller
             $message = $this->changePassword($request, $stringArray);
         }
 
-        if (isset($stringArray[1]) && ($stringArray[0] == "transferservice" || $stringArray[0] == strtolower("transferservice"))) {
-            $message = $this->changePin($request, $stringArray);
+        if (isset($stringArray[1]) && ($stringArray[0] == "data" || $stringArray[0] == strtolower("data"))) {
+            $providerString = $this->cleanString($stringArray[1]);
+            $provider       = strtolower($networkProviderString);
+
+            switch ($networkProvider) {
+                case 'a':
+                    $networkProvider = "mtn-data";
+                    break;
+                case 'b':
+                    $networkProvider = "airtel-data";
+                    break;
+                case 'c':
+                    $networkProvider = "9mobile-data";
+                    break;
+                default:
+                    $networkProvider = "glo-data";
+            }
+            $transactionController = new TransactionService();
+            $plans                 = $transactionController->getDataBundlesList($networkProvider);
+            \logInfo(json_encode($plans), "Twilio get Data plans for $networkProvider Whatsapp Message");
+
+            if ($plans) {
+                // $message = initiateBuyDataMessage($request, $stringArray, $plans);
+            } else {
+                $message = "There was a problem with this request";
+            }
+
         }
 
         if (isset($stringArray[1]) && ($stringArray[0] == "balance" || $stringArray[0] == strtolower("balance"))) {
@@ -321,7 +346,7 @@ class TwilioWhatsapp extends Controller
         $message = "";
         if ($user != null) {
 
-            $message .= "*Type Your Transaction Pin*\n\n *Example (Transfer)* - transferservice, 1234 \n\n*Example (Check Account Balance)* - balance, 1234 \n\n*Example (Check POS Balance)* - posbalance, 1234 \n\n*Example (Buy Data)* - buydata, 1234 \n\n*Example (Pay Bill)* - paybill, 1234 \n\n ";
+            $message .= "*Type Your Transaction Pin*\n\n*Example (Check Account Balance)* - balance, 1234 \n\n*Example (Check POS Balance)* - posbalance, 1234 \n";
             return $message;
         } else {
             return "User does not exist";
@@ -342,6 +367,28 @@ class TwilioWhatsapp extends Controller
         $message .= "\n\n*Follow the example below to confirm transfer shown above*\n\n *Example* - confirm-transfer, transaction_pin\n\nconfirm-transfer, 1234";
         return $message;
 
+    }
+
+    public function getBuyDataMessage($request, $stringArray)
+    {
+        $message = "";
+        $message .= "*Choose Network Provider*.\n\n*Follow the example below to pick the options*\n\n *Example* - data, A \n\n*A* - MTN\n*B* - Airtel\n*C* - 9Mobile\n*D* - Glo\n";
+        return $message;
+    }
+
+    public function initiateBuyDataMessage($request, $stringArray, $plans)
+    {
+        $message = "";
+        $message .= "*Choose Data Plan*.\n\n*";
+        $message .= "*Choose Data Plan*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, amount, description, destination bank name, destination account number \n\n transfer, 5000, send to ola, zenith bank, 2001362794 \n";
+        return $message;
+    }
+
+    public function getPayBillMessage($request, $stringArray)
+    {
+        $message = "";
+        $message .= "*Choose Type of Transfer*.\n\n*Follow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n";
+        return $message;
     }
 
     public function initializeTransaction($request, $stringArray)

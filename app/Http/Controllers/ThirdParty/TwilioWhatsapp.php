@@ -121,7 +121,7 @@ class TwilioWhatsapp extends Controller
             $providerString = $this->cleanString($stringArray[1]);
             $provider       = strtolower($providerString);
 
-            switch ($networkProvider) {
+            switch ($provider) {
                 case 'a':
                     $networkProvider = "mtn-data";
                     break;

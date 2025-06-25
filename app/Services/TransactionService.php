@@ -586,7 +586,7 @@ class TransactionService
                         $transfer_log->name      = $receipient_name;
                         $transfer_log->bank_id   = $bank->id;
                         $transfer_log->accountNo = $destination_account;
-                        $transfer_log->user_id   = auth()->user()->id;
+                        $transfer_log->user_id   = $user->id;
                         $transfer_log->save();
                     }
 

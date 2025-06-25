@@ -583,9 +583,9 @@ class TransactionService
 
                     } else {
                         $transfer_log            = new Beneficiary;
-                        $transfer_log->name      = $request->receipient_name;
+                        $transfer_log->name      = $receipient_name;
                         $transfer_log->bank_id   = $bank->id;
-                        $transfer_log->accountNo = $request->destination_account;
+                        $transfer_log->accountNo = $destination_account;
                         $transfer_log->user_id   = auth()->user()->id;
                         $transfer_log->save();
                     }

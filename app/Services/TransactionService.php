@@ -538,7 +538,7 @@ class TransactionService
                         return ['status' => false, 'message' => 'Transaction failed, set Bank Transfer Charge ledger for this transaction type in ledger settings !'];
                     }
 
-                    $myDescription = auth()->user()->first_name . " " . auth()->user()->last_name . " / " . \auth()->user()->company->company_name;
+                    $myDescription = $user->first_name . " " . $user->last_name . " / " . $user->company->company_name;
                     // $myDescription .= $request->description == "" ? "" : $request->description;
                     DB::commit();
 

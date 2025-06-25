@@ -402,6 +402,8 @@ class TwilioWhatsapp extends Controller
         $transactionPin = $this->cleanString($stringArray[1]);
         $user           = $this->getUser($request);
         $validatePin    = $this->validatePin($user, $transactionPin);
+        $message        = "";
+
         if ($validatePin != false) {
             if (Cache::has("whatsappTransfer:{$user->id}")) {
                 $data = Cache::get("whatsapp:$user");
@@ -410,12 +412,16 @@ class TwilioWhatsapp extends Controller
                 $amount                = $data['amount'];
                 $transaction_reference = $data['transaction_reference'];
                 $destination_account   = $data['destination_account'];
-                $bank_code             = $data[''];
+                $bank_code             = $data['bank_code'];
                 $transaction_pin       = $transactionPin;
                 $receipient_name       = $data['receipientName'];
-                $transactionController = new TransactionService();
 
-                $transferStatus = $transactionController->transferToBankAccount($description, $amount, $transaction_reference, $destination_account, $bank_code, $transaction_pin, $user, $receipient_name);
+                $transactionController = new TransactionService();
+                $transferStatus        = $transactionController->transferToBankAccount($description, $amount, $transaction_reference, $destination_account, $bank_code, $transaction_pin, $user, $receipient_name);
+
+                if ($transferStatus) {
+                    $message .= "*Transaction was successul*\n";
+                }
             } else {
                 $message .= "*There was an issue with this transaction*\n";
             }

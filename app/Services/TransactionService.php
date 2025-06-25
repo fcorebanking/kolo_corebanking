@@ -436,8 +436,8 @@ class TransactionService
             return ['status' => false, 'message' => 'Maximum transfer amount is 3,000,000'];
         }
         DB::beginTransaction();
-
-        $transactionPinValidation = $this->validatePinCheckCustomerBalance($transaction_pin, $totalAmount, $user);
+        $selectedwallet           = null;
+        $transactionPinValidation = $this->validatePinCheckCustomerBalance($transaction_pin, $totalAmount, $selectedwallet, $user);
         if (! $transactionPinValidation['status']) {
             return $transactionPinValidation;
         }

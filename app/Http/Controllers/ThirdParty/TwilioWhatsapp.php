@@ -406,7 +406,7 @@ class TwilioWhatsapp extends Controller
         \logInfo(json_encode($validatePin), "Twilio validate pin for transfer transaction ");
         if ($validatePin != false) {
             if (Cache::has("whatsappTransfer:{$user->id}")) {
-                $data = Cache::get("whatsapp:$user");
+                $data = Cache::get("whatsappTransfer:{$user->id}");
                 \logInfo(json_encode($data), "Twilio Cache Data Whatsapp Message");
                 $description           = $data['descriptio'];
                 $amount                = $data['amount'];
@@ -427,9 +427,10 @@ class TwilioWhatsapp extends Controller
             }
 
         } else {
-            return $this->getInvalidPinMessage();
+            $message .= $this->getInvalidPinMessage();
 
         }
+        return $message;
 
     }
 

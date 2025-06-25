@@ -119,7 +119,7 @@ class TwilioWhatsapp extends Controller
 
         if (isset($stringArray[1]) && ($stringArray[0] == "data" || $stringArray[0] == strtolower("data"))) {
             $providerString = $this->cleanString($stringArray[1]);
-            $provider       = strtolower($networkProviderString);
+            $provider       = strtolower($providerString);
 
             switch ($networkProvider) {
                 case 'a':

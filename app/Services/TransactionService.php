@@ -779,8 +779,8 @@ class TransactionService
             $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
             return response()->json($checkAllowedTransaction);
         }
-
-        $transactionPinValidation = $this->validatePinCheckCustomerBalance($transaction_pin, 1, $user);
+        $selectedwallet           = null;
+        $transactionPinValidation = $this->validatePinCheckCustomerBalance($transaction_pin, 1, $selectedwallet, $user);
         if (! $transactionPinValidation['status']) {
             return $transactionPinValidation;
         }

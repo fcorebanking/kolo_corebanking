@@ -315,7 +315,7 @@ class TwilioWhatsapp extends Controller
             \logInfo(json_encode($dataUpdate), "Twilio Cache Data Update Plan Whatsapp Message");
 
             $networkProvider = $dataUpdate['network_provider'];
-            $plan            = $dataUpdate['plan'];
+            $plan            = $dataUpdate['plan']['name'];
 
             $message .= "*Network Provider* -  $networkProvider\n*Plan* - $plan\n*Amount* - $amount\n*Phone Number* - $phoneNuumber\n\n*Follow the example below to confirm data purchase as shown above*\n\n *Example* - confirm-data, transaction_pin\n\ncconfirm-data, 1234";
         } else {

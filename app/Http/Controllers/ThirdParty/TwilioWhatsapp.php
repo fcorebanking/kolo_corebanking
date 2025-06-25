@@ -674,7 +674,7 @@ class TwilioWhatsapp extends Controller
         }
 
         if (isset($stringArray[1]) && ($stringArray[0] == "buy-data" || $stringArray[0] == strtolower("buy-data"))) {
-            $message = $this->initiateBuyDataMessage($request, $stringArray, $plans, $networkProvider);
+            $message = $this->initiateBuyDataMessage($request, $stringArray);
         }
 
         \logInfo($message, "Twilio Respond Whatsapp Message");

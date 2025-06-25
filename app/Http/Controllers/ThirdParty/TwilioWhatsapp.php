@@ -383,6 +383,7 @@ class TwilioWhatsapp extends Controller
         for ($x = 0; $x < count($plans['data']); $x++) {
             $message .= "*{$x}* - {$plans['data'][$x]['name']}\n";
         }
+
         Cache::put("whatsappData:{$user->id}", [
             'network_provider' => $networkProvider,
             'plan'             => "",
@@ -391,8 +392,13 @@ class TwilioWhatsapp extends Controller
 
         ], 600);
 
-        $data = Cache::get("whatsappTransfer:{$user->id}");
+        $data = Cache::get("whatsappData:{$user->id}");
         \logInfo(json_encode($data), "Twilio Cache Data Plan Whatsapp Message");
+
+        Cache::put("whatsappDataBundle:{$user->id}", $plans, 600);
+        $dataBundle = Cache::get("whatsappDataBundle:{$user->id}");
+        \logInfo(json_encode($dataBundle), "Twilio Cache Data Plan Bundle Whatsapp Message");
+
         $message .= "\n\n*Follow the example below to purchase data*\n\n *Example* - buy-data, option, phone nuumber, amount \n\n buy-data, 5, 08076890890, 100 \n";
         return $message;
     }

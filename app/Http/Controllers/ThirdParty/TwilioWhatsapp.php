@@ -139,7 +139,7 @@ class TwilioWhatsapp extends Controller
             \logInfo(json_encode($plans), "Twilio get Data plans for $networkProvider Whatsapp Message");
 
             if ($plans) {
-                $message = getListDataMessage($request, $stringArray, $plans, $networkProvider);
+                $message = $this->getListDataMessage($request, $stringArray, $plans, $networkProvider);
             } else {
                 $message = "There was a problem with this request";
             }

@@ -299,11 +299,11 @@ class TwilioWhatsapp extends Controller
 
     public function initiateBuyDataMessage($request, $stringArray)
     {
-        $user         = $this->getUser($request);
-        $option       = $this->cleanString($stringArray[1]);
-        $phoneNuumber = $this->cleanString($stringArray[2]);
-        $amount       = $this->cleanString($stringArray[3]);
-        $message      = "";
+        $user        = $this->getUser($request);
+        $option      = $this->cleanString($stringArray[1]);
+        $phoneNumber = $this->cleanString($stringArray[2]);
+        $amount      = $this->cleanString($stringArray[3]);
+        $message     = "";
 
         $dataBundle = Cache::get("whatsappDataBundle:{$user->id}");
         $data       = Cache::get("whatsappData:{$user->id}");
@@ -315,7 +315,7 @@ class TwilioWhatsapp extends Controller
                 'network_provider' => $data['network_provider'],
                 'plan'             => $dataBundle['data'][$option],
                 'amount'           => $amount,
-                'phone_number'     => $phoneNuumber,
+                'phone_number'     => $phoneNumber,
 
             ], 600);
 
@@ -325,7 +325,7 @@ class TwilioWhatsapp extends Controller
             $networkProvider = $dataUpdate['network_provider'];
             $plan            = $dataUpdate['plan']['name'];
 
-            $message .= "*Network Provider* -  $networkProvider\n*Plan* - $plan\n*Amount* - $amount\n*Phone Number* - $phoneNuumber\n\n*Follow the example below to confirm data purchase as shown above*\n\n *Example* - confirm-data, transaction_pin\n\nconfirm-data, 1234";
+            $message .= "*Network Provider* -  $networkProvider\n*Plan* - $plan\n*Amount* - $amount\n*Phone Number* - $phoneNumber\n\n*Follow the example below to confirm data purchase as shown above*\n\n *Example* - confirm-data, transaction_pin\n\nconfirm-data, 1234";
         } else {
             $message .= "There is a problem with Data Plan Transaction";
         }
@@ -492,7 +492,7 @@ class TwilioWhatsapp extends Controller
 
     }
 
-    public function buyData()
+    public function buyData($request, $stringArray)
     {
         $transactionPin = $this->cleanString($stringArray[1]);
         $user           = $this->getUser($request);
@@ -784,7 +784,7 @@ class TwilioWhatsapp extends Controller
         }
 
         if (isset($stringArray[1]) && ($stringArray[0] == "confirm-data" || $stringArray[0] == strtolower("confirm-data"))) {
-            $message = $this->initiateBuyDataMessage($request, $stringArray);
+            $message = $this->buyData($request, $stringArray);
         }
 
         \logInfo($message, "Twilio Respond Whatsapp Message");

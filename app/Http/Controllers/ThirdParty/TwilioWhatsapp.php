@@ -378,6 +378,7 @@ class TwilioWhatsapp extends Controller
 
     public function getListDataMessage($request, $stringArray, $plans, $networkProvider)
     {
+        $user    = $this->getUser($request);
         $message = "";
         $message .= "*Choose Data Plan*.\n\n*";
         for ($x = 0; $x < count($plans['data']); $x++) {

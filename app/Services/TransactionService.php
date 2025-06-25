@@ -433,13 +433,13 @@ class TransactionService
         }
 
         if ($amount > 3000000) {
-            return response()->json(['status' => false, 'message' => 'Maximum transfer amount is 3,000,000']);
+            return ['status' => false, 'message' => 'Maximum transfer amount is 3,000,000'];
         }
         DB::beginTransaction();
 
-        $transactionPinValidation = validatePinCheckCustomerBalance($transaction_pin, $totalAmount);
+        $transactionPinValidation = validatePinCheckCustomerBalance($transaction_pin, $totalAmount, $user);
         if (! $transactionPinValidation['status']) {
-            return response()->json($transactionPinValidation, 400);
+            return $transactionPinValidation;
         }
 
         $transaction = transactions::lockForUpdate()->where(['transaction_reference' => $transaction_reference, 'amount' => $amount])->first();
@@ -538,29 +538,6 @@ class TransactionService
                         return ['status' => false, 'message' => 'Transaction failed, set Bank Transfer Charge ledger for this transaction type in ledger settings !'];
                     }
 
-                    // $transactionRef2 = generateTransactionReference();
-
-                    // transactions::create([
-                    //     "company_balance_before" => $companyChargeBalanceBefore,
-                    //     "company_amount" => $wbaCharge,
-                    //     "account_id" => $accountId > 0 ? $accountId : null,
-                    //     "company_balance_after" => $companyChargeBalanceAfter,
-                    //     "description" => "Charge for NGN Bank Transfer - " . $transaction->transaction_reference,
-                    //     "transaction_reference" => $transactionRef2,
-                    //     "parent_transaction_id" => $transaction->id,
-                    //     "balance_before" => $customerChargeBalanceBefore,
-                    //     "amount" => $charge,
-                    //     "balance_after" => $customerChargeBalanceAfter,
-                    //     "company_id" => $transaction->company_id,
-                    //     "transaction_remarks_id" => 2,
-                    //     "transaction_type_id" => 27,
-                    //     "credit_debit_type_id" => 2,
-                    //     "created_date"  => date('Y-m-d'),
-                    //     "created_by" => $transaction->created_by,
-                    //     "ledger_cr" => $ledger_cr,
-                    //     "ledger_dr" => $ledger_dr
-                    // ]);
-
                     $myDescription = auth()->user()->first_name . " " . auth()->user()->last_name . " / " . \auth()->user()->company->company_name;
                     // $myDescription .= $request->description == "" ? "" : $request->description;
                     DB::commit();
@@ -613,15 +590,15 @@ class TransactionService
                         $transfer_log->save();
                     }
 
-                    return response()->json([
+                    return [
                         "status"  => true,
                         'message' => "Wallet to Bank Transfer Successful",
                         'data'    => [
                             'balance' => $debitCustomer['charge_balance_after'],
                         ],
-                    ]);
+                    ];
                 } else {
-                    return response()->json(["status" => false, 'message' => "Insufficient Balance"], 400);
+                    return ["status" => false, 'message' => "Insufficient Balance"];
                 }
             }
         } else {
@@ -721,6 +698,61 @@ class TransactionService
         $bank_code = banks::whereRaw('LOWER(bank_name) LIKE ?', ["%" . strtolower($account_name) . "%"])->first()->bank_code;
 
         return $bank_code;
+    }
+
+    function validatePinCheckCustomerBalance($transactionPin, $amount, $selectedwallet = null, $user)
+    {
+        $response = [];
+
+        try {
+
+            if ($amount > 0) {
+                $validatePin = User::where(['id' => $user->id, 'pin' => $transactionPin])->first();
+
+                if ($validatePin) {
+                    $sourceWbAccount = ($selectedwallet != null) ? $selectedwallet : $user->accounts->first()->id;
+                    $userWallet      = user_wallet::where('wb_account_detail_id', $sourceWbAccount)->lockForUpdate()->first();
+
+                    if ($userWallet->balance >= $amount) {
+                        if ($user->company->wallet->balance >= $amount) {
+                            $user->balance_fails         = 0;
+                            $user->transaction_pin_fails = 0;
+                            $user->save();
+                            $response = ["status" => true, 'message' => "Amount and pin are Valid", 'account_id' => $user->accounts->first()->id, 'balance' => $userWallet->balance];
+                        } else {
+                            $response = ["status" => false, 'message' => "Switcher Error... Please contact support for assistance"];
+                        }
+                    } else {
+                        if ($user->balance_fails < 4) {
+                            $user->balance_fails += 1;
+                            $user->save();
+                            $response = ["status" => false, 'message' => "Insufficient Funds"];
+                        } else {
+                            // $user->status_id = 5;
+                            restrictUserAccount(2, "Multiple Insuficient balance trials");
+
+                            $response = ["status" => false, 'message' => "Your account has been restricted. please contact support"];
+                        }
+                    }
+                } else {
+                    if ($user->transaction_pin_fails < 4) {
+                        $user->transaction_pin_fails += 1;
+                        $user->save();
+                        $response = ["status" => false, 'message' => "Invalid Transaction pin. Your account will be restricted after " . (5 - $user->transaction_pin_fails) . " wrong attempts"];
+                    } else {
+                        restrictUserAccount(2, "Multiple Invalid transaction pin");
+                        $response = ["status" => false, 'message' => "Your account has been restricted. please contact support"];
+                    }
+                }
+            } else {
+                $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "customer Debit error");
+            $response = ["status" => false, 'message' => "Server Error"];
+        }
+
+        return $response;
     }
 
 }

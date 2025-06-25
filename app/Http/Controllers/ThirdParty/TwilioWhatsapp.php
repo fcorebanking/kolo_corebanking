@@ -56,124 +56,7 @@ class TwilioWhatsapp extends Controller
     public function getUpdates(Request $request)
     {
 
-        $message = "*Quick Options*\n*1* - Open Account\n*2* - Transfer\n*3* - Check Account Balance\n*4* - POS Balance\n*5* - Change Pin\n*6* - Change Pasword\n*7* - Buy Data\n*8* - Pay Bills\n*9* - Get OTP\n";
-
-        \logInfo(json_encode($request->From), "Twilio Response From");
-
-        \logInfo(json_encode($request->Body), "Twilio Response Body Message");
-
-        $phone       = $request->From;
-        $type        = "response";
-        $batch       = null;
-        $channel     = null;
-        $string      = $request->Body;
-        $stringArray = explode(',', $string); // String array
-
-        \logInfo($stringArray[0], "Twilio Response String Message");
-
-        if (isset($stringArray[1])) {
-            \logInfo($stringArray[1], "Twilio Response String 2 Message");
-
-        }
-
-        if ($string == "1") {
-            $message = $this->openAccount($request, $stringArray);
-        }
-        if ($string == "2") {
-            $message = $this->getTransferMessage($request, $stringArray);
-        }
-        if ($string == "3") {
-            $message = $this->getTransferPinMessage($request, $stringArray);
-        }
-        if ($string == "4") {
-            $message = $this->getTransferPinMessage($request, $stringArray);
-        }
-        if ($string == "5") {
-            $message = $this->getChangePinMessage($request, $stringArray);
-        }
-
-        if ($string == "6") {
-            $message = $this->getChangePasswordMessage($request, $stringArray);
-        }
-
-        if ($string == "7") {
-            $message = $this->getBuyDataMessage($request, $stringArray);
-        }
-
-        if ($string == "8") {
-            $message = $this->getPayBillMessage($request, $stringArray);
-        }
-
-        if ($string == "9") {
-            $message = $this->getOtp($request);
-        }
-
-        if (isset($stringArray[1]) && ($stringArray[0] == "changepin" || $stringArray[0] == strtolower("changepin"))) {
-            $message = $this->changePin($request, $stringArray);
-        }
-
-        if (isset($stringArray[1]) && ($stringArray[0] == "changepassword" || $stringArray[0] == strtolower("changepassword"))) {
-
-            $message = $this->changePassword($request, $stringArray);
-        }
-
-        if (isset($stringArray[1]) && ($stringArray[0] == "data" || $stringArray[0] == strtolower("data"))) {
-            $providerString = $this->cleanString($stringArray[1]);
-            $provider       = strtolower($providerString);
-
-            switch ($provider) {
-                case 'a':
-                    $networkProvider = "mtn-data";
-                    break;
-                case 'b':
-                    $networkProvider = "airtel-data";
-                    break;
-                case 'c':
-                    $networkProvider = "9mobile-data";
-                    break;
-                default:
-                    $networkProvider = "glo-data";
-            }
-            $transactionController = new TransactionService();
-            $plans                 = $transactionController->getDataBundlesList($networkProvider);
-            \logInfo(json_encode($plans), "Twilio get Data plans for $networkProvider Whatsapp Message");
-
-            if ($plans) {
-                $message = $this->getListDataMessage($request, $stringArray, $plans, $networkProvider);
-            } else {
-                $message = "There was a problem with this request";
-            }
-
-        }
-
-        if (isset($stringArray[1]) && ($stringArray[0] == "balance" || $stringArray[0] == strtolower("balance"))) {
-
-            $message = $this->getAccountBalance($request, $stringArray);
-        }
-        if (isset($stringArray[1]) && ($stringArray[0] == "posbalance" || $stringArray[0] == strtolower("posbalance"))) {
-
-            $message = $this->getPOSBalance($request, $stringArray);
-        }
-
-        if (isset($stringArray[1]) && ($stringArray[0] == "transfer" || $stringArray[0] == strtolower("transfer"))) {
-            $transferOption = $this->cleanString($stringArray[1]);
-
-            if (($transferOption == "A" || $transferOption == strtolower("A")) || ($transferOption == "B" || $transferOption == strtolower("B"))) {
-                $message = $this->initializeTransactionMessage();
-            }
-
-            if (is_numeric($transferOption) || (int) $transferOption == $transferOption) {
-                $message = $this->initializeTransaction($request, $stringArray);
-            }
-
-        }
-
-        if (isset($stringArray[1]) && ($stringArray[0] == "confirm-transfer" || $stringArray[0] == strtolower("comfirm-transfer"))) {
-            $message = $this->transferTransaction($request, $stringArray);
-
-        }
-
-        \logInfo($message, "Twilio Respond Whatsapp Message");
+        $message = $this->checkMessage($request);
 
         $this->send($message, $phone, $type);
     }
@@ -396,7 +279,7 @@ class TwilioWhatsapp extends Controller
         $data = Cache::get("whatsappData:{$user->id}");
         \logInfo(json_encode($data), "Twilio Cache Data Plan Whatsapp Message");
 
-        Cache::put("whatsappDataBundle:{$user->id}", $plans['data'], 600);
+        Cache::put("whatsappDataBundle:{$user->id}", $plans, 600);
         $dataBundle = Cache::get("whatsappDataBundle:{$user->id}");
         \logInfo(json_encode($dataBundle), "Twilio Cache Data Plan Bundle Whatsapp Message");
 
@@ -404,11 +287,39 @@ class TwilioWhatsapp extends Controller
         return $message;
     }
 
-    public function initiateBuyDataMessage($request, $stringArray, $plans)
+    public function initiateBuyDataMessage($request, $stringArray)
     {
-        $message = "";
-        $message .= "*Choose Data Plan*.\n\n*";
-        $message .= "*Choose Data Plan*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, amount, description, destination bank name, destination account number \n\n transfer, 5000, send to ola, zenith bank, 2001362794 \n";
+        $user         = $this->getUser($request);
+        $option       = $this->cleanString($stringArray[1]);
+        $phoneNuumber = $this->cleanString($stringArray[2]);
+        $amount       = $this->cleanString($stringArray[3]);
+        $message      = "";
+
+        $dataBundle = Cache::get("whatsappDataBundle:{$user->id}");
+        $data       = Cache::get("whatsappData:{$user->id}");
+        \logInfo(json_encode($data), "Twilio Cache Data Initiate Buy Whatsapp Message");
+        \logInfo(json_encode($dataBundle), "Twilio Cache Data Plan Bundle Initiate Buy Whatsapp Message");
+
+        if ($dataBundle != null && $data != null) {
+            Cache::put("whatsappData:{$user->id}", [
+                'network_provider' => $data['network_provider'],
+                'plan'             => $dataBundle['data'][$option],
+                'amount'           => $amount,
+                'phone_number'     => $phoneNuumber,
+
+            ], 600);
+
+            $dataUpdate = Cache::get("whatsappData:{$user->id}");
+            \logInfo(json_encode($dataUpdate), "Twilio Cache Data Update Plan Whatsapp Message");
+
+            $networkProvider = $dataUpdate['network_provider'];
+            $plan            = $dataUpdate['plan'];
+
+            $message .= "*Network Provider* -  $networkProvider\n*Plan* - $plan\n*Amount* - $amount\n*Phone Number* - $phoneNuumber\n\n*Follow the example below to confirm data purchase as shown above*\n\n *Example* - confirm-data, transaction_pin\n\ncconfirm-data, 1234";
+        } else {
+            $message .= "There is a problem with Data Plan Transaction";
+        }
+
         return $message;
     }
 
@@ -641,6 +552,134 @@ class TwilioWhatsapp extends Controller
     {
         $transactionController = new TransactionService();
         return $transactionController->verifyBankAccount($bank_code, $destination_bank_account_number);
+    }
+
+    public function checkMessage($request)
+    {
+        $message = "*Quick Options*\n*1* - Open Account\n*2* - Transfer\n*3* - Check Account Balance\n*4* - POS Balance\n*5* - Change Pin\n*6* - Change Pasword\n*7* - Buy Data\n*8* - Pay Bills\n*9* - Get OTP\n";
+
+        \logInfo(json_encode($request->From), "Twilio Response From");
+
+        \logInfo(json_encode($request->Body), "Twilio Response Body Message");
+
+        $phone       = $request->From;
+        $type        = "response";
+        $batch       = null;
+        $channel     = null;
+        $string      = $request->Body;
+        $stringArray = explode(',', $string); // String array
+
+        \logInfo($stringArray[0], "Twilio Response String Message");
+
+        if (isset($stringArray[1])) {
+            \logInfo($stringArray[1], "Twilio Response String 2 Message");
+
+        }
+
+        if ($string == "1") {
+            $message = $this->openAccount($request, $stringArray);
+        }
+        if ($string == "2") {
+            $message = $this->getTransferMessage($request, $stringArray);
+        }
+        if ($string == "3") {
+            $message = $this->getTransferPinMessage($request, $stringArray);
+        }
+        if ($string == "4") {
+            $message = $this->getTransferPinMessage($request, $stringArray);
+        }
+        if ($string == "5") {
+            $message = $this->getChangePinMessage($request, $stringArray);
+        }
+
+        if ($string == "6") {
+            $message = $this->getChangePasswordMessage($request, $stringArray);
+        }
+
+        if ($string == "7") {
+            $message = $this->getBuyDataMessage($request, $stringArray);
+        }
+
+        if ($string == "8") {
+            $message = $this->getPayBillMessage($request, $stringArray);
+        }
+
+        if ($string == "9") {
+            $message = $this->getOtp($request);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "changepin" || $stringArray[0] == strtolower("changepin"))) {
+            $message = $this->changePin($request, $stringArray);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "changepassword" || $stringArray[0] == strtolower("changepassword"))) {
+
+            $message = $this->changePassword($request, $stringArray);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "balance" || $stringArray[0] == strtolower("balance"))) {
+
+            $message = $this->getAccountBalance($request, $stringArray);
+        }
+        if (isset($stringArray[1]) && ($stringArray[0] == "posbalance" || $stringArray[0] == strtolower("posbalance"))) {
+
+            $message = $this->getPOSBalance($request, $stringArray);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "transfer" || $stringArray[0] == strtolower("transfer"))) {
+            $transferOption = $this->cleanString($stringArray[1]);
+
+            if (($transferOption == "A" || $transferOption == strtolower("A")) || ($transferOption == "B" || $transferOption == strtolower("B"))) {
+                $message = $this->initializeTransactionMessage();
+            }
+
+            if (is_numeric($transferOption) || (int) $transferOption == $transferOption) {
+                $message = $this->initializeTransaction($request, $stringArray);
+            }
+
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "confirm-transfer" || $stringArray[0] == strtolower("comfirm-transfer"))) {
+            $message = $this->transferTransaction($request, $stringArray);
+
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "data" || $stringArray[0] == strtolower("data"))) {
+            $providerString = $this->cleanString($stringArray[1]);
+            $provider       = strtolower($providerString);
+
+            switch ($provider) {
+                case 'a':
+                    $networkProvider = "mtn-data";
+                    break;
+                case 'b':
+                    $networkProvider = "airtel-data";
+                    break;
+                case 'c':
+                    $networkProvider = "9mobile-data";
+                    break;
+                default:
+                    $networkProvider = "glo-data";
+            }
+            $transactionController = new TransactionService();
+            $plans                 = $transactionController->getDataBundlesList($networkProvider);
+            \logInfo(json_encode($plans), "Twilio get Data plans for $networkProvider Whatsapp Message");
+
+            if ($plans) {
+                $message = $this->getListDataMessage($request, $stringArray, $plans, $networkProvider);
+            } else {
+                $message = "There was a problem with this request";
+            }
+
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "buy-data" || $stringArray[0] == strtolower("buy-data"))) {
+            $message = $this->initiateBuyDataMessage($request, $stringArray, $plans, $networkProvider);
+        }
+
+        \logInfo($message, "Twilio Respond Whatsapp Message");
+
+        return $message;
     }
 
 }

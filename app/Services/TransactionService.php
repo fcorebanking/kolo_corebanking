@@ -837,7 +837,7 @@ class TransactionService
 
             $ledger_cr       = null;
             $ledger_dr       = null;
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(12, auth()->user()->company_id);
+            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(12, $user->company_id);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
@@ -863,7 +863,7 @@ class TransactionService
                 "transaction_type_id"    => 12,
                 "credit_debit_type_id"   => 2,
                 "created_date"           => date('Y-m-d'),
-                "created_by"             => auth()->user()->id,
+                "created_by"             => $user->id,
                 "ledger_cr"              => $ledger_cr,
                 "ledger_dr"              => $ledger_dr,
             ]);

@@ -478,7 +478,7 @@ class TransactionService
 
                     // $charge =  $charge < $wbaCharge && $charge > 0 ?  ($wbaCharge + ($wbaCharge * 0.01)) : $charge;
 
-                    $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $amount, $charge, $wbaCharge);
+                    $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $amount, $charge, $wbaCharge, $user);
 
                     if (! $debitCustomer["status"]) {
                         return $debitCustomer;

@@ -396,7 +396,7 @@ class TwilioWhatsapp extends Controller
         $data = Cache::get("whatsappData:{$user->id}");
         \logInfo(json_encode($data), "Twilio Cache Data Plan Whatsapp Message");
 
-        Cache::put("whatsappDataBundle:{$user->id}", $plans, 600);
+        Cache::put("whatsappDataBundle:{$user->id}", $plans['data'], 600);
         $dataBundle = Cache::get("whatsappDataBundle:{$user->id}");
         \logInfo(json_encode($dataBundle), "Twilio Cache Data Plan Bundle Whatsapp Message");
 

@@ -437,7 +437,7 @@ class TransactionService
         }
         DB::beginTransaction();
 
-        $transactionPinValidation = validatePinCheckCustomerBalance($transaction_pin, $totalAmount, $user);
+        $transactionPinValidation = $this->validatePinCheckCustomerBalance($transaction_pin, $totalAmount, $user);
         if (! $transactionPinValidation['status']) {
             return $transactionPinValidation;
         }

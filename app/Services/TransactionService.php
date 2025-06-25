@@ -4,6 +4,7 @@ namespace App\Services;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Models\banks;
 use App\Models\Beneficiary;
+use App\Models\BranchWallet;
 use App\Models\Company;
 use App\Models\company_settings;
 use App\Models\company_wallet;

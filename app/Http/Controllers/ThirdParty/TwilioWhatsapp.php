@@ -139,7 +139,7 @@ class TwilioWhatsapp extends Controller
             \logInfo(json_encode($plans), "Twilio get Data plans for $networkProvider Whatsapp Message");
 
             if ($plans) {
-                // $message = initiateBuyDataMessage($request, $stringArray, $plans);
+                $message = getListDataMessage($request, $stringArray, $plans, $networkProvider);
             } else {
                 $message = "There was a problem with this request";
             }
@@ -373,6 +373,27 @@ class TwilioWhatsapp extends Controller
     {
         $message = "";
         $message .= "*Choose Network Provider*.\n\n*Follow the example below to pick the options*\n\n *Example* - data, A \n\n*A* - MTN\n*B* - Airtel\n*C* - 9Mobile\n*D* - Glo\n";
+        return $message;
+    }
+
+    public function getListDataMessage($request, $stringArray, $plans, $networkProvider)
+    {
+        $message = "";
+        $message .= "*Choose Data Plan*.\n\n*";
+        for ($x = 0; $x < count($plans['data']); $x++) {
+            $message .= "*{$x}* - {$plans['data'][$x]['name']}\n";
+        }
+        Cache::put("whatsappData:{$user->id}", [
+            'network_provider' => $networkProvider,
+            'plan'             => "",
+            'amount'           => 0,
+            'phone_number'     => 0,
+
+        ], 600);
+
+        $data = Cache::get("whatsappTransfer:{$user->id}");
+        \logInfo(json_encode($data), "Twilio Cache Data Plan Whatsapp Message");
+        $message .= "\n\n*Follow the example below to purchase data*\n\n *Example* - buy-data, option, phone nuumber, amount \n\n buy-data, 5, 08076890890, 100 \n";
         return $message;
     }
 

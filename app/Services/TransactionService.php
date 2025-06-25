@@ -796,7 +796,7 @@ class TransactionService
             return $validateTransferAmount;
         }
 
-        $wb_account_details = wb_account_details::where('user_id', auth()->user()->id)->where('acc_reference', auth()->user()->account_reference)->first();
+        $wb_account_details = wb_account_details::where('user_id', $user->id)->where('acc_reference', $user->account_reference)->first();
 
         $checkCompanyBalance = $this->checkCompanyBalance($amount, $user);
 

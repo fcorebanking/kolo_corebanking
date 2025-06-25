@@ -46,7 +46,7 @@ class TransactionService
 
         if ($checkAllowedTransaction['status'] != 1) {
             $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
-            return response()->json($checkAllowedTransaction, 400);
+            return $checkAllowedTransaction;
         }
 
         $description = $request->description;
@@ -168,7 +168,7 @@ class TransactionService
                     $validateSavingsProduct = $this->accountProductCharges($amount);
 
                     if (! $validateSavingsProduct['status']) {
-                        return \response()->json($validateSavingsProduct, 400);
+                        return $validateSavingsProduct;
                     }
 
                     $charge = $validateSavingsProduct['data']['charge'];
@@ -194,7 +194,7 @@ class TransactionService
                 $validateTransferAmount = $this->validateTransfer($request->final_amount, $user);
 
                 if (! $validateTransferAmount['status']) {
-                    return \response()->json($validateTransferAmount, 400);
+                    return $validateTransferAmount;
                 }
                 $ledger_cr       = null;
                 $ledger_dr       = null;
@@ -466,7 +466,7 @@ class TransactionService
                         return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
                     }
 
-                    $validateTransferAmount = $this->validateTransfer($amount);
+                    $validateTransferAmount = $this->validateTransfer($amount, $user);
 
                     if (! $validateTransferAmount['status']) {
                         return $validateTransferAmount;

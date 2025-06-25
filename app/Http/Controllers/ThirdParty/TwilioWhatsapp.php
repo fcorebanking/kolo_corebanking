@@ -57,6 +57,8 @@ class TwilioWhatsapp extends Controller
     {
 
         $message = $this->checkMessage($request);
+        $phone   = $request->From;
+        $type    = "response";
 
         $this->send($message, $phone, $type);
     }
@@ -562,8 +564,6 @@ class TwilioWhatsapp extends Controller
 
         \logInfo(json_encode($request->Body), "Twilio Response Body Message");
 
-        $phone       = $request->From;
-        $type        = "response";
         $batch       = null;
         $channel     = null;
         $string      = $request->Body;

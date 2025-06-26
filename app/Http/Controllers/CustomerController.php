@@ -3647,9 +3647,9 @@ class CustomerController extends Controller
             return response()->json(['status' => 0, 'message' => $errors]);
         }
 
-        $header = $request->header('ApiKey');
+        $company_id = $request->company_id;
 
-         \logInfo( $header, "CAC header");
+        \logInfo($company_id, "CAC Company id");
 
         $company_type = substr($request->reg_number, 0, 2);
 
@@ -3664,11 +3664,9 @@ class CustomerController extends Controller
 
         $chargeAmount = 3000;
 
-        $checkApiKey = ApiKey::where('api_key', $header)->first();
+        
 
-          \logInfo(json_encode($checkApiKey), "CAC API header key");
-
-        $company = Company::where('id', $checkApiKey->company_id)->first();
+        $company = Company::where('id', $company_id)->first();
 
         $adminUser = User::where('company_id', $company->id)->first();
 

@@ -3647,6 +3647,8 @@ class CustomerController extends Controller
             return response()->json(['status' => 0, 'message' => $errors]);
         }
 
+         $header = $request->header('ApiKey');
+
         $company_type = substr($request->reg_number, 0, 2);
 
 // Get the rest of the string

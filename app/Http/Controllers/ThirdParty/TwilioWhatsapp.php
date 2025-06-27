@@ -277,7 +277,7 @@ class TwilioWhatsapp extends Controller
         $message = "";
         $message .= "*Choose Data Plan*.\n\n";
         if ($networkProvider == "glo-data" || $networkProvider == "airtel-data") {
-            for ($x = 0; $x < count($plans['data']); $x + 4) {
+            for ($x = 0; $x < count($plans['data']); $x += 4) {
                 $message .= "*{$x}* - {$plans['data'][$x]['name']}\n";
             }
         } else {

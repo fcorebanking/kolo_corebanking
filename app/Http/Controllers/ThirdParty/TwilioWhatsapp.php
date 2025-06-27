@@ -57,8 +57,10 @@ class TwilioWhatsapp extends Controller
     {
 
         $message = $this->checkMessage($request);
-        $phone   = $request->From;
-        $type    = "response";
+        \logInfo(json_encode($request->From), "Twilio Response From");
+
+        $phone = $request->From;
+        $type  = "response";
 
         $this->send($message, $phone, $type);
     }
@@ -273,7 +275,7 @@ class TwilioWhatsapp extends Controller
     {
         $user    = $this->getUser($request);
         $message = "";
-        $message .= "*Choose Data Plan*.\n\n*";
+        $message .= "*Choose Data Plan*.\n\n";
         for ($x = 0; $x < count($plans['data']); $x++) {
             $message .= "*{$x}* - {$plans['data'][$x]['name']}\n";
         }
@@ -661,8 +663,6 @@ class TwilioWhatsapp extends Controller
     public function checkMessage($request)
     {
         $message = "*Quick Options*\n*1* - Open Account\n*2* - Transfer\n*3* - Check Account Balance\n*4* - POS Balance\n*5* - Change Pin\n*6* - Change Pasword\n*7* - Buy Data\n*8* - Pay Bills\n*9* - Get OTP\n";
-
-        \logInfo(json_encode($request->From), "Twilio Response From");
 
         \logInfo(json_encode($request->Body), "Twilio Response Body Message");
 

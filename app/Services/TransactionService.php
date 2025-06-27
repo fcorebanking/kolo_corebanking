@@ -849,7 +849,7 @@ class TransactionService
 
             $transaction = transactions::create([
                 "balance_before"         => $debitCustomer['balance_before'],
-                "amount"                 => $selectedDataBundle['variation_amount'],
+                "amount"                 => $variation_amount,
                 "balance_after"          => $debitCustomer["balance_after"],
                 "company_balance_before" => $debitCustomer["company_balance_before"],
                 "company_balance_after"  => $debitCustomer["company_balance_after"],

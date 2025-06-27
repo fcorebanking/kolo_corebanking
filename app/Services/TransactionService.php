@@ -897,8 +897,8 @@ class TransactionService
                 "ledger_cr"              => $ledger_cr,
                 "ledger_dr"              => $ledger_dr,
             ]);
-
-            $this->updateTransactionAsSuccessful($transactionId, $debitCustomer['balance_after'], $user);
+            $updateBalance = true;
+            $this->updateTransactionAsSuccessful($transactionId, $debitCustomer['balance_after'], $updateBalance, $user);
 
             return
                 [

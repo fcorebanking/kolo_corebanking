@@ -898,7 +898,7 @@ class TransactionService
                 "ledger_dr"              => $ledger_dr,
             ]);
 
-            $this->updateTransactionAsSuccessful($transactionId, $debitCustomer['balance_after']);
+            $this->updateTransactionAsSuccessful($transactionId, $debitCustomer['balance_after'], $user);
 
             return
                 [
@@ -913,7 +913,7 @@ class TransactionService
         }
     }
 
-    public function updateTransactionAsSuccessful($transactionId, $balance = 0, $updateBalance = true)
+    public function updateTransactionAsSuccessful($transactionId, $balance = 0, $updateBalance = true, $user)
     {
         $transaction = transactions::where('transaction_reference', $transactionId)->first();
 

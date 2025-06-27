@@ -276,8 +276,14 @@ class TwilioWhatsapp extends Controller
         $user    = $this->getUser($request);
         $message = "";
         $message .= "*Choose Data Plan*.\n\n";
-        for ($x = 0; $x < count($plans['data']); $x++) {
-            $message .= "*{$x}* - {$plans['data'][$x]['name']}\n";
+        if ($network_provider == "glo-data" || $network_provider == "airtel-data") {
+            for ($x = 0; $x < count($plans['data']); $x + 4) {
+                $message .= "*{$x}* - {$plans['data'][$x]['name']}\n";
+            }
+        } else {
+            for ($x = 0; $x < count($plans['data']); $x++) {
+                $message .= "*{$x}* - {$plans['data'][$x]['name']}\n";
+            }
         }
 
         Cache::put("whatsappData:{$user->id}", [

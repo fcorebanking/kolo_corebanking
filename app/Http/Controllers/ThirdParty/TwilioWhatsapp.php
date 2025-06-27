@@ -47,7 +47,7 @@ class TwilioWhatsapp extends Controller
             \logInfo(json_encode($message), "Twilio Response Message");
 
         } catch (\Exception $e) {
-            \logInfo(json_encode($e), "Twilio Response Error Message");
+            \logInfo(json_encode($e->getMessage()), "Twilio Response Error Message");
 
         }
 

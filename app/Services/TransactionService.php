@@ -893,7 +893,7 @@ class TransactionService
                 "transaction_type_id"    => 66,
                 "credit_debit_type_id"   => 1,
                 "created_date"           => date('Y-m-d'),
-                "created_by"             => auth()->user()->id,
+                "created_by"             => $user->id,
                 "ledger_cr"              => $ledger_cr,
                 "ledger_dr"              => $ledger_dr,
             ]);

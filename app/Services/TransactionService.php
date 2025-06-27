@@ -923,7 +923,7 @@ class TransactionService
 
         $transaction->transaction_remarks_id = 2;
         $transaction->updated_at             = Carbon::now();
-        $transaction->modified_by            = auth()->user()->id;
+        $transaction->modified_by            = $user->id;
         $transaction->save();
     }
 

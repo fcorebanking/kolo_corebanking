@@ -955,152 +955,153 @@ class TransactionService
             $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
             return $checkAllowedTransaction;
 
-            $selectedwallet           = null;
-            $transactionPinValidation = $this->validatePinCheckCustomerBalance($transaction_pin, $amount, $selectedwallet, $user);
-            \logInfo(json_encode($transactionPinValidation), "transactionPinValidation");
+        }
 
-            if (! $transactionPinValidation['status']) {
-                return $transactionPinValidation;
-            }
+        $selectedwallet           = null;
+        $transactionPinValidation = $this->validatePinCheckCustomerBalance($transaction_pin, $amount, $selectedwallet, $user);
+        \logInfo(json_encode($transactionPinValidation), "transactionPinValidation");
 
-            if (\checkcustomerrestriction($user->id, '2')) {
-                return ["status" => false, 'message' => "Your account has been restricted. please contact support"];
-            }
+        if (! $transactionPinValidation['status']) {
+            return $transactionPinValidation;
+        }
 
-            //Get WBA Charges
-            $wbaCharge = getWbaTransferCharges(13, $amount);
+        if (\checkcustomerrestriction($user->id, '2')) {
+            return ["status" => false, 'message' => "Your account has been restricted. please contact support"];
+        }
 
-            $companySettings = company_settings::where('company_id', $user->company_id)->first();
+        //Get WBA Charges
+        $wbaCharge = getWbaTransferCharges(13, $amount);
 
-            $validateTransferAmount = $this->validateTransfer($amount, $user);
+        $companySettings = company_settings::where('company_id', $user->company_id)->first();
 
-            if (! $validateTransferAmount['status']) {
-                return $validateTransferAmount;
-            }
+        $validateTransferAmount = $this->validateTransfer($amount, $user);
 
-            $accountId = $user->accounts->first()->id;
+        if (! $validateTransferAmount['status']) {
+            return $validateTransferAmount;
+        }
 
-            $wb_account_details = wb_account_details::where('user_id', $user->id)->where('acc_reference', $user->account_reference)->first();
+        $accountId = $user->accounts->first()->id;
 
-            $checkCompanyBalanceAmount = $companySettings->bills_payment_charge + $amount;
+        $wb_account_details = wb_account_details::where('user_id', $user->id)->where('acc_reference', $user->account_reference)->first();
 
-            $checkCompanyBalance = $this->checkCompanyBalance($checkCompanyBalanceAmount, $user);
+        $checkCompanyBalanceAmount = $companySettings->bills_payment_charge + $amount;
 
-            if (! $checkCompanyBalance['status']) {
-                return $checkCompanyBalance;
-            }
-            $checkCustomerBalance = checkCustomerBalance($accountId, $amount);
+        $checkCompanyBalance = $this->checkCompanyBalance($checkCompanyBalanceAmount, $user);
 
-            if (! $checkCustomerBalance['status']) {
-                return $checkCustomerBalancee;
-            }
+        if (! $checkCompanyBalance['status']) {
+            return $checkCompanyBalance;
+        }
+        $checkCustomerBalance = checkCustomerBalance($accountId, $amount);
 
-            $body = [
-                "request_id"     => $transactionId,
-                "serviceID"      => $electricity_disco,
-                "variation_code" => $meter_type,
-                "billersCode"    => $meter_number,
-                "amount"         => $amount,
-                "phone"          => $phone_number,
-            ];
+        if (! $checkCustomerBalance['status']) {
+            return $checkCustomerBalancee;
+        }
 
-            $endpoint = "pay";
+        $body = [
+            "request_id"     => $transactionId,
+            "serviceID"      => $electricity_disco,
+            "variation_code" => $meter_type,
+            "billersCode"    => $meter_number,
+            "amount"         => $amount,
+            "phone"          => $phone_number,
+        ];
 
-            $vtPassController = new VTPassController();
+        $endpoint = "pay";
 
-            $buyElectricity = $vtPassController->buyElectricity(
-                $transactionId,
-                $electricity_disco,
-                $meter_type,
-                $meter_number,
-                $amount,
-                $phone_number
-            );
+        $vtPassController = new VTPassController();
 
-            logInfo($buyElectricity, "VTPass Electricity Response");
+        $buyElectricity = $vtPassController->buyElectricity(
+            $transactionId,
+            $electricity_disco,
+            $meter_type,
+            $meter_number,
+            $amount,
+            $phone_number
+        );
 
-            if (! $buyElectricity['status']) {
-                return $buyElectricity;
-            } else {
-                $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $user->company_id, $amount, $companySettings->bills_payment_charge, $wbaCharge);
+        logInfo($buyElectricity, "VTPass Electricity Response");
 
-                /*   if (! $debitCustomer['status']) {
+        if (! $buyElectricity['status']) {
+            return $buyElectricity;
+        } else {
+            $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $user->company_id, $amount, $companySettings->bills_payment_charge, $wbaCharge);
+
+            /*   if (! $debitCustomer['status']) {
                 return \response()->json($debitCustomer, 400);
             }*/
 
-                $ledger_cr       = null;
-                $ledger_dr       = null;
-                $ledger_Settings = get_CR_DR_TXN_Type_Ledger(14, $user->company_id);
-                if ($ledger_Settings) {
-                    $ledger_cr = $ledger_Settings->ledger_cr;
-                    $ledger_dr = $ledger_Settings->ledger_dr;
-                }
-                $transaction = transactions::create([
-                    "balance_before"         => $debitCustomer['balance_before'],
-                    "amount"                 => $amount,
-                    "balance_after"          => $debitCustomer["balance_after"],
-                    "account_id"             => $transactionPinValidation['account_id'],
-                    "company_id"             => $user->company_id,
-                    "branch_id"              => $user->branch_id,
-                    "company_balance_before" => $debitCustomer["company_balance_before"],
-                    "company_amount"         => $debitCustomer["company_amount"],
-                    "company_balance_after"  => $debitCustomer["company_balance_after"],
-                    "description"            => "Purchase of Electricity worth $amount",
-                    "transaction_reference"  => $transactionId,
-                    "transaction_remarks_id" => 1,
-                    "transaction_type_id"    => 14,
-                    "credit_debit_type_id"   => 2,
-                    "created_date"           => date('Y-m-d'),
-                    "created_by"             => $user->id,
-                    "ledger_cr"              => $ledger_cr,
-                    "ledger_dr"              => $ledger_dr,
-                ]);
-
-                $transactionChargeId = \generate_txnID();
-                $ledger_cr           = null;
-                $ledger_dr           = null;
-                $ledger_Settings     = get_CR_DR_TXN_Type_Ledger(51, $user->company_id);
-                if ($ledger_Settings) {
-                    $ledger_cr = $ledger_Settings->ledger_cr;
-                    $ledger_dr = $ledger_Settings->ledger_dr;
-                }
-                // Save Charges to transaction table
-                $chargetransaction = transactions::create([
-                    "balance_before"         => $debitCustomer['charge_balance_before'],
-                    "amount"                 => $companySettings->bills_payment_charge,
-                    "balance_after"          => $debitCustomer["charge_balance_after"],
-                    "account_id"             => $transactionPinValidation['account_id'],
-                    "company_id"             => $user->company_id,
-                    "branch_id"              => $user->branch_id,
-                    "company_balance_before" => $debitCustomer["company_charge_balance_before"],
-                    "company_amount"         => $wbaCharge,
-                    "company_balance_after"  => $debitCustomer["company_charge_balance_after"],
-                    "description"            => "Charge for Electricity Purchase",
-                    "transaction_reference"  => $transactionChargeId,
-                    "parent_transaction_id"  => $transactionId,
-                    "transaction_remarks_id" => 1,
-                    "transaction_type_id"    => 51,
-                    "credit_debit_type_id"   => 2,
-                    "created_date"           => date('Y-m-d'),
-                    "created_by"             => $user->id,
-                    "ledger_cr"              => $ledger_cr,
-                    "ledger_dr"              => $ledger_dr,
-                ]);
-
-                $electricityToken = $buyElectricity['data']['token'];
-
-                $transaction->transaction_remarks_id = 2;
-                $transaction->description            = "Purchased Electricity Token: $electricityToken Amount: $amount";
-                $transaction->save();
-
-                $buyElectricity['data']['balance'] = $debitCustomer["charge_balance_after"];
-
-                sendSMS($user->id, "Purchased Electricity Token $electricityToken, Amount: $amount, Avail Bal: " . $debitCustomer["charge_balance_after"], true, true, 'Electricity Token');
-
-                return $buyElectricity;
+            $ledger_cr       = null;
+            $ledger_dr       = null;
+            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(14, $user->company_id);
+            if ($ledger_Settings) {
+                $ledger_cr = $ledger_Settings->ledger_cr;
+                $ledger_dr = $ledger_Settings->ledger_dr;
             }
+            $transaction = transactions::create([
+                "balance_before"         => $debitCustomer['balance_before'],
+                "amount"                 => $amount,
+                "balance_after"          => $debitCustomer["balance_after"],
+                "account_id"             => $transactionPinValidation['account_id'],
+                "company_id"             => $user->company_id,
+                "branch_id"              => $user->branch_id,
+                "company_balance_before" => $debitCustomer["company_balance_before"],
+                "company_amount"         => $debitCustomer["company_amount"],
+                "company_balance_after"  => $debitCustomer["company_balance_after"],
+                "description"            => "Purchase of Electricity worth $amount",
+                "transaction_reference"  => $transactionId,
+                "transaction_remarks_id" => 1,
+                "transaction_type_id"    => 14,
+                "credit_debit_type_id"   => 2,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => $user->id,
+                "ledger_cr"              => $ledger_cr,
+                "ledger_dr"              => $ledger_dr,
+            ]);
 
+            $transactionChargeId = \generate_txnID();
+            $ledger_cr           = null;
+            $ledger_dr           = null;
+            $ledger_Settings     = get_CR_DR_TXN_Type_Ledger(51, $user->company_id);
+            if ($ledger_Settings) {
+                $ledger_cr = $ledger_Settings->ledger_cr;
+                $ledger_dr = $ledger_Settings->ledger_dr;
+            }
+            // Save Charges to transaction table
+            $chargetransaction = transactions::create([
+                "balance_before"         => $debitCustomer['charge_balance_before'],
+                "amount"                 => $companySettings->bills_payment_charge,
+                "balance_after"          => $debitCustomer["charge_balance_after"],
+                "account_id"             => $transactionPinValidation['account_id'],
+                "company_id"             => $user->company_id,
+                "branch_id"              => $user->branch_id,
+                "company_balance_before" => $debitCustomer["company_charge_balance_before"],
+                "company_amount"         => $wbaCharge,
+                "company_balance_after"  => $debitCustomer["company_charge_balance_after"],
+                "description"            => "Charge for Electricity Purchase",
+                "transaction_reference"  => $transactionChargeId,
+                "parent_transaction_id"  => $transactionId,
+                "transaction_remarks_id" => 1,
+                "transaction_type_id"    => 51,
+                "credit_debit_type_id"   => 2,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => $user->id,
+                "ledger_cr"              => $ledger_cr,
+                "ledger_dr"              => $ledger_dr,
+            ]);
+
+            $electricityToken = $buyElectricity['data']['token'];
+
+            $transaction->transaction_remarks_id = 2;
+            $transaction->description            = "Purchased Electricity Token: $electricityToken Amount: $amount";
+            $transaction->save();
+
+            $buyElectricity['data']['balance'] = $debitCustomer["charge_balance_after"];
+
+            sendSMS($user->id, "Purchased Electricity Token $electricityToken, Amount: $amount, Avail Bal: " . $debitCustomer["charge_balance_after"], true, true, 'Electricity Token');
+
+            return $buyElectricity;
         }
+
     }
 
     public function updateTransactionAsSuccessful($transactionId, $balance = 0, $updateBalance = true, $user)

@@ -504,7 +504,7 @@ class TwilioWhatsapp extends Controller
             $data = Cache::get("whatsappElectricity:{$user->id}");
             \logInfo(json_encode($data), "Twilio Cache Electricity Whatsapp Message");
 
-            $message .= "*Amount* - $amount\n*Meter Name* - $meter_name\n*Meter Address* - $meter_address\n*Meter Nmber* - $meter_confirmed_number\n*Meter Type* - $destination_bank_account_number\n*Bank Code* - $bankCode\n*Bank Name* - $bankName\n";
+            $message .= "*Amount* - $amount\n*Meter Name* - $meter_name\n*Meter Address* - $meter_address\n*Meter Nmber* - $meter_confirmed_number\n*Meter Type* -  $meter_type\n";
             $message .= "\n\n*Follow the example below to purchase electricity bill*\n\n *Example* - confirm-electricity, transacion_pin \n\nconfirm-electricity, 1234 \n";
         } else {
             $message .= "Issue with Meter Details";

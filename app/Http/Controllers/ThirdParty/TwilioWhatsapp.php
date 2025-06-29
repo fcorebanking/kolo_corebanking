@@ -489,7 +489,7 @@ class TwilioWhatsapp extends Controller
         if ($meterCustomerDetails) {
             $meter_name             = $meterCustomerDetails['data']['meter_name'];
             $meter_address          = $meterCustomerDetails['data']['address'];
-            $meter_confirmed_number = $meterCustomerDetails['data']['address'];
+            $meter_confirmed_number = $meterCustomerDetails['data']['meter_number'];
             $meter_type             = $meterCustomerDetails['data']['meter_type'];
 
             Cache::put("whatsappElectricity:{$user->id}", [

@@ -945,13 +945,15 @@ class TransactionService
         // $transactionId = $this->randomNumber(12);
         $transactionId = $this->vtPassRequestId();
 
+        \logInfo(json_encode($user), "checkAllowedTransaction");
+
         $checkAllowedTransaction = checkCompanyAllowedTransactionStatus($user->company_id);
+
+        \logInfo(json_encode($checkAllowedTransaction), "checkAllowedTransaction");
 
         if ($checkAllowedTransaction['status'] == 3 || $checkAllowedTransaction['status'] == 4) {
             $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
             return $checkAllowedTransaction;
-
-            \logInfo(json_encode($checkAllowedTransaction), "checkAllowedTransaction");
 
             $selectedwallet           = null;
             $transactionPinValidation = $this->validatePinCheckCustomerBalance($transaction_pin, $amount, $selectedwallet, $user);

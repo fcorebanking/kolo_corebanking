@@ -343,7 +343,7 @@ class TwilioWhatsapp extends Controller
 
     public function getPayBillMessage($request, $stringArray)
     {
-        $message = "";
+        $message = ""; //
         $message .= "*Choose Bill Payment*.\n\n*Follow the example below to pick the options*\n\n *Example* - bill, A \n\n*A* - Electricity Bill\n*B* - Cable TV\n";
         return $message;
     }

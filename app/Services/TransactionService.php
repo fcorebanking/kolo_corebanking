@@ -942,6 +942,7 @@ class TransactionService
     public function buyElectricity($user, $amount, $transaction_pin, $electricity_disco, $meter_type, $meter_number, $phone_number)
     {
 
+        \logInfo(json_encode($amount), "working Buy Electricy ");
         // $transactionId = $this->randomNumber(12);
         $transactionId = $this->vtPassRequestId();
 
@@ -979,7 +980,7 @@ class TransactionService
 
             $checkCompanyBalanceAmount = $companySettings->bills_payment_charge + $amount;
 
-            $checkCompanyBalance = $this->checkCompanyBalance($checkCompanyBalanceAmount,$user);
+            $checkCompanyBalance = $this->checkCompanyBalance($checkCompanyBalanceAmount, $user);
 
             if (! $checkCompanyBalance['status']) {
                 return $checkCompanyBalance;

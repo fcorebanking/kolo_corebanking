@@ -615,8 +615,8 @@ class TwilioWhatsapp extends Controller
 
                 $transactionController = new TransactionService();
                 $buyElectricityStatus  = $transactionController->buyElectricity($user, $amount, $transaction_pin, $electricity_disco, $meter_type, $meter_number, $phone_number);
-                \logInfo(json_encode($buyElectricityStatus), "Twilio Cache Electricity Whatsapp Message ");
-                if ($buyElectricityStatuss) {
+                \logInfo(json_encode($buyElectricityStatus), "Twilio Buy Electricity Whatsapp Message ");
+                if ($buyElectricityStatus) {
                     $message .= "*Transaction was successul*\n";
                 }
             } else {

@@ -49,7 +49,7 @@ class TransactionService
 
         if ($checkAllowedTransaction['status'] != 1) {
             $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
-            return $checkAllowedTransaction;
+
         }
 
         $description = $request->description;
@@ -432,7 +432,7 @@ class TransactionService
 
         if ($checkAllowedTransaction['status'] != 1) {
             $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
-            return response()->json($checkAllowedTransaction);
+
         }
 
         if ($amount > 3000000) {
@@ -778,8 +778,8 @@ class TransactionService
         $checkAllowedTransaction = checkCompanyAllowedTransactionStatus($user->company_id);
 
         if ($checkAllowedTransaction['status'] == 3 || $checkAllowedTransaction['status'] == 4) {
-            $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
-            return response()->json($checkAllowedTransaction);
+            $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] = 1;
+
         }
         $selectedwallet           = null;
         $transactionPinValidation = $this->validatePinCheckCustomerBalance($transaction_pin, 1, $selectedwallet, $user);

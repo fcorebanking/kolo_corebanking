@@ -300,6 +300,7 @@ class VTPassController extends Controller
                 return ["status" => false, 'message' => "Failed to Purchase Electricity"];
             }
         } catch (Exception $e) {
+            \logInfo(json_encode($e->getMessage()), "VTPass Buy Electricity Error Response Log");
             return ["status" => false, 'message' => "Sorry, Unable to get token. Kindly contact support"];
         }
     }

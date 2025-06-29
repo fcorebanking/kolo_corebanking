@@ -897,13 +897,9 @@ class TwilioWhatsapp extends Controller
                 //
             }
 
-            if ($transferOption == "B" || $transferOption == strtolower("B")) {
+            if ($billOption == "B" || $billOption == strtolower("B")) {
                 $message = $this->getCableMessage();
                 //  $message = $this->initializeCableMessage();
-            }
-
-            if (is_numeric($transferOption) || (int) $transferOption == $transferOption) {
-                $message = $this->initializeBankTransaction($request, $stringArray);
             }
 
         }

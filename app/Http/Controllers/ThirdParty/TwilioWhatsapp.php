@@ -348,7 +348,7 @@ class TwilioWhatsapp extends Controller
         return $message;
     }
 
-    public function getElectricityMessage()
+    public function getElectricityMessage($request)
     {
         $user    = $this->getUser($request);
         $message = "";
@@ -893,7 +893,7 @@ class TwilioWhatsapp extends Controller
             $billOption = $this->cleanString($stringArray[1]);
 
             if ($billOption == "A" || $billOption == strtolower("A")) {
-                $message = $this->getElectricityMessage();
+                $message = $this->getElectricityMessage($request);
                 //
             }
 

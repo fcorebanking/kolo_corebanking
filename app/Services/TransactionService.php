@@ -942,7 +942,6 @@ class TransactionService
     public function buyElectricity($user, $amount, $transaction_pin, $electricity_disco, $meter_type, $meter_number, $phone_number)
     {
 
-        \logInfo(json_encode($amount), "working Buy Electricy ");
         // $transactionId = $this->randomNumber(12);
         $transactionId = $this->vtPassRequestId();
 
@@ -952,8 +951,11 @@ class TransactionService
             $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
             return $checkAllowedTransaction;
 
+            \logInfo(json_encode($checkAllowedTransaction), "checkAllowedTransaction");
+
             $selectedwallet           = null;
             $transactionPinValidation = $this->validatePinCheckCustomerBalance($transaction_pin, $amount, $selectedwallet, $user);
+            \logInfo(json_encode($transactionPinValidation), "transactionPinValidation");
 
             if (! $transactionPinValidation['status']) {
                 return $transactionPinValidation;

@@ -354,7 +354,7 @@ class TwilioWhatsapp extends Controller
         $message = "";
         $message .= "*Electricity Bill Payment*.\n\n";
         $message .= "*Electric Disco*.\n\nabuja-electric(Prepaid)\nibadan-electric(Prepaid)\neko-electric(Prepaid)\nikeja-electric(Prepaid)\nportharcourt-electric(Prepaid)\njos-electric(Prepaid)\nkano-electric(Prepaid)\nenugu-electric(Prepaid)\n\n";
-        $message .= "*Follow the example below to purchase bill payment*\n\n *Example* - buy-electricity, meter number, electric-disco, phone number, amount \n\n buy-data, 54567676, ikeja-electric, 08076890890, 750 \n";
+        $message .= "*Follow the example below to purchase bill payment*\n\n *Example* - buy-electricity, meter number, electric-disco, phone number, amount \n\n buy-electricity, 54567676, ikeja-electric, 08076890890, 750 \n";
 
         return $message;
     }

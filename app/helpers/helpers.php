@@ -982,7 +982,7 @@ function sendResetEmail($title, $msg, $userinfo)
 }
 
 function whatsapp($phone, $msg, $type = 'transaction', $param = [])
-{
+{ //  whatsapp($phone, $msg, 'transaction', [$companywallet, $userinfo, $charge_customer, $parent_txn_id, $session]);
     $i = 1;
     try {
         $amount = config('app.whatsappPrice');
@@ -1094,7 +1094,7 @@ function whatsapp($phone, $msg, $type = 'transaction', $param = [])
                 }
             }
         }
-        $curl = curl_init();
+        /*  $curl = curl_init();
         curl_setopt_array($curl, [
             CURLOPT_URL            => 'https://graph.facebook.com/v15.0/111039541873466/messages',
             CURLOPT_RETURNTRANSFER => true,
@@ -1134,7 +1134,7 @@ function whatsapp($phone, $msg, $type = 'transaction', $param = [])
         ]);
         $response = curl_exec($curl);
         curl_close($curl);
-        return $response;
+        return $response; */
     } catch (Exception $e) {
         // logInfo($e, "Whatsapp API Exception line helper 745");
     }

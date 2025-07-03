@@ -4757,6 +4757,7 @@ class TransactionController extends Controller
             $dob             = $bvnResponse['data']['data']["dateOfBirth"];
             $bvnFromResponse = $request->bvn;
             $phone           = $bvnResponse['data']['data']["phoneNumber1"];
+            $address         = $bvnResponse['data']['data']["residentialAddress"];
 
             $newformat = date('Y-m-d', $time);
 
@@ -4774,6 +4775,7 @@ class TransactionController extends Controller
                             "dob"        => $newformat,
                             "bvn"        => trim($bvnFromResponse),
                             "phone"      => trim($phone),
+                            "address"    => trim($address),
                         ],
                     ]
                 );

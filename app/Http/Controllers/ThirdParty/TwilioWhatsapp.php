@@ -998,6 +998,8 @@ class TwilioWhatsapp extends Controller
     public function checkBVN($bvn)
     {
         $user = User::where('bvn', $bvn)->first();
+        \logInfo(json_encode($user), "Twilio check bvn");
+
         if ($user != null) {
             return true;
         } else {

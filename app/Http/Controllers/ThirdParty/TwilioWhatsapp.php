@@ -259,12 +259,12 @@ class TwilioWhatsapp extends Controller
 
         $bvnDetails = $this->verifyBVN($bvn);
         if ($bvnDetails['data']['verification']['status'] == "VERIFIED") {
-            $firstName       = $bvnResponse['data']['data']["firstName"];
-            $lastName        = $bvnResponse['data']['data']["lastName"];
-            $dob             = $bvnResponse['data']['data']["dateOfBirth"];
+            $firstName       = $bvnDetails['data']['data']["firstName"];
+            $lastName        = $bvnDetails['data']['data']["lastName"];
+            $dob             = $bvnDetails['data']['data']["dateOfBirth"];
             $bvnFromResponse = $bvn;
             $phone           = $phone;
-            $address         = $bvnResponse['data']['data']["residentialAddress"];
+            $address         =$bvnDetails['data']['data']["residentialAddress"];
 
             Cache::put("whatsappOpenUser:{$bvn}", [
                 'first_name' => $firstName,

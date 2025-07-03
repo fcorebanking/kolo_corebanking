@@ -264,7 +264,7 @@ class TwilioWhatsapp extends Controller
             $dob             = $bvnDetails['data']['data']["dateOfBirth"];
             $bvnFromResponse = $bvn;
             $phone           = $phone;
-            $address         =$bvnDetails['data']['data']["residentialAddress"];
+            $address         = $bvnDetails['data']['data']["residentialAddress"];
 
             Cache::put("whatsappOpenUser:{$bvn}", [
                 'first_name' => $firstName,
@@ -283,7 +283,7 @@ class TwilioWhatsapp extends Controller
             $dataUpdate = Cache::get("whatsappOpenUser:{$bvn}");
             \logInfo(json_encode($dataUpdate), "Twilio Open Account BVN Data Update Plan Whatsapp Message");
 
-            $message .= "*First Name* -  $firstName\n*Last Name* - $lastName\n*Date of Birth* - $dob\n*Phone Number* - $phoneNumber\n*Address* - $address\n*Username* - $username\n*Email* - $email\n\n*Follow the example below to confirm open account details as shown above*\n\n *Example* - confirm-user-account, BVN\n\n confirm-user-account, 3498348348";
+            $message .= "*First Name* -  $firstName\n*Last Name* - $lastName\n*Date of Birth* - $dob\n*Phone Number* - $phone\n*Address* - $address\n*Username* - $username\n*Email* - $email\n\n*Follow the example below to confirm open account details as shown above*\n\n *Example* - confirm-user-account, BVN\n\n confirm-user-account, 3498348348";
         } else {
             $message = "BVN Details in invalid";
         }

@@ -254,8 +254,7 @@ class TwilioWhatsapp extends Controller
         $checkBVN = $this->checkBVN($bvn);
 
         if (! $checkBVN) {
-            $message = "User Exists";
-        } else {
+
             $bvnDetails = $this->verifyBVN($bvn);
             if ($bvnDetails['data']['verification']['status'] == "VERIFIED") {
                 $firstName       = $bvnDetails['data']['data']["firstName"];
@@ -286,6 +285,8 @@ class TwilioWhatsapp extends Controller
             } else {
                 $message = "BVN Details in invalid";
             }
+        } else {
+            $message = "User Exists";
         }
 
         return $message;

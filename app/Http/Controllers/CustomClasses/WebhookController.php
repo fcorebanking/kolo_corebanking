@@ -46,9 +46,9 @@ class WebhookController extends Controller
         try {
             $webhook = transactions::where('transaction_reference', $this->transactionReference)->first();
 
-            if ($this->transactionReference == "250627560409" || $this->transactionReference == "250627472410" || $this->transactionReference == "2506272885278" || $this->transactionReference == "250627834612" || $this->transactionReference == "250630277414" || $this->transactionReference == "2506272251620") {
+            /*     if ($this->transactionReference == "250627560409" || $this->transactionReference == "250627472410" || $this->transactionReference == "2506272885278" || $this->transactionReference == "250627834612" || $this->transactionReference == "250630277414" || $this->transactionReference == "2506272251620") {
                 return ['status' => false, 'message' => "trasaction is done ", 'httpCode' => 400];
-            }
+            }*/
 
             if ($webhook) {
                 if ($this->webhookType == 'providus') {

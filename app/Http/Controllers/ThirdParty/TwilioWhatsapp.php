@@ -110,7 +110,7 @@ class TwilioWhatsapp extends Controller
     public function openAccountMessage(Request $request, $stringArray)
     {
         $message = "";
-        $message .= "*Open Account*.\n\n*Follow the example below to open an Account*\n\n *Example* - open-account, BVN, phone, username, email, password, pin \n\n open-account, 090867586758, 345678909, yuikl, test@example.com, kghkg, 4565 \n";
+        $message .= "*Open Account*.\n\n*Follow the example below to open an Account*\n\n *Example* - open-account, BVN, phone, username, email, password, pin \n\n open-account, 345678909, 090867586758,  yuikl, test@example.com, kghkg, 4565 \n";
         return $message;
     }
 
@@ -287,6 +287,8 @@ class TwilioWhatsapp extends Controller
         } else {
             $message = "BVN Details in invalid";
         }
+
+        return $message;
 
     }
 

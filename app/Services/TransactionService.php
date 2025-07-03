@@ -1,9 +1,11 @@
 <?php
 namespace App\Services;
 
+use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Models\banks;
 use App\Models\Beneficiary;
+use App\Models\branch;
 use App\Models\BranchWallet;
 use App\Models\Company;
 use App\Models\company_settings;
@@ -14,12 +16,15 @@ use App\Models\transactions;
 use App\Models\User;
 use App\Models\user_wallet;
 use App\Models\wb_account_details;
+use App\Services\AccountCreationService;
 use App\Services\ebanking\BankTransferType;
 use App\Services\ebanking\EbankingService;
+use App\Services\VirtualAccountType;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class TransactionService
@@ -1109,7 +1114,7 @@ class TransactionService
 
         $transactionId = $this->vtPassRequestId();
 
- $checkAllowedTransaction = checkCompanyAllowedTransactionStatus($user->company_id);
+        $checkAllowedTransaction = checkCompanyAllowedTransactionStatus($user->company_id);
 
         \logInfo(json_encode($checkAllowedTransaction), "checkAllowedTransaction");
 
@@ -1132,7 +1137,7 @@ class TransactionService
         }
 
         //Get WBA Charges
-    //Get WBA Charges
+        //Get WBA Charges
         $wbaCharge = getWbaTransferCharges(12, ($amount / 100));
 
         $companySettings = company_settings::where('company_id', $user->company_id)->first();
@@ -1183,7 +1188,7 @@ class TransactionService
                 "balance_after"          => $debitCustomer["balance_after"],
                 "account_id"             => $transactionPinValidation['account_id'],
                 "company_id"             => $user->company_id,
-                "branch_id"              =>$user->branch_id,
+                "branch_id"              => $user->branch_id,
                 "company_balance_before" => $debitCustomer["company_balance_before"],
                 "company_amount"         => $debitCustomer["company_amount"],
                 "company_balance_after"  => $debitCustomer["company_balance_after"],
@@ -1212,7 +1217,7 @@ class TransactionService
                 "amount"                 => $companySettings->bills_payment_charge,
                 "balance_after"          => $debitCustomer["charge_balance_after"],
                 "account_id"             => $transactionPinValidation['account_id'],
-                "company_id"             =>$user->company_id,
+                "company_id"             => $user->company_id,
                 "branch_id"              => $user->branch_id,
                 "company_balance_before" => $debitCustomer["company_charge_balance_before"],
                 "company_amount"         => $wbaCharge,
@@ -1363,7 +1368,7 @@ class TransactionService
         return $response;
     }
 
-    public function register(Request $request)
+    public function register($bvn, $company_id, $email, $phone, $username, $customerInfo, $referral, $password, $pin)
     {
         $rules = [
             'first_name' => 'required|string|max:50|min:2',
@@ -1376,52 +1381,18 @@ class TransactionService
             'pin'        => 'required|numeric|gt:0',
             'password'   => 'required|string',
         ];
-        if ($request->has('nin')) {
-            $rules['nin'] = 'required|string';
-        }
-        if ($request->has('bvn')) {
-            $rules['bvn'] = 'required|string';
-        }
 
-        $validator = Validator::make($request->all(), $rules);
-        if ($validator->fails()) {
-            $ra = ["status" => false, "message" => $validator->errors()->all()[0]];
-            return response()->json($ra, 406);
-        }
-        if ($request->nin) {
-            $userNIN = User::where('nin', $request->nin)->get();
-            if (count($userNIN) > 0) {
-                return response()->json(["status" => false, "message" => "NIN already exist!"], 409);
-            }
-        }
-        if ($request->bvn) {
-            $userNIN = User::where('bvn', $request->bvn)->get();
+        if ($bvn) {
+            $userNIN = User::where('bvn', $bvn)->get();
             if (count($userNIN) > 0) {
                 return response()->json(["status" => false, "message" => "BVN already exist!"], 409);
             }
         }
-        // if (!empty($request->nin) && $request->nin === "") {
-        //     $ra = array("status" => false, "message" => "NIN is required!");
-        //     return response()->json($ra, 406);
-        // }
 
-        // if(isset($request->nin)){
-        // if($request->nin==""){
-        //     $ra = array("status" => false, "message" => "NIN is required!");
-        //     return response()->json($ra, 406);
-        // }
-
-        // }
-        // if(isset($request->bvn)){
-        // if($request->bvn==""){
-        //     $ra = array("status" => false, "message" => "BVN is required!");
-        //     return response()->json($ra, 406);
-        // }
-        // }
-        $companyRecord = Company::where(['company_reference' => $request->company])->orWhere(['id' => $request->company])->first();
+        $companyRecord = Company::where(['company_reference' => $company_id])->orWhere(['id' => $company_id])->first();
         if (! $companyRecord || $companyRecord->id == 27) {
             $ra = ["status" => false, "message" => "Invalid company provided"];
-            return response()->json($ra, 400);
+            return $ra;
         }
 
         \logInfo($companyRecord->id, "Current company ID");
@@ -1431,7 +1402,7 @@ class TransactionService
 
         if (! ($selectedProduct)) {
             $ra = ["status" => false, "message" => "No Savings product found for this company"];
-            return response()->json($ra, 400);
+            return $ra;
         }
 
         if ($companyRecord->sub->end_date < Date('Y-m-d')) {
@@ -1441,38 +1412,31 @@ class TransactionService
 
         if ($companyRecord->status_id != 1) {
             $ra = ["status" => false, "message" => "Encounter error while trying to connect to  institution.. please try again later"];
-            return response()->json($ra, 400);
+            return $ra;
         }
-        $userPhone = $request->phone;
+        $userPhone = $phone;
 
-        $user = User::where([['email', $request->email], ['company_id', $companyRecord->id]])->get();
+        $user = User::where([['email', $email], ['company_id', $companyRecord->id]])->get();
 
         if (count($user) > 0) {
             $ra = ["status" => false, "message" => "Email already exists"];
-            return response()->json($ra, 409);
+            return $ra;
         }
 
         $user = User::where([['phone', $userPhone], ['company_id', $companyRecord->id]])->get();
         if (count($user) > 0) {
             $ra = ["status" => false, "message" => "Phone number already exists"];
-            return response()->json($ra, 409);
+            return $ra;
         }
 
-        $user = User::where('username', $request->username)->get();
+        $user = User::where('username', $username)->get();
 
         if (count($user) > 0) {
             $ra = ["status" => false, "message" => "Username already exiss"];
-            return response()->json($ra, 409);
+            return $ra;
         }
 
         \logInfo($user, "Current user");
-
-        // $customerReference = generateAccountReference();
-
-        // $assetMatrix = new AssetMatrixController();
-
-        // $response = $assetMatrix->createAccount($customerReference, $request->email, $request->phone, $request->first_name, $request->last_name, "");
-        // echo \json_encode($createAdminAccount);
 
         $companyIDs = [];
 
@@ -1518,7 +1482,7 @@ class TransactionService
 
             if (! $response['status']) {
                 $response['status'] = 0;
-                return response()->json($response);
+                return $response;
             }
         }
         $branch = $request->branch ?? $companyRecord->branch[0]->id;
@@ -1568,18 +1532,18 @@ class TransactionService
         try {
             // referral_id
             $dataraw = [
-                'first_name'                   => $request->first_name,
-                'last_name'                    => $request->last_name,
+                'first_name'                   => $customerInfo['first_name'],
+                'last_name'                    => $customerInfo['last_name'],
                 'company_id'                   => $companyRecord->id,
-                'email'                        => $request->email,
-                'bvn'                          => $request->bvn,
+                'email'                        => $email,
+                'bvn'                          => $bvn,
                 'phone'                        => $userPhone,
                 'otp'                          => $otp,
                 'nin'                          => $request->nin ?? null,
                 'bank_id'                      => $bank_id ?? 126,
-                'pin'                          => $request->pin,
-                'address'                      => $request->address,
-                'dob'                          => $request->dob,
+                'pin'                          => $pin,
+                'address'                      => $customerInfo['address'],
+                'dob'                          => $customerInfo['dob'],
                 'sms'                          => 1,
                 'kyc_level_id'                 => 1,
                 'status_id'                    => $companyRecord->setting->account_approval == 0 ? 7 : 1,
@@ -1590,15 +1554,15 @@ class TransactionService
                 'virtual_account'              => $virtual_acccount_number,
                 'otp_expiration_date'          => Carbon::now()->addMinutes(10),
                 'account_reference'            => $customerReference,
-                'username'                     => $request->username,
+                'username'                     => $username,
                 'account_officer_id'           => $accountOfficer->id,
                 'uuid'                         => $customerReference,
-                'password'                     => Hash::make($request->password),
+                'password'                     => Hash::make($password),
                 'phone_verification_status_id' => (isset($branchData->currency_id)) ? (($branchData->currency_id == 1) ? null : 1) : null,
                 //
             ];
 
-            if ($request->referral) {
+            if ($referral) {
                 $refeUser = User::where(['company_id' => $companyRecord->id, 'username' => $request->referral])->first();
                 if (! $refeUser) {
                     return response()->json(['status' => false, 'message' => 'Invalid referral username']);
@@ -1609,7 +1573,7 @@ class TransactionService
             $user = User::create($dataraw);
             if (! $user) {
                 DB::rollBack();
-                return response()->json(['status' => false, 'message' => 'Failed to complete Registration Err::09'], 400);
+                return ['status' => false, 'message' => 'Failed to complete Registration Err::09'];
             }
 
             $wb_account_details = wb_account_details::create([
@@ -1623,7 +1587,7 @@ class TransactionService
             ]);
             if (! $wb_account_details) {
                 DB::rollBack();
-                return response()->json(['status' => false, 'message' => 'Failed to complete Registration Err::10'], 400);
+                return ['status' => false, 'message' => 'Failed to complete Registration Err::10'];
             }
 
             $user_wallet = user_wallet::create([
@@ -1632,7 +1596,7 @@ class TransactionService
             ]);
             if (! $user_wallet) {
                 DB::rollBack();
-                return response()->json(['status' => false, 'message' => 'Failed to complete Registration Err::11'], 400);
+                return ['status' => false, 'message' => 'Failed to complete Registration Err::11'];
             }
 
             // \restrictUserAccountAPI($user->id, 2, "New Account Restriction");
@@ -1641,7 +1605,7 @@ class TransactionService
 
             if (! $bank) {
                 DB::rollBack();
-                response()->json(['status' => false, 'message' => 'Invalid bank selected']);
+                return ['status' => false, 'message' => 'Invalid bank selected'];
             }
 
             // if ($user && $user_wallet) {
@@ -1668,27 +1632,65 @@ class TransactionService
                 $companyIDsStatus = true;
             }
 
-            return response()->json([
+            return [
                 'status'  => true,
                 'message' => 'Registration Successful',
                 'data'    => [
                     'user_reference' => $customerReference,
                     'account_number' => $accountNumber,
                     'bank'           => $bank->bank_name,
-                    'otp_code'       => $companyIDsStatus == true ? $user->otp : "",
-                    'pin'            => $companyIDsStatus == true ? $user->pin : "",
+                    'otp_code'       => $user->otp,
+
                 ],
-            ]);
+            ];
 
         } catch (\Exception $e) {
 
             \logInfo($e->getTraceAsString(), "Registration failure");
             DB::rollback();
             // something went wrong
-            return response()->json(['status' => false, 'message' => 'Failed to complete Registration', 'data' => $e->getMessage() . ' ' . $e->getLine()], 400);
+            return ['status' => false, 'message' => 'Failed to complete Registration', 'data' => $e->getMessage() . ' ' . $e->getLine()];
         }
 
     }
 
+    public function verifyBVN($bvn)
+    {
+        $identityPassController = new IdentityPassController();
+
+        $bvnResponse = $identityPassController->verifyBVN($bvn);
+
+        if (isset($bvnResponse['data']['verification']['status']) && $bvnResponse['data']['verification']['status'] == "VERIFIED") {
+
+            return $bvnResponse;
+        } else {
+            return false;
+        }
+    }
+
+    public function verifyOTP($user_reference, $otp_code)
+    {
+        \logInfo( $otp_code, "verifyOTP Twilio request log");
+
+        $userAccunt = User::where(['uuid' => $user_reference, 'otp' => $otp_code])->first();
+
+        if ($userAccunt) {
+
+            $newdate = Carbon::now();
+
+            if (Carbon::createFromTimestamp(strtotime($userAccunt->otp_expiration_date)) > Carbon::now()) {
+
+                $userAccunt->phone_verification_status_id = 2;
+                $userAccunt->last_login                   = Carbon::now();
+                $userAccunt->save();
+
+                return ['status' => true, 'message' => 'OTP Verification Successful'];
+            } else {
+                return ['status' => false, 'message' => 'You OTP has Expired', 'data' => "Expiration: " . Carbon::createFromTimestamp(strtotime($userAccunt->otp_expiration_date))->format('d-m-Y / h:i:s A') . " ***** CurrentDate: " . Carbon::now()->format('d-m-Y / h:i:s A')];
+            }
+        } else {
+            return response(['status' => false, 'message' => "Invalid user reference or OTP supplied"]);
+        }
+    }
 
 }

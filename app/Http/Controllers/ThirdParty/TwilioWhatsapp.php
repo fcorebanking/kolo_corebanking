@@ -3,6 +3,7 @@ namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\Controller;
 use App\Models\AgentTerminal;
+use App\Models\company_wallet;
 use App\Models\User;
 use App\Models\user_wallet;
 use App\Models\wb_account_details;
@@ -67,7 +68,8 @@ class TwilioWhatsapp extends Controller
 
     public function getAccountBalance(Request $request, $stringArray)
     {
-        $user           = $this->getUser($request);
+        $user = $this->getUser($request);
+
         $transactionPin = $this->cleanString($stringArray[1]);
         $validatePin    = $this->validatePin($user, $transactionPin);
         \logInfo(json_encode($user), "Twilio get Account Balance Whatsapp Message");
@@ -108,7 +110,7 @@ class TwilioWhatsapp extends Controller
     public function openAccountMessage(Request $request, $stringArray)
     {
         $message = "";
-        $message .= "*Open Account*.\n\n*Follow the example below to open an Account*\n\n *Example* - open-account, bvn, username, email, password, pin \n\n open-account, 345678909, yuikl, test@example.com, kghkg, 4565 \n";
+        $message .= "*Open Account*.\n\n*Follow the example below to open an Account*\n\n *Example* - open-account, BVN, phone, username, email, password, pin \n\n open-account, 090867586758, 345678909, yuikl, test@example.com, kghkg, 4565 \n";
         return $message;
     }
 
@@ -243,10 +245,11 @@ class TwilioWhatsapp extends Controller
 
         $message  = "";
         $bvn      = $this->cleanString($stringArray[1]);
-        $username = $this->cleanString($stringArray[2]);
-        $email    = $this->cleanString($stringArray[3]);
-        $password = $this->cleanString($stringArray[4]);
-        $pin      = $this->cleanString($stringArray[5]);
+        $phone    = $this->cleanString($stringArray[2]);
+        $username = $this->cleanString($stringArray[3]);
+        $email    = $this->cleanString($stringArray[4]);
+        $password = $this->cleanString($stringArray[5]);
+        $pin      = $this->cleanString($stringArray[6]);
 
         $checkBVN = $this->checkBVN($bvn);
 
@@ -255,29 +258,35 @@ class TwilioWhatsapp extends Controller
         }
 
         $bvnDetails = $this->verifyBVN($bvn);
+        if ($bvnDetails['data']['verification']['status'] == "VERIFIED") {
+            $firstName       = $bvnResponse['data']['data']["firstName"];
+            $lastName        = $bvnResponse['data']['data']["lastName"];
+            $dob             = $bvnResponse['data']['data']["dateOfBirth"];
+            $bvnFromResponse = $bvn;
+            $phone           = $phone;
+            $address         = $bvnResponse['data']['data']["residentialAddress"];
 
-        if ($user != null) {
+            Cache::put("whatsappOpenUser:{$bvn}", [
+                'first_name' => $firstName,
+                'last_name'  => $lastName,
+                'dob'        => $dob,
+                'bvn'        => $bvnFromResponse,
+                'phone'      => $phone,
+                'address'    => $address,
+                'username'   => $username,
+                'email'      => $email,
+                'password'   => $password,
+                'pin'        => $pin,
 
-            $message .= "*Type Your Transaction Pin*\n\n*Example (Check Account Balance)* - balance, 1234 \n\n*Example (Check POS Balance)* - posbalance, 1234 \n";
-            return $message;
+            ], 600);
+
+            $dataUpdate = Cache::get("whatsappOpenUser:{$bvn}");
+            \logInfo(json_encode($dataUpdate), "Twilio Open Account BVN Data Update Plan Whatsapp Message");
+
+            $message .= "*First Name* -  $firstName\n*Last Name* - $lastName\n*Date of Birth* - $dob\n*Phone Number* - $phoneNumber\n*Address* - $address\n*Username* - $username\n*Email* - $email\n\n*Follow the example below to confirm open account details as shown above*\n\n *Example* - confirm-user-account, BVN\n\n confirm-user-account, 3498348348";
         } else {
-            return "User does not exist";
+            $message = "BVN Details in invalid";
         }
-    }
-
-    public function initializeTransactionBankMessage()
-    {
-        $message = "";
-        $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, amount, description, destination bank name, destination account number \n\n transfer, 5000, send to ola, zenith bank, 2001362794 \n";
-        return $message;
-
-    }
-
-    public function initializeTransactionWalletMessage()
-    {
-        $message = "";
-        $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, amount, description, destination bank name, destination account number \n\n transfer, 5000, send to ola, zenith bank, 2001362794 \n";
-        return $message;
 
     }
 
@@ -330,6 +339,51 @@ class TwilioWhatsapp extends Controller
         return $message;
     }
 
+    public function getPayBillMessage($request, $stringArray)
+    {
+        $message = ""; //
+        $message .= "*Choose Bill Payment*.\n\n*Follow the example below to pick the options*\n\n *Example* - bill, A \n\n*A* - Electricity Bill\n*B* - Cable TV\n";
+        return $message;
+    }
+
+    public function getElectricityMessage($request)
+    {
+        $user    = $this->getUser($request);
+        $message = "";
+        $message .= "*Electricity Bill Payment*.\n\n";
+        $message .= "*Electric Disco*.\n\nabuja-electric(Prepaid)\nibadan-electric(Prepaid)\neko-electric(Prepaid)\nikeja-electric(Prepaid)\nportharcourt-electric(Prepaid)\njos-electric(Prepaid)\nkano-electric(Prepaid)\nenugu-electric(Prepaid)\n\n";
+        $message .= "*Follow the example below to purchase bill payment*\n\n *Example* - buy-electricity, meter number, electric-disco, phone number, amount \n\n buy-electricity, 54567676, ikeja-electric, 08076890890, 750 \n";
+
+        return $message;
+    }
+
+    public function getCableMessage($request)
+    {
+        $user    = $this->getUser($request);
+        $message = "";
+        $message .= "*Cable Bill Payment*.\n\n";
+        $message .= "*Cable TV Type*.\n\ndstv\ngotv\nstartimes\nshowmax\n\n";
+        $message .= "*Follow the example below to purchase cable tv*\n\n *Example* - buy-cable, smart_card_number, cable_tv_type, phone number \n\n buy-cable, 097876376, dstv, 08076890890\n";
+
+        return $message;
+    }
+
+    public function initializeTransactionBankMessage()
+    {
+        $message = "";
+        $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, amount, description, destination bank name, destination account number \n\n transfer, 5000, send to ola, zenith bank, 2001362794 \n";
+        return $message;
+
+    }
+
+    public function initializeTransactionWalletMessage()
+    {
+        $message = "";
+        $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, amount, description, destination bank name, destination account number \n\n transfer, 5000, send to ola, zenith bank, 2001362794 \n";
+        return $message;
+
+    }
+
     public function initiateBuyDataMessage($request, $stringArray)
     {
         $user        = $this->getUser($request);
@@ -362,35 +416,6 @@ class TwilioWhatsapp extends Controller
         } else {
             $message .= "There is a problem with Data Plan Transaction";
         }
-
-        return $message;
-    }
-
-    public function getPayBillMessage($request, $stringArray)
-    {
-        $message = ""; //
-        $message .= "*Choose Bill Payment*.\n\n*Follow the example below to pick the options*\n\n *Example* - bill, A \n\n*A* - Electricity Bill\n*B* - Cable TV\n";
-        return $message;
-    }
-
-    public function getElectricityMessage($request)
-    {
-        $user    = $this->getUser($request);
-        $message = "";
-        $message .= "*Electricity Bill Payment*.\n\n";
-        $message .= "*Electric Disco*.\n\nabuja-electric(Prepaid)\nibadan-electric(Prepaid)\neko-electric(Prepaid)\nikeja-electric(Prepaid)\nportharcourt-electric(Prepaid)\njos-electric(Prepaid)\nkano-electric(Prepaid)\nenugu-electric(Prepaid)\n\n";
-        $message .= "*Follow the example below to purchase bill payment*\n\n *Example* - buy-electricity, meter number, electric-disco, phone number, amount \n\n buy-electricity, 54567676, ikeja-electric, 08076890890, 750 \n";
-
-        return $message;
-    }
-
-    public function getCableMessage($request)
-    {
-        $user    = $this->getUser($request);
-        $message = "";
-        $message .= "*Cable Bill Payment*.\n\n";
-        $message .= "*Cable TV Type*.\n\ndstv\ngotv\nstartimes\nshowmax\n\n";
-        $message .= "*Follow the example below to purchase cable tv*\n\n *Example* - buy-cable, smart_card_number, cable_tv_type, phone number \n\n buy-cable, 097876376, dstv, 08076890890\n";
 
         return $message;
     }
@@ -751,6 +776,83 @@ class TwilioWhatsapp extends Controller
         return $message;
     }
 
+    public function openAccount($request, $stringArray)
+    {
+        $message = "";
+        $bvn     = $this->cleanString($stringArray[1]);
+
+        $data = Cache::get("whatsappOpenUser:{$bvn}");
+
+        if ($data != null) {
+
+            \logInfo(json_encode($data), "Twilio Cache Open Account Data Whatsapp Message for Transfer");
+
+            $bvn                        = $data['bvn'];
+            $company_id                 = $this->getCompanyID($request);
+            $email                      = $data['email'];
+            $phone                      = $data['phone'];
+            $username                   = $data['username'];
+            $customerInfo               = [];
+            $customerInfo['first_name'] = $data['first_name'];
+            $customerInfo['last_name']  = $data['last_name'];
+            $customerInfo['address']    = $data['address'];
+            $customerInfo['dob']        = $data['password'];
+            $password                   = $data['pin'];
+
+            $transactionController = new TransactionService();
+            $openAccountStatus     = $transactionController->register($bvn, $company_id, $email, $phone, $username, $customerInfo, $referral, $password, $pin);
+
+            if ($openAccountStatus["status"]) {
+
+                $otp_code       = $openAccountStatus['data']['otp_code'];
+                $user_reference = $openAccountStatus['data']['user_reference'];
+
+                Cache::put("whatsappOpenVerifyOTP:{$otp_code}", [
+                    'otp_code'       => $otp_code,
+                    'user_reference' => $user_reference,
+
+                ], 600);
+
+                $dataUpdate = Cache::get("whatsappOpenVerifyOTP:{$otp_code}");
+                \logInfo(json_encode($dataUpdate), "Twilio Open Account OTP Code Whatsapp Message");
+                $message .= "*Account has been open successfully Confirm your OTP . Your otp code is $otp_code*\n\n*Follow the example below to confirm otp code*\n\n *Example* - confirm-otp, otpcode \n\nconfirm-otp, 1234 \n";
+            }
+        } else {
+            $message .= "*There was an issue with this transaction*\n";
+        }
+        return $message;
+    }
+
+    public function verifyOTP($request, $stringArray)
+    {
+        $message  = "";
+        $otp_code = $this->cleanString($stringArray[1]);
+
+        $data = Cache::get("whatsappOpenVerifyOTP:{$otp_code}");
+
+        if ($data != null) {
+
+            \logInfo(json_encode($data), "Twilio Cache Account OTP Whatsapp Message for Transfer");
+
+            $user_reference = $data['user_reference'];
+            $otp_code       = $data['otp_code '];
+
+            $transactionController = new TransactionService();
+
+            $verifyOTP = $transactionController->verifyOTP($user_reference, $otp_code);
+
+            if ($verifyOTP['status']) {
+                $message .= "*OTP was verified successfully*\n";
+            } else {
+                $message .= "*There was an issue with this transaction*\n";
+            }
+
+            return $message;
+
+        }
+
+    }
+
     public function otpCode($user)
     {
         $otpCode                   = generateOtp();
@@ -885,10 +987,10 @@ class TwilioWhatsapp extends Controller
         return $transactionController->verifyMeterNumber($meter_number, $electricity_disco, $type);
     }
 
-    public function verifyBVN($meter_number, $electricity_disco, $type)
+    public function verifyBVN($bvn)
     {
         $transactionController = new TransactionService();
-        return $transactionController->verifyBVN($meter_number, $electricity_disco, $type);
+        return $transactionController->verifyBVN($bvn);
     }
 
     public function checkBVN($bvn)
@@ -1057,10 +1159,34 @@ class TwilioWhatsapp extends Controller
         if (isset($stringArray[1]) && ($stringArray[0] == "confirm-cable" || $stringArray[0] == strtolower("confirm-cable"))) {
             $message = $this->buyCable($request, $stringArray);
         }
+        if (isset($stringArray[1]) && ($stringArray[0] == "open-account" || $stringArray[0] == strtolower("open-account"))) {
+            $message = $this->getOpenAccountMessageUpdate($request, $stringArray);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "confirm-user-account" || $stringArray[0] == strtolower("confirm-user-account"))) {
+            $message = $this->openAccount($request, $stringArray);
+        }
+
+        if (isset($stringArray[1]) && ($stringArray[0] == "confirm-otp" || $stringArray[0] == strtolower("confirm-otp"))) {
+            $message = $this->verifyOTP($request, $stringArray);
+        }
 
         \logInfo($message, "Twilio Respond Whatsapp Message");
 
         return $message;
+    }
+
+    public function chargeWhatsappCompany($user)
+    {
+        $phone           = null;
+        $msg             = null;
+        $charge_customer = false;
+        $parent_txn_id   = null;
+        $type            = 'transaction';
+        $companywallet   = company_wallet::where('company_id', $user->company_id)->first();
+        $userinfo        = $user;
+        $session         = $user;
+        return whatsapp($phone, $msg, 'transaction', [$companywallet, $userinfo, $charge_customer, $parent_txn_id, $session]);
     }
 
 }

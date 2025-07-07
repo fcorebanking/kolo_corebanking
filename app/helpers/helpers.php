@@ -2233,7 +2233,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
             $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge);
 
-             logInfo(json_encode($companyAfterBalance), "Company after balance");
+            logInfo(json_encode($companyAfterBalance), "Company after balance");
 
             if ($companyWallet->balance > 100000 && ($companyAfterBalance > 100000)) {
                 $companyIDsStatus = true;
@@ -2557,8 +2557,24 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
 
         if ($customerInitialBalance > ($originalAmount - $customerCashbackAmount)) {
 
-            $company = Company::find($companyId);
-            if ($company->wallet->balance > ($originalAmount - $companyCashbackAmount)) {
+            $company    = Company::find($companyId);
+            $companyIDs = [1, 29, 36];
+
+            $companyIDsStatus = false;
+
+            if (in_array($company->id, $companyIDs)) {
+                $companyIDsStatus = true;
+            }
+
+            $companyAfterBalance = $company->wallet->balance - $originalAmount;
+
+            logInfo(json_encode($companyAfterBalance), "Company after balance for cash back");
+
+            if ($company->wallet->balance > 100000 && ($companyAfterBalance > 100000)) {
+                $companyIDsStatus = true;
+            }
+
+            if ($company->wallet->balance > ($originalAmount - $companyCashbackAmount) && ($companyIDsStatus)) {
 
                 $customerBalanceAfter = $customerInitialBalance - $originalAmount;
 

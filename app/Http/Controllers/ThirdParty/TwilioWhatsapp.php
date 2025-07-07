@@ -240,6 +240,32 @@ class TwilioWhatsapp extends Controller
         }
     }
 
+    public function getPOSBalanceMessage($request, $stringArray)
+    {
+        $user    = $this->getUser($request);
+        $message = "";
+        if ($user != null) {
+
+            $message .= "*Type Your Transaction Pin*\n\n*Example (Check POS Balance)* - posbalance, 1234 \n";
+            return $message;
+        } else {
+            return "User does not exist";
+        }
+    }
+
+    public function getcheckAccountBalanceMessage($request, $stringArray)
+    {
+        $user    = $this->getUser($request);
+        $message = "";
+        if ($user != null) {
+
+            $message .= "*Type Your Transaction Pin*\n\n*Example (Check Account Balance)* - balance, 1234 \n";
+            return $message;
+        } else {
+            return "User does not exist";
+        }
+    }
+
     public function getOpenAccountMessageUpdate($request, $stringArray)
     {
 
@@ -1033,10 +1059,10 @@ class TwilioWhatsapp extends Controller
             $message = $this->getTransferMessage($request, $stringArray);
         }
         if ($string == "3") {
-            $message = $this->getTransferPinMessage($request, $stringArray);
+            $message = $this->getcheckAccountBalanceMessage($request, $stringArray);
         }
         if ($string == "4") {
-            $message = $this->getTransferPinMessage($request, $stringArray);
+            $message = $this->getPOSBalanceMessage($request, $stringArray);
         }
         if ($string == "5") {
             $message = $this->getChangePinMessage($request, $stringArray);

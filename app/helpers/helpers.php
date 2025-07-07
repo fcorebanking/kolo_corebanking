@@ -2229,6 +2229,8 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
             $companyWallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
 
+            logInfo(json_encode($companyWallet), "User to be debitted");
+
             $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge);
 
             if ($companyWallet->balance > 100000 && ($companyAfterBalance > 100000)) {

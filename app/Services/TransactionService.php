@@ -1661,7 +1661,7 @@ class TransactionService
 
         logInfo($companyId, "Twilio Debit company id");
 
-        $debitCompany = debitCompanyWithCharge($companyId, $charge, 0, );
+        $debitCompany = debitCompanyWithCharge($company_id, $charge, 0, );
 
         if (! $debitCompany['status']) {
             return ['status' => false, 'message' => 'Switcher Error. Kindly contact support'];
@@ -1669,7 +1669,7 @@ class TransactionService
 
         logInfo($debitCompany, "Twilio Debit company log");
 
-        $this->debitBVNFromCompany($debitCompany, $companyId, $charge);
+        $this->debitBVNFromCompany($debitCompany, $company_id, $charge);
 
         $identityPassController = new IdentityPassController();
 

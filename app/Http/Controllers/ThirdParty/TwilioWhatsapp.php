@@ -283,7 +283,7 @@ class TwilioWhatsapp extends Controller
 
         if (! $checkBVN) {
 
-            $bvnDetails = $this->verifyBVN($bvn);
+            $bvnDetails = $this->verifyBVN($request, $bvn);
             if ($bvnDetails['data']['verification']['status'] == "VERIFIED") {
                 $firstName       = $bvnDetails['data']['data']["firstName"];
                 $lastName        = $bvnDetails['data']['data']["lastName"];
@@ -1018,7 +1018,7 @@ class TwilioWhatsapp extends Controller
         return $transactionController->verifyMeterNumber($meter_number, $electricity_disco, $type);
     }
 
-    public function verifyBVN($bvn)
+    public function verifyBVN(Request $request, $bvn)
     {
         $company_id            = $this->getCompanyID($request);
         $transactionController = new TransactionService();

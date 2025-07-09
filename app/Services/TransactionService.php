@@ -1659,7 +1659,7 @@ class TransactionService
 
         $charge = 50;
 
-        logInfo($companyId, "Twilio Debit company id");
+        logInfo( $company_id, "Twilio Debit company id");
 
         $debitCompany = debitCompanyWithCharge($company_id, $charge, 0, );
 

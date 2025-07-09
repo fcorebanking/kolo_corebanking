@@ -1654,8 +1654,23 @@ class TransactionService
 
     }
 
-    public function verifyBVN($bvn)
+    public function verifyBVN($bvn, $company_id)
     {
+
+        $charge = 50;
+
+        logInfo($companyId, "Twilio Debit company id");
+
+        $debitCompany = debitCompanyWithCharge($companyId, $charge, 0, );
+
+        if (! $debitCompany['status']) {
+            return ['status' => false, 'message' => 'Switcher Error. Kindly contact support'];
+        }
+
+        logInfo($debitCompany, "Twilio Debit company log");
+
+        $this->debitBVNFromCompany($debitCompany, $companyId, $charge);
+
         $identityPassController = new IdentityPassController();
 
         $bvnResponse = $identityPassController->verifyBVN($bvn);
@@ -1668,9 +1683,39 @@ class TransactionService
         }
     }
 
+    public function debitBVNFromCompany($debitCompanyWithCharge, $companyId, $charge)
+    {
+        $companyBalanceBefore       = $debitCompanyWithCharge['balance_before'];
+        $companyBalanceAfter        = $debitCompanyWithCharge['balance_after'];
+        $companyChargeBalanceBefore = $debitCompanyWithCharge['charge_balance_before'];
+        $companyChargeBalanceAfter  = $debitCompanyWithCharge['charge_balance_after'];
+
+        $transactionRef2 = generateTransactionReference();
+
+        transactions::create([
+            "company_balance_before" => $companyChargeBalanceBefore,
+            "company_amount"         => 0,
+            "account_id"             => null,
+            "company_balance_after"  => $companyChargeBalanceAfter,
+            "description"            => "Charge for BVN Check",
+            "transaction_reference"  => $transactionRef2,
+            "balance_before"         => $companyBalanceBefore,
+            "amount"                 => $charge,
+            "balance_after"          => $companyBalanceAfter,
+            "company_id"             => $companyId,
+            "transaction_remarks_id" => 2,
+            "transaction_type_id"    => 43,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $companyId,
+
+        ]);
+
+    }
+
     public function verifyOTP($user_reference, $otp_code)
     {
-        \logInfo( $otp_code, "verifyOTP Twilio request log");
+        \logInfo($otp_code, "verifyOTP Twilio request log");
 
         $userAccunt = User::where(['uuid' => $user_reference, 'otp' => $otp_code])->first();
 

@@ -22,13 +22,15 @@ class TwilioWhatsapp extends Controller
 
         if (env('APP_ENV') == "local") {
 
-            $twilio        = new Client(env('TWILIO_ACCOUNT_SID_TEST'), env('TWILIO_AUTH_TOKEN_TEST'));
+            $twilio = new Client(env('TWILIO_ACCOUNT_SID_TEST'), env('TWILIO_AUTH_TOKEN_TEST'));
+
             $whatsappPhone = "whatsapp:" . env('TWILIO_WHATSAPP_NUMBER_TEST');
 
         } else {
 
-            $twilio        = new Client(env('TWILIO_ACCOUNT_SID'), env('TWILIO_AUTH_TOKEN'));
-            $whatsappPhone = "whatsapp:" . env('TWILIO_WHATSAPP_NUMBER');
+            $twilio = new Client(env('TWILIO_ACCOUNT_SID'), env('TWILIO_AUTH_TOKEN'));
+
+            $whatsappPhone = $request->To;
         }
 
         try {
@@ -1218,6 +1220,18 @@ class TwilioWhatsapp extends Controller
         $userinfo        = $user;
         $session         = $user;
         return whatsapp($phone, $msg, 'transaction', [$companywallet, $userinfo, $charge_customer, $parent_txn_id, $session]);
+    }
+
+    public function getCompanyID($request)
+    {
+        $phone = str_replace('whatsapp:', '', $request->To);
+
+        $companyID = [
+            "+14155238886"   => 14,
+            "+2348051233112" => 14,
+        ];
+
+        return $companyID["{$phone}"];
     }
 
 }

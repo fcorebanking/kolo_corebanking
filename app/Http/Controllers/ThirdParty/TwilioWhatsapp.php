@@ -1020,8 +1020,9 @@ class TwilioWhatsapp extends Controller
 
     public function verifyBVN($bvn)
     {
+        $company_id            = $this->getCompanyID($request);
         $transactionController = new TransactionService();
-        return $transactionController->verifyBVN($bvn);
+        return $transactionController->verifyBVN($bvn, $company_id);
     }
 
     public function checkBVN($bvn)

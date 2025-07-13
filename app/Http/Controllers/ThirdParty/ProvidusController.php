@@ -295,7 +295,7 @@ class ProvidusController extends WebhookController
             "lastName"    => $virtualAccount->lastName,
             "dateOfBirth" => $virtualAccount->dob,
             "phoneNumber" => $virtualAccount->phone,
-            "address"     => $virtualAccount->address,
+            "address"     => $virtualAccount->address ?? "Balogun Street, Nigeria",
         ];
 
         $data_string = json_encode($data);

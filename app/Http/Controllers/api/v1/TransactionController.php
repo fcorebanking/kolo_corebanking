@@ -4752,7 +4752,7 @@ class TransactionController extends Controller
 
         $identityPassController = new IdentityPassController();
 
-        $bvnResponse = $identityPassController->verifyBVN($request->bvn);
+        $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
 
         if (isset($bvnResponse['data']['verification']['status']) && $bvnResponse['data']['verification']['status'] == "VERIFIED") {
             $firstName       = $bvnResponse['data']['data']["firstName"];

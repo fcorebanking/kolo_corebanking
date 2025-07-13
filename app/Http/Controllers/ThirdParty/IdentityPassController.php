@@ -64,6 +64,37 @@ class IdentityPassController extends Controller
         }
     }
 
+    public function verifyBVNMobile($bvn)
+    {
+        logInfo($bvn, "BVN Number");
+
+        $url = "{$this->baseUrl}verification/bvn_validation";
+
+        $body = [
+            'number' => $bvn,
+
+        ];
+
+        try {
+            $bvn_response = $this->identitypassPostRequest($url, $body);
+
+            logInfo($bvn_response, "Verify BVN");
+
+            if (isset($bvn_response['response_code']) && $bvn_response['response_code'] == "00") {
+                return [
+                    'status'  => true,
+                    'message' => 'BVN Verified Successfuly', 'data' => $bvn_response,
+                ];
+            } else {
+                return ['status' => false, 'message' => 'Failed to verify BVN'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Identitypass Error");
+
+            return ['status' => false, 'message' => 'Failed to Verify BVN'];
+        }
+    }
+
     public function verifyNIN($nin)
     {
 

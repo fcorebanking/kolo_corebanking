@@ -150,12 +150,18 @@ class RegisterController extends Controller
         // $response = $assetMatrix->createAccount($customerReference, $request->email, $request->phone, $request->first_name, $request->last_name, "");
         // echo \json_encode($createAdminAccount);
 
-        $companyIDs = [];
+        $companyIDs            = [];
+        $companyIDsAddBankName = [21];
 
-        $companyIDsStatus = false;
+        $companyIDsStatus            = false;
+        $companyIDsAddBankNameStatus = false;
 
         if (in_array($companyRecord->id, $companyIDs)) {
             $companyIDsStatus = true;
+        }
+
+        if (in_array($companyRecord->id, $companyIDsAddBankName)) {
+            $companyIDsAddBankNameStatus = true;
         }
 
         $bank_id      = $companyRecord->setting->preferred_bank_id ?? 126;
@@ -174,8 +180,13 @@ class RegisterController extends Controller
 
             $customSelectedBank = $selectedBank->bank_code;
 
-            $virtualAccount->bankCode                     = $customSelectedBank;
-            $virtualAccount->currencyCode                 = $companyRecord->currency->code;
+            $virtualAccount->bankCode     = $customSelectedBank;
+            $virtualAccount->currencyCode = $companyRecord->currency->code;
+            if ($companyIDsAddBankNameStatus) {
+                $virtualAccount->firstName = "{$companyRecord->short_name}/" . $request->first_name;
+            } else {
+                $virtualAccount->firstName = $request->first_name;
+            }
             $virtualAccount->firstName                    = $request->first_name;
             $virtualAccount->companyShortName             = $companyRecord->short_name;
             $virtualAccount->lastName                     = $request->last_name;

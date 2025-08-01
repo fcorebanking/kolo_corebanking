@@ -12,6 +12,7 @@ class WebhookLog extends Model
     protected $fillable = [
         'webhook_type',
         'body',
-        'unique_reference'
+        'unique_reference',
+        'status'
     ];
 }

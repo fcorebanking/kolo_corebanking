@@ -14,7 +14,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('webhook_logs', function (Blueprint $table) {
-            //$tables
+            $table->string('status')->nullable();
         });
     }
 

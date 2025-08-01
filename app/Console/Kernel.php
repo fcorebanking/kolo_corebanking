@@ -14,6 +14,7 @@ use App\Console\Commands\pendingpenalty;
 use App\Console\Commands\PendingsmsCron;
 use App\Console\Commands\ResetSalaryPaymentCron;
 use App\Console\Commands\SalaryPaymentCron;
+use App\Console\Commands\WebhookCron;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -42,6 +43,7 @@ class Kernel extends ConsoleKernel
         maintenance::class,
         maintenancePackCron::class,
         DomCron::class,
+        WebhookCron::class,
 
     ];
 

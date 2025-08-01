@@ -30,7 +30,7 @@ class WebhookCron extends Command
      */
     public function handle()
     {
-        echo "Welcome";
+
         try {
 
             $compayIDs = [49];

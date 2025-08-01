@@ -30,7 +30,7 @@ class WebhookCron extends Command
      */
     public function handle()
     {
-
+        logInfo("transaction for webhooks checkinh");
         try {
 
             $compayIDs = [49];

@@ -1,28 +1,23 @@
 <?php
-
 namespace App\Console;
 
 use App\Console\Commands\BankTranserCron;
-use App\Console\Commands\SalaryPaymentCron;
 use App\Console\Commands\BirthdayCron;
+use App\Console\Commands\CompanySettimentThreshold;
 use App\Console\Commands\DomCron;
 use App\Console\Commands\InvestmentCron;
-use App\Console\Commands\PendingsmsCron;
-use App\Console\Commands\savingscron;
 use App\Console\Commands\LoanCron;
-use App\Console\Commands\ResetSalaryPaymentCron;
 use App\Console\Commands\LoanExtend;
-use App\Console\Commands\pendingpenalty;
-use App\Console\Commands\CompanySettimentThreshold;
 use App\Console\Commands\maintenance;
-use App\Console\Commands\SavingpackCron;
 use App\Console\Commands\maintenancePackCron;
-
+use App\Console\Commands\pendingpenalty;
+use App\Console\Commands\PendingsmsCron;
+use App\Console\Commands\ResetSalaryPaymentCron;
+use App\Console\Commands\SalaryPaymentCron;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
 ini_set('memory_limit', '500000M');
-
 
 class Kernel extends ConsoleKernel
 {
@@ -46,7 +41,7 @@ class Kernel extends ConsoleKernel
         // SavingpackCron::class,
         maintenance::class,
         maintenancePackCron::class,
-        DomCron::class
+        DomCron::class,
 
     ];
 
@@ -87,8 +82,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('pendingmaintenance:charge')
             ->everyMinute();
 
-        // $schedule->command('dom:cron')
-        //     ->everyMinute();
+        $schedule->command('webhook:cron')
+            ->everyFiveMinutes();
     }
 
     /**

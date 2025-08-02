@@ -54,7 +54,7 @@ class WebhookCron extends Command
             ->whereDate('created_at', Carbon::today())
             ->select('id', 'transaction_reference')
             ->orderBy('id', 'ASC')
-            ->limit(5)
+            ->limit(10)
             ->get();
         logInfo(json_encode($transactions), "transaction for webhooks");
         return $transactions;

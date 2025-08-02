@@ -64,7 +64,7 @@ class WebhookCron extends Command
     {
         foreach ($transactions as $transaction) {
             $transaction_id = $transaction->transaction_reference;
-            $webHookLog     = getWebHookLog($transaction_id);
+            $webHookLog     = $this->getWebHookLog($transaction_id);
             if (isset($webHookLog->body)) {
 
                 $url                = config("webhookcompany.{$companyID}");

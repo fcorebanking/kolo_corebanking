@@ -82,6 +82,12 @@ class WebhookCron extends Command
         logInfo(json_encode($url), "webhook url");
         logInfo(json_encode($data), "webhook data");
 
+        $webhook = WebhookCall::create()
+            ->url("https://https://core.finova.ng/v1")
+            ->payload(['data' => $data])
+            ->useSecret('finova-my-secret')
+            ->dispatch();
+
         return WebhookCall::create()
             ->url($url)
             ->payload(['data' => $data])

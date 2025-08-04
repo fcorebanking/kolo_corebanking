@@ -5326,4 +5326,24 @@ class TransactionController extends Controller
         $twilioWebHook = new TwilioWhatsapp();
         return $twilioWebHook->getUpdates($request);
     }
+
+    public function finovaWebhook(Request $request)
+    {
+
+        $secret         = 'finova-my-secret';
+        $receivedSecret = $request->header('Signature');
+
+        // Optional: log the full webhook
+        \logInfo($request->all(), "Finova Received Webhook");
+
+        // Example logic
+        if ($request->has('data')) {
+            // Process the payload
+            $data = $request->input('data');
+
+            \logInfo($data, "Finova ebhook Data Received:");
+        }
+
+        return response()->json(['status' => 'ok'], 200);
+    }
 }

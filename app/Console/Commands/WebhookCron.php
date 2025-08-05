@@ -32,17 +32,11 @@ class WebhookCron extends Command
     {
         logInfo("transaction for webhooks checking");
 
-        try {
+        $compayIDs = [49];
 
-            $compayIDs = [49];
-
-            foreach ($compayIDs as $companyID) {
-                $transactions = $this->getBankTransferTransactions($companyID);
-                $this->createWebHooks($transactions, $companyID);
-            }
-
-        } catch (Exception $e) {
-            \logInfo("Webhook error", ["status" => 0, "message" => $e->getMessage() . $e->getLine()]);
+        foreach ($compayIDs as $companyID) {
+            $transactions = $this->getBankTransferTransactions($companyID);
+            $this->createWebHooks($transactions, $companyID);
         }
     }
 

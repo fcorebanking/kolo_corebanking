@@ -2574,7 +2574,7 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
                 $companyIDsStatus = true;
             }
 
-            if ($company->wallet->balance > ($originalAmount - $companyCashbackAmount) && ($companyIDsStatus)) {
+            if (($company->wallet->balance > ($originalAmount - $companyCashbackAmount)) && ($companyIDsStatus)) {
 
                 $customerBalanceAfter = $customerInitialBalance - $originalAmount;
 

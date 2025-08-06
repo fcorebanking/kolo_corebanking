@@ -41,13 +41,21 @@ class WebCron
     public function getBankTransferTransactions($companyID)
     {
         $transactions = transactions::where('company_id', $companyID)
-            ->where(['transaction_remarks_id' => 2, 'transaction_type_id' => 6])
-            ->orWhere(['transaction_remarks_id' => 2, 'transaction_type_id' => 8])
+            ->where(function ($query) {
+                $query->where([
+                    ['transaction_remarks_id', '=', 2],
+                    ['transaction_type_id', '=', 6],
+                ])->orWhere([
+                    ['transaction_remarks_id', '=', 2],
+                    ['transaction_type_id', '=', 8],
+                ]);
+            })
             ->whereDate('created_at', Carbon::today())
             ->select('id', 'transaction_reference', 'company_id')
             ->latest()
             ->limit(10)
             ->get();
+
         logInfo(json_encode($transactions), "transaction for webhooks");
         return $transactions;
     }

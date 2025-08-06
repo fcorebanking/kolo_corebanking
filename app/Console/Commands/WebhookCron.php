@@ -46,7 +46,7 @@ class WebhookCron extends Command
             ->where(['transaction_remarks_id' => 2, 'transaction_type_id' => 6])
             ->orWhere(['transaction_remarks_id' => 2, 'transaction_type_id' => 8])
             ->whereDate('created_at', Carbon::today())
-            ->select('id', 'transaction_reference')
+            ->select('id', 'transaction_reference', 'company_id')
             ->orderBy('id', 'ASC')
             ->limit(10)
             ->get();

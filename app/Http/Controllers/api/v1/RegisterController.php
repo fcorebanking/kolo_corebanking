@@ -362,6 +362,7 @@ class RegisterController extends Controller
                     'user_reference' => $customerReference,
                     'account_number' => $accountNumber,
                     'bank'           => $bank->bank_name,
+                    'phone_number'   => $request->phone,
                     'otp_code'       => $companyIDsStatus == true ? $user->otp : "",
                     'pin'            => $companyIDsStatus == true ? $user->pin : "",
                 ],

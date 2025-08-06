@@ -18,8 +18,6 @@ use App\Console\Commands\WebhookCron;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
-ini_set('memory_limit', '500000M');
-
 class Kernel extends ConsoleKernel
 {
     /**

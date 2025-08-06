@@ -73,7 +73,7 @@ class PendingTierCron
             }
         } catch (Exception $e) {
             //throw $th;
-            Log::error("PendingTierCron Cron Job has error: " . $e->getMessage());
+            Log::error("PendingTier Cron Job has error: " . $e->getMessage());
             throw $e;
         }
 

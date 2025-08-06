@@ -102,7 +102,9 @@ class PendingSmsCron
                     }
                 }
             } catch (Exception $e) {
-                \logInfo($e->getMessage(), 'Pending SMS Error at line ' . $e->getLine());
+
+                Log::error("Pending SMS  Cron Job has error: " . $e->getMessage() . $e->getLine());
+                throw $e;
             }
         }
         return 0;

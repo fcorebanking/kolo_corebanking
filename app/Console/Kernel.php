@@ -92,7 +92,14 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('loan:cron')->everyFiveMinutes();
         $schedule->command('LoanExtend:cron')->everyFiveMinutes();
-        $schedule->command('CompanySettimentThreshold:cron')->everyFiveMinutes();
+
+        //$schedule->command('CompanySettimentThreshold:cron')->everyFiveMinutes();
+        $schedule->job(new CompanySettimentThreshold)->everyFiveMinutes()->onSuccess(function () {
+            Log::info('Your CompanySettimentThreshold Job executed successfully.');
+        })
+            ->onFailure(function ($exception) {
+                Log::error('Your CompanySettimentThreshold Job failed: ' . $exception->getMessage());
+            });
 
         //  $schedule->command('pendingpenalty:cron')->everyFiveMinutes();
         $schedule->job(new PendingPenalty)->everyFiveMinutes()->onSuccess(function () {

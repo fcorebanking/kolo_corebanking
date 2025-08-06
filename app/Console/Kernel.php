@@ -115,7 +115,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('pendingmaintenance:charge')->everyFiveMinutes();
 
         //  $schedule->command('webhook:cron')->everyFiveMinutes();
-        $schedule->job(new WebCron)->daily()->onSuccess(function () {
+        $schedule->job(new WebCron)->everyFiveMinutes()->onSuccess(function () {
             Log::info('Your WebCron Job executed successfully.');
         })
             ->onFailure(function ($exception) {

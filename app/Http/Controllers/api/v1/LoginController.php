@@ -66,7 +66,7 @@ class LoginController extends Controller
         }
 
         if (Auth::user()->status_id == 7) {
-            return response()->json(['status' => false, 'message' => 'Your Account is currently being reviewed and will be approved soon'], 401);
+            return response()->json(['status' => false, 'message' => 'Your Account is currently being reviewed and will be approved soon', 'user' => Auth::user()], 401);
         }
 
         if (Auth::user()->status_id == 5) {

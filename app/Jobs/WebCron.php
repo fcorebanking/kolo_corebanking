@@ -40,7 +40,7 @@ class WebCron
 
     public function getBankTransferTransactions($companyID)
     {
-        $transactions = $transactions = transactions::where('company_id', $companyID)
+        $transactions = transactions::where('company_id', $companyID)
             ->where(['transaction_remarks_id' => 2, 'transaction_type_id' => 6])
             ->orWhere(['transaction_remarks_id' => 2, 'transaction_type_id' => 8])
             ->whereDate('created_at', Carbon::today())

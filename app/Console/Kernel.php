@@ -40,7 +40,7 @@ class Kernel extends ConsoleKernel
         //   PendingsmsCron::class,
         LoanCron::class,
         LoanExtend::class,
-        CompanySettimentThreshold::class,
+        //  CompanySettimentThreshold::class,
         //   pendingpenalty::class,
         // savingscron::class,
         // SavingpackCron::class,

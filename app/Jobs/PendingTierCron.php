@@ -8,6 +8,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class PendingTierCron
 {
@@ -26,47 +27,54 @@ class PendingTierCron
      */
     public function handle()
     {
+
         logInfo("Cron Job", "Tier Cron job running");
-        $pendingTiers = TempWebhook::where(['status_id' => 7])->get();
+        try {
+            $pendingTiers = TempWebhook::where(['status_id' => 7])->get();
 
-        if (count($pendingTiers) > 0) {
-            foreach ($pendingTiers as $key => $value) {
+            if (count($pendingTiers) > 0) {
+                foreach ($pendingTiers as $key => $value) {
 
-                $wbAccountDetails = wb_account_details::where('virtual_accnum', $value->account_number)->first();
+                    $wbAccountDetails = wb_account_details::where('virtual_accnum', $value->account_number)->first();
 
-                if (! $wbAccountDetails) {
-                    logInfo("User Details not found for $value->account_number", "Pending Tier Status");
-                    break;
-                }
+                    if (! $wbAccountDetails) {
+                        logInfo("User Details not found for $value->account_number", "Pending Tier Status");
+                        break;
+                    }
 
-                $currentUser = $wbAccountDetails->user;
+                    $currentUser = $wbAccountDetails->user;
 
-                $acocuntTier = $currentUser->tier;
+                    $acocuntTier = $currentUser->tier;
 
-                if ($acocuntTier->max_amount_received >= $value->amount) {
+                    if ($acocuntTier->max_amount_received >= $value->amount) {
 
-                    $request = json_decode($value->body, true);
+                        $request = json_decode($value->body, true);
 
-                    $value->status_id = 3;
-                    $value->save();
+                        $value->status_id = 3;
+                        $value->save();
 
-                    $fairmoneyController = new FairMoneyController();
+                        $fairmoneyController = new FairMoneyController();
 
-                    $fairmoneyController->transactionReference = $value->unique_reference;
-                    $fairmoneyController->wbaCharge            = $value->charge;
-                    $fairmoneyController->virtualAccount       = $value->account_number;
-                    $fairmoneyController->amount               = $value->amount;
-                    $fairmoneyController->webhookType          = $value->webhook_type;
-                    $fairmoneyController->description          = $value->description;
-                    $fairmoneyController->transactionDate      = $value->transaction_date;
-                    $fairmoneyController->tempWebookRequest    = $request;
-                    $fairmoneyController->fromTempWebhook      = 'true';
+                        $fairmoneyController->transactionReference = $value->unique_reference;
+                        $fairmoneyController->wbaCharge            = $value->charge;
+                        $fairmoneyController->virtualAccount       = $value->account_number;
+                        $fairmoneyController->amount               = $value->amount;
+                        $fairmoneyController->webhookType          = $value->webhook_type;
+                        $fairmoneyController->description          = $value->description;
+                        $fairmoneyController->transactionDate      = $value->transaction_date;
+                        $fairmoneyController->tempWebookRequest    = $request;
+                        $fairmoneyController->fromTempWebhook      = 'true';
 
-                    $handleWebhook = $fairmoneyController->handleWebhook();
+                        $handleWebhook = $fairmoneyController->handleWebhook();
 
-                    logInfo($handleWebhook);
+                        logInfo($handleWebhook);
+                    }
                 }
             }
+        } catch (Exception $e) {
+            //throw $th;
+            Log::error("PendingTierCron Cron Job has error: " . $e->getMessage());
+            throw $e;
         }
 
     }

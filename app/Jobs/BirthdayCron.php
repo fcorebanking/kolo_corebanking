@@ -7,6 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class BirthdayCron
 {
@@ -47,7 +48,9 @@ class BirthdayCron
             }
             return 0;
         } catch (Exception $e) {
-            \logInfo($e, 'Birthday Cron Job as error');
+
+            Log::error("Birthday Cron Job as error: " . $e->getMessage());
+            throw $e;
         }
 
     }

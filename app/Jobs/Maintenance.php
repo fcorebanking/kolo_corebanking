@@ -10,6 +10,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class Maintenance
 {
@@ -121,8 +122,9 @@ class Maintenance
                 }
             }
         } catch (Exception $e) {
-            \logInfo('Message: ' . $e->getMessage(), 'Line: ' . $e->getLine());
 
+            Log::error("Maintenance Cron Job has error: " . $e->getMessage());
+            throw $e;
         }
         return 0;
 

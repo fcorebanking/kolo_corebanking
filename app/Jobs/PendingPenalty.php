@@ -10,6 +10,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class PendingPenalty
 {
@@ -83,11 +84,11 @@ class PendingPenalty
                     }
                 }
             }
-        } catch (\Throwable $th) {
+        } catch (Exception $e) {
             //throw $th;
-            echo $th->getMessage();
+            Log::error("PendingPenalty Cron Job has error: " . $e->getMessage());
+            throw $e;
         }
-        return 0;
 
     }
 

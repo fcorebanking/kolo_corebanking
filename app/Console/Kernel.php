@@ -56,33 +56,33 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('bank_tranfer:cron')
-            ->everyMinute();
+            ->everyFiveMinutes();
         $schedule->command('salary_payment:cron')
-            ->everyMinute();
+            ->everyFiveMinutes();
         $schedule->command('pendingsms:cron')
-            ->everyMinute();
+            ->everyFiveMinutes();
         $schedule->command('reset_salary_payment:cron')
-            ->everyMinute();
+            ->everyFiveMinutes();
         $schedule->command('pending_tier:cron')
             ->everyTenMinutes();
         $schedule->command('investment:cron')
-            ->everyMinute();
+            ->everyFiveMinutes();
         $schedule->command('birthday:cron')
-            ->everyMinute();
+            ->everyFiveMinutes();
         $schedule->command('loan:cron')
-            ->everyMinute();
+            ->everyFiveMinutes();
         $schedule->command('LoanExtend:cron')
-            ->everyMinute();
+            ->everyFiveMinutes();
         $schedule->command('CompanySettimentThreshold:cron')
-            ->everyMinute();
+            ->everyFiveMinutes();
         $schedule->command('pendingpenalty:cron')
-            ->everyMinute();
+            ->everyFiveMinutes();
         // $schedule->command('savings:name')->daily();
         // $schedule->command('savingpack:cron')->everyMinute();
         $schedule->command('maintenance:cron')
             ->daily();
         $schedule->command('pendingmaintenance:charge')
-            ->everyMinute();
+            ->everyFiveMinutes();
 
         $schedule->command('webhook:cron')
             ->everyFiveMinutes();

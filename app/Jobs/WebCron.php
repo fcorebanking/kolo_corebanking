@@ -4,13 +4,11 @@ namespace App\Jobs;
 use App\Models\transactions;
 use App\Models\WebhookLog;
 use Carbon\Carbon;
-use Illuminate\Console\Command;
-use Spatie\WebhookServer\WebhookCall;
 use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
+use Spatie\WebhookServer\WebhookCall;
 
 class WebCron
 {
@@ -47,14 +45,14 @@ class WebCron
             ->orWhere(['transaction_remarks_id' => 2, 'transaction_type_id' => 8])
             ->whereDate('created_at', Carbon::today())
             ->select('id', 'transaction_reference', 'company_id')
-            ->orderBy('id', 'ASC')
+            ->latest()
             ->limit(10)
             ->get();
         logInfo(json_encode($transactions), "transaction for webhooks");
         return $transactions;
     }
 
-     public function createWebHooks($transactions, $companyID)
+    public function createWebHooks($transactions, $companyID)
     {
         foreach ($transactions as $transaction) {
             $transaction_id = $transaction->transaction_reference;

@@ -14,7 +14,6 @@ use App\Console\Commands\maintenancePackCron;
 //use App\Console\Commands\PendingsmsCron;
 use App\Console\Commands\ResetSalaryPaymentCron;
 use App\Console\Commands\SalaryPaymentCron;
-use App\Console\Commands\WebhookCron;
 use App\Jobs\BirthdayCron;
 use App\Jobs\Maintenance;
 use App\Jobs\PendingPenalty;
@@ -36,19 +35,19 @@ class Kernel extends ConsoleKernel
         BankTranserCron::class,
         SalaryPaymentCron::class,
         ResetSalaryPaymentCron::class,
-        BirthdayCron::class,
+        //  BirthdayCron::class,
         InvestmentCron::class,
-        PendingsmsCron::class,
+        //   PendingsmsCron::class,
         LoanCron::class,
         LoanExtend::class,
         CompanySettimentThreshold::class,
-        pendingpenalty::class,
+        //   pendingpenalty::class,
         // savingscron::class,
         // SavingpackCron::class,
-        maintenance::class,
+        //   maintenance::class,
         maintenancePackCron::class,
         DomCron::class,
-        WebhookCron::class,
+        //  WebhookCron::class,
 
     ];
 

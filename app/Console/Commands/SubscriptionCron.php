@@ -82,7 +82,9 @@ class SubscriptionCron extends Command
         $monthlyamount = $plan_unit * 31;
         $amt_to_pay    = $monthlyamount * $duration;
         logInfo(json_encode($amt_to_pay), "Company Subcription amount to pay before exchange");
+
         $amt_to_pay = $this->getExchangeRater($amt_to_pay, $company);
+        logInfo(json_encode($amt_to_pay), "Company Subcription amount to pay ater exchange");
         return $amt_to_pay;
     }
 

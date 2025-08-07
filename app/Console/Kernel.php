@@ -139,7 +139,7 @@ class Kernel extends ConsoleKernel
             });
 
         //$schedule->command('CompanySettimentThreshold:cron')->everyFiveMinutes();
-        $schedule->job(new CompanySettimentThreshold)->everyFiveMinutes()->onSuccess(function () {
+        $schedule->job(new CompanySettimentThreshold)->everySixHours()->onSuccess(function () {
             Log::info('Your CompanySettimentThreshold Job executed successfully.');
         })
             ->onFailure(function ($exception) {
@@ -164,8 +164,7 @@ class Kernel extends ConsoleKernel
                 Log::error('Your Maintenances Job failed: ' . $exception->getMessage());
             });
 
-        $schedule->command('pendingmaintenance:charge')->everyFiveMinutes();
-
+        // $schedule->command('pendingmaintenance:charge')->everyFiveMinutes();
         $schedule->job(new MaintenancePackCron)->daily()->onSuccess(function () {
             Log::info('Your MaintenancePackCron Job executed successfully.');
         })

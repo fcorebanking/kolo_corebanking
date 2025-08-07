@@ -71,7 +71,7 @@ class SubscriptionCron extends Command
     {
 
         $plan = plans::find($plan_id);
-        logInfo(json_encode($plan), "Company expired Subcription");
+        logInfo(json_encode($plan), "Company Plan");
         return $plan;
     }
 
@@ -105,6 +105,7 @@ class SubscriptionCron extends Command
     public function getCompany($company_id)
     {
         $company = Company::where('id', $company_id)->first();
+        logInfo(json_encode($companyy), "Company Subcription ");
         return $company;
     }
 

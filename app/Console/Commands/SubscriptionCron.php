@@ -105,7 +105,7 @@ class SubscriptionCron extends Command
     public function getCompany($company_id)
     {
         $company = Company::where('id', $company_id)->first();
-        logInfo(json_encode($companyy), "Company Subcription ");
+        logInfo(json_encode($company), "Company Subcription ");
         return $company;
     }
 

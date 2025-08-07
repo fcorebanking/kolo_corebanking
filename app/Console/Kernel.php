@@ -6,10 +6,10 @@ namespace App\Console;
 use App\Console\Commands\CompanySettimentThreshold;
 use App\Console\Commands\DomCron;
 //use App\Console\Commands\InvestmentCron;
-use App\Console\Commands\LoanCron;
-use App\Console\Commands\LoanExtend;
+//use App\Console\Commands\LoanCron;
+//use App\Console\Commands\LoanExtend;
 //use App\Console\Commands\maintenance;
-use App\Console\Commands\maintenancePackCron;
+//use App\Console\Commands\maintenancePackCron;
 //use App\Console\Commands\pendingpenalty;
 //use App\Console\Commands\PendingsmsCron;
 //use App\Console\Commands\ResetSalaryPaymentCron;
@@ -17,7 +17,10 @@ use App\Console\Commands\maintenancePackCron;
 use App\Jobs\BankTranserCron;
 use App\Jobs\BirthdayCron;
 use App\Jobs\InvestmentCron;
+use App\Jobs\LoanCron;
+use App\Jobs\LoanExtend;
 use App\Jobs\Maintenance;
+use App\Jobs\MaintenancePackCron;
 use App\Jobs\PendingPenalty;
 use App\Jobs\PendingSmsCron;
 use App\Jobs\PendingTierCron;
@@ -42,14 +45,14 @@ class Kernel extends ConsoleKernel
         //  BirthdayCron::class,
         // InvestmentCron::class,
         //   PendingsmsCron::class,
-        LoanCron::class,
-        LoanExtend::class,
+        //  LoanCron::class,
+        //LoanExtend::class,
         //  CompanySettimentThreshold::class,
         //   pendingpenalty::class,
         // savingscron::class,
         // SavingpackCron::class,
         //   maintenance::class,
-        maintenancePackCron::class,
+        //  maintenancePackCron::class,
         DomCron::class,
         //  WebhookCron::class,
 
@@ -119,8 +122,21 @@ class Kernel extends ConsoleKernel
                 Log::error('Your BirthdayCron Job failed: ' . $exception->getMessage());
             });
 
-        $schedule->command('loan:cron')->everyFiveMinutes();
-        $schedule->command('LoanExtend:cron')->everyFiveMinutes();
+        //  $schedule->command('loan:cron')->everyFiveMinutes();
+        $schedule->job(new LoanCron)->daily()->onSuccess(function () {
+            Log::info('Your LoanCro Job executed successfully.');
+        })
+            ->onFailure(function ($exception) {
+                Log::error('Your LoanCro Job failed: ' . $exception->getMessage());
+            });
+
+        //$schedule->command('LoanExtend:cron')->everyFiveMinutes();
+        $schedule->job(new LoanExtend)->daily()->onSuccess(function () {
+            Log::info('Your LoanExtend Job executed successfully.');
+        })
+            ->onFailure(function ($exception) {
+                Log::error('Your LoanExtend Job failed: ' . $exception->getMessage());
+            });
 
         //$schedule->command('CompanySettimentThreshold:cron')->everyFiveMinutes();
         $schedule->job(new CompanySettimentThreshold)->everyFiveMinutes()->onSuccess(function () {
@@ -149,6 +165,13 @@ class Kernel extends ConsoleKernel
             });
 
         $schedule->command('pendingmaintenance:charge')->everyFiveMinutes();
+
+        $schedule->job(new MaintenancePackCron)->daily()->onSuccess(function () {
+            Log::info('Your MaintenancePackCron Job executed successfully.');
+        })
+            ->onFailure(function ($exception) {
+                Log::error('Your MaintenancePackCron Job failed: ' . $exception->getMessage());
+            });
 
         //  $schedule->command('webhook:cron')->everyFiveMinutes();
         $schedule->job(new WebCron)->everyMinute()->onSuccess(function () {

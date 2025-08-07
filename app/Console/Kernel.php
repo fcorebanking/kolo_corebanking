@@ -30,6 +30,7 @@ use App\Jobs\WebCron;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class Kernel extends ConsoleKernel
 {

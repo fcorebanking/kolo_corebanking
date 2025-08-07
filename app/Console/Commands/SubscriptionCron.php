@@ -99,6 +99,7 @@ class SubscriptionCron extends Command
         }
         $amt_to_pay = $currencyExchange['data']['final_amount'];
         \logInfo($amt_to_pay, "Plan amount converted");
+        return $amt_to_pay;
     }
 
     public function getCompany($company_id)

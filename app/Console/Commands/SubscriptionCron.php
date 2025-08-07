@@ -39,7 +39,7 @@ class SubscriptionCron extends Command
             foreach ($getCompanySubcriptions as $subCompany) {
                 $plan = $this->getPlan($subCompany->plan_id);
                 if ($plan != null) {
-                    $duration   = $plan->duration;
+                    $duration   = 1;
                     $company    = $this->getCompany($subCompany->company_id);
                     $amt_to_pay = $this->getAmountPaid($plan, $company, $duration);
 

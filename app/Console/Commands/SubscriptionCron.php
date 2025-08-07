@@ -46,9 +46,7 @@ class SubscriptionCron extends Command
                         continue;
                     }
                     $companybalance = $company->wallet->balance;
-                    if ($company->wallet->balance == null) {
-                        return;
-                    }
+
                     $company_name = $company->short_name;
                     if ($companybalance >= $amt_to_pay) {
                         $this->subscribe($subCompany, $company, $amt_to_pay, $plan, $duration);

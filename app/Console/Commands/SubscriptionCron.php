@@ -44,7 +44,10 @@ class SubscriptionCron extends Command
                     $amt_to_pay = $this->getAmountPaid($plan, $company, $duration);
 
                     $companybalance = $company->wallet->balance;
-                    $company_name   = $company->short_name;
+                    if ($companybalance != null) {
+                        return;
+                    }
+                    $company_name = $company->short_name;
                     if ($companybalance >= $amt_to_pay) {
                         $this->subscribe($subCompany, $company, $amt_to_pay, $plan, $duration);
                     }

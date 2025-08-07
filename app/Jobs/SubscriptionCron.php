@@ -34,7 +34,7 @@ class SubscriptionCron
         try {
 
             $getCompanySubcriptions = $this->getCompanySubcriptions();
-            foreach ($getCompanySubcriptions as $subCompany) {
+            /*  foreach ($getCompanySubcriptions as $subCompany) {
                 $plan = $this->getPlan($subCompany->plan_id);
                 if ($plan != null) {
                     $duration   = $plan->duration;
@@ -48,7 +48,7 @@ class SubscriptionCron
                     }
 
                 }
-            }
+            }*/
 
         } catch (Exception $e) {
 

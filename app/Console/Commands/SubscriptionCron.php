@@ -48,6 +48,7 @@ class SubscriptionCron extends Command
                     $companybalance = $company->wallet->balance;
 
                     $company_name = $company->short_name;
+                    logInfo(json_encode($companybalance), "Company balance for {$company_name} Subcription");
                     if ($companybalance >= $amt_to_pay) {
                         $this->subscribe($subCompany, $company, $amt_to_pay, $plan, $duration);
                     }

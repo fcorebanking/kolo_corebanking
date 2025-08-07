@@ -34,21 +34,25 @@ class SubscriptionCron
         try {
 
             $getCompanySubcriptions = $this->getCompanySubcriptions();
-            /*  foreach ($getCompanySubcriptions as $subCompany) {
+            foreach ($getCompanySubcriptions as $subCompany) {
                 $plan = $this->getPlan($subCompany->plan_id);
                 if ($plan != null) {
-                    $duration   = $plan->duration;
+                    $duration   = 1;
                     $company    = $this->getCompany($subCompany->company_id);
                     $amt_to_pay = $this->getAmountPaid($plan, $company, $duration);
-
+                    if (! $company->wallet || is_null($company->wallet->balance)) {
+                        continue;
+                    }
                     $companybalance = $company->wallet->balance;
-                    $company_name   = $company->short_name;
+
+                    $company_name = $company->short_name;
+                    logInfo(json_encode($companybalance), "Company balance for {$company_name} Subcription");
                     if ($companybalance >= $amt_to_pay) {
                         $this->subscribe($subCompany, $company, $amt_to_pay, $plan, $duration);
                     }
 
                 }
-            }*/
+            }
 
         } catch (Exception $e) {
 
@@ -69,7 +73,7 @@ class SubscriptionCron
     {
 
         $plan = plans::find($plan_id);
-        logInfo(json_encode($plan), "Company expired Subcription");
+        logInfo(json_encode($plan), "Company Plan");
         return $plan;
     }
 
@@ -80,7 +84,9 @@ class SubscriptionCron
         $monthlyamount = $plan_unit * 31;
         $amt_to_pay    = $monthlyamount * $duration;
         logInfo(json_encode($amt_to_pay), "Company Subcription amount to pay before exchange");
+
         $amt_to_pay = $this->getExchangeRater($amt_to_pay, $company);
+        logInfo(json_encode($amt_to_pay), "Company Subcription amount to pay ater exchange");
         return $amt_to_pay;
     }
 
@@ -95,11 +101,13 @@ class SubscriptionCron
         }
         $amt_to_pay = $currencyExchange['data']['final_amount'];
         \logInfo($amt_to_pay, "Plan amount converted");
+        return $amt_to_pay;
     }
 
     public function getCompany($company_id)
     {
         $company = Company::where('id', $company_id)->first();
+        logInfo(json_encode($company), "Company Subcription ");
         return $company;
     }
 

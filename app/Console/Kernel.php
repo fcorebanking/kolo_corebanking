@@ -3,7 +3,7 @@ namespace App\Console;
 
 //use App\Console\Commands\BankTranserCron;
 //use App\Console\Commands\BirthdayCron;
-use App\Console\Commands\CompanySettimentThreshold;
+//use App\Console\Commands\CompanySettimentThreshold;
 use App\Console\Commands\DomCron;
 //use App\Console\Commands\InvestmentCron;
 //use App\Console\Commands\LoanCron;
@@ -16,6 +16,7 @@ use App\Console\Commands\DomCron;
 //use App\Console\Commands\SalaryPaymentCron;
 use App\Jobs\BankTranserCron;
 use App\Jobs\BirthdayCron;
+use App\Jobs\CompanySettimentThreshold;
 use App\Jobs\InvestmentCron;
 use App\Jobs\LoanCron;
 use App\Jobs\LoanExtend;
@@ -26,6 +27,7 @@ use App\Jobs\PendingSmsCron;
 use App\Jobs\PendingTierCron;
 use App\Jobs\ResetSalaryPaymentCron;
 use App\Jobs\SalaryPaymentCron;
+use App\Jobs\SubscriptionCron;
 use App\Jobs\WebCron;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
@@ -179,6 +181,13 @@ class Kernel extends ConsoleKernel
         })
             ->onFailure(function ($exception) {
                 Log::error('Your WebCron Job failed: ' . $exception->getMessage());
+            });
+
+        $schedule->job(new SubscriptionCron)->everySixHours()->onSuccess(function () {
+            Log::info('Your MaintenancePackCron Job executed successfully.');
+        })
+            ->onFailure(function ($exception) {
+                Log::error('Your MaintenancePackCron Job failed: ' . $exception->getMessage());
             });
     }
 

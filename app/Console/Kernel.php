@@ -32,7 +32,6 @@ use App\Jobs\WebCron;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Support\Facades\Log;
-use Throwable;
 
 class Kernel extends ConsoleKernel
 {
@@ -73,88 +72,88 @@ class Kernel extends ConsoleKernel
         $schedule->job(new BankTranserCron)->everyThirtyMinutes()->onSuccess(function () {
             Log::info('Your PendingPenalty Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your PendingPenalty Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your PendingPenalty Job failed');
             });
 
         //    $schedule->command('salary_payment:cron')->everyFiveMinutes();
         $schedule->job(new SalaryPaymentCron)->daily()->onSuccess(function () {
             Log::info('Your SalaryPaymentCron Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your SalaryPaymentCron Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your SalaryPaymentCron Job failed');
             });
 
         //  $schedule->command('pendingsms:cron')->everyFiveMinutes();
         $schedule->job(new PendingSmsCron)->hourly()->onSuccess(function () {
             Log::info('Your PendingPenalty Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your PendingPenalty Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your PendingPenalty Job failed');
             });
 
         //   $schedule->command('reset_salary_payment:cron')->everyFiveMinutes();
         $schedule->job(new ResetSalaryPaymentCron)->everySixHours()->onSuccess(function () {
             Log::info('Your PendingPenalty Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your PendingPenalty Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your PendingPenalty Job failed');
             });
 
         //$schedule->command('pending_tier:cron')->everyTenMinutes();
         $schedule->job(new PendingTierCron)->everySixHours()->onSuccess(function () {
             Log::info('Your PendingTierCron Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your PendingTierCron Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your PendingTierCron Job failed');
             });
 
         //$schedule->command('investment:cron')->everyFiveMinutes();
         $schedule->job(new InvestmentCron)->everySixHours()->onSuccess(function () {
             Log::info('Your BirthdayCron Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your BirthdayCron Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your BirthdayCron Job failed');
             });
 
         //   $schedule->command('birthday:cron')->everyFiveMinutes();
         $schedule->job(new BirthdayCron)->everySixHours()->onSuccess(function () {
             Log::info('Your BirthdayCron Job executed successfully.');
         })
-            ->onFailure(function ($exception) {
-                Log::error('Your BirthdayCron Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your BirthdayCron Job failed');
             });
 
         //  $schedule->command('loan:cron')->everyFiveMinutes();
         $schedule->job(new LoanCron)->daily()->onSuccess(function () {
             Log::info('Your LoanCro Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your LoanCro Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your LoanCro Job failed');
             });
 
         //$schedule->command('LoanExtend:cron')->everyFiveMinutes();
         $schedule->job(new LoanExtend)->daily()->onSuccess(function () {
             Log::info('Your LoanExtend Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your LoanExtend Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your LoanExtend Job failed:');
             });
 
         //$schedule->command('CompanySettimentThreshold:cron')->everyFiveMinutes();
         $schedule->job(new CompanySettimentThreshold)->everySixHours()->onSuccess(function () {
             Log::info('Your CompanySettimentThreshold Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your CompanySettimentThreshold Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your CompanySettimentThreshold Job failed:');
             });
 
         //  $schedule->command('pendingpenalty:cron')->everyFiveMinutes();
         $schedule->job(new PendingPenalty)->everyFiveMinutes()->onSuccess(function () {
             Log::info('Your PendingPenalty Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your PendingPenalty Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your PendingPenalty Job failed');
             });
         // $schedule->command('savings:name')->daily();
         // $schedule->command('savingpack:cron')->everyMinute();
@@ -163,31 +162,31 @@ class Kernel extends ConsoleKernel
         $schedule->job(new Maintenance)->daily()->onSuccess(function () {
             Log::info('Your Maintenance Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your Maintenances Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your Maintenances Job failed');
             });
 
         // $schedule->command('pendingmaintenance:charge')->everyFiveMinutes();
         $schedule->job(new MaintenancePackCron)->daily()->onSuccess(function () {
             Log::info('Your MaintenancePackCron Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your MaintenancePackCron Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your MaintenancePackCron Job failed');
             });
 
         //  $schedule->command('webhook:cron')->everyFiveMinutes();
         $schedule->job(new WebCron)->everyMinute()->onSuccess(function () {
             Log::info('Your WebCron Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your WebCron Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your WebCron Job failed');
             });
 
         $schedule->job(new SubscriptionCron)->everySixHours()->onSuccess(function () {
-            Log::info('Your MaintenancePackCron Job executed successfully.');
+            Log::info('Your SubscriptionCron Job executed successfully.');
         })
-            ->onFailure(function (Throwable $exception) {
-                Log::error('Your MaintenancePackCron Job failed: ' . $exception->getMessage());
+            ->onFailure(function () {
+                Log::error('Your SubscriptionCron Job failed');
             });
     }
 

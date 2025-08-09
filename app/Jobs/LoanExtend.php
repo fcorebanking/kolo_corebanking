@@ -1,7 +1,9 @@
 <?php
 namespace App\Jobs;
 
+use App\Models\AddedLoanLog;
 use App\Models\loan;
+use App\Models\loan_period;
 use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;

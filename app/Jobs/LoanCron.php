@@ -13,6 +13,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 
 class LoanCron

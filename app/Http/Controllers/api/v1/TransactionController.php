@@ -5352,14 +5352,14 @@ class TransactionController extends Controller
 
     public function reportTransaction(Request $request)
     {
-        $username = auth()->user()->username;
+        $username = $request->user()->username;
         $data     = [
             'subtext' => "Transaction issue for {$request->ref_id}",
             'reason'  => $request->reason,
             'desc'    => "There is report from {$username} concerning a transaction , {$request->transaction_id}. ",
 
         ];
-        $company = auth()->user()->company;
+        $company = $request->user()->company;
         // initSMTPconfiguration($company->companyEmail);
         Mail::to($company->companyEmail)->send(new TransactionReport($data));
     }

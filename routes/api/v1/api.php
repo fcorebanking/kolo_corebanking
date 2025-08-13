@@ -257,7 +257,7 @@ Route::prefix('/transactions')->group(function () {
     Route::middleware('checkApiKey')->get('/get-user-info/{accountNumber}', [UserController::class, 'getUserInfo']);
 
     Route::middleware('checkApiKey')->post('/credit-debit-customer-account', [TransactionController::class, 'creditDebitCustomerAccount'])->middleware('log.route');
-    Route::post('/report-transaction', [TransactionController::class, ' reportTransaction']);
+    Route::post('/report-transaction', [TransactionController::class, 'reportTransaction']);
 });
 
 Route::middleware('checkApiKey')->post('company/update-user-kyc-info', [TransactionController::class, 'updateKycInfo'])->middleware('log.route');

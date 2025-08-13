@@ -21,6 +21,7 @@ use App\Http\Controllers\ThirdParty\TwilioWhatsapp;
 use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Http\Controllers\ThirdParty\WovenController;
+use App\Mail\TransactionReport;
 use App\Models\AgentTerminal;
 use App\Models\ApiKey;
 use App\Models\banks;
@@ -48,9 +49,11 @@ use App\Services\ebanking\EbankingService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class TransactionController extends Controller
@@ -4968,7 +4971,7 @@ class TransactionController extends Controller
     public function transactionHistory(Request $request)
     {
 
-        $pageLimit = isset($request->limit) ? $request->limit : 10;
+        $pageLimit = isset($request->limit) ? $request->limit : 100;
 
         $transactions = transactions::where(['account_id' => $request->user()->accounts->first()->id]);
         // exclude bank transfer,sms charges,registration,
@@ -5345,5 +5348,17 @@ class TransactionController extends Controller
         }
 
         return response()->json(['status' => 'ok'], 200);
+    }
+
+    public function reportTransaction(Reqest $request)
+    {
+        $username = auth()->user()->username;
+        $data     = [
+            'subtext' => "Transaction issue for {$request->ref_id}",
+            'reason'  => $request->reason,
+            'desc'    => "There is report from {$username} concerning a transaction , {$request->transaction_id}. ",
+
+        ];
+        Mail::to($user->email)->send(new TransactionReport($data));
     }
 }

@@ -5356,14 +5356,14 @@ class TransactionController extends Controller
         \logInfo(json_encode($request->reason), "Report transaction  reason:");
         $transaction = transactions::where(['transaction_reference' => $request->ref_id])->first();
         \logInfo(json_encode($transaction), "Report transaction :");
-
+   $company = Company::where('id', $transaction->company_id)->first();
         $data = [
             'subtext' => "Transaction issue for {$request->ref_id}",
             'reason'  => $request->reason,
             'desc'    => "There is an issue with a transaction , {$request->ref_id}. ",
-
+'company_name' => $company->company_name
         ];
-        $company = Company::where('id', $transaction->company_id)->first();
+     
         // initSMTPconfiguration($company->companyEmail);
         Mail::to($company->companyEmail)->send(new TransactionReport($data));
     }

@@ -5352,14 +5352,16 @@ class TransactionController extends Controller
 
     public function reportTransaction(Request $request)
     {
-        $username = $request->user()->username;
+        $transaction = transactions::where(['id' => $request->ref_id])->first();
+
+         
         $data     = [
             'subtext' => "Transaction issue for {$request->ref_id}",
             'reason'  => $request->reason,
-            'desc'    => "There is report from {$username} concerning a transaction , {$request->transaction_id}. ",
+            'desc'    => "There is an issue with a transaction , {$request->ref_id}. ",
 
         ];
-        $company = $request->user()->company;
+        $company = Company::where('id', $transaction->company_id)->first();
         // initSMTPconfiguration($company->companyEmail);
         Mail::to($company->companyEmail)->send(new TransactionReport($data));
     }

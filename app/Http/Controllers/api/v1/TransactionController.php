@@ -5352,10 +5352,12 @@ class TransactionController extends Controller
 
     public function reportTransaction(Request $request)
     {
+        \logInfo(json_encode($request->ref_id), "Report transaction ref_id :");
+        \logInfo(json_encode($request->reason), "Report transaction  reason:");
         $transaction = transactions::where(['id' => $request->ref_id])->first();
+        \logInfo(json_encode($transaction), "Report transaction :");
 
-         
-        $data     = [
+        $data = [
             'subtext' => "Transaction issue for {$request->ref_id}",
             'reason'  => $request->reason,
             'desc'    => "There is an issue with a transaction , {$request->ref_id}. ",

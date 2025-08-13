@@ -5359,6 +5359,8 @@ class TransactionController extends Controller
             'desc'    => "There is report from {$username} concerning a transaction , {$request->transaction_id}. ",
 
         ];
-        Mail::to($user->email)->send(new TransactionReport($data));
+        $company = auth()->user()->company;
+        // initSMTPconfiguration($company->companyEmail);
+        Mail::to($company->companyEmail)->send(new TransactionReport($data));
     }
 }

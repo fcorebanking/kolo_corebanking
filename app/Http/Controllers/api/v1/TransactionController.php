@@ -5350,7 +5350,7 @@ class TransactionController extends Controller
         return response()->json(['status' => 'ok'], 200);
     }
 
-    public function reportTransaction(Reqest $request)
+    public function reportTransaction(Request $request)
     {
         $username = auth()->user()->username;
         $data     = [

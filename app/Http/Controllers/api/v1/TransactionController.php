@@ -5354,7 +5354,7 @@ class TransactionController extends Controller
     {
         \logInfo(json_encode($request->ref_id), "Report transaction ref_id :");
         \logInfo(json_encode($request->reason), "Report transaction  reason:");
-        $transaction = transactions::where(['id' => $request->ref_id])->first();
+        $transaction = transactions::where(['transaction_reference' => $request->ref_id])->first();
         \logInfo(json_encode($transaction), "Report transaction :");
 
         $data = [

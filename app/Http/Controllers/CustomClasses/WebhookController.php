@@ -152,9 +152,13 @@ class WebhookController extends Controller
                 $userId      = $account->user_id;
 
                 if ($this->fromTempWebhook == 'false') {
-                    $customerAmount = $this->webhookType == 'kuda' ? ($this->amount / 100) : $this->amount;
+                    $customerAmount = in_array($this->webhookType, ['kuda', 'paystack'])
+                    ? ($this->amount / 100)
+                    : $this->amount;
 
-                    $originalAmount = $this->webhookType == 'kuda' ? ($this->amount / 100) : $this->amount;
+                    $originalAmount = in_array($this->webhookType, ['kuda', 'paystack'])
+                    ? ($this->amount / 100)
+                    : $this->amount;
                 } else {
                     $customerAmount = $this->amount;
 

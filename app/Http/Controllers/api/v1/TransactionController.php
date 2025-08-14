@@ -55,6 +55,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use App\Services\PaystackService;
 
 class TransactionController extends Controller
 {
@@ -2218,16 +2219,6 @@ class TransactionController extends Controller
         $request->input('data.reference');
 
         $safeHavenController->transactionReference = $request->input('data.object.maskedPan');
-        //   $safeHavenController->wbaCharge            = getWbaTransferCharges(38, $currentRequest['data']['amount']);
-        //   $safeHavenController->virtualAccount       = $currentRequest['data']['creditAccountNumber'];
-        //   $safeHavenController->amount               = $currentRequest['data']['amount'];
-        //   $safeHavenController->webhookType          = 'safehaven';
-        //     $safeHavenController->senderName           = $currentRequest['data']['debitAccountName'];
-        //    $safeHavenController->description          = "You received Funds from" . $currentRequest['data']['debitAccountName'];
-        //     $safeHavenController->transactionDate      = $currentRequest['data']['createdAt'];
-        //     $safeHavenController->request              = $request;
-        //    $safeHavenController->fromTempWebhook      = 'false';
-
         $safeHavenController->accountReference = $request->input('data.object.customer.name');
 
         $handleWebhook = $safeHavenController->handleSudoWebhook();
@@ -5356,15 +5347,20 @@ class TransactionController extends Controller
         \logInfo(json_encode($request->reason), "Report transaction  reason:");
         $transaction = transactions::where(['transaction_reference' => $request->ref_id])->first();
         \logInfo(json_encode($transaction), "Report transaction :");
-   $company = Company::where('id', $transaction->company_id)->first();
-        $data = [
-            'subtext' => "Transaction issue for {$request->ref_id}",
-            'reason'  => $request->reason,
-            'desc'    => "There is an issue with a transaction , {$request->ref_id}. ",
-'company_name' => $company->company_name
+        $company = Company::where('id', $transaction->company_id)->first();
+        $data    = [
+            'subtext'      => "Transaction issue for {$request->ref_id}",
+            'reason'       => $request->reason,
+            'desc'         => "There is an issue with a transaction , {$request->ref_id}. ",
+            'company_name' => $company->company_name,
         ];
-     
+
         // initSMTPconfiguration($company->companyEmail);
         Mail::to($company->companyEmail)->send(new TransactionReport($data));
+    }
+
+    public function paystackWebhook(Request $request){
+         $paystack = new PaystackService;
+          $paystack->handleWebhook($request);
     }
 }

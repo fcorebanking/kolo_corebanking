@@ -574,9 +574,9 @@ class WebhookController extends Controller
         logInfo($this->accountReference, "Card Name");
         logInfo($this->transactionReference, "Masked Pan");
 
-        $userCard = UserCard::where('card_name', $this->accountReference)->orWhere('masked_pan', $this->transactionReference)->first();
+        $user_id = UserCard::where('card_name', $this->accountReference)->orWhere('masked_pan', $this->transactionReference)->first()->user_id;
 
-        logInfo($userCard->user_id, "User Card username ID");
+        logInfo($user_id, "User Card username ID");
 
         $user = User::where('id', $userCard->user_id)->first();
 

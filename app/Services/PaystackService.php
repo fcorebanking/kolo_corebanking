@@ -79,7 +79,7 @@ class PaystackService
         \logInfo($meta, "PaystackWebHook metadata");
         \logInfo($date, "PaystackWebHook data");
 
-        $this->setUpWebhookController($response_status . $request);
+        $this->setUpWebhookController($response_status, $request);
         return http_response_code(200);
 
     }

@@ -87,11 +87,11 @@ class PaystackService
     public function setUpWebhookController($response_status)
     {
         $webhookController = new WebhookController;
-        $description       = "You received Funds from " . $response_status['data']['metadata'];
+        $description       = "You received Funds from " . $response_status['data']['metadata']['virtualAccount'];
 
         $webhookController->transactionReference = $response_status['data']['reference'];
         $webhookController->wbaCharge            = getWbaTransferCharges(2, $response_status['data']['amount'] / 100);
-        $webhookController->virtualAccount       = $response_status['data']['metadata'];
+        $webhookController->virtualAccount       = $response_status['data']['metadata']['virtualAccount'];
         $webhookController->amount               = $response_status['data']['amount'];
         $webhookController->webhookType          = 'paystack';
         $webhookController->description          = $description;

@@ -63,7 +63,7 @@ class PaystackService
     {
         $response_status = $request->all();
 
-        file_put_contents(public_path('PaystackWebHook.txt'), PHP_EOL . json_encode($request->all()), FILE_APPEND);
+        // file_put_contents(public_path('PaystackWebHook.txt'), PHP_EOL . json_encode($request->all()), FILE_APPEND);
 
         \logInfo(json_encode($request->all()), "PaystackWebHook");
 
@@ -79,12 +79,12 @@ class PaystackService
         \logInfo($meta, "PaystackWebHook metadata");
         \logInfo($date, "PaystackWebHook data");
 
-        $this->setUpWebhookController($response_status);
+        $this->setUpWebhookController($response_status . $request);
         return http_response_code(200);
 
     }
 
-    public function setUpWebhookController($response_status)
+    public function setUpWebhookController($response_status, $request)
     {
         $webhookController = new WebhookController;
         $description       = "You received Funds from " . $response_status['data']['metadata']['virtualAccount'];

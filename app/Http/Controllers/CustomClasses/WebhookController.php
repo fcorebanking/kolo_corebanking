@@ -448,7 +448,7 @@ class WebhookController extends Controller
         } catch (Exception $e) {
 
             DB::rollBack();
-            logInfo($e->getMessage(), "$this->webhookType WebHook laravel error");
+            logInfo($e->getMessage() . $e->getLine(), "$this->webhookType WebHook laravel error");
 
             // return ['status' => false,  'message' => "Error Crediting account"];
             return ['responseCode' => "02", "requestSuccessful" => true, 'sessionId' => $this->request->sessionId, 'responseMessage' => "rejected transaction"];

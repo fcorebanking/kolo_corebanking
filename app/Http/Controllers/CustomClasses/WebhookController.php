@@ -75,7 +75,11 @@ class WebhookController extends Controller
                 $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
             }
             logInfo($this->virtualAccount, "Webhook virtal hook");
-            $account = wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
+            if (isset($getVirtualAccount)) {
+                $account = wb_account_details::where('virtual_accnum', $getVirtualAccount)->first();
+            } else {
+                $account = wb_account_details::where('virtual_accnum', $this->virtualAccount)->first();
+            }
 
             if ($account) {
 

@@ -151,11 +151,23 @@ class WebhookController extends Controller
                     }
                 }
 
-                $mainAccount = $this->webhookType == 'monnify' ? wb_account_details::where('acc_reference', $this->accountReference)->first() : wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
-                $companyId   = $account->user->company->id;
-                $branchId    = $account->user->branch->id;
-                $accountId   = $mainAccount->id;
-                $userId      = $account->user_id;
+                //  $mainAccount = $this->webhookType == 'monnify' ? wb_account_details::where('acc_reference', $this->accountReference)->first() : wb_account_details::where('virtual_accnum', $this->virtualAccount)->orWhere('virtual_accnum', $getVirtualAccount)->first();
+                if ($this->webhookType == 'monnify') {
+                    $mainAccount = wb_account_details::where('acc_reference', $this->accountReference)->first();
+                } else {
+                    if (isset($getVirtualAccount)) {
+                        $mainAccount = wb_account_details::where('virtual_accnum', $getVirtualAccount)->first();
+                    } else {
+                        {
+                            $mainAccount = wb_account_details::where('virtual_accnum', $this->virtualAccount)->first();
+                        }
+                    }
+                }
+
+                $companyId = $account->user->company->id;
+                $branchId  = $account->user->branch->id;
+                $accountId = $mainAccount->id;
+                $userId    = $account->user_id;
 
                 if ($this->fromTempWebhook == 'false') {
                     $customerAmount = in_array($this->webhookType, ['kuda', 'paystack'])

@@ -74,7 +74,9 @@ class WebhookController extends Controller
             if ($this->webhookType == 'kuda') {
                 $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
             }
+
             logInfo($this->virtualAccount, "Webhook virtal hook");
+
             if (isset($getVirtualAccount)) {
                 $account = wb_account_details::where('virtual_accnum', $getVirtualAccount)->first();
             } else {

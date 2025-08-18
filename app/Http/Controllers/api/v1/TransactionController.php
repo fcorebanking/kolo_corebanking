@@ -4413,9 +4413,9 @@ class TransactionController extends Controller
         $transactionId = $this->vtPassRequestId();
 
         $validation = Validator::make($request->all(), [
-            "final_amount"      => "required|numeric|gt:0",
-            "phone_number"      => "required|numeric|gt:0",
-            "meter_number"      => "required|numeric|gt:0",
+            "final_amount"      => "required",
+            "phone_number"      => "required",
+            "meter_number"      => "required",
             "electricity_disco" => "required",
             "meter_type"        => "required",
             "transaction_pin"   => "required|numeric|gt:0|digits:4",

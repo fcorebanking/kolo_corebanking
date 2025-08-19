@@ -106,6 +106,7 @@ class UserController extends Controller
                     "otherID_file"                 => $request->user()->otherID_file,
                     "company_id"                   => $request->user()->company_id,
                     "status_id"                    => $request->user()->status_id,
+                    "kyc_level_id"                 => $request->user()->kyc_level_id,
                     "phone_verification_status_id" => $request->user()->phone_verification_status_id,
                     "account_officer_id"           => $request->user()->account_officer_id,
                     "branch_id"                    => $request->user()->branch_id,
@@ -967,7 +968,7 @@ class UserController extends Controller
             $query->where('phone', $request->phone_number)
                 ->orWhere('virtual_account', $request->phone_number);
         })->where('user_type_id', 1)->first();
-        
+
         \logInfo(json_encode($userAccunt), "User Accont first");
         $getCompanyName = $userAccunt->company->short_name;
         if ($userAccunt) {

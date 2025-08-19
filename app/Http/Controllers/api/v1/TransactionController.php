@@ -46,6 +46,7 @@ use App\Models\WebhookLog;
 use App\Models\WovenWebhook;
 use App\Services\ebanking\BankTransferType;
 use App\Services\ebanking\EbankingService;
+use App\Services\PaystackService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -55,7 +56,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use App\Services\PaystackService;
 
 class TransactionController extends Controller
 {
@@ -2219,7 +2219,7 @@ class TransactionController extends Controller
         $request->input('data.reference');
 
         $safeHavenController->transactionReference = $request->input('data.object.maskedPan');
-        $safeHavenController->accountReference = $request->input('data.object.customer.name');
+        $safeHavenController->accountReference     = $request->input('data.object.customer.name');
 
         $handleWebhook = $safeHavenController->handleSudoWebhook();
 
@@ -5359,8 +5359,9 @@ class TransactionController extends Controller
         Mail::to($company->companyEmail)->send(new TransactionReport($data));
     }
 
-    public function paystackWebhook(Request $request){
-         $paystack = new PaystackService;
-          $paystack->handleWebhook($request);
+    public function paystackWebhook(Request $request)
+    {
+        $paystack = new PaystackService;
+        $paystack->handleWebhook($request);
     }
 }

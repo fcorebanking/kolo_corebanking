@@ -4239,7 +4239,8 @@ class TransactionController extends Controller
 
         $endpoint = "pay";
 
-        $vtPassController                               = new VTPassController();
+        $vtPassController = new VTPassController();
+
         $checkCustomerAndCompanyBalanceBeforeBuyAirtime = $this->checkCustomerAndCompanyBalanceBeforeBuyAirtime(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0, 0.01);
 
         if (! $checkCustomerAndCompanyBalanceBeforeBuyAirtime['status']) {
@@ -4493,6 +4494,12 @@ class TransactionController extends Controller
         $endpoint = "pay";
 
         $vtPassController = new VTPassController();
+
+        $checkCustomerAndCompanyBalanceBeforeBuyAirtime = $this->checkCustomerAndCompanyBalanceBeforeBuyElectricity($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
+
+        if (! $checkCustomerAndCompanyBalanceBeforeBuyElectricity['status']) {
+            return \response()->json($checkCustomerAndCompanyBalanceBeforeBuyElectricity['message'], 400);
+        }
 
         $buyElectricity = $vtPassController->buyElectricity(
             $transactionId,
@@ -5431,6 +5438,74 @@ class TransactionController extends Controller
             }
             return $response;
         }
+    }
+
+    public function checkCustomerAndCompanyBalanceBeforeBuyElectricity($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
+    {
+        logInfo($customerAccountId, "checkCustomerAndCompanyBalanceBeforeBuyElectricity customerAccountId");
+        logInfo($companyId, "checkCustomerAndCompanyBalanceBeforeBuyElectricity companyId");
+
+        $response = [];
+
+        if (! Auth::check()) {
+            $currentUser = $user;
+        } else {
+            $currentUser = auth()->user();
+        }
+
+        if ($originalAmount > 0) {
+
+            $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
+
+            if (! $userWallet) {
+                $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
+            }
+
+            logInfo(json_encode($userWallet), "checkCustomerAndCompanyBalanceBeforeBuyElectricity User to be debitted");
+
+            $customerInitialBalance = $userWallet->balance;
+
+            logInfo($originalAmount, "checkCustomerAndCompanyBalanceBeforeBuyElectricity Original Amount to be debitted");
+            logInfo($customerCharge, " checkCustomerAndCompanyBalanceBeforeBuyElectricityCharge to be debitted");
+            if ($customerInitialBalance > ($originalAmount + $customerCharge)) {
+
+                $company = Company::find($companyId);
+
+                $companyIDs = [1, 29, 36];
+
+                $companyIDsStatus = false;
+
+                if (in_array($company->id, $companyIDs)) {
+                    $companyIDsStatus = true;
+                }
+
+                $companyWallet = company_wallet::where('company_id', $companyId)->first();
+
+                logInfo(json_encode($companyWallet), "checkCustomerAndCompanyBalanceBeforeBuyElectricity Company to be debitted");
+
+                $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge);
+
+                logInfo(json_encode($companyAfterBalance), "Company after balance");
+
+                if ($companyWallet->balance > 100000 && ($companyAfterBalance > 100000)) {
+                    $companyIDsStatus = true;
+                }
+
+                if (($companyWallet->balance > ($originalAmount + $customerCharge)) && ($companyIDsStatus)) {
+
+                    $response = [
+                        "status"  => true,
+                        'message' => "Amount is Valid",
+
+                    ];
+                } else {
+                    $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
+                }
+            }
+        } else {
+            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        }
+        return $response;
     }
 
 }

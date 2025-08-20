@@ -5410,7 +5410,7 @@ class TransactionController extends Controller
                     $companyIDsStatus = true;
                 }
 
-                if (($company->wallet->balance > ($originalAmount - $companyCashbackAmount)) && ($companyIDsStatus)) {
+                if ($company->wallet->balance > 100000) {
 
                     $response = [
                         "status"  => true,

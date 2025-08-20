@@ -4063,7 +4063,11 @@ class TransactionController extends Controller
             return \response()->json($checkCustomerBalancee, 400);
         }
 
-        $this->checkCustomerAndCompanyBalanceBeforeBuyAirtime(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0, 0.01);
+       $checkCustomerAndCompanyBalanceBeforeBuyAirtime=  $this->checkCustomerAndCompanyBalanceBeforeBuyAirtime(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0, 0.01);
+
+         if (! $checkCustomerAndCompanyBalanceBeforeBuyAirtime['status']) {
+            return \response()->json("Switcher related error... Please contact support", 400);
+        }
 
         $vtPassController = new VTPassController();
 
@@ -4235,8 +4239,12 @@ class TransactionController extends Controller
 
         $endpoint = "pay";
 
-        $vtPassController = new VTPassController();
-        $this->checkCustomerAndCompanyBalanceBeforeBuyAirtime(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0, 0.01);
+        $vtPassController                               = new VTPassController();
+        $checkCustomerAndCompanyBalanceBeforeBuyAirtime = $this->checkCustomerAndCompanyBalanceBeforeBuyAirtime(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0, 0.01);
+       
+        if (! $checkCustomerAndCompanyBalanceBeforeBuyAirtime['status']) {
+            return \response()->json("Switcher related error... Please contact support", 400);
+        }
 
         $buyAirtime = $vtPassController->buyData($transactionId, $request->network_provider, $request->data_plan, $selectedDataBundle['variation_amount'], $request->phone_number);
 
@@ -5420,22 +5428,9 @@ class TransactionController extends Controller
                 } else {
                     $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
                 }
-            } else {
-                if ($currentUser->balance_fails < 4) {
-                    $currentUser->balance_fails += 1;
-                    $currentUser->save();
-                    $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
-                } else {
-                    // auth()->user()->status_id = 5;
-                    restrictUserAccount(2, "Multiple Insuficient balance trials");
-
-                    $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support"];
-                }
             }
-        } else {
-            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+            return $response;
         }
-        return $response;
     }
 
 }

@@ -119,6 +119,7 @@ Route::get('/get-banks', [TransactionController::class, 'getAllBanks'])->name('v
 Route::get('/get-meter-type', [TransactionController::class, 'getMeterType']);
 Route::get('/get-meter-service', [TransactionController::class, 'getMeterService']);
 Route::get('/get-meter-service-type', [TransactionController::class, 'getMeterServiceType']);
+Route::get('/get-bets-type', [TransactionController::class, 'getBets']);
 
 Route::get('/login-kuda', [KudaController::class, 'login']);
 Route::post('/kuda-create-account', [KudaController::class, 'createAccount']);

@@ -5195,7 +5195,7 @@ class TransactionController extends Controller
     {
         return json_encode(
             [
-               ["id" => "aba-electric", "name" => "ABA Electricity"], ["id" => "abuja-electric", "name" => "Abuja Prepaid"], ["id" => "benin-electric", "name" => "Benin Electricity"], ["id" => "enugu-electric", "name" => "Enugu Prepaid"], ["id" => "ibadan-electric", "name" => "Ibadan Prepaid"], ["id" => "eko-electric", "name" => "Eko Prepaid"], ["id" => "ikeja-electric", "name" => "Ikeja Prepaid"], ["id" => "portharcourt-electric", "name" => "Port Harcourt Prepaid"], ["id" => "jos-electric", "name" => "Jos Prepaid"], ["id" => "kano-electric", "name" => "Kano Prepaid"], ["id" => "kaduna-electric", "name" => "Kaduna Electricity"], ["id" => "yola-electric", "name" => "YOLA Electricity"],
+                ["id" => "aba-electric", "name" => "ABA Electricity"], ["id" => "abuja-electric", "name" => "Abuja Prepaid"], ["id" => "benin-electric", "name" => "Benin Electricity"], ["id" => "enugu-electric", "name" => "Enugu Prepaid"], ["id" => "ibadan-electric", "name" => "Ibadan Prepaid"], ["id" => "eko-electric", "name" => "Eko Prepaid"], ["id" => "ikeja-electric", "name" => "Ikeja Prepaid"], ["id" => "portharcourt-electric", "name" => "Port Harcourt Prepaid"], ["id" => "jos-electric", "name" => "Jos Prepaid"], ["id" => "kano-electric", "name" => "Kano Prepaid"], ["id" => "kaduna-electric", "name" => "Kaduna Electricity"], ["id" => "yola-electric", "name" => "YOLA Electricity"],
 
             ]
         );

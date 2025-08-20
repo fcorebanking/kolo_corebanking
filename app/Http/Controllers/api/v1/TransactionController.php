@@ -4063,6 +4063,8 @@ class TransactionController extends Controller
             return \response()->json($checkCustomerBalancee, 400);
         }
 
+        $this->checkCustomerAndCompanyBalanceBeforeBuyAirtime(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0, 0.01);
+
         $vtPassController = new VTPassController();
 
         $networkProvider = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;

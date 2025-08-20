@@ -5410,7 +5410,7 @@ class TransactionController extends Controller
                     $companyIDsStatus = true;
                 }
 
-                if ($company->wallet->balance > 100000) {
+                if ($company->wallet->balance > 100100) {
 
                     $response = [
                         "status"  => true,

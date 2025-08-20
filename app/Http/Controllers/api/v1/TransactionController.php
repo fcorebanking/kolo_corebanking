@@ -4069,7 +4069,7 @@ class TransactionController extends Controller
 
         $buyAirtime = $vtPassController->buyAirtime($transactionId, $networkProvider, $request->final_amount, $request->phone_number);
 
-        if ($buyAirtime["status"]) {
+        if ($buyAirtime["status"] != false) {
 
             $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0, 0.01);
 
@@ -4234,6 +4234,7 @@ class TransactionController extends Controller
         $endpoint = "pay";
 
         $vtPassController = new VTPassController();
+        $this->checkCustomerAndCompanyBalanceBeforeBuyAirtime(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0, 0.01);
 
         $buyAirtime = $vtPassController->buyData($transactionId, $request->network_provider, $request->data_plan, $selectedDataBundle['variation_amount'], $request->phone_number);
 
@@ -5364,4 +5365,75 @@ class TransactionController extends Controller
         $paystack = new PaystackService;
         $paystack->handleWebhook($request);
     }
+
+    public function checkCustomerAndCompanyBalanceBeforeBuyAirtime($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
+    {
+        $response = [];
+
+        if (! Auth::check()) {
+            $currentUser = $user;
+        } else {
+            $currentUser = auth()->user();
+        }
+
+        if ($originalAmount > 0) {
+
+            $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
+
+            if (! $userWallet) {
+                $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
+            }
+
+            $customerInitialBalance = $userWallet->balance;
+
+            $customerCashbackAmount = $customerCashback * $originalAmount;
+            $companyCashbackAmount  = $companyCashback * $originalAmount;
+
+            if ($customerInitialBalance > ($originalAmount - $customerCashbackAmount)) {
+
+                $company    = Company::find($companyId);
+                $companyIDs = [1, 29, 36];
+
+                $companyIDsStatus = false;
+
+                if (in_array($company->id, $companyIDs)) {
+                    $companyIDsStatus = true;
+                }
+
+                $companyAfterBalance = $company->wallet->balance - $originalAmount;
+
+                logInfo(json_encode($companyAfterBalance), "checkCustomerAndCompanyBalanceBeforeBuyAirtime Company after balance for cash back");
+
+                if ($company->wallet->balance > 100000 && ($companyAfterBalance > 100000)) {
+                    $companyIDsStatus = true;
+                }
+
+                if (($company->wallet->balance > ($originalAmount - $companyCashbackAmount)) && ($companyIDsStatus)) {
+
+                    $response = [
+                        "status"  => true,
+                        'message' => "Amount is Valid",
+
+                    ];
+                } else {
+                    $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
+                }
+            } else {
+                if ($currentUser->balance_fails < 4) {
+                    $currentUser->balance_fails += 1;
+                    $currentUser->save();
+                    $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
+                } else {
+                    // auth()->user()->status_id = 5;
+                    restrictUserAccount(2, "Multiple Insuficient balance trials");
+
+                    $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support"];
+                }
+            }
+        } else {
+            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        }
+        return $response;
+    }
+
 }

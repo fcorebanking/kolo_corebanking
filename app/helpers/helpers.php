@@ -2568,14 +2568,15 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
 
             $companyAfterBalance = $company->wallet->balance - $originalAmount;
 
+            logInfo($company->wallet->balance, "Company balance");
             logInfo(json_encode($companyAfterBalance), "Company after balance for cash back");
+            logInfo(json_encode($companyIDsStatus), "Company id status");
 
             if ($company->wallet->balance > 100000 && ($companyAfterBalance > 100000)) {
                 $companyIDsStatus = true;
             }
 
             if (($company->wallet->balance > ($originalAmount - $companyCashbackAmount)) && ($companyIDsStatus)) {
-                
 
                 $customerBalanceAfter = $customerInitialBalance - $originalAmount;
 

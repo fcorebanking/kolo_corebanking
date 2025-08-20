@@ -5234,8 +5234,8 @@ class TransactionController extends Controller
         $kudaController->amount               = "";
         $kudaController->webhookType          = "";
         $kudaController->description          = "";
-        $kudaController->transactionDate      ="";
-        $kudaController->request              ="";
+        $kudaController->transactionDate      = "";
+        $kudaController->request              = $request;
         $kudaController->fromTempWebhook      = "";
 
         $getBetsResult = $kudaController->getBet($requestReference);

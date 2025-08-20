@@ -5228,6 +5228,16 @@ class TransactionController extends Controller
 
         $kudaController = new KudaController();
 
+        $kudaController->transactionReference = "";
+        $kudaController->wbaCharge            = "";
+        $kudaController->virtualAccount       = "";
+        $kudaController->amount               = "";
+        $kudaController->webhookType          = "";
+        $kudaController->description          = "";
+        $kudaController->transactionDate      ="";
+        $kudaController->request              ="";
+        $kudaController->fromTempWebhook      = "";
+
         $getBetsResult = $kudaController->getBet($requestReference);
 
         if (! $getBetsResult['status']) {

@@ -1032,7 +1032,7 @@ class TransactionController extends Controller
                     $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
 
                     if (! $debitCustomer["status"]) {
-                        return \response()->json($debitCustomer);
+                        return \response()->json($debitCustomer, 400);
                     }
 
                     $accountId                   = $debitCustomer['account_id'];

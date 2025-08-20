@@ -4495,7 +4495,7 @@ class TransactionController extends Controller
 
         $vtPassController = new VTPassController();
 
-        $checkCustomerAndCompanyBalanceBeforeBuyAirtime = $this->checkCustomerAndCompanyBalanceBeforeBuyElectricity($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
+        $checkCustomerAndCompanyBalanceBeforeBuyElectricity = $this->checkCustomerAndCompanyBalanceBeforeBuyElectricity($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
 
         if (! $checkCustomerAndCompanyBalanceBeforeBuyElectricity['status']) {
             return \response()->json($checkCustomerAndCompanyBalanceBeforeBuyElectricity['message'], 400);

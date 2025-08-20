@@ -170,6 +170,68 @@ class KudaController extends WebhookController
         }
     }
 
+    public function getBet($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference)
+    {
+        
+        $body = [
+            "serviceType" => "GET_BILLERS_BY_TYPE",
+            "requestRef"  => $requestReference,
+            "data"        => [
+                "BillTypeName" => "betting"
+
+            ],
+        ];
+
+        $jsonBody = json_encode($body);
+
+       
+
+        //  $url = "v2.1/";
+        $url = "https://kuda-openapi.kuda.com/v2.1";
+
+        try {
+
+            $login = $this->login();
+
+            if (! $login['status']) {
+                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
+            }
+
+            \logInfo($requestBody, "Kuda Request body");
+
+            $createBetResponse = $this->kudaPostRequestUpdate($url, $jsonBody);
+
+            logInfo($createBetResponse, "Kuda Betting Response");
+
+            if ($createBetResponse->successful()) {
+
+                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
+
+                if (! $createBetResponse["status"]) {
+                    return [
+                        'status'  => false,
+                        'message' => $createBetResponse["message"],
+                    ];
+                } else {
+                    return [
+                        'status'  => true,
+                        'message' => "Account Created Successfully",
+                        'data'    => [
+                            'account_number'         => $createAccountResponse['data']['accountNumber'],
+                            'virtual_account_number' => $createAccountResponse['data']['accountNumber'],
+                        ],
+                    ];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Account Creation Failed. Kindly contact support for assistance'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Laravel Kuda Error");
+
+            return ['status' => false, 'message' => 'Error Creating Account. Kindly contact support for assistance'];
+        }
+    }
+
     public function webhookWithdraw($requestReference, $amount, $narration, $trackingReference)
     {
 

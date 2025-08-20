@@ -5210,7 +5210,7 @@ class TransactionController extends Controller
                 'Response Successful',
                 'data'    => [
                     'service' => [
-                        ["id" => "abuja-electric", "name" => "Abuja Prepaid"], ["id" => "ibadan-electric", "name" => "Ibadan Prepaid"], ["id" => "eko-electric", "name" => "Eko Prepaid"], ["id" => "ikeja-electric", "name" => "Ikeja Prepaid"], ["id" => "portharcourt-electric", "name" => "Port Harcourt Prepaid"], ["id" => "jos-electric", "name" => "Jos Prepaid"], ["id" => "kano-electric", "name" => "Kano Prepaid"], ["id" => "enugu-electric", "name" => "Enugu Prepaid"],
+                        ["id" => "aba-electric", "name" => "ABA Electricity"], ["id" => "abuja-electric", "name" => "Abuja Prepaid"], ["id" => "benin-electric", "name" => "Benin Electricity"], ["id" => "enugu-electric", "name" => "Enugu Prepaid"], ["id" => "ibadan-electric", "name" => "Ibadan Prepaid"], ["id" => "eko-electric", "name" => "Eko Prepaid"], ["id" => "ikeja-electric", "name" => "Ikeja Prepaid"], ["id" => "portharcourt-electric", "name" => "Port Harcourt Prepaid"], ["id" => "jos-electric", "name" => "Jos Prepaid"], ["id" => "kano-electric", "name" => "Kano Prepaid"], ["id" => "kaduna-electric", "name" => "Kaduna Electricity"], ["id" => "yola-electric", "name" => "YOLA Electricity"],
 
                     ], 'type' => [
                         ["id" => "prepaid", "name" => "Prepaid"],
@@ -5221,6 +5221,21 @@ class TransactionController extends Controller
             ]
         );
     }
+
+    public function getBets(Request $request)
+    {
+        $requestReference = generateTransactionReference();
+
+        $kudaController = new KudaController();
+
+        $getBetsResult = $kudaController->getBet($requestReference);
+
+        if (! $getBetsResult['status']) {
+            return response()->json($getBetsResult, 400);
+        }
+        return response()->json($getBetsResult);
+    }
+
     public function getNetworks()
     {
         $network = [

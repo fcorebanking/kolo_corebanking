@@ -195,9 +195,9 @@ class KudaController extends WebhookController
                 return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
             }
 
-            \logInfo($requestBody, "Kuda Request body");
+            \logInfo($body, "Kuda Request body");
 
-            $createBetResponse = $this->kudaPostRequestUpdate($url, $jsonBody);
+            $createBetResponse = $this->kudaPostRequestUpdate($url, $body);
 
             logInfo($createBetResponse, "Kuda Betting Response");
 
@@ -213,15 +213,14 @@ class KudaController extends WebhookController
                 } else {
                     return [
                         'status'  => true,
-                        'message' => "Account Created Successfully",
+                        'message' => "Bet Response Successfully",
                         'data'    => [
-                            'account_number'         => $createAccountResponse['data']['accountNumber'],
-                            'virtual_account_number' => $createAccountResponse['data']['accountNumber'],
+                            $createAccountResponse['data']['Billers'],
                         ],
                     ];
                 }
             } else {
-                return ['status' => false, 'message' => 'Account Creation Failed. Kindly contact support for assistance'];
+                return ['status' => false, 'message' => 'Bet respond failed. Kindly contact support for assistance'];
             }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Laravel Kuda Error");

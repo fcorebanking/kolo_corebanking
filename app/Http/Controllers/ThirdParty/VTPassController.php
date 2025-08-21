@@ -2,10 +2,14 @@
 namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\Controller;
+use App\Models\company_settings;
 use App\Models\CustomerRestrictionLog;
 use App\Models\MainCustomerRestriction;
+use App\Models\transactions;
+use App\Models\User;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 class VTPassController extends Controller
@@ -305,6 +309,16 @@ class VTPassController extends Controller
         }
     }
 
+    public function handleWebhook(Request $request)
+    {
+        $response_status = $request->all();
+
+        // file_put_contents(public_path('PaystackWebHook.txt'), PHP_EOL . json_encode($request->all()), FILE_APPEND);
+
+        \logInfo(json_encode($request->all()), "VTPASSWebHook");
+        return response()->json(["response" => "success"], 200);
+    }
+
     public function restrictUserAccount($restrictionId, $remark)
     {
         if (count(auth()->user()->customerPermissions) > 0) {
@@ -375,5 +389,269 @@ class VTPassController extends Controller
         $header = ['Authorization' => 'Basic ' . $basicAuthToken];
 
         return $header;
+    }
+
+    public function processTransaction(Request $request)
+    {
+
+        $transaction = transactions::lockForUpdate()->where(['transaction_reference' => $transactionId, 'amount' => $request->final_amount])->first();
+        if ($transaction->transaction_remarks_id == 6) {
+            if ($transaction->description == 6) {
+
+            }
+        }
+    }
+
+    public function processAirtime($response, $transaction)
+    {
+        $user          = $this->getUser($transaction);
+        $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback($user->accounts->first()->id, $user->company_id, $request->final_amount, 0, 0.01);
+        $transaction->update([
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $request->final_amount,
+            "account_id"             => $accountId,
+            "balance_after"          => $debitCustomer["balance_after"],
+            "company_balance_before" => $debitCustomer["company_balance_before"],
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "company_amount"         => $debitCustomer["company_amount"],
+            "description"            => "Purchase of Airtime worth $request->final_amount for $request->phone_number",
+            "transaction_reference"  => $transactionId,
+            "transaction_remarks_id" => 1,
+            "transaction_type_id"    => 11,
+            "credit_debit_type_id"   => 2,
+
+        ]);
+
+        $cashbackTransactionId = \generate_txnID();
+        $ledger_cr             = null;
+        $ledger_dr             = null;
+        $ledger_Settings       = get_CR_DR_TXN_Type_Ledger(66, $user->company_id);
+        if ($ledger_Settings) {
+            $ledger_cr = $ledger_Settings->ledger_cr;
+            $ledger_dr = $ledger_Settings->ledger_dr;
+        }
+        $transaction = transactions::create([
+            "balance_before"         => $debitCustomer['cashback_balance_before'],
+            "amount"                 => $debitCustomer["customer_cashback"],
+            "account_id"             => $debitCustomer["customer_cashback"] > 0 ? $accountId : null,
+            "balance_after"          => $debitCustomer["cashback_balance_after"],
+            "company_balance_before" => $debitCustomer["company_cashback_balance_before"],
+            "company_balance_after"  => $debitCustomer["company_cashback_balance_after"],
+            "company_amount"         => $debitCustomer["company_cashback"],
+            "description"            => "Cashback on Airtime Purcahse",
+            "branch_id"              => $transaction->branch_id,
+            "company_id"             => $transaction->company_id,
+            "transaction_reference"  => $cashbackTransactionId,
+            "transaction_remarks_id" => 2,
+            "transaction_type_id"    => 66,
+            "credit_debit_type_id"   => 1,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $transaction->created_by,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
+        ]);
+
+        $this->updateTransactionAsSuccessful($transaction, $debitCustomer["balance_after"]);
+    }
+
+    public function processDataBundle($response, $transaction)
+    {
+        $stringArray                       = explode('-', $transaction->description);
+        $selectedDataBundleVariationAmount = ltrim($stringArray[1]);
+        $user                              = $this->getUser($transaction);
+        $debitCustomer                     = \debitCustomerAndCompanyWithCompanyCashback($user->accounts->first()->id, $user->company_id, $selectedDataBundleVariationAmount, 0, 0.01);
+        $transaction->update([
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $selectedDataBundle['variation_amount'],
+            "balance_after"          => $debitCustomer["balance_after"],
+            "company_balance_before" => $debitCustomer["company_balance_before"],
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "company_amount"         => $debitCustomer["company_amount"],
+            "description"            => "Purchase of Data worth " . $selectedDataBundle['variation_amount'] . " for $request->phone_number",
+            "transaction_remarks_id" => 1,
+            "transaction_type_id"    => 12,
+            "credit_debit_type_id"   => 2,
+
+        ]);
+
+        $cashbackTransactionId = \generate_txnID();
+        $ledger_cr             = null;
+        $ledger_dr             = null;
+        $ledger_Settings       = get_CR_DR_TXN_Type_Ledger(66, $transaction->company_id);
+        if ($ledger_Settings) {
+            $ledger_cr = $ledger_Settings->ledger_cr;
+            $ledger_dr = $ledger_Settings->ledger_dr;
+        }
+        $cashbackTransaction = transactions::create([
+            "balance_before"         => $debitCustomer['cashback_balance_before'],
+            "amount"                 => $debitCustomer["customer_cashback"],
+            "account_id"             => $debitCustomer["customer_cashback"] > 0 ? $transactionPinValidation['account_id'] : null,
+            "balance_after"          => $debitCustomer["cashback_balance_after"],
+            "company_balance_before" => $debitCustomer["company_cashback_balance_before"],
+            "company_balance_after"  => $debitCustomer["company_cashback_balance_after"],
+            "company_amount"         => $debitCustomer["company_cashback"],
+            "description"            => "Cashback on Data Purchase",
+            "company_id"             => $transaction->company_id,
+            "branch_id"              => $transaction->branch_id,
+            "parent_transaction_id"  => $transaction->id,
+            "transaction_reference"  => $cashbackTransactionId,
+            "transaction_remarks_id" => 2,
+            "transaction_type_id"    => 66,
+            "credit_debit_type_id"   => 1,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $transaction->created_by,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
+        ]);
+
+        $this->updateTransactionAsSuccessful($transaction, $debitCustomer['balance_after']);
+
+    }
+
+    public function processElectricity($response, $transaction)
+    {
+        $wbaCharge = getWbaTransferCharges(13, $request->final_amount);
+
+        $companySettings = $this->getCompanySettings($transaction);
+
+        $debitCustomer = $this->customDebitCustomerAndCompanyWithCharge($transaction, $response);
+
+        $transaction->update([
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $request->final_amount,
+            "balance_after"          => $debitCustomer["balance_after"],
+            "company_balance_before" => $debitCustomer["company_balance_before"],
+            "company_amount"         => $debitCustomer["company_amount"],
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "description"            => "Purchase of Electricity worth $request->final_amount",
+            "transaction_remarks_id" => 1,
+            "transaction_type_id"    => 14,
+            "credit_debit_type_id"   => 2,
+
+        ]);
+        $transactionChargeId = \generate_txnID();
+        $ledger_cr           = null;
+        $ledger_dr           = null;
+        $ledger_Settings     = get_CR_DR_TXN_Type_Ledger(51, $transaction->company_id);
+        if ($ledger_Settings) {
+            $ledger_cr = $ledger_Settings->ledger_cr;
+            $ledger_dr = $ledger_Settings->ledger_dr;
+        }
+        // Save Charges to transaction table
+        $chargetransaction = transactions::create([
+            "balance_before"         => $debitCustomer['charge_balance_before'],
+            "amount"                 => $companySettings->bills_payment_charge,
+            "balance_after"          => $debitCustomer["charge_balance_after"],
+            "account_id"             => $transactionPinValidation['account_id'],
+            "company_id"             => $transaction->company_id,
+            "branch_id"              => $transaction->branch_id,
+            "company_balance_before" => $debitCustomer["company_charge_balance_before"],
+            "company_amount"         => $wbaCharge,
+            "company_balance_after"  => $debitCustomer["company_charge_balance_after"],
+            "description"            => "Charge for Electricity Purchase",
+            "transaction_reference"  => $transactionChargeId,
+            "parent_transaction_id"  => $transactionId,
+            "transaction_remarks_id" => 1,
+            "transaction_type_id"    => 51,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $transaction->created_by,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
+        ]);
+
+        $electricityToken = $buyElectricity['data']['token'];
+
+        $transaction->transaction_remarks_id = 2;
+        $transaction->description            = "Purchased Electricity Token: $electricityToken Amount: $request->final_amount";
+        $transaction->save();
+
+        $buyElectricity['data']['balance'] = $debitCustomer["charge_balance_after"];
+
+        sendSMS($transaction->created_by, "Purchased Electricity Token $electricityToken, Amount: $request->final_amount, Avail Bal: " . $debitCustomer["charge_balance_after"], true, true, 'Electricity Token');
+    }
+
+    public function processCableTV($response, $transaction)
+    {
+        $wbaCharge = getWbaTransferCharges(12, ($request->amount / 100));
+
+        $companySettings = $this->getCompanySettings($transaction);
+
+        $debitCustomer = $this->customDebitCustomerAndCompanyWithCharge($transaction, $response);
+
+        $transaction->update([
+
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $request->final_amount,
+            "balance_after"          => $debitCustomer["balance_after"],
+            "company_balance_before" => $debitCustomer["company_balance_before"],
+            "company_amount"         => $debitCustomer["company_amount"],
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "description"            => "Cable TV Subscription worth $request->final_amount",
+            "transaction_reference"  => $transactionId,
+            "transaction_remarks_id" => 1,
+            "transaction_type_id"    => 13,
+            "credit_debit_type_id"   => 2,
+
+        ]);
+        $transactionChargeId = \generate_txnID();
+        $ledger_cr           = null;
+        $ledger_dr           = null;
+        $ledger_Settings     = get_CR_DR_TXN_Type_Ledger(51, $transaction->company_id);
+        if ($ledger_Settings) {
+            $ledger_cr = $ledger_Settings->ledger_cr;
+            $ledger_dr = $ledger_Settings->ledger_dr;
+        }
+        // Save Charges to transaction table
+        $transaction = transactions::create([
+            "balance_before"         => $debitCustomer['charge_balance_before'],
+            "amount"                 => $companySettings->bills_payment_charge,
+            "balance_after"          => $debitCustomer["charge_balance_after"],
+            "account_id"             => $transaction->account_id,
+            "company_id"             => $transaction->company_id,
+            "branch_id"              => $transaction->branch_id,
+            "company_balance_before" => $debitCustomer["company_charge_balance_before"],
+            "company_amount"         => $wbaCharge,
+            "company_balance_after"  => $debitCustomer["company_charge_balance_after"],
+            "description"            => "Charge for Cable TV Subscription",
+            "transaction_reference"  => $transactionChargeId,
+            "parent_transaction_id"  => $transactionId,
+            "transaction_remarks_id" => 1,
+            "transaction_type_id"    => 51,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $transaction->created_by,
+            "ledger_dr"              => $ledger_dr,
+            "ledger_cr"              => $ledger_cr,
+        ]);
+
+        $this->updateTransactionAsSuccessful($transaction, $debitCustomer['balance_before'], false);
+    }
+
+    public function updateTransactionAsSuccessful($transaction, $balance = 0, $updateBalance = true)
+    {
+        if ($updateBalance) {
+            $transaction->balance_after = $balance;
+        }
+
+        $transaction->transaction_remarks_id = 2;
+        $transaction->updated_at             = Carbon::now();
+        $transaction->modified_by            = auth()->user()->id;
+        $transaction->save();
+    }
+
+    public function getCompanySettings($transaction)
+    {
+        return company_settings::where('company_id', $transaction->company_id)->first();
+    }
+
+    public function customDebitCustomerAndCompanyWithCharge($transaction, $response)
+    {
+        return \debitCustomerAndCompanyWithCharge($transaction->account_id, $transaction->company_id->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
+    }
+
+    public function getUser($transaction)
+    {
+        return User::where('id', $transaction->created_by)->first();
     }
 }

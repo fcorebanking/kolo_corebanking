@@ -147,6 +147,7 @@ Route::post('/transactions/vpay-webhook', [TransactionController::class, 'vpayWe
 Route::post('/transactions/safehaven-webhook', [TransactionController::class, 'safeHavenWebhook'])->name('safehaven-webhook')->middleware('log.route');
 Route::post('/transactions/sudo-webhook', [TransactionController::class, 'safeHavenSudoWebhook'])->name('sudo-safehaven-webhook')->middleware('log.route');
 Route::post('/transactions/paystack-webhook', [TransactionController::class, 'paystackWebhook'])->name('paystack-webhook')->middleware('log.route');
+Route::post('/transactions/vtpass-webhook', [TransactionController::class, 'vtpassWebhook'])->name('vtpass-webhook')->middleware('log.route');
 
 Route::post('/transactions/verify-cgate-details', [TransactionController::class, 'verifyCgateDetails'])->name('verify-cgate')->middleware('log.route');
 Route::post('/transactions/cgate-webhook', [TransactionController::class, 'cgateWebhook'])->name('cgate-webhook')->middleware('log.route');

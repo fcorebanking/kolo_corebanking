@@ -170,21 +170,19 @@ class KudaController extends WebhookController
         }
     }
 
-    public function getBet($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference)
+    public function getBet()
     {
-        
-        $body = [
+        $requestReference = generateTransactionReference();
+        $body             = [
             "serviceType" => "GET_BILLERS_BY_TYPE",
             "requestRef"  => $requestReference,
             "data"        => [
-                "BillTypeName" => "betting"
+                "BillTypeName" => "betting",
 
             ],
         ];
 
         $jsonBody = json_encode($body);
-
-       
 
         //  $url = "v2.1/";
         $url = "https://kuda-openapi.kuda.com/v2.1";

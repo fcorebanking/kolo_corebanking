@@ -5224,7 +5224,7 @@ class TransactionController extends Controller
 
     public function getBets(Request $request)
     {
-        $requestReference = generateTransactionReference();
+      
 
         $kudaController = new KudaController();
 
@@ -5238,7 +5238,7 @@ class TransactionController extends Controller
         $kudaController->request              = $request;
         $kudaController->fromTempWebhook      = "";
 
-        $getBetsResult = $kudaController->getBet($requestReference);
+        $getBetsResult = $kudaController->getBet();
 
         if (! $getBetsResult['status']) {
             return response()->json($getBetsResult, 400);
@@ -5531,6 +5531,18 @@ class TransactionController extends Controller
             $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
         }
         return $response;
+    }
+
+    public function getPOSBalance(Request $request)
+    {
+        $userPOS = AgentTerminal::where('user_id', auth()->user()->id)->first();
+
+        if ($userPOS != null) {
+
+            return response()->json(["status" => true,
+                'data'                            => $userPOS->balance], 200);
+        }
+
     }
 
 }

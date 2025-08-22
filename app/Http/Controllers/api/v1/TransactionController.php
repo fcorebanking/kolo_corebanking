@@ -4229,12 +4229,6 @@ class TransactionController extends Controller
             return \response()->json($checkCustomerBalancee, 400);
         }*/
 
-        $checkCustomerAndCompanyBalanceBeforeBuyAirtime = $this->checkCustomerAndCompanyBalanceBeforeBuyAirtime(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0, 0.01);
-
-        if (! $checkCustomerAndCompanyBalanceBeforeBuyAirtime['status']) {
-            return \response()->json($checkCustomerAndCompanyBalanceBeforeBuyAirtime['message'], 400);
-        }
-
         $customerBalance = $this->checkCustomerAndCompanyBalance($request->final_amount);
 
         if (! $customerBalance['status']) {
@@ -4268,6 +4262,12 @@ class TransactionController extends Controller
             "amount"         => $selectedDataBundle['variation_amount'],
             "phone"          => $request->phone_number,
         ];
+
+        $checkCustomerAndCompanyBalanceBeforeBuyAirtime = $this->checkCustomerAndCompanyBalanceBeforeBuyAirtime(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0, 0.01);
+
+        if (! $checkCustomerAndCompanyBalanceBeforeBuyAirtime['status']) {
+            return \response()->json($checkCustomerAndCompanyBalanceBeforeBuyAirtime['message'], 400);
+        }
 
         $endpoint = "pay";
 

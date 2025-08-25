@@ -5158,6 +5158,10 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
+            logInfo($request['cableTvType'], "VTPass Subscribe tv request 1");
+
+            logInfo($request->input('cableTvType'), "VTPass Subscribe tv request 2");
+
         $cableTV = $request['cableTvType'] ?? $request->input('cableTvType');
 
         $vtPassController = new VTPassController();
@@ -5631,9 +5635,9 @@ class TransactionController extends Controller
 
             return response()->json(["status" => true,
                 'data'                            => $userPOS->balance], 200);
-        }else{
-             return response()->json(["status" => true,
-                'message'                            => "POS does not "], 400);
+        } else {
+            return response()->json(["status" => true,
+                'message'                         => "POS does not "], 400);
         }
 
     }

@@ -184,6 +184,8 @@ class KudaController extends WebhookController
 
         $jsonBody = json_encode($body);
 
+        logInfo($jsonBody, "Kuda get bets");
+
         //  $url = "v2.1/";
         $url = "https://kuda-openapi.kuda.com/v2.1";
 
@@ -192,10 +194,10 @@ class KudaController extends WebhookController
             $login = $this->login();
 
             if (! $login['status']) {
-                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
+                return ['status' => false, 'message' => 'Unavailable. Try again later'];
             }
 
-            \logInfo($body, "Kuda Request body");
+            \logInfo($body, "Kuda Request body Bet Response");
 
             $createBetResponse = $this->kudaPostRequestUpdate($url, $body);
 

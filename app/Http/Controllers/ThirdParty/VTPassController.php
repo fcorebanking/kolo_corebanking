@@ -678,6 +678,7 @@ class VTPassController extends Controller
 
     public function getUser($transaction)
     {
+        // get user
         return User::where('id', $transaction->created_by)->first();
     }
 }

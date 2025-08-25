@@ -5150,7 +5150,7 @@ class TransactionController extends Controller
     {
 
         $validation = Validator::make($request->all(), [
-            "cableTvType" => 'required',
+            "cableTvType" => 'nullable',
         ]);
 
         if ($validation->fails()) {
@@ -5158,7 +5158,7 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
-        $cableTV = $request['cableTvType'];
+        $cableTV = $request['cableTvType'] ?? $request->input('cableTvType');
 
         $vtPassController = new VTPassController();
         $dataBundles      = $vtPassController->getSubscriptions($cableTV);
@@ -5631,6 +5631,9 @@ class TransactionController extends Controller
 
             return response()->json(["status" => true,
                 'data'                            => $userPOS->balance], 200);
+        }else{
+             return response()->json(["status" => true,
+                'message'                            => "POS does not "], 400);
         }
 
     }

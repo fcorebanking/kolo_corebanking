@@ -5158,11 +5158,11 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
-            logInfo($request['cableTvType'], "VTPass Subscribe tv request 1");
+        logInfo($request['cableTvType'], "VTPass Subscribe tv request 1");
 
-            logInfo($request->input('cableTvType'), "VTPass Subscribe tv request 2");
+        logInfo($request->input('cableTvType'), "VTPass Subscribe tv request 2");
 
-        $cableTV = $request['cableTvType'] ?? $request->input('cableTvType');
+        $cableTV = $request['cableTvType'] ?? $request->query('cableTvType');
 
         $vtPassController = new VTPassController();
         $dataBundles      = $vtPassController->getSubscriptions($cableTV);

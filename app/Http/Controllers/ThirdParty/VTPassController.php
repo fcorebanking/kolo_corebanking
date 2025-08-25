@@ -316,6 +316,9 @@ class VTPassController extends Controller
         // file_put_contents(public_path('PaystackWebHook.txt'), PHP_EOL . json_encode($request->all()), FILE_APPEND);
 
         \logInfo(json_encode($request->all()), "VTPASSWebHook");
+
+        $this->processTransaction($response_status);
+
         return response()->json(["response" => "success"], 200);
     }
 
@@ -391,31 +394,51 @@ class VTPassController extends Controller
         return $header;
     }
 
-    public function processTransaction(Request $request)
+    public function processTransaction($response)
     {
+        if (isset($response['data']['content']['transactions']['status']) && $response['data']['content']['transactions']['status'] == "delivered") {
+            $transactionId = $response['data']['content']['transactions']['transactionId'];
+            $transaction   = transactions::lockForUpdate()->where(['transaction_reference' => $transactionId, 'amount' => $request->final_amount])->first();
+            if ($transaction->transaction_remarks_id == 6) {
+                if ($transaction->description == "Buy Airtime Initialized") {
 
-        $transaction = transactions::lockForUpdate()->where(['transaction_reference' => $transactionId, 'amount' => $request->final_amount])->first();
-        if ($transaction->transaction_remarks_id == 6) {
-            if ($transaction->description == 6) {
+                    $this->processAirtime($response, $transaction);
 
+                }
+
+                if ($transaction->description == "Buy Electricity Initialized") {
+
+                    $this->processElectricity($response, $transaction);
+
+                }
+
+                if ($transaction->description == "Subscribe TV Initialized") {
+
+                    $this->processAirtime($response, $transaction);
+
+                } else {
+                    $this->processDataBundle($response, $transaction);
+                }
             }
         }
+
     }
 
     public function processAirtime($response, $transaction)
     {
         $user          = $this->getUser($transaction);
-        $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback($user->accounts->first()->id, $user->company_id, $request->final_amount, 0, 0.01);
+        $final_amount  = $response['data']['content']['transactions']['total_amount'];
+        $phoneNumber   = $response['data']['content']['transactions']['phone'];
+        $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback($user->accounts->first()->id, $user->company_id, $final_amount, 0, 0.01);
         $transaction->update([
             "balance_before"         => $debitCustomer['balance_before'],
-            "amount"                 => $request->final_amount,
+            "amount"                 => $final_amount,
             "account_id"             => $accountId,
             "balance_after"          => $debitCustomer["balance_after"],
             "company_balance_before" => $debitCustomer["company_balance_before"],
             "company_balance_after"  => $debitCustomer["company_balance_after"],
             "company_amount"         => $debitCustomer["company_amount"],
-            "description"            => "Purchase of Airtime worth $request->final_amount for $request->phone_number",
-            "transaction_reference"  => $transactionId,
+            "description"            => "Purchase of Airtime worth  $final_amount for  $phoneNumber",
             "transaction_remarks_id" => 1,
             "transaction_type_id"    => 11,
             "credit_debit_type_id"   => 2,
@@ -510,20 +533,22 @@ class VTPassController extends Controller
 
     public function processElectricity($response, $transaction)
     {
-        $wbaCharge = getWbaTransferCharges(13, $request->final_amount);
+        $final_amount = $response['data']['content']['transactions']['total_amount'];
+
+        $wbaCharge = getWbaTransferCharges(13, $final_amount);
 
         $companySettings = $this->getCompanySettings($transaction);
 
-        $debitCustomer = $this->customDebitCustomerAndCompanyWithCharge($transaction, $response);
+        $debitCustomer = $this->customDebitCustomerAndCompanyWithCharge($transaction, $final_amount, $companySettings, $wbaCharge);
 
         $transaction->update([
             "balance_before"         => $debitCustomer['balance_before'],
-            "amount"                 => $request->final_amount,
+            "amount"                 => $final_amount,
             "balance_after"          => $debitCustomer["balance_after"],
             "company_balance_before" => $debitCustomer["company_balance_before"],
             "company_amount"         => $debitCustomer["company_amount"],
             "company_balance_after"  => $debitCustomer["company_balance_after"],
-            "description"            => "Purchase of Electricity worth $request->final_amount",
+            "description"            => "Purchase of Electricity worth $final_amount",
             "transaction_remarks_id" => 1,
             "transaction_type_id"    => 14,
             "credit_debit_type_id"   => 2,
@@ -550,7 +575,7 @@ class VTPassController extends Controller
             "company_balance_after"  => $debitCustomer["company_charge_balance_after"],
             "description"            => "Charge for Electricity Purchase",
             "transaction_reference"  => $transactionChargeId,
-            "parent_transaction_id"  => $transactionId,
+            "parent_transaction_id"  => $transaction->id,
             "transaction_remarks_id" => 1,
             "transaction_type_id"    => 51,
             "credit_debit_type_id"   => 2,
@@ -563,31 +588,32 @@ class VTPassController extends Controller
         $electricityToken = $buyElectricity['data']['token'];
 
         $transaction->transaction_remarks_id = 2;
-        $transaction->description            = "Purchased Electricity Token: $electricityToken Amount: $request->final_amount";
+        $transaction->description            = "Purchased Electricity Token: $electricityToken Amount: $final_amount";
         $transaction->save();
 
         $buyElectricity['data']['balance'] = $debitCustomer["charge_balance_after"];
 
-        sendSMS($transaction->created_by, "Purchased Electricity Token $electricityToken, Amount: $request->final_amount, Avail Bal: " . $debitCustomer["charge_balance_after"], true, true, 'Electricity Token');
+        sendSMS($transaction->created_by, "Purchased Electricity Token $electricityToken, Amount: $final_amount, Avail Bal: " . $debitCustomer["charge_balance_after"], true, true, 'Electricity Token');
     }
 
     public function processCableTV($response, $transaction)
     {
-        $wbaCharge = getWbaTransferCharges(12, ($request->amount / 100));
+        $final_amount = $response['data']['content']['transactions']['total_amount'];
+        $wbaCharge    = getWbaTransferCharges(12, ($final_amount / 100));
 
         $companySettings = $this->getCompanySettings($transaction);
 
-        $debitCustomer = $this->customDebitCustomerAndCompanyWithCharge($transaction, $response);
+        $debitCustomer = $this->customDebitCustomerAndCompanyWithCharge($transaction, $final_amount, $companySettings, $wbaCharge);
 
         $transaction->update([
 
             "balance_before"         => $debitCustomer['balance_before'],
-            "amount"                 => $request->final_amount,
+            "amount"                 => $final_amount,
             "balance_after"          => $debitCustomer["balance_after"],
             "company_balance_before" => $debitCustomer["company_balance_before"],
             "company_amount"         => $debitCustomer["company_amount"],
             "company_balance_after"  => $debitCustomer["company_balance_after"],
-            "description"            => "Cable TV Subscription worth $request->final_amount",
+            "description"            => "Cable TV Subscription worth  $final_amount",
             "transaction_reference"  => $transactionId,
             "transaction_remarks_id" => 1,
             "transaction_type_id"    => 13,
@@ -615,7 +641,7 @@ class VTPassController extends Controller
             "company_balance_after"  => $debitCustomer["company_charge_balance_after"],
             "description"            => "Charge for Cable TV Subscription",
             "transaction_reference"  => $transactionChargeId,
-            "parent_transaction_id"  => $transactionId,
+            "parent_transaction_id"  => $transaction->id,
             "transaction_remarks_id" => 1,
             "transaction_type_id"    => 51,
             "credit_debit_type_id"   => 2,
@@ -645,9 +671,9 @@ class VTPassController extends Controller
         return company_settings::where('company_id', $transaction->company_id)->first();
     }
 
-    public function customDebitCustomerAndCompanyWithCharge($transaction, $response)
+    public function customDebitCustomerAndCompanyWithCharge($transaction, $final_amount, $companySettings, $wbaCharge)
     {
-        return \debitCustomerAndCompanyWithCharge($transaction->account_id, $transaction->company_id->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
+        return \debitCustomerAndCompanyWithCharge($transaction->account_id, $transaction->company_id, $final_amount, $companySettings->bills_payment_charge, $wbaCharge);
     }
 
     public function getUser($transaction)

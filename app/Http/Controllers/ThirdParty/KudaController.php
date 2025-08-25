@@ -217,7 +217,7 @@ class KudaController extends WebhookController
                         'status'  => true,
                         'message' => "Bet Response Successfully",
                         'data'    => [
-                            $createAccountResponse['data']['Billers'],
+                            $createBetResponse['data']['Billers'],
                         ],
                     ];
                 }

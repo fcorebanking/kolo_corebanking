@@ -414,7 +414,7 @@ class VTPassController extends Controller
 
                 if ($transaction->description == "Subscribe TV Initialized") {
 
-                    $this->processAirtime($response, $transaction);
+                    $this->processCableTV($response, $transaction);
 
                 } else {
                     $this->processDataBundle($response, $transaction);
@@ -614,7 +614,6 @@ class VTPassController extends Controller
             "company_amount"         => $debitCustomer["company_amount"],
             "company_balance_after"  => $debitCustomer["company_balance_after"],
             "description"            => "Cable TV Subscription worth  $final_amount",
-            "transaction_reference"  => $transactionId,
             "transaction_remarks_id" => 1,
             "transaction_type_id"    => 13,
             "credit_debit_type_id"   => 2,

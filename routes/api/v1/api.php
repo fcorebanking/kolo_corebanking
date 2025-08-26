@@ -183,6 +183,7 @@ Route::post('/transaction/card-balance', [TransactionController::class, 'cardBal
 Route::post('/transaction/network-management', [TransactionController::class, 'networkManagement'])->name('new-transaction');
 
 Route::post('/transaction/pos-balance', [TransactionController::class, 'getTerminalBalance'])->name('pos-balance')->middleware('log.route');
+Route::get('/transactions/get-pos-balance', [TransactionController::class, 'getPOSBalance'])->name('pos-get-balance')->middleware('log.route');
 
 Route::post('/transaction/get-exchange-rates', [TransactionController::class, 'getExchangeRates'])->name('get-exchange-rates');
 Route::middleware("checkApiKey")->post('/users/restrict-account', [UserController::class, 'restrictUserAccount'])->name('restrict-user-account');

@@ -86,6 +86,7 @@ Route::prefix('/users')->group(function () {
         Route::get('/talent-charges', [TalentModuleController::class, 'charges']);
         Route::post('/vote-talent/{id}', [TalentModuleController::class, 'VoteTalent']);
         Route::get('/view-talent/{id}', [TalentModuleController::class, 'ViewTalentVote']);
+
     });
     //resetPin
     Route::post('/upload-file', [UserController::class, 'uploadFile']);
@@ -183,7 +184,6 @@ Route::post('/transaction/card-balance', [TransactionController::class, 'cardBal
 Route::post('/transaction/network-management', [TransactionController::class, 'networkManagement'])->name('new-transaction');
 
 Route::post('/transaction/pos-balance', [TransactionController::class, 'getTerminalBalance'])->name('pos-balance')->middleware('log.route');
-Route::get('/transactions/get-pos-balance', [TransactionController::class, 'getPOSBalance'])->name('pos-get-balance')->middleware('log.route');
 
 Route::post('/transaction/get-exchange-rates', [TransactionController::class, 'getExchangeRates'])->name('get-exchange-rates');
 Route::middleware("checkApiKey")->post('/users/restrict-account', [UserController::class, 'restrictUserAccount'])->name('restrict-user-account');
@@ -231,6 +231,7 @@ Route::prefix('/transactions')->group(function () {
         Route::post('/verify-wallet-account', [TransactionController::class, 'verifyWalletAccount']);
         Route::post('/wallet-transfer', [TransactionController::class, 'walletTransfer']);
         Route::get('/get-beneficiaries', [TransactionController::class, 'getBeneficiaries']);
+        Route::get('/get-pos-balance', [TransactionController::class, 'getPOSBalance'])->name('pos-get-balance')->middleware('log.route');
 
         //Beeting endpoints
         Route::get('/get-betting-companies', [TransactionController::class, 'getBettingCompanies']);

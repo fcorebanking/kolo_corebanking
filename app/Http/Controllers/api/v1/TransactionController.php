@@ -1189,7 +1189,7 @@ class TransactionController extends Controller
                 "status"  => true,
                 'message' => "Beneficiary Retieved Successful",
                 'data'    => [
-                    'accounts' => new BenefeciariesResource($beneficiaries),
+                    'accounts' => BenefeciariesResource::collection($beneficiaries),
                 ],
             ]);
         }

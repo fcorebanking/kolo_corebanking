@@ -2,7 +2,6 @@
 namespace App\Http\Resources;
 
 use App\Models\banks;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class BenefeciariesResource extends JsonResource
@@ -12,7 +11,7 @@ class BenefeciariesResource extends JsonResource
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request)
+    public function toArray($request)
     {
         $bank = banks::where('id', $this->bank_id)->first();
         return [

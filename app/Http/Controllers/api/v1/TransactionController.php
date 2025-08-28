@@ -31,6 +31,7 @@ use App\Models\company_settings;
 use App\Models\company_wallet;
 use App\Models\GtbWebhook;
 use App\Models\loan;
+use App\Http\Resources\BenefeciariesResource;
 use App\Models\Mandate;
 use App\Models\MandateLog;
 use App\Models\PreferredEbankingPartner;
@@ -1188,7 +1189,7 @@ class TransactionController extends Controller
                 "status"  => true,
                 'message' => "Beneficiary Retieved Successful",
                 'data'    => [
-                    'accounts' => $beneficiaries,
+                    'accounts' =>BenefeciariesResource::collection($beneficiaries) 
                 ],
             ]);
         }

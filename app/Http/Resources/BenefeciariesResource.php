@@ -12,7 +12,7 @@ class BenefeciariesResource extends JsonResource
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+    public function toArray(Request $request)
     {
         $bank = banks::where('id', $this->bank_id)->first();
         return [

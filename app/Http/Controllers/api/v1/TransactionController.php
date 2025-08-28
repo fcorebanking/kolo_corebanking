@@ -21,6 +21,7 @@ use App\Http\Controllers\ThirdParty\TwilioWhatsapp;
 use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Http\Controllers\ThirdParty\WovenController;
+use App\Http\Resources\BenefeciariesResource;
 use App\Mail\TransactionReport;
 use App\Models\AgentTerminal;
 use App\Models\ApiKey;
@@ -31,7 +32,6 @@ use App\Models\company_settings;
 use App\Models\company_wallet;
 use App\Models\GtbWebhook;
 use App\Models\loan;
-use App\Http\Resources\BenefeciariesResource;
 use App\Models\Mandate;
 use App\Models\MandateLog;
 use App\Models\PreferredEbankingPartner;
@@ -1189,7 +1189,7 @@ class TransactionController extends Controller
                 "status"  => true,
                 'message' => "Beneficiary Retieved Successful",
                 'data'    => [
-                    'accounts' =>BenefeciariesResource::collection($beneficiaries) 
+                    'accounts' => BenefeciariesResource::collection($beneficiaries),
                 ],
             ]);
         }

@@ -8,7 +8,6 @@ use App\Http\Controllers\ThirdParty\WovenController;
 use App\Http\Controllers\TransactionController;
 use App\Imports\UsersImport;
 use App\Models\AddedLoanLog;
-use App\Models\ApiKey;
 use App\Models\banks;
 use App\Models\branch;
 use App\Models\CardRequestLog;
@@ -582,7 +581,8 @@ class CustomerController extends Controller
         // } catch (\Throwable $th) {
         //     //throw $th;
         // }
-        $branchName = isset($user->bank->bank_name) ? $user->bank->bank_name : '';
+        $branchName        = isset($user->bank->bank_name) ? $user->bank->bank_name : '';
+      
 
         $companyname = $auth->company->company_name;
         $datax       = [
@@ -3663,8 +3663,6 @@ class CustomerController extends Controller
         $transactionId = generateTransactionReference();
 
         $chargeAmount = 3000;
-
-        
 
         $company = Company::where('id', $company_id)->first();
 

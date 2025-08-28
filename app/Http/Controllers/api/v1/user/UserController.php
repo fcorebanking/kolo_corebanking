@@ -106,7 +106,7 @@ class UserController extends Controller
                     "otherID_file"                 => $request->user()->otherID_file,
                     "company_id"                   => $request->user()->company_id,
                     "status_id"                    => $request->user()->status_id,
-                      "referral_id"                    => $request->user()->referral_id,
+                    "referral_id"                  => $request->user()->id,
                     "kyc_level_id"                 => $request->user()->kyc_level_id,
                     "phone_verification_status_id" => $request->user()->phone_verification_status_id,
                     "account_officer_id"           => $request->user()->account_officer_id,

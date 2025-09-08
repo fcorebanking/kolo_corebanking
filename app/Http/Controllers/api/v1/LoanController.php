@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ListLoanResource;
 use App\Models\ApploanSettings;
 use App\Models\loan;
 use App\Models\LoanRepayment;
@@ -248,9 +249,11 @@ class LoanController extends Controller
     public function listUserLoan()
     { //loan_repayments
         logInfo(json_encode(auth()->user()->id), "User Loan");
-        $loan = loan::join('loan_status', 'loan_status.statusID', '=', 'loans.loan_status_id')
+        /*   $loan = loan::join('loan_status', 'loan_status.statusID', '=', 'loans.loan_status_id')
         // ->join('loan_repayments','loan_repayments.loan_id','=','loans.id')
-            ->where('user_id', auth()->user()->id)->select('loans.*', DB::raw('loan_status.name as loanstatusName'), DB::raw('loan_status.tag as loanstatustag'))->get();
+            ->where('user_id', auth()->user()->id)->select('loans.*', DB::raw('loan_status.name as loanstatusName'), DB::raw('loan_status.tag as loanstatustag'))->get();*/
+        $loanResource = loan::where('user_id', auth()->user()->id)->get();
+        $loan         = ListLoanResource::collection($loanResource);
         logInfo(json_encode($loan), "List User Loan");
         return (count($loan)) ? response()->json(['message' => 'Data Found!', 'data' => $loan, 'status' => 1]) : response()->json(['message' => "no loan data", 'status' => 0]);
     }

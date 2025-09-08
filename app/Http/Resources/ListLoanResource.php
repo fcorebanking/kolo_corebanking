@@ -20,6 +20,7 @@ class ListLoanResource extends JsonResource
             'missedLoanLeft' => $this->missedLoanLeft,
             'missedLoan'     => $this->missedLoan,
             'principal'      => $this->principal,
+            'loan_ref'       => $this->ref,
             'principalLeft'  => $this->principalLeft,
             'InterestLeft'   => $this->InterestLeft,
             'loanBalance'    => $this->loanBalance,

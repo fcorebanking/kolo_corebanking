@@ -35,9 +35,10 @@ class OrderController extends Controller
     public function makeOrder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'product_id' => 'required',
-            'qrty'       => 'required|numeric|min:1',
+            'product_id' => 'nulable',
+            'qrty'       => 'nullable|numeric|min:1',
             'account_id' => 'required',
+            'product'    => 'array',
         ]);
         if ($validator->fails()) {
             $errors = '';

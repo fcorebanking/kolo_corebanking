@@ -19,6 +19,7 @@ class ListLoanResource extends JsonResource
             'modified_by'    => $this->modified_by,
             'missedLoanLeft' => $this->missedLoanLeft,
             'missedLoan'     => $this->missedLoan,
+            'principal'      => $this->principal,
             'principalLeft'  => $this->principalLeft,
             'InterestLeft'   => $this->InterestLeft,
             'loanBalance'    => $this->loanBalance,

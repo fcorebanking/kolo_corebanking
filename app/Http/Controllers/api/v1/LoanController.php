@@ -247,6 +247,7 @@ class LoanController extends Controller
     }
     public function listUserLoan()
     { //loan_repayments
+        logInfo(json_encode(auth()->user()->id), "User Loan");
         $loan = loan::join('loan_status', 'loan_status.statusID', '=', 'loans.loan_status_id')
         // ->join('loan_repayments','loan_repayments.loan_id','=','loans.id')
             ->where('user_id', auth()->user()->id)->select('loans.*', DB::raw('loan_status.name as loanstatusName'), DB::raw('loan_status.tag as loanstatustag'))->get();

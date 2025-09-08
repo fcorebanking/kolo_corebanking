@@ -216,7 +216,7 @@ Route::group(['middleware' => 'auth:api'], function () {
 
     Route::prefix('/ecommerce')->group(function () {
         //
-        Route::post('/category', [OrderController::class, 'category']);
+        Route::get('/category', [OrderController::class, 'category']);
         Route::post('/items', [OrderController::class, 'index']);
         Route::post('/buy-item', [OrderController::class, 'makeOrder']);
         Route::post('/view-all-order', [OrderController::class, 'showOrdersAll']);

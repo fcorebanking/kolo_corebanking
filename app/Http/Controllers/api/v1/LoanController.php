@@ -250,6 +250,7 @@ class LoanController extends Controller
         $loan = loan::join('loan_status', 'loan_status.statusID', '=', 'loans.loan_status_id')
         // ->join('loan_repayments','loan_repayments.loan_id','=','loans.id')
             ->where('user_id', auth()->user()->id)->select('loans.*', DB::raw('loan_status.name as loanstatusName'), DB::raw('loan_status.tag as loanstatustag'))->get();
+        logInfo(json_encode($loan), "List User Loan");
         return (count($loan)) ? response()->json(['message' => 'Data Found!', 'data' => $loan, 'status' => 1]) : response()->json(['message' => "no loan data", 'status' => 0]);
     }
     public function PaylLoan(Request $request)

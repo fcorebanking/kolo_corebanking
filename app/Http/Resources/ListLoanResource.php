@@ -24,6 +24,7 @@ class ListLoanResource extends JsonResource
             'principalLeft'  => $this->principalLeft,
             'InterestLeft'   => $this->InterestLeft,
             'loanBalance'    => $this->loanBalance,
+            'account_id'     => auth()->user()->accounts->first()->id,
             "loanstatusName" => $this->loan_status_id == 1 ? "Active" : "inactive", // from loan_status table
             "loanstatustag"  => $this->loan_status_id == 1 ? "green" : "red",
 

@@ -23,8 +23,8 @@ class ListLoanResource extends JsonResource
             'principalLeft'  => $this->principalLeft,
             'InterestLeft'   => $this->InterestLeft,
             'loanBalance'    => $this->loanBalance,
-            "loanstatusName" => "Active", // from loan_status table
-            "loanstatustag"  => "green",
+            "loanstatusName" => $this->loan_status_id == 1 ? "Active" : "inactive", // from loan_status table
+            "loanstatustag"  => $this->loan_status_id == 1 ? "green" : "red",
 
         ];
     }

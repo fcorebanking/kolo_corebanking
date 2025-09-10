@@ -352,6 +352,7 @@ class LoanController extends Controller
         logInfo(json_encode($RepaymentAmt), "loan user RepaymentAmt");
 
         $checkProducts = loan_product::where(['id' => $productid, 'status_id' => 1, 'company_id' => $company])->first();
+        logInfo(json_encode($checkProducts), "loan user checkProducts");
         if ($checkProducts) {
             $pickguarantor = [];
             $branch        = branch::where(['id' => $branchid, 'company_id' => $company])->first();

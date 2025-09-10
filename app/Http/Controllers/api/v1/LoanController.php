@@ -255,7 +255,7 @@ class LoanController extends Controller
         $loanResource = loan::where('user_id', auth()->user()->id)->get();
         $loan         = ListLoanResource::collection($loanResource);
         logInfo(json_encode($loan), "List User Loan");
-        return (count($loan)) ? response()->json(['message' => 'Data Found!', 'data' => $loan, 'status' => 1]) : response()->json(['message' => "no loan data", 'status' => 0]);
+        return (count($loan)) ? response()->json(['message' => 'Data Found!', 'data' => $loan, 'status' => 1]) : response()->json(['message' => "no loan data",'data' => $loan, 'status' => 0]);
     }
     public function PaylLoan(Request $request)
     {

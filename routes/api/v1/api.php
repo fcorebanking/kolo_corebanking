@@ -219,8 +219,8 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::get('/category', [OrderController::class, 'category']);
         Route::post('/items', [OrderController::class, 'index']);
         Route::post('/buy-item', [OrderController::class, 'makeOrder']);
-        Route::post('/view-all-order', [OrderController::class, 'showOrdersAll']);
-        Route::post('/view-pending-order', [OrderController::class, 'showOrderPending']);
+        Route::get('/view-all-order', [OrderController::class, 'showOrdersAll']);
+        Route::get('/view-pending-order', [OrderController::class, 'showOrderPending']);
         Route::post('/cancel-order', [OrderController::class, 'cancelOrders']);
     });
 });

@@ -38,7 +38,7 @@ class OrderController extends Controller
             'product_id' => 'nulable',
             'qrty'       => 'nullable|numeric|min:1',
             'account_id' => 'required',
-            'product'    => 'array',
+            'products'   => 'array',
         ]);
         if ($validator->fails()) {
             $errors = '';

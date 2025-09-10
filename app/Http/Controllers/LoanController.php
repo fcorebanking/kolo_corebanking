@@ -493,6 +493,27 @@ class LoanController extends Controller
                             }
                         }
                     }
+                    $loan_response = json_encode([
+                        'status'              => 1,
+                        'response_status'     => 'success',
+                        'repayData'           => $repayData,
+                        'EachRepayment'       => $finalRepayment,
+                        'duration'            => $duration,
+                        'LoanType'            => $LoanType,
+                        'FirstRepayment'      => $FirstRepayment,
+                        'TotalLoanInterest'   => $TotalLoanInterest,
+                        'interestRate'        => $convertinterest,
+                        'principal'           => $principal,
+                        'Principel_Interest'  => $Principel_Interest,
+                        'loanFee'             => $request->loanFee,
+                        'managementFee'       => $request->managementFee,
+                        'loanFeeMethod'       => $loanFeeMethodTXT,
+                        'managementFeeMethod' => $managementFeeMethodTXT,
+                        'ExtendDuration'      => ($request->ExtendDuration > 0) ? $request->ExtendDuration : 'No extension for missed loan',
+                        'guarantor'           => $pickguarantor,
+                        'borrower'            => $borrowerRay,
+                    ]);
+                    logInfo(json_encode($loan_response), "loan user response");
                     return json_encode([
                         'status'              => 1,
                         'response_status'     => 'success',

@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Models\banks;
 use App\Models\branch;
 use App\Models\Company;
@@ -75,6 +76,12 @@ class RegisterController extends Controller
             if (count($userNIN) > 0) {
                 return response()->json(["status" => false, "message" => "BVN already exist!"], 409);
             }
+        }
+
+        $bvnCheck = $this->verifyBVN($request);
+        if ($bvnCheck['status'] == false) {
+            return response()->json(["status" => false, "message" => "Failed to verify BVN!"], 400);
+
         }
         // if (!empty($request->nin) && $request->nin === "") {
         //     $ra = array("status" => false, "message" => "NIN is required!");
@@ -798,5 +805,14 @@ class RegisterController extends Controller
         }
 
         // return response(['status' => false, 'message' => 'Failed to register']);
+    }
+
+    public function verifyBVN(Request $request)
+    {
+        $identityPassController = new IdentityPassController();
+
+        $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
+
+        return $bvnResponse;
     }
 }

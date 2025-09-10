@@ -18,7 +18,8 @@ class LoanController extends Controller
 {
     public function postDataProcessing(Request $request)
     {
-        $user        = (auth()->check()) ? auth()->user() : User::where('id', $request->userid)->first();
+        $user = (auth()->check()) ? auth()->user() : User::where('id', $request->userid)->first();
+        logInfo(json_encode($user), "loan user");
         $officer     = User::where('id', $user->account_officer_id)->first();
         $eligibility = $this->eligibility();
         if ($eligibility->status == 0) {
@@ -53,6 +54,7 @@ class LoanController extends Controller
         $request->missedFee                      = 0;
         $request->DurationPeriod                 = $eligibility->durationPeriod;
         $request->status                         = 1;
+        logInfo(json_encode($request), "loan user reqest");
         return $request;
     }
     public function processLoan(Request $request)
@@ -255,7 +257,7 @@ class LoanController extends Controller
         $loanResource = loan::where('user_id', auth()->user()->id)->get();
         $loan         = ListLoanResource::collection($loanResource);
         logInfo(json_encode($loan), "List User Loan");
-        return (count($loan)) ? response()->json(['message' => 'Data Found!', 'data' => $loan, 'status' => 1]) : response()->json(['message' => "no loan data",'data' => $loan, 'status' => 0]);
+        return (count($loan)) ? response()->json(['message' => 'Data Found!', 'data' => $loan, 'status' => 1]) : response()->json(['message' => "no loan data", 'data' => $loan, 'status' => 0]);
     }
     public function PaylLoan(Request $request)
     {

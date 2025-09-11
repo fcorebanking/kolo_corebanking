@@ -107,84 +107,86 @@ class InvestmentController extends Controller
         } else {
             return response()->json(['status' => 0, 'message' => 'Transaction failed, set Investment Plan Credit transaction type in ledger settings !']);
         }
-        $terminationoption  = auth()->user()->company->setting->investment_termination_control;
-        $runninginvestment  = Investmentbooking::where('id', $id)->first();
-        $termination_charge = $runninginvestment->plan->termination_charge;
-        $amount             = $runninginvestment->amount;
-        $PI                 = $amount + $runninginvestment->wallet;
-        $percent_charge     = 0;
-        $cashleft           = 0;
-        if ($terminationoption == 1) {
-            if ($runninginvestment->wallet > 1) {
-                $percent_charge = ($termination_charge / 100) * $runninginvestment->wallet;
-                if ($runninginvestment->wallet > $percent_charge) {
-                    $cashleft = ($runninginvestment->wallet - $percent_charge) + $amount;
+        $terminationoption = auth()->user()->company->setting->investment_termination_control;
+        $runninginvestment = Investmentbooking::where('id', $id)->first();
+        if (runninginvestment->status != 1) {
+            $termination_charge = $runninginvestment->plan->termination_charge;
+            $amount             = $runninginvestment->amount;
+            $PI                 = $amount + $runninginvestment->wallet;
+            $percent_charge     = 0;
+            $cashleft           = 0;
+            if ($terminationoption == 1) {
+                if ($runninginvestment->wallet > 1) {
+                    $percent_charge = ($termination_charge / 100) * $runninginvestment->wallet;
+                    if ($runninginvestment->wallet > $percent_charge) {
+                        $cashleft = ($runninginvestment->wallet - $percent_charge) + $amount;
+                    } else {
+                        return response(json_encode(['status' => 0, 'message' => 'You are not eligeble to withdraw at this time try again later']));
+                    }
+                } else {
+                    return response(json_encode(['status' => 0, 'message' => 'You are not eligeble to withdraw at this time try again later (Low interest)']));
+                }
+            } elseif ($terminationoption == 2) {
+                $percent_charge = ($termination_charge / 100) * $amount;
+                $cashleft       = ($amount - $percent_charge) + $runninginvestment->wallet;
+            } elseif ($terminationoption == 3) {
+                $percent_charge = ($termination_charge / 100) * $PI;
+                if ($PI > $percent_charge) {
+                    $cashleft = $PI - $percent_charge;
                 } else {
                     return response(json_encode(['status' => 0, 'message' => 'You are not eligeble to withdraw at this time try again later']));
                 }
+            } elseif ($terminationoption == 4) {
+                $cashleft = $amount;
             } else {
-                return response(json_encode(['status' => 0, 'message' => 'You are not eligeble to withdraw at this time try again later (Low interest)']));
+                return response(json_encode(['status' => 0, 'message' => 'Go to company settings and set Investment termination Control']));
             }
-        } elseif ($terminationoption == 2) {
-            $percent_charge = ($termination_charge / 100) * $amount;
-            $cashleft       = ($amount - $percent_charge) + $runninginvestment->wallet;
-        } elseif ($terminationoption == 3) {
-            $percent_charge = ($termination_charge / 100) * $PI;
-            if ($PI > $percent_charge) {
-                $cashleft = $PI - $percent_charge;
+            $wb      = wb_account_details::where('id', $runninginvestment->wb_accountdetails_id)->first();
+            $wbcheck = ($wb->user->company_id == auth()->user()->company_id);
+            if ($wbcheck) {
+                if ($runninginvestment->status == 1) {
+
+                    $userwallet          = user_wallet::where('wb_account_detail_id', $runninginvestment->wb_accountdetails_id)->first();
+                    $balanceBefore       = $userwallet->balance;
+                    $balanceAfter        = $balanceBefore + $cashleft;
+                    $userwallet->balance = $balanceAfter; // update(['balance' => $]);
+
+                    $userwallet->save();
+
+                    $BranchWallet = BranchWallet::where('branch_id', $wb->user->branch_id)->first();
+                    $BranchWallet->balance += $cashleft;
+                    $BranchWallet->save();
+                    $desc = "Investment Termination";
+                    $date = date('Y-m-d H:i:s');
+                    $runninginvestment->update(['status' => 2]); //Terminated
+                    $data = [
+                        "balance_before"         => $balanceBefore,
+                        "amount"                 => $amount,
+                        "description"            => $desc,
+                        "withdrawal_charge"      => $percent_charge,
+                        "account_id"             => $runninginvestment->wb_accountdetails_id,
+                        "branch_id"              => $wb->user->branch_id,
+                        "transaction_reference"  => generate_txnID(),
+                        "transaction_type_id"    => 21, //investment plan
+                        "credit_debit_type_id"   => 1,  //debit 2
+                        "transaction_remarks_id" => 2,  //success 2
+                        "balance_after"          => $balanceAfter,
+                        "created_date"           => date('Y-m-d'),
+                        "created_by"             => auth()->user()->id,
+                        "ledger_cr"              => $ledger_cr,
+                        "ledger_dr"              => $ledger_dr,
+                    ];
+                    transactions::create($data);
+                    sendSMS($runninginvestment->wb_accountdetails_id, "Credit Amt:$cashleft Charges:$percent_charge Desc:$desc Avail Bal:$userwallet->balance Date:$date", false, true, 'Investment Termination');
+                    return response(json_encode(['status' => 1, 'message' => "Investment Terminated!"]));
+                } else {
+                    return response(json_encode(['status' => 0, 'message' => 'Investment no longer Active']));
+                }
             } else {
-                return response(json_encode(['status' => 0, 'message' => 'You are not eligeble to withdraw at this time try again later']));
+                return response(json_encode(['status' => 0, 'message' => 'User restricted from other company customers']));
             }
-        } elseif ($terminationoption == 4) {
-            $cashleft = $amount;
-        } else {
-            return response(json_encode(['status' => 0, 'message' => 'Go to company settings and set Investment termination Control']));
         }
-        $wb      = wb_account_details::where('id', $runninginvestment->wb_accountdetails_id)->first();
-        $wbcheck = ($wb->user->company_id == auth()->user()->company_id);
-        if ($wbcheck) {
-            if ($runninginvestment->status == 1) {
-
-                $userwallet          = user_wallet::where('wb_account_detail_id', $runninginvestment->wb_accountdetails_id)->first();
-                $balanceBefore       = $userwallet->balance;
-                $balanceAfter        = $balanceBefore + $cashleft;
-                $userwallet->balance = $balanceAfter; // update(['balance' => $]);
-
-                $userwallet->save();
-
-                $BranchWallet = BranchWallet::where('branch_id', $wb->user->branch_id)->first();
-                $BranchWallet->balance += $cashleft;
-                $BranchWallet->save();
-                $desc = "Investment Termination";
-                $date = date('Y-m-d H:i:s');
-                $runninginvestment->update(['status' => 2]); //Terminated
-                $data = [
-                    "balance_before"         => $balanceBefore,
-                    "amount"                 => $amount,
-                    "description"            => $desc,
-                    "withdrawal_charge"      => $percent_charge,
-                    "account_id"             => $runninginvestment->wb_accountdetails_id,
-                    "branch_id"              => $wb->user->branch_id,
-                    "transaction_reference"  => generate_txnID(),
-                    "transaction_type_id"    => 21, //investment plan
-                    "credit_debit_type_id"   => 1,  //debit 2
-                    "transaction_remarks_id" => 2,  //success 2
-                    "balance_after"          => $balanceAfter,
-                    "created_date"           => date('Y-m-d'),
-                    "created_by"             => auth()->user()->id,
-                    "ledger_cr"              => $ledger_cr,
-                    "ledger_dr"              => $ledger_dr,
-                ];
-                transactions::create($data);
-                sendSMS($runninginvestment->wb_accountdetails_id, "Credit Amt:$cashleft Charges:$percent_charge Desc:$desc Avail Bal:$userwallet->balance Date:$date", false, true, 'Investment Termination');
-                return response(json_encode(['status' => 1, 'message' => "Investment Terminated!"]));
-            } else {
-                return response(json_encode(['status' => 0, 'message' => 'Investment no longer Active']));
-            }
-        } else {
-            return response(json_encode(['status' => 0, 'message' => 'User restricted from other company customers']));
-        }
-        return response(json_encode(['status' => 0, 'message' => 'An Error occured']));
+        return response(json_encode(['status' => 0, 'message' => 'Investment Terminated!']));
     }
     public function fetchInvestmentProduct()
     {

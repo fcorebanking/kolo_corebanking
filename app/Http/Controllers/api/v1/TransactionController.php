@@ -1620,7 +1620,7 @@ class TransactionController extends Controller
 
                 // return response()->json(["status" => false, 'message' => "Insufficient Balance ", 'data' => $userWallet->balance], 400);
             } else if ($request->transaction_type == 4) {
-
+                return response()->json("Not available now", 400);
                 $amount      = 0;
                 $totalAmount = 0;
 
@@ -2564,7 +2564,7 @@ class TransactionController extends Controller
             }
 
             $creditCustomer = $request->PostingType == "Cr" ? creditPOSTerminal($terminal->terminal_code, $originalAmount, $customerCharge, $initialCustomerCharge, $companyId)
-            : \debitCustomerAndCompanyPOSWithChargeAndCommission($accountId, $terminal->terminal_code, $companyId, $originalAmount, $customerCharge, $companyCommission);
+                : \debitCustomerAndCompanyPOSWithChargeAndCommission($accountId, $terminal->terminal_code, $companyId, $originalAmount, $customerCharge, $companyCommission);
             $ledger_cr       = null;
             $ledger_dr       = null;
             $ledger_Settings = get_CR_DR_TXN_Type_Ledger($transactionType, $customer->company_id);
@@ -5481,9 +5481,9 @@ class TransactionController extends Controller
         \logInfo(json_encode($transaction), "Report transaction :");
         $company = Company::where('id', $transaction->company_id)->first();
         $data    = [
-            'subtext'      => "Transaction issue for {$request->ref_id}",
-            'reason'       => $request->reason,
-            'desc'         => "There is an issue with a transaction , {$request->ref_id}. ",
+            'subtext' => "Transaction issue for {$request->ref_id}",
+            'reason' => $request->reason,
+            'desc'   => "There is an issue with a transaction , {$request->ref_id}. ",
             'company_name' => $company->company_name,
         ];
 

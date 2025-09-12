@@ -25,6 +25,19 @@ class InvestmentController extends Controller
         ];
         return json_encode($data);
     }
+
+    public function allInvestmentVariable()
+    {
+        $data = [
+            'product'      => InvestmentProduct::with('investmentfrequency')->where('company_id', auth()->user()->company_id)->get(),
+            'freq'         => frequency::where('id', '>', 1)->get(),
+            'status'       => company_status::all(),
+            'userAccounts' => auth()->user()->wb_account_details,
+        ];
+        //  return json_encode($data);
+
+        return response()->json(['message' => 'Data Found!', 'data' => $data, 'status' => 1], 200);
+    }
     public function processInvestment(Request $request)
     {
         $calculate = (app('App\Http\Controllers\InvestmentController')->calculateinvestment($request));
@@ -48,6 +61,18 @@ class InvestmentController extends Controller
             ->get();
         return json_encode($Investmentbooking);
         // return response()->json($Investmentbooking,200);
+
+    }
+
+    public function viewInvestmentUpdate()
+    {
+        $Investmentbooking = Investmentbooking::with('plan') //->join('wb_account_details','wb_account_details.id','=','investmentbooking.wb_accountdetails_id')
+            ->whereHas('wb_account_details', function ($q) {
+                $q->where('wb_account_details.user_id', auth()->user()->id);
+            })
+            ->get();
+        //  return json_encode($Investmentbooking);
+        return response()->json(['message' => 'Data Found!', 'data' => $Investmentbooking, 'status' => 1], 200);
 
     }
     public function TerminateInvestment(Request $request)

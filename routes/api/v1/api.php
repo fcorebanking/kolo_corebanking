@@ -318,10 +318,13 @@ Route::prefix('/investment')->group(function () {
     Route::group(['middleware' => 'auth:api'], function () {
 
         Route::get('/investment-variable', [InvestmentController::class, 'investmentVariable']);
+        Route::get('/all-investment-variable', [InvestmentController::class, 'allInvestmentVariable']);
         Route::post('/process-investment', [InvestmentController::class, 'processInvestment']);
         Route::post('/send-process-investment', [InvestmentController::class, 'bookinvestment']);
         Route::get('/list-investment', [InvestmentController::class, 'viewInvestment']);
+        Route::get('/list-all-investment', [InvestmentController::class, 'viewInvestmentUpdate']);
         Route::post('/terminate-investment/{id}', [InvestmentController::class, 'ajax_investmentstatus']);
+
     });
 });
 Route::group(['middleware' => 'auth:api'], function () {

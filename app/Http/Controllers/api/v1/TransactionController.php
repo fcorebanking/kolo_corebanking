@@ -1620,7 +1620,7 @@ class TransactionController extends Controller
 
                 // return response()->json(["status" => false, 'message' => "Insufficient Balance ", 'data' => $userWallet->balance], 400);
             } else if ($request->transaction_type == 4) {
-                return response()->json("Not available now", 400);
+              //  return response()->json("Not available now", 400);
                 $amount      = 0;
                 $totalAmount = 0;
 

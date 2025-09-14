@@ -5489,11 +5489,12 @@ class TransactionController extends Controller
             $acoountID            = $wb_account_detail_id->id;
             $user                 = User::where('id', $wb_account_detail_id->user_id)->first();
             $transactionService   = new fortifyTransactionService();
-            $debitCustomer        = $transactionService->debitCustomerAndCompanyWithCompany4TSCashback($wb_account_detail_id, $user->company_id, $amount, 0, 0, $user);
+            $debitCustomer        = $transactionService->directDebitMandate($user, $amount);
             if (! $debitCustomer['status']) {
-                response()->json($debitCustomer, 400);
+                response()->json("Could not debit cuustomer", 400);
             } else {
-                return response()->json(['status' => 'ok'], 200);
+
+                return response()->json(['status' => 'ok', "message" => $debitCustomer], 200);
             }
 
         }

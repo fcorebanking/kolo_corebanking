@@ -1368,6 +1368,8 @@ class TransactionService
         return $response;
     }
 
+    
+
     public function register($bvn, $company_id, $email, $phone, $username, $customerInfo, $referral, $password, $pin)
     {
         $rules = [

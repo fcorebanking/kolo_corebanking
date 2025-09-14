@@ -47,6 +47,7 @@ use App\Models\WebhookLog;
 use App\Models\WovenWebhook;
 use App\Services\ebanking\BankTransferType;
 use App\Services\ebanking\EbankingService;
+use App\Services\fortifyTransactionService;
 use App\Services\PaystackService;
 use Carbon\Carbon;
 use Exception;
@@ -1620,7 +1621,7 @@ class TransactionController extends Controller
 
                 // return response()->json(["status" => false, 'message' => "Insufficient Balance ", 'data' => $userWallet->balance], 400);
             } else if ($request->transaction_type == 4) {
-              //  return response()->json("Not available now", 400);
+                //  return response()->json("Not available now", 400);
                 $amount      = 0;
                 $totalAmount = 0;
 
@@ -5471,6 +5472,32 @@ class TransactionController extends Controller
         }
 
         return response()->json(['status' => 'ok'], 200);
+    }
+
+    public function finova4tsWebhook(Request $request)
+    {
+
+        $secret         = 'finova-my-secret';
+        $receivedSecret = $request->header('x-fortify-secret');
+
+        if ($receivedSecret != null) {
+            // Optional: log the full webhook
+            \logInfo($request->all(), "4ts Finova Received Webhook");
+            $amount               = $request->amount;
+            $virtualAccount       = $request->account_number;
+            $wb_account_detail_id = wb_account_details::where('virtual_accnum', $virtualAccount)->first();
+            $acoountID            = $wb_account_detail_id->id;
+            $user                 = User::where('id', $wb_account_detail_id->user_id)->first();
+            $transactionService   = new fortifyTransactionService();
+            $debitCustomer        = $transactionService->debitCustomerAndCompanyWithCompany4TSCashback($wb_account_detail_id, $user->company_id, $amount, 0, 0, $user);
+            if (! $debitCustomer['status']) {
+                response()->json($debitCustomer, 400);
+            } else {
+                return response()->json(['status' => 'ok'], 200);
+            }
+
+        }
+
     }
 
     public function reportTransaction(Request $request)

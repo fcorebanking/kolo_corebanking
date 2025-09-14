@@ -39,6 +39,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/webhook-international', [InternationalTransaction::class, 'webhook']);
 Route::post('/twilio-webhook', [TransactionController::class, 'twilioWebhook']);
 Route::post('/test-finova-webhook', [TransactionController::class, 'finovaWebhook']);
+Route::post('/4ts-finova-webhook', [TransactionController::class, 'finova4tsWebhook']);
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();

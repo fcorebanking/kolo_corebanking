@@ -22,10 +22,13 @@ class OrderController extends Controller
                 $query = $query->where('ecommerce_categorie_id', $request->category);
             }
         }
-        $query = $query->get();
-        $ra    = ["status" => true, 'account_id' => auth()->user()->accounts->first()->virtual_accnum, "product" => $query, 'userAccounts' => auth()->user()->wb_account_details, 'contacts' => DeliveryDetailModel::where('user_id', auth()->user()->id)->get()];
+        $query    = $query->get();
+        $contacts = DeliveryDetailModel::where('user_id', auth()->user()->id)->get();
+        $accounts = auth()->user()->wb_account_details;
+        $ra       = ["status" => true, 'account_id' => auth()->user()->accounts->first()->virtual_accnum, 'contacts' => $contacts, "product" => $query, 'userAccounts' => $accounts];
         return response()->json($ra, 200);
     }
+
     public function category()
     {
         $ra = ["status" => true, "data" => EcommerceCategory::where(['company_id' => auth()->user()->company_id])->get()];
@@ -36,11 +39,17 @@ class OrderController extends Controller
     {
         \logInfo($request->all(), "4ts Finova Received Webhook");
         $validator = Validator::make($request->all(), [
-            'product_id' => 'nulable',
-            'qrty'       => 'nullable|numeric|min:1',
-            'account_id' => 'required',
-            'products'   => 'array',
+            'product_id'     => 'nulable',
+            'qrty'           => 'nullable|numeric|min:1',
+            'account_id'     => 'required',
+            'product'        => 'required',
+            'contact_id'     => 'nullable',
+            'address'        => 'nullable',
+            'contact'        => 'nullable',
+            'deliveryMethod' => 'nullable',
+
         ]);
+
         if ($validator->fails()) {
             $errors = '';
             foreach ($validator->messages()->getMessages() as $field_name => $messages) {
@@ -57,14 +66,18 @@ class OrderController extends Controller
         }
 
         $wb_account_details = wb_account_details::where('virtual_accnum', $request->account_id)->first();
+        $products           = $request->input('product');
+
         if ($wb_account_details) {
             foreach ($products as $product) {
-                $qrt         = $product->qrty;
+                $qrt         = $product['quantity'];
                 $wbID        = $wb_account_details->id;
                 $user_wallet = user_wallet::where('wb_account_detail_id', $wbID)->first();
+                $product_id  = $product['product']['id'];
+
                 if ($user_wallet) {
                     $balanceBefore = $balance = $user_wallet->balance;
-                    $ecom          = EcomerceProductModel::where(['id' => $product->product_id, 'company_id' => auth()->user()->company_id])->first();
+                    $ecom          = EcomerceProductModel::where(['id' => $product_id, 'company_id' => auth()->user()->company_id])->first();
                     if ($ecom->quantity < $qrt) {
                         $datax = [
                             'message' => "Item No Available!",
@@ -76,27 +89,33 @@ class OrderController extends Controller
                         $address     = '';
                         $contact     = '';
                         $addressID   = null;
-                        $haveContact = $product->haveContact;
+                        $haveContact = $request->contact_id;
                         if ($haveContact != null) {
                             $del = DeliveryDetailModel::where(['user_id' => auth()->user()->id, 'id' => $haveContact])->first();
                             if ($del) {
                                 $address   = $del->address;
                                 $contact   = $del->contact;
                                 $addressID = $del->id;
-                            } else {
-                                return response()->json(['status' => false, 'message' => 'Invalide address!'], 400);
-                            }
-                        } else {
-                            if ($product->address != null && $product->contact != null) {
-                                $address = $product->address;
-                                $contact = $product->contact;
-                            } else {
-                                return response()->json(['status' => false, 'message' => 'Enter Address and Contact!'], 400);
                             }
                         }
+
+                        if ($request->address != null && $request->contact != null) {
+                            $address = $request->address;
+                            $contact = $request->contact;
+                            DeliveryDetailModel::updateOrCreate(
+                                ['user_id' => auth()->user()->id],
+                                [
+                                    'address' => $request->address,
+                                    'contact' => $request->contact,
+
+                                ]);
+                        } else {
+                            return response()->json(['status' => false, 'message' => 'Enter Address and Contact!'], 400);
+                        }
+
                         $amount   = $ecom->amount;
                         $totalpay = $amount * $qrt;
-                        if ($product->deliveryMethod) {
+                        if ($request->deliveryMethod) {
                             if ($product->deliveryMethod == 'delivery') {
                                 $totalpay += $ecom->delivery_fee;
                             }

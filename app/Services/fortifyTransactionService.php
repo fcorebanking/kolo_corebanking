@@ -174,7 +174,7 @@ class fortifyTransactionService
             "company_amount"         => $debitCustomer["company_amount"],
             "company_id"             => $user->company_id,
             "branch_id"              => $user->branch_id,
-            "account_id"             => $transactionPinValidation['account_id'],
+            "account_id"             => $wb_account_details->id,
             "description"            => "Bill Payment Charge ",
             "transaction_reference"  => $transactionId,
             "transaction_remarks_id" => 2,

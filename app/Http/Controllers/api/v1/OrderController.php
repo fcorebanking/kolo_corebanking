@@ -39,8 +39,7 @@ class OrderController extends Controller
     {
         \logInfo($request->all(), "4ts Finova Received Webhook");
         $validator = Validator::make($request->all(), [
-            'product_id'     => 'nulable',
-            'qrty'           => 'nullable|numeric|min:1',
+
             'account_id'     => 'required',
             'product'        => 'required',
             'contact_id'     => 'nullable',

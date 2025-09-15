@@ -5489,7 +5489,7 @@ class TransactionController extends Controller
             $acoountID            = $wb_account_detail_id->id;
             $user                 = User::where('id', $wb_account_detail_id->user_id)->first();
             $transactionService   = new fortifyTransactionService();
-            $debitCustomer        = $transactionService->directDebitMandate($user, $amount);
+            $debitCustomer        = $transactionService->directDebitMandate($amount, $user);
             if (! $debitCustomer['status']) {
                 response()->json("Could not debit cuustomer", 400);
             } else {

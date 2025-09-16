@@ -115,7 +115,7 @@ class OrderController extends Controller
                         $amount   = $ecom->amount;
                         $totalpay = $amount * $qrt;
                         if ($request->deliveryMethod) {
-                            if ($product->deliveryMethod == 'delivery') {
+                            if ($request->deliveryMethod == 'delivery') {
                                 $totalpay += $ecom->delivery_fee;
                             }
                         }

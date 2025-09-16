@@ -194,7 +194,7 @@ class OrderController extends Controller
                             $OrderModel                            = new OrderModel;
                             $OrderModel->user_id                   = auth()->user()->id;
                             $OrderModel->ecomerce_product_model_id = $ecom->id;
-                            $OrderModel->qrty                      = $request->qrty;
+                            $OrderModel->qrty                      = $product['quantity'];
                             $OrderModel->status_id                 = 2;
                             $OrderModel->wb_account_detail_id      = $wbID;
                             $OrderModel->transaction_id            = $txn->id;

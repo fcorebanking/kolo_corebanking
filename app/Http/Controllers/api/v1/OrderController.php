@@ -231,7 +231,13 @@ class OrderController extends Controller
     }
     public function showOrdersAll()
     {
-        $ra = ["status" => true, "message" => OrderModel::with('DeliveryDetails')->with('product')->where('user_id', auth()->user()->id)->get()];
+        //$data = OrderModel::with('DeliveryDetails')->with('product')->where('user_id', auth()->user()->id)->get();
+        $data = OrderModel::select('id', 'user_id', 'ecomerce_product_model_id', 'status_id', 'total_amount', 'orderID')
+            ->with(['product:id,name,cover_img,cover_path,description'])
+            ->where('user_id', auth()->user()->id)->get();
+
+        $ra = ["status" => true, "message" => "Ordees fetched sccessfully", "data" => $data];
+
         return response()->json($ra, 200);
     }
     public function showOrderPending()

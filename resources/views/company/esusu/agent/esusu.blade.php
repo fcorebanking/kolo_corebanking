@@ -75,7 +75,7 @@
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     </button>
                 </div>
-                <form id='add-esusu-product'>
+                <form id='add-esusu-cstomer'>
                     <input type="hidden" class="token" name="_token" value="<?php echo csrf_token(); ?>">
                     <input type="hidden" id="productid">
                     <div class="modal-body">
@@ -83,8 +83,11 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text" id="basic-addon7">Name</span>
                             </div>
-                            <input type="text" class="form-control" id='esusu_type' name='esusu_type'
-                                aria-describedby="basic-addon3" placeholder="product 1..">
+                            <select name='customer' id='customerx'
+                                onchange="document.getElementById('user_id').value = this.value"
+                                class='form-control form-small' style='margin:5px'>
+
+                            </select>
                         </div>
                         <div class="input-group mb-4">
                             <div class="input-group-prepend">

@@ -5,6 +5,7 @@ $('#customerx').select2({
         dataType: 'json',
         delay: 100,
         data: function (data) {
+            console.log('esusu ' + data);
             return {
                 searchTerm: data.term // search term
             };

@@ -71,7 +71,7 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Esusu Product</h5>
+                    <h5 class="modal-title" id="exampleModalLabel">Esusu New Customer</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     </button>
                 </div>
@@ -86,6 +86,19 @@
                             <<select name='customerx' id='customerx' class='form-control form-small' style='margin:5px'>
                                 </select>
                         </div>
+                        <div class="input-group mb-4">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">DOB</span>
+                            </div>
+                            <input type="date" class="form-control" name="dob" id="dob" placeholder="DOB"
+                                min='1930-01-01'>
+                            <script>
+                                document.getElementById("myDate").max = "2014-01-01";
+                            </script>
+
+                            <span id="dob_error" class="text-danger font-weight-bold"></span>
+                        </div>
+
                         <div class="input-group mb-4">
                             <div class="input-group-prepend">
                                 <span class="input-group-text">Min. Rate</span>

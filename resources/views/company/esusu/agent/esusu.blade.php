@@ -88,10 +88,10 @@
                         </div>
                         <div class="input-group mb-4">
                             <div class="input-group-prepend">
-                                <span class="input-group-text">DOB</span>
+                                <span class="input-group-text">Start Date</span>
                             </div>
-                            <input type="date" class="form-control" name="dob" id="dob" placeholder="DOB"
-                                min='1930-01-01'>
+                            <input type="date" class="form-control" name="start_date" id="start_date"
+                                placeholder="Start Date" min='1930-01-01'>
                             <script>
                                 document.getElementById("myDate").max = "2014-01-01";
                             </script>

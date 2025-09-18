@@ -28,10 +28,14 @@ class InvestmentController extends Controller
 
     public function allInvestmentVariable()
     {
+        $investmentProduct = InvestmentProduct::with('investmentfrequency')->where('company_id', auth()->user()->company_id)->get();
+        $frequency         = frequency::where('id', '>', 1)->get();
+        $company           = company_status::all();
+
         $data = [
-            'product'      => InvestmentProduct::with('investmentfrequency')->where('company_id', auth()->user()->company_id)->get(),
-            'freq'         => frequency::where('id', '>', 1)->get(),
-            'status'       => company_status::all(),
+            'product'      => $investmentProduct,
+            'freq'         => $frequency,
+            'status'       => $company,
             'userAccounts' => auth()->user()->wb_account_details,
         ];
         //  return json_encode($data);

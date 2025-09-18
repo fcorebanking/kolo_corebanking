@@ -53,7 +53,13 @@ class InvestmentController extends Controller
         // return auth()->user()->id;
         $request->status = 1;
         $request->uuid   = auth()->user()->uuid;
-        $send            = (app('App\Http\Controllers\InvestmentController')->makeinvestment($request));
+        $request->merge([
+            'platform' => "mobile",
+
+        ]);
+
+        $send = (app('App\Http\Controllers\InvestmentController')->makeinvestment($request));
+        
         return $send;
     }
     public function viewInvestment()

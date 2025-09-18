@@ -290,15 +290,25 @@ class InvestmentController extends Controller
         $created_at   = ($request->created_at == null) ? date("Y-m-d") : $request->created_at;
         $uuid         = $request->uuid;
         $amount       = $request->amount;
+        $platform     = $request->platform;
         $userdata     = User::where(['uuid' => $uuid, 'company_id' => auth()->user()->company_id])->first();
         $BranchWallet = BranchWallet::where('branch_id', $userdata->branch_id)->first();
         if ($BranchWallet->balance < $amount) {
+            if ($platform == "mobile") {
+                return response()->json(["status" => false, 'message' => "Insufficient balance in Branch Wallet"], 400);
+            }
             return response(json_encode(["status" => 0, "message" => "Insufficient balance in Branch Wallet"]));
         }
         if ($userdata->status_id != 1) {
+            if ($platform == "mobile") {
+                return response()->json(["status" => false, 'message' => "User is Either Disabled or on Pending Entry!"], 400);
+            }
             return response(json_encode(["status" => 0, "message" => "User is Either Disabled or on Pending Entry!"]));
         }
         if (checkcustomerrestriction($userdata->id, 5)) {
+            if ($platform == "mobile") {
+                return response()->json(["status" => false, 'message' => "User is Restricted from performing this transaction!"], 400);
+            }
             return response(json_encode(["status" => 0, "message" => "User is Restricted from performing this transaction!"]));
         }
         $account_type       = $request->account_type;
@@ -313,9 +323,15 @@ class InvestmentController extends Controller
             if ($customerBalance >= $amount) {
                 $product = InvestmentProduct::where(['id' => $investmentproduct, 'company_id' => auth()->user()->company_id])->first();
                 if ($product->minimum_investment > $amount) {
+                    if ($platform == "mobile") {
+                        return response()->json(["status" => false, 'message' => 'Minimum amount for this investment is ' . $product->minimum_investment], 400);
+                    }
                     return json_encode(['status' => 0, 'message' => 'Minimum amount for this investment is ' . $product->minimum_investment]);
                 }
                 if ($amount > $product->maximum_investment) {
+                    if ($platform == "mobile") {
+                        return response()->json(["status" => false, 'message' => 'Maximun amount for this investment is ' . $product->maximum_investment], 400);
+                    }
                     return json_encode(['status' => 0, 'message' => 'Maximun amount for this investment is ' . $product->maximum_investment]);
                 }
                 if ($product->interest_rate >= 0 && $product->interest_rate <= 100) {
@@ -329,6 +345,9 @@ class InvestmentController extends Controller
                     } else if ($product_frequency == 4) {
                         $daysToAdd = $product_duration * 365;
                     } else {
+                        if ($platform == "mobile") {
+                            return response()->json(["status" => false, 'message' => 'Investment frequency error'], 400);
+                        }
                         return json_encode(['status' => 0, 'message' => 'Investment frequency error ']);
                     }
                     $transactionId = generate_txnID();
@@ -380,11 +399,17 @@ class InvestmentController extends Controller
                     $redirectlink = "transaction-receipt/$transactionId";
                     return response(json_encode(["status" => 1, "message" => "Transaction Successful!", "redirectlink" => $redirectlink]));
                 } else {
+                    if ($platform == "mobile") {
+                        return response()->json(["status" => false, 'message' => 'Investment frequency error'], 400);
+                    }
                     return json_encode(['status' => 0, 'message' => 'Error occured ']);
                 }
             } else {
                 return response(json_encode(['status' => 0, 'message' => nomoney()]));
             }
+        }
+        if ($platform == "mobile") {
+            return response()->json(["status" => false, 'message' => 'User not found!'], 400);
         }
         return response(json_encode(['status' => 0, 'message' => "User not found!"]));
     }

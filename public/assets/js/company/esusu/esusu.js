@@ -4,12 +4,12 @@ $('#customerx').select2({
         url: '/userDataSelect',
         dataType: 'json',
         delay: 100,
-        data: function(data) {
+        data: function (data) {
             return {
                 searchTerm: data.term // search term
             };
         },
-        processResults: function(response) {
+        processResults: function (response) {
             return {
                 results: response
             };
@@ -17,6 +17,8 @@ $('#customerx').select2({
         cache: true
     }
 });
+
+
 //esusu/product-list
 $('#esusu_product').select2({
     placeholder: 'Select Esusu Product',
@@ -24,12 +26,12 @@ $('#esusu_product').select2({
         url: '/company/esusu/product-list',
         dataType: 'json',
         delay: 100,
-        data: function(data) {
+        data: function (data) {
             return {
                 searchTerm: data.term // search term
             };
         },
-        processResults: function(response) {
+        processResults: function (response) {
             return {
                 results: response
             };
@@ -46,12 +48,12 @@ function select_tool() {
             url: '/userDataSelect/' + $val,
             dataType: 'json',
             delay: 100,
-            data: function(data) {
+            data: function (data) {
                 return {
                     searchTerm: data.term // search term
                 };
             },
-            processResults: function(response) {
+            processResults: function (response) {
                 return {
                     results: response
                 };
@@ -95,7 +97,7 @@ function edit_product($id) {
         type: 'post',
         dataType: 'json',
         headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-        success: function(data) {
+        success: function (data) {
             pop_modal(data.id);
             $('#esusu_type').val(data.esusu_type);
             $('#min_rate').val(data.min_rate);
@@ -120,7 +122,7 @@ function delete_product($id) {
         showCancelButton: true,
         confirmButtonText: 'Proceed',
         padding: '2em'
-    }).then(function(result) {
+    }).then(function (result) {
         if (result.value) {
             ajax_operation('delete', '/company/esusu/delete-product/' + $id, {});
             $('#html5-extension').DataTable().ajax.url('/company/esusu/product').load();
@@ -137,12 +139,12 @@ function rendersave() {
             url: '/userDataSelect/' + $val,
             dataType: 'json',
             delay: 250,
-            data: function(data) {
+            data: function (data) {
                 return {
                     searchTerm: data.term // search term
                 };
             },
-            processResults: function(response) {
+            processResults: function (response) {
                 return {
                     results: response
                 };
@@ -251,7 +253,7 @@ function perform_reset() {
     $('#html5-extension').DataTable().ajax.url('/company/esusu/view-data').load();
 
 }
-$("#pending_approval_form").on('submit', function() {
+$("#pending_approval_form").on('submit', function () {
 
     var formData = $(this).serialize();
 
@@ -268,10 +270,10 @@ function renderStaff() {
         url: '/company/{{auth()->user()->company->short_name}}/branch/branch_staff/' + $branch,
         type: 'GET',
         dataType: 'json',
-        success: function(data) {
+        success: function (data) {
             $('select[name="officer"]').empty();
 
-            data.forEach(function(staff) {
+            data.forEach(function (staff) {
 
                 $('select[name="officer"]').append('<option value="' + staff.uuid + '">' + staff.first_name + ' ' + staff.last_name + '</option>')
             });

@@ -83,8 +83,8 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text" id="basic-addon7">Name</span>
                             </div>
-                            <<select name='customerx' id='customerx' class='form-control form-small' style='margin:5px'>
-                                </select>
+                            <select name='customerx' id='customerx' class='form-control form-small' style='margin:5px'>
+                            </select>
                         </div>
                         <div class="input-group mb-4">
                             <div class="input-group-prepend">

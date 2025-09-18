@@ -3,12 +3,13 @@
         xhr.setRequestHeader('X-Requested-With', { toString: function () { return ''; } });
     };
 })(jQuery);
+
 $('#customerx').select2({
     placeholder: 'Select an Customer',
     ajax: {
         url: '/userDataSelect',
         dataType: 'json',
-        delay: 100,
+        delay: 250,
         data: function (data) {
             console.log('esusu ' + JSON.stringify(data, null, 2));
             return {

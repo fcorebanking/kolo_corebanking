@@ -225,20 +225,22 @@ class InvestmentController extends Controller
         $end_date       = add_day_to_date($daysToAdd, $startdate);
         return response(
             json_encode([
-                'test'          => $product_frequency,
-                "product"       => $InvestmentProduct->product,
-                "amount"        => $amount,
-                'percentvalue'  => round($percentinvalue),
-                'termination'   => $InvestmentProduct->termination_charge,
-                'max'           => $InvestmentProduct->maximum_investment,
-                'min'           => $InvestmentProduct->minimum_investment,
-                'start'         => $startdate,
-                'end'           => $end_date,
-                'totalcash'     => $amt_interest,
-                'interest'      => $interest,
-                'plan_interest' => $plan_interest,
-                'plantype'      => $InvestmentProduct->investmentfrequency->frequency,
-                'duration'      => $InvestmentProduct->duration,
+                'test'                 => $product_frequency,
+                "product"              => $InvestmentProduct->product,
+                "investmentproduct_id" => $InvestmentProduct->id,
+                "amount"               => $amount,
+                'percentvalue'         => round($percentinvalue),
+                'termination'          => $InvestmentProduct->termination_charge,
+                'max'                  => $InvestmentProduct->maximum_investment,
+                'min'                  => $InvestmentProduct->minimum_investment,
+                'start'                => $startdate,
+                'end'                  => $end_date,
+                'totalcash'            => $amt_interest,
+                'interest'             => $interest,
+                'plan_interest'        => $plan_interest,
+                'plantype'             => $InvestmentProduct->investmentfrequency->frequency,
+                'duration'             => $InvestmentProduct->duration,
+                'account_type'         => auth()->user()->wb_account_details->first()->virtual_accnum,
             ])
         );
     }

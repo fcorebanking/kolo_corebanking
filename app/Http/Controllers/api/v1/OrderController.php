@@ -102,10 +102,11 @@ class OrderController extends Controller
                             $address = $request->address;
                             $contact = $request->contact;
                             DeliveryDetailModel::updateOrCreate(
-                                ['user_id' => auth()->user()->id],
+                                ['user_id' => auth()->user()->id,
+                                    'contact'  => $request->contact,
+                                ],
                                 [
                                     'address' => $request->address,
-                                    'contact' => $request->contact,
 
                                 ]);
                         } else {

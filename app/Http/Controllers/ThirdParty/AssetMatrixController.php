@@ -21,13 +21,15 @@ class AssetMatrixController extends WebhookController
         $this->token = "";
         if (env('APP_MODE') == 'test') {
 
-            $this->publicKey = config('assetmatrix.public_key_test');
-            $this->secretKey = config('assetmatrix.secret_key_test');
-            $this->baseUrl   = config('assetmatrix.base_url_test');
+            $this->publicKey               = config('assetmatrix.public_key_test');
+            $this->secretKey               = config('assetmatrix.secret_key_test');
+            $this->baseUrl                 = config('assetmatrix.base_url_test');
+            $this->settlementAccountNumber = "";
         } else {
-            $this->publicKey = config('assetmatrix.public_key_live');
-            $this->secretKey = config('assetmatrix.secret_key_live');
-            $this->baseUrl   = config('assetmatrix.base_url_live');
+            $this->publicKey               = config('assetmatrix.public_key_live');
+            $this->secretKey               = config('assetmatrix.secret_key_live');
+            $this->baseUrl                 = config('assetmatrix.base_url_live');
+            $this->settlementAccountNumber = "";
         }
     }
 
@@ -98,12 +100,16 @@ class AssetMatrixController extends WebhookController
         }
     }
 
-    public function createAccount($requestReference, $email, $phoneNumber, $firstName, $lastName, $bvn)
+    public function createAccount($firstName, $lastName)
     {
-
+        $accountNumber = collect(range(1, 100)) // create a list from 1 to 100
+            ->shuffle()                             // randomize the order
+            ->take(10)                              // pick 10
+            ->values()                              // reset keys
+            ->all();
         $body = [
             "accountName"   => "$firstName $lastName",
-            "accountNumber" => "1017822346",
+            "accountNumber" => $accountNumber,
 
         ];
 
@@ -123,13 +129,13 @@ class AssetMatrixController extends WebhookController
 
             logInfo($response, "Asset matrix Create Account Response");
 
-            if ($response["status"] == "00") {
+            if ($response["responseCode"] == "00") {
 
                 return [
                     'status'  => true,
                     'message' => "Account Created Successfully",
                     'data'    => [
-                        'account_number' => $response['data']['accountNumber'],
+                        'account_number' => $accountNumber,
                     ],
                 ];
             } else {
@@ -191,28 +197,34 @@ class AssetMatrixController extends WebhookController
 
     public function verifyBankAccount($bankCode, $accountNumber)
     {
-        $url = "payout?accountNumber=$accountNumber&bankCode=$bankCode";
+        $url = "$this->baseUrl/bank-account/lookup";
 
         try {
 
-            $login = $this->login();
+            /*   $login = $this->login();
 
             if (! $login['status']) {
                 return ['status' => false, 'message' => 'Failed to Process Asset Matrix Login'];
-            }
+            }*/
+            $body = [
+                "beneficiaryBankCode"      => "$bankCode",
+                "beneficiaryAccountNumber" => $accountNumber,
 
-            $response = $this->assetMatrixGetRequest($url);
+            ];
+            \logInfo($body, "Asset Matrix Request body Verify Account");
+
+            $response = $this->assetMatrixPostRequest($url, $body);
 
             logInfo($response, "Asset matrix Verify Account Response");
 
-            if ($response['status'] == "00") {
+            if ($response['responseCode'] == "00") {
 
                 return [
                     'status'  => true,
                     'message' => "Account Verified Successfully",
                     'data'    => [
-                        'account_name' => $response["data"]["accountName"],
-                        'bank_code'    => $response["data"]["bankCode"],
+                        'account_name' => $response["data"]["AccountName"],
+                        'bank_code'    => $response["data"]["BankCode"],
                     ],
                 ];
             } else {
@@ -227,12 +239,34 @@ class AssetMatrixController extends WebhookController
 
     public function verifyTransaction($transactionReference)
     {
-        $url = "https://partner.com/api/v1/accounts/$transactionReference";
+        $url = "$this->baseUrl/transactions/query/transfer";
 
         try {
 
-            $response = Http::withHeaders($this->assetMatrixHeader())->get($url);
-            return $response->json();
+            $body = [
+                "paymentReference"        => "$transactionReference",
+                "settlementAccountNumber" => $this->settlementAccountNumber,
+
+            ];
+            \logInfo($body, "Asset Matrix Request body Query Transfer");
+
+            $createAccountResponse = $this->assetMatrixPostRequest($url, $body);
+
+            logInfo($createAccountResponse, "Asset matrix Verify Transaction Response");
+
+            if ($createAccountResponse->successful()) {
+
+                //$response = $this->sanitizeResponse($createAccountResponse['data']);
+
+                if ($createAccountResponse["status"]) {
+                    return [
+                        'status'  => "02",
+                        'message' => "Your transaction has been found and as well reversed successfully",
+                    ];
+                } else {
+                    return ['status' => "05", 'message' => 'Verify transaction failed. Kindly contact support for assistance'];
+                }
+            }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Asset Matrix Error");
 
@@ -243,72 +277,65 @@ class AssetMatrixController extends WebhookController
     public function verifyBVN($bvn)
     {
 
-        $url = "bvn/validate?bvn=$bvn";
+        $url = "$this->baseUrl/validation/bvn-verify";
 
         try {
 
-            $login = $this->login();
+            /*  $login = $this->login();
 
             if (! $login['status']) {
                 return ['status' => false, 'message' => 'Failed to Process Asset Matrix Login'];
-            }
+            }*/
 
-            $createAccountResponse = $this->assetMatrixGetRequest($url);
+            $body = [
+                "bvn" => "$bvn",
 
-            logInfo($createAccountResponse, "Asset Matrix Verify Account Response");
+            ];
+            \logInfo($body, "Asset Matrix Request body BVN");
 
-            if ($createAccountResponse->successful()) {
+            $createAccountResponse = $this->assetMatrixPostRequest($url, $body);
 
-                $response = $this->sanitizeResponse($createAccountResponse['data']);
+            logInfo($createAccountResponse, "Asset Matrix Verify BVN Account Response");
 
-                if (! $response["Status"]) {
-                    return [
-                        'status'  => false,
-                        'message' => $response["Message"],
-                    ];
-                } else {
-                    return [
-                        'status'  => true,
-                        'message' => "Account Verified Successfully",
-                        'data'    => [
-                            'account_name' => $response["Data"]["BeneficiaryName"],
-                            'bank_code'    => $response["Data"]["BeneficiaryBankCode"],
-                            'session_id'   => $response["Data"]["SessionID"],
-                        ],
-                    ];
-                }
+            if (isset($createAccountResponse['response_code']) && $createAccountResponse['response_code'] == "00") {
+                return [
+                    'status'  => true,
+                    'message' => 'BVN Verified Successfuly', 'data' => $bvn_response,
+                ];
             } else {
-                return ['status' => false, 'message' => 'Webhook withdrawal failed. Kindly contact support for assistance'];
+                return ['status' => false, 'message' => 'Failed to verify BVN'];
             }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Asset Matrix Error");
 
-            return ['status' => false, 'message' => 'Error completing withdrawal. Kindly contact support for assistance'];
+            return ['status' => false, 'message' => 'Failed to verify BVN. Kindly contact support for assistance'];
         }
     }
 
-    public function bankTransfer($requestReference, $accountNumber, $bankCode, $amount, $description)
+    public function bankTransfer($requestReference, $accountNumber, $bankCode, $amount, $description, $nameEnquiryRef, $sourceAccountNumber)
     {
 
         $body = [
-            "beneficiaryAccount"  => $accountNumber,
-            "beneficiaryBankCode" => $bankCode,
-            "amount"              => $amount,
-            "referenceNumber"     => $requestReference,
-            "narration"           => $description,
+            "beneficiaryAccountNumber" => $accountNumber,
+            "beneficiaryBankCode"      => $bankCode,
+            "amount"                   => $amount,
+            "paymentReference"         => $requestReference,
+            "narration"                => $description,
+            "sourceAccountNumber"      => $sourceAccountNumber,
+            "nameEnquiryRef"           => $nameEnquiryRef,
         ];
 
-        $url = "core/payout";
+        $url = "$this->baseUrl/transactions/bank/account-transfer";
 
         try {
 
-            $login = $this->login();
+            /*   $login = $this->login();
 
             if (! $login['status']) {
                 return ['status' => false, 'message' => 'Failed to Process Asset Matrix Login'];
             }
 
-            \logInfo($login, "Asset Matrix Request body");
+            \logInfo($login, "Asset Matrix Request body");*/
 
             $createAccountResponse = $this->assetMatrixPostRequest($url, $body);
 

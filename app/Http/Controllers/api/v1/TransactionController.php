@@ -3067,7 +3067,7 @@ class TransactionController extends Controller
         $assetMatrixController = new AssetMatrixController();
         $assetMatrixController->insertIntoWebhookTable($request);
 
-        $verifyWebhook = $assetMatrixController->verifyTransaction($request->sessionId);
+        $verifyWebhook = $assetMatrixController->verifyTransaction($request->payment_reference);
 
         if (! $verifyWebhook['status']) {
             return response()->json($verifyWebhook, 400);
@@ -3075,7 +3075,7 @@ class TransactionController extends Controller
 
         $assetMatrixController->transactionReference = $request->sessionId;
         $assetMatrixController->wbaCharge            = getWbaTransferCharges(6, $request->amount);
-        $assetMatrixController->virtualAccount       = $request->accountNumber;
+        $assetMatrixController->virtualAccount       = $request->sourceAccountNumber;
         $assetMatrixController->amount               = $request->amount;
         $assetMatrixController->webhookType          = 'assetmatrix';
         $assetMatrixController->description          = "You received the sum of $request->amount from " . $request->sourceAccountName;
@@ -4856,9 +4856,9 @@ class TransactionController extends Controller
         if (isset($bvnResponse['data']['verification']['status']) && $bvnResponse['data']['verification']['status'] == "VERIFIED") {
             $firstName       = $bvnResponse['data']['data']["firstName"];
             $lastName        = $bvnResponse['data']['data']["lastName"];
-            $dob             = $bvnResponse['data']['data']["dateOfBirth"];
+            $dob             = $bvnResponse['data']['data']["dateOfBirth"] ??  $bvnResponse['data']['data']["dob"];
             $bvnFromResponse = $request->bvn;
-            $phone           = $bvnResponse['data']['data']["phoneNumber"];
+            $phone           = $bvnResponse['data']['data']["phoneNumber"] ?? null;
             $address         = $bvnResponse['data']['data']["residentialAddress"] ?? null;
 
             $newformat = date('Y-m-d', $time);

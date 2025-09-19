@@ -65,7 +65,7 @@ class AccountCreationService
             $requestReference = generateTransactionReference();
 
             $accountName           = $virtualAccount->accountType == 'coperate' ? $virtualAccount->companyName : $virtualAccount->firstName . ' ' . $virtualAccount->lastName;
-            $createAccountResponse = $assetMatrixController->createAccountInternal();
+            $createAccountResponse = $assetMatrixController->createAccount($virtualAccount->firstName, $virtualAccount->lastName);
 
             if ($createAccountResponse['status']) {
 

@@ -120,6 +120,7 @@ class LoanController extends Controller
     public function PostBooklLoan(Request $request)
     {
         $user = null;
+
         if (! auth()->check()) {
             if (! $request->userid) {
                 return response()->json(["status" => 0, "message" => 'Error verifying account!']);
@@ -135,6 +136,7 @@ class LoanController extends Controller
         }
 
         $loanCount = loan::where(['user_id' => $user->id, 'loan_status_id' => 1])->orderBy('id', 'desc')->count();
+
         if (! $request->userid) {
             $eligi = json_decode($this->eligibility());
             if ($eligi->status == 0) {
@@ -144,9 +146,11 @@ class LoanController extends Controller
                 return response()->json(["status" => 0, "message" => 'You have exceed maximun number of time to book for loan!']);
             }
         }
+
         $loanCountPending = loan::where(['user_id' => $user->id, 'loan_status_id' => 3])->orderBy('id', 'desc')->count();
+
         if ($loanCountPending) {
-            return response()->json(["status" => 0, "message" => 'Your pending loan need to be approved before booking for another!']);
+            return response()->json(["status" => 0, "message" => 'Your pending loan need to be approved before booking for another!'], 400);
         }
         $ValidateRequest = [];
         try {

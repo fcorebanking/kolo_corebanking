@@ -4079,6 +4079,12 @@ class TransactionController extends Controller
 
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 11, "Buy Airtime Initialized");
 
+        $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0, 0.01);
+
+        if (! $debitCustomer['status']) {
+            return response()->json($debitCustomer, 400);
+        }
+
         $vtPassController = new VTPassController();
 
         $networkProvider = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
@@ -4086,12 +4092,6 @@ class TransactionController extends Controller
         $buyAirtime = $vtPassController->buyAirtime($transactionId, $networkProvider, $request->final_amount, $request->phone_number);
 
         if ($buyAirtime["status"] != false) {
-
-            $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0, 0.01);
-
-            /* if (! $debitCustomer['status']) {
-            return response()->json($debitCustomer, 400);
-        }*/
 
             /*  $ledger_cr       = null;
             $ledger_dr       = null;
@@ -4278,17 +4278,18 @@ class TransactionController extends Controller
 
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 12, $initialdescriptionCTUP);
 
+        $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0, 0.01);
+
+        if (! $debitCustomer['status']) {
+            return response()->json($debitCustomer, 400);
+        }
+
         $vtPassController = new VTPassController();
 
         $buyAirtime = $vtPassController->buyData($transactionId, $request->network_provider, $request->data_plan, $selectedDataBundle['variation_amount'], $request->phone_number);
 
         if ($buyAirtime["status"]) {
 
-            $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0, 0.01);
-
-            /*   if (! $debitCustomer['status']) {
-            return response()->json($debitCustomer, 400);
-        }*/
 /*
             $ledger_cr       = null;
             $ledger_dr       = null;
@@ -4727,6 +4728,12 @@ class TransactionController extends Controller
 
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 13, "Subscribe TV Initialized");
 
+        $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
+
+        if (! $debitCustomer['status']) {
+            return response()->json($debitCustomer, 400);
+        }
+
         $vtPassController = new VTPassController();
 
         $subscribeCableTV = $vtPassController->subscribeCableTV($transactionId, $request->cable_tv_type, $request->subscription_plan, $request->smart_card_number, $request->final_amount, $request->phone_number);
@@ -4734,8 +4741,6 @@ class TransactionController extends Controller
         logInfo($subscribeCableTV, "VTPass Subscribe Cable TV Log");
 
         if ($subscribeCableTV['status']) {
-
-            $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
 
             /*  $ledger_cr       = null;
             $ledger_dr       = null;
@@ -4856,7 +4861,7 @@ class TransactionController extends Controller
         if (isset($bvnResponse['data']['verification']['status']) && $bvnResponse['data']['verification']['status'] == "VERIFIED") {
             $firstName       = $bvnResponse['data']['data']["firstName"];
             $lastName        = $bvnResponse['data']['data']["lastName"];
-            $dob             = $bvnResponse['data']['data']["dateOfBirth"] ??  $bvnResponse['data']['data']["dob"];
+            $dob             = $bvnResponse['data']['data']["dateOfBirth"] ?? $bvnResponse['data']['data']["dob"];
             $bvnFromResponse = $request->bvn;
             $phone           = $bvnResponse['data']['data']["phoneNumber"] ?? null;
             $address         = $bvnResponse['data']['data']["residentialAddress"] ?? null;

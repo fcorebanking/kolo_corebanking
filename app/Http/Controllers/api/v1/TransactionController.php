@@ -22,6 +22,7 @@ use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Http\Controllers\ThirdParty\WovenController;
 use App\Http\Resources\BenefeciariesResource;
+use App\Http\Resources\TransactionResource;
 use App\Mail\TransactionReport;
 use App\Models\AgentTerminal;
 use App\Models\ApiKey;
@@ -5097,7 +5098,7 @@ class TransactionController extends Controller
             $transactions = $transactions->orderBy('created_at', 'DESC')->paginate($pageLimit);
         }
 
-        return response()->json(['status' => true, 'message' => 'Transactions fetched successfully', 'data' => $transactions]);
+        return response()->json(['status' => true, 'message' => 'Transactions fetched successfully', 'data' => TransactionResource::collection($transactions)]);
     }
 
     public function posTransactionHistory(Request $request)

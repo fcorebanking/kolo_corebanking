@@ -5098,7 +5098,7 @@ class TransactionController extends Controller
             $transactions = $transactions->orderBy('created_at', 'DESC')->paginate($pageLimit);
         }
 
-        return response()->json(['status' => true, 'message' => 'Transactions fetched successfully', 'data' => TransactionResource::collection($transactions)]);
+        return response()->json(['status' => true, 'message' => 'Transactions fetched successfully', 'data' => TransactionResource::collection($transactions)], 200);
     }
 
     public function posTransactionHistory(Request $request)

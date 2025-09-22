@@ -45,6 +45,7 @@ use App\Models\WbaCharge;
 use App\Models\wb_account_details;
 use App\Models\WebhookLog;
 use App\Models\WovenWebhook;
+use App\Models\transaction_remarks;
 use App\Services\ebanking\BankTransferType;
 use App\Services\ebanking\EbankingService;
 use App\Services\fortifyTransactionService;

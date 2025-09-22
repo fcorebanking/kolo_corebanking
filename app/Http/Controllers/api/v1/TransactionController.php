@@ -22,7 +22,6 @@ use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Http\Controllers\ThirdParty\WovenController;
 use App\Http\Resources\BenefeciariesResource;
-use App\Http\Resources\TransactionResource;
 use App\Mail\TransactionReport;
 use App\Models\AgentTerminal;
 use App\Models\ApiKey;
@@ -5094,9 +5093,21 @@ class TransactionController extends Controller
                 ->where('created_at', '<=', $request->to);
 
             $transactions = $transactions->orderBy('created_at', 'DESC')->get();
+
+            $transactions = $transactions->map(function ($transaction) {
+                $transaction_remark              = transaction_remarks::where('id', $transaction->transaction_remarks_id)->first();
+                $transaction->transaction_status = $transaction_remark->remark_class; // 👈 add your parameter
+                return $transaction;
+            });
         } else {
             $transactions = $transactions->orderBy('created_at', 'DESC')->paginate($pageLimit);
+            $transactions->getCollection()->transform(function ($transaction) {
+                $transaction_remark              = transaction_remarks::where('id', $transaction->transaction_remarks_id)->first();
+                $transaction->transaction_status = $transaction_remark->remark_class; //add your parameter
+                return $transaction;
+            });
         }
+
 //ransactionResource::collection($transactions)
         return response()->json(['status' => true, 'message' => 'Transactions fetched successfully', 'data' => $transactions], 200);
     }

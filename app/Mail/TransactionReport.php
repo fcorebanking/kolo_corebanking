@@ -29,6 +29,7 @@ class TransactionReport extends Mailable
      */
     public function build()
     {
+        \logInfo(env('MAIL_FROM_ADDRESS'), "Mail from ");
         return $this->from(env('MAIL_FROM_ADDRESS'), $this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.transaction-report')->with('data', $this->data);
 
     }

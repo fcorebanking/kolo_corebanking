@@ -9,6 +9,8 @@ class TransactionReport extends Mailable
 {
     use Queueable, SerializesModels;
 
+    protected $data;
+
     /**
      * Create a new message instance.
      *
@@ -27,7 +29,7 @@ class TransactionReport extends Mailable
      */
     public function build()
     {
-        return $this->from(env('MAIL_USERNAME'), $this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.transaction-report')->with('data', $this->data);
+        return $this->from(env('MAIL_FROM_ADDRESS'), $this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.transaction-report')->with('data', $this->data);
 
     }
 }

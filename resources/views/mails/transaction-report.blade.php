@@ -13,5 +13,5 @@ Button Text
 @endcomponent --}}
 
 Thanks,<br>
-{{ $data['user']->company->company_name }}
+{{ $data['user']}}
 @endcomponent

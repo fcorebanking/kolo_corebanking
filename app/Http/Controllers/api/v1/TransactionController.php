@@ -5531,6 +5531,7 @@ class TransactionController extends Controller
             'reason' => $request->reason,
             'desc'   => "There is an issue with a transaction , {$request->ref_id}. ",
             'company_name' => $company->company_name,
+            'user' => $company->company_name,
         ];
 
         // initSMTPconfiguration($company->companyEmail);

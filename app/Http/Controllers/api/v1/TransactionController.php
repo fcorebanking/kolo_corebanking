@@ -5537,6 +5537,7 @@ class TransactionController extends Controller
         \logInfo("$user->email", "Mail from user ");
         // initSMTPconfiguration($company->companyEmail);
         Mail::to($user->email)->send(new TransactionReport($data));
+        return response()->json(['status' => 'ok'], 200);
     }
 
     public function paystackWebhook(Request $request)

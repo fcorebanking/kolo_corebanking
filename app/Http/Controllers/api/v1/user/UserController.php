@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\api\v1\user;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ResetAccountMail;
 use App\Models\AgentRequest;
 use App\Models\ApiKey;
 use App\Models\banks;
@@ -24,6 +25,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
@@ -577,6 +579,13 @@ class UserController extends Controller
 
                 $msg     = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
                 $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, false);
+                $data    = [
+                    'subtext' => "Reset Password",
+                    'name'    => $userAccunt->first_name,
+                    'desc'    => $msg,
+                    'user'    => $userAccunt->first_name,
+                ];
+                Mail::to($userAccunt->email)->send(new ResetAccountMail($data));
                 \logInfo($sendSMS, "resend OTP response");
 
                 return response(['status' => true, 'message' => 'OTP Sent Successfully']);
@@ -598,6 +607,13 @@ class UserController extends Controller
                     $msg = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
 
                     $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, \false);
+                    $data    = [
+                        'subtext' => "Reset Password",
+                        'name'    => $userAccunt->first_name,
+                        'desc'    => $msg,
+                        'user'    => $userAccunt->first_name,
+                    ];
+                    Mail::to($userAccunt->email)->send(new ResetAccountMail($data));
                     \logInfo($sendSMS, "resend OTP response");
 
                     return response(['status' => true, 'message' => 'OTP Sent Successfully']);
@@ -975,14 +991,23 @@ class UserController extends Controller
         if ($userAccunt) {
             //Third party SMS (Send OTP Code goes here)
             // $otpCode = "2222";
-            $otpCode                         = \generateOtp();
-            $userAccunt->otp                 = $otpCode;
+            $otpCode         = \generateOtp();
+            $userAccunt->otp = $otpCode;
+            Mail::to($user->email)->send(new TransactionReport($data));
             $date                            = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
             $userAccunt->otp_expiration_date = $date;
             $userAccunt->save();
             // $msg     = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone.";
             $msg     = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
             $sendSMS = \sendSMS($userAccunt->id, $msg, true, true, 'Reset Password OTP');
+            $data    = [
+                'subtext' => "Reset Password",
+                'name'    => $userAccunt->first_name,
+                'desc'    => $msg,
+                'user'    => $userAccunt->first_name,
+            ];
+
+            Mail::to($userAccunt->email)->send(new ResetAccountMail($data));
             return response(['status' => true, 'message' => 'OTP Sent Successfully']);
         } else {
             return response()->json(['status' => false, 'message' => 'This account could not be found'], 400);

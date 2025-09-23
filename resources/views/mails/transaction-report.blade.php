@@ -3,9 +3,9 @@
 <h1> Hello Admin, </h1>
                                       
      
-<p>  <?php echo $data['desc'] ?> /p>
+<p>  <?php echo $data['desc'] ?> </p>
 
-<p>  {{$data['reason'] }}/p>
+<p>  {{$data['reason'] }}</p>
     
 
 {{-- @component('mail::button', ['url' => ''])

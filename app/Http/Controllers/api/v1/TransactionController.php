@@ -5097,14 +5097,14 @@ class TransactionController extends Controller
 
             $transactions = $transactions->map(function ($transaction) {
                 $transaction_remark              = transaction_remarks::where('id', $transaction->transaction_remarks_id)->first();
-                $transaction->transaction_status = $transaction_remark->remark_class; // 👈 add your parameter
+                $transaction->transaction_status = $transaction_remark->transaction_remark; // 👈 add your parameter
                 return $transaction;
             });
         } else {
             $transactions = $transactions->orderBy('created_at', 'DESC')->paginate($pageLimit);
             $transactions->getCollection()->transform(function ($transaction) {
                 $transaction_remark              = transaction_remarks::where('id', $transaction->transaction_remarks_id)->first();
-                $transaction->transaction_status = $transaction_remark->remark_class; //add your parameter
+                $transaction->transaction_status = $transaction_remark->transaction_remark; //add your parameter
                 return $transaction;
             });
         }

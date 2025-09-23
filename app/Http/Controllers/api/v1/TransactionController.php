@@ -5526,6 +5526,7 @@ class TransactionController extends Controller
         $transaction = transactions::where(['transaction_reference' => $request->ref_id])->first();
         \logInfo(json_encode($transaction), "Report transaction :");
         $company = Company::where('id', $transaction->company_id)->first();
+        $user    = User::where('id', $transaction->author()->id)->first();
         $data    = [
             'subtext' => "Transaction issue for {$request->ref_id}",
             'reason' => $request->reason,
@@ -5533,9 +5534,9 @@ class TransactionController extends Controller
             'company_name' => $company->company_name,
             'user' => $company->company_name,
         ];
-
+        \logInfo("$user->email", "Mail from user ");
         // initSMTPconfiguration($company->companyEmail);
-        Mail::to($company->companyEmail)->send(new TransactionReport($data));
+        Mail::to($user->email)->send(new TransactionReport($data));
     }
 
     public function paystackWebhook(Request $request)

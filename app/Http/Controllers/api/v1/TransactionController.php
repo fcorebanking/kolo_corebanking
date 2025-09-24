@@ -5544,7 +5544,7 @@ class TransactionController extends Controller
         $transaction = transactions::where(['transaction_reference' => $request->ref_id])->first();
         \logInfo(json_encode($transaction), "Report transaction :");
         $company = Company::where('id', $transaction->company_id)->first();
-        $user    = User::where('id', $transaction->created_by)->first();
+        $user    = User::where('company_id', $company->id )->where('user_type_id', 2)->first();
         $data    = [
             'subtext' => "Transaction issue for {$request->ref_id}",
             'reason' => $request->reason,

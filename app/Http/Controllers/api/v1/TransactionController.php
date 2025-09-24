@@ -5758,6 +5758,6 @@ class TransactionController extends Controller
             'company_name' => auth()->user()->company->company_name,
             'user'         => auth()->user()->company->company_name,
         ];
-       return Mail::to(auth()->user()->email)->send(new TransactionReport($data));
+        return Mail::to(auth()->user()->email)->send(new TransactionReport($data));
     }
 }

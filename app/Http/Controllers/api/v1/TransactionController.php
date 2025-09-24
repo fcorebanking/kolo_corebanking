@@ -54,6 +54,7 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -5760,6 +5761,12 @@ class TransactionController extends Controller
             'company_name' => $user->company->company_name,
             'user'         => $user->company->company_name,
         ];
-        Mail::to($user->email)->queue(new TransactionReport($data));
+
+        try {
+            Mail::to($user->email)->send(new TransactionReport($data));
+        } catch (\Throwable $e) {
+            \Log::error("Failed to send TransactionReport email: " . $e->getMessage());
+            // continue silently
+        }
     }
 }

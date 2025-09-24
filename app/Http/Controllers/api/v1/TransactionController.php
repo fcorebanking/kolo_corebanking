@@ -1167,6 +1167,11 @@ class TransactionController extends Controller
                         $transfer_log->save();
                     }
 
+                    $subtext = "Debit Transaction";
+                    $reason  = "";
+                    $msg     = "Debit Amt:$request->final_amount,<br><br> Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . "<br><br> Avail Bal:" . $debitCustomer['charge_balance_after'] . "<br><br>Date:" . date('Y-m-d') . " <br><br>Ref: " . $request->transaction_reference;
+                    $this->sendTransactionReportEmail($subtext, $msg, $reason);
+
                     return response()->json([
                         "status"  => true,
                         'message' => "Wallet to Bank Transfer Successful",
@@ -4163,6 +4168,11 @@ class TransactionController extends Controller
 
                     $this->updateTransactionAsSuccessful($transactionId, $debitCustomer["balance_after"]);
 
+                    $subtext = "Airtime Purchase Successful";
+                    $reason  = "";
+                    $msg     = "Purchase of Airtime worth $request->final_amount for $request->phone_number";
+                    $this->sendTransactionReportEmail($subtext, $msg, $reason);
+
                     return response()->json(
                         [
                             "status"  => true,
@@ -4364,6 +4374,11 @@ class TransactionController extends Controller
                     ]);
 
                     $this->updateTransactionAsSuccessful($transactionId, $debitCustomer['balance_after']);
+
+                    $subtext = "Data Purchase Successful";
+                    $reason  = "";
+                    $msg     = "Purchase of Data worth " . $selectedDataBundle['variation_amount'] . " for $request->phone_number";
+                    $this->sendTransactionReportEmail($subtext, $msg, $reason);
 
                     return response()->json(
                         [
@@ -5536,7 +5551,10 @@ class TransactionController extends Controller
         ];
         \logInfo("$user->email", "Mail from user ");
         // initSMTPconfiguration($company->companyEmail);
-        Mail::to($user->email)->send(new TransactionReport($data));
+        $subtext = "Transaction issue for {$request->ref_id}";
+        $reason  = $request->reason;
+        $msg     = "There is an issue with a transaction , {$request->ref_id}. ";
+        $this->sendTransactionReportEmail($subtext, $msg, $reason);
         return response()->json(['status' => 'ok'], 200);
     }
 
@@ -5692,7 +5710,7 @@ class TransactionController extends Controller
 
     }
 
-    public function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)
+    private function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)
     {
 
         $amount      = 0;
@@ -5730,4 +5748,16 @@ class TransactionController extends Controller
         ]);
     }
 
+    private function sendTransactionReportEmail($subtext, $msg, $reason)
+    {
+
+        $data = [
+            'subtext'      => $subtext,
+            'reason'       => $reason,
+            'desc'         => $msg,
+            'company_name' => auth()->user()->company->company_name,
+            'user'         => auth()->user()->company->company_name,
+        ];
+        Mail::to(auth()->user()->email)->send(new TransactionReport($data));
+    }
 }

@@ -993,7 +993,7 @@ class UserController extends Controller
             // $otpCode = "2222";
             $otpCode         = \generateOtp();
             $userAccunt->otp = $otpCode;
-            Mail::to($user->email)->send(new TransactionReport($data));
+
             $date                            = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
             $userAccunt->otp_expiration_date = $date;
             $userAccunt->save();

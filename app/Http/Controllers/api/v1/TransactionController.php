@@ -1170,7 +1170,7 @@ class TransactionController extends Controller
                     $subtext = "Debit Transaction";
                     $reason  = "";
                     $msg     = "Debit Amt:$request->final_amount,<br><br> Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . "<br><br> Avail Bal:" . $debitCustomer['charge_balance_after'] . "<br><br>Date:" . date('Y-m-d') . " <br><br>Ref: " . $request->transaction_reference;
-                    $this->sendTransactionReportEmail($subtext, $msg, $reason);
+                    $this->sendTransactionReportEmail($subtext, $msg, $reason, $currentUser);
 
                     return response()->json([
                         "status"  => true,
@@ -4171,7 +4171,8 @@ class TransactionController extends Controller
                     $subtext = "Airtime Purchase Successful";
                     $reason  = "";
                     $msg     = "Purchase of Airtime worth $request->final_amount for $request->phone_number";
-                    $this->sendTransactionReportEmail($subtext, $msg, $reason);
+                    $user = auth()->user();
+                    $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
 
                     return response()->json(
                         [
@@ -4378,7 +4379,8 @@ class TransactionController extends Controller
                     $subtext = "Data Purchase Successful";
                     $reason  = "";
                     $msg     = "Purchase of Data worth " . $selectedDataBundle['variation_amount'] . " for $request->phone_number";
-                    $this->sendTransactionReportEmail($subtext, $msg, $reason);
+                    $user = auth()->user();
+                    $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
 
                     return response()->json(
                         [
@@ -5554,7 +5556,7 @@ class TransactionController extends Controller
         $subtext = "Transaction issue for {$request->ref_id}";
         $reason  = $request->reason;
         $msg     = "There is an issue with a transaction , {$request->ref_id}. ";
-        $this->sendTransactionReportEmail($subtext, $msg, $reason);
+        $this->sendTransactionReportEmail($subtext, $msg, $reason, $user );
         return response()->json(['status' => 'ok'], 200);
     }
 
@@ -5748,16 +5750,16 @@ class TransactionController extends Controller
         ]);
     }
 
-    private function sendTransactionReportEmail($subtext, $msg, $reason)
+    private function sendTransactionReportEmail($subtext, $msg, $reason, $user)
     {
 
         $data = [
             'subtext'      => $subtext,
             'reason'       => $reason,
             'desc'         => $msg,
-            'company_name' => auth()->user()->company->company_name,
-            'user'         => auth()->user()->company->company_name,
+            'company_name' => $user->company->company_name,
+            'user'         => $user->company->company_name,
         ];
-        return Mail::to(auth()->user()->email)->send(new TransactionReport($data));
+         Mail::to($user->email)->send(new TransactionReport($data));
     }
 }

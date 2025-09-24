@@ -4171,7 +4171,7 @@ class TransactionController extends Controller
                     $subtext = "Airtime Purchase Successful";
                     $reason  = "";
                     $msg     = "Purchase of Airtime worth $request->final_amount for $request->phone_number";
-                    $user = auth()->user();
+                    $user    = auth()->user();
                     $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
 
                     return response()->json(
@@ -4379,7 +4379,7 @@ class TransactionController extends Controller
                     $subtext = "Data Purchase Successful";
                     $reason  = "";
                     $msg     = "Purchase of Data worth " . $selectedDataBundle['variation_amount'] . " for $request->phone_number";
-                    $user = auth()->user();
+                    $user    = auth()->user();
                     $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
 
                     return response()->json(
@@ -5556,7 +5556,7 @@ class TransactionController extends Controller
         $subtext = "Transaction issue for {$request->ref_id}";
         $reason  = $request->reason;
         $msg     = "There is an issue with a transaction , {$request->ref_id}. ";
-        $this->sendTransactionReportEmail($subtext, $msg, $reason, $user );
+        $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
         return response()->json(['status' => 'ok'], 200);
     }
 
@@ -5760,6 +5760,6 @@ class TransactionController extends Controller
             'company_name' => $user->company->company_name,
             'user'         => $user->company->company_name,
         ];
-         Mail::to($user->email)->send(new TransactionReport($data));
+        Mail::to($user->email)->queue(new TransactionReport($data));
     }
 }

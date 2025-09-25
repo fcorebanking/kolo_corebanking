@@ -1,10 +1,8 @@
 <?php
-
 namespace App\Mail;
 
 use Exception;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
@@ -30,11 +28,11 @@ class AccountCreated extends Mailable
      */
     public function build()
     {
-        try{
-        \logInfo(env('MAIL_USERNAME'), "Email Credentials");
-        return $this->from(env('MAIL_USERNAME'), $this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.account-created')->with('data', $this->data);
+        try {
+            \logInfo(env('MAIL_FROM_ADDRES'), "Email Credentials");
+            return $this->from(env('MAIL_FROM_ADDRES'), $this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.account-created')->with('data', $this->data);
 
-        }catch(Exception $e){
+        } catch (Exception $e) {
             \logInfo($e->getMessage());
         }
         // return $this->markdown('mails.transaction-alert',[

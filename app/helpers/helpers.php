@@ -922,7 +922,7 @@ function sendEmail($title, $msg, $userinfo)
     $company     = $userinfo->company;
     $companyname = $company_name = $company->company_name;
     logInfo($userinfo->email, "email data");
-    // Mail::to($userinfo->email)->send(new AccountCreated($datax));
+    Mail::to($userinfo->email)->send(new AccountCreated($datax));
 }
 
 function changePhoneFormatLeadingZero($phone)

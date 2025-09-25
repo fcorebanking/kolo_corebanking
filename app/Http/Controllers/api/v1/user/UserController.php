@@ -1007,6 +1007,7 @@ class UserController extends Controller
                 'name'    => $userAccunt->first_name,
                 'desc'    => $msg,
                 'user'    => $userAccunt->first_name,
+                'company_name' => $userAccunt->company->company_name,
             ];
 
             Mail::to($userAccunt->email)->send(new ResetAccountMail($data));

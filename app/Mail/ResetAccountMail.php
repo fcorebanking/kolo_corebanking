@@ -33,7 +33,7 @@ class ResetAccountMail extends Mailable
         try {
             \logInfo($this->data['user'], "Reset Password Log");
             \logInfo(env('MAIL_USERNAME'), "Email Credentials");
-            return $this->from(env('MAIL_USERNAME'), $this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.reset-password')->with('data', $this->data);
+            return $this->from(env('MAIL_FROM_ADDRES'), $this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.reset-password')->with('data', $this->data);
         } catch (Exception $e) {
             \logInfo($e->getMessage());
         }

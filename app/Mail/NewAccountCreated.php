@@ -1,9 +1,7 @@
 <?php
-
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
@@ -29,17 +27,17 @@ class NewAccountCreated extends Mailable
      */
     public function build()
     {
-        return $this->from(env('MAIL_USERNAME'),$this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.transaction-alert')->with('data', $this->data);
+        return $this->from(env('MAIL_FROM_ADDRES'), $this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.transaction-alert')->with('data', $this->data);
         // return $this->markdown('mails.transaction-alert',[
         //         'data' => $this->data
         //     ]);
-        
-            // return $this->markdown('mails.transaction-alert',[
+
+        // return $this->markdown('mails.transaction-alert',[
         //     'data' => $this->data
         // ]);
-    //    return  $this
-    //     ->from(env('MAIL_USERNAME'), 'Sender name')
-    //     ->subject('Here is my subject')
-    //     ->view('mails.transaction-alert',)->with('data',$this->data);
+        //    return  $this
+        //     ->from(env('MAIL_USERNAME'), 'Sender name')
+        //     ->subject('Here is my subject')
+        //     ->view('mails.transaction-alert',)->with('data',$this->data);
     }
 }

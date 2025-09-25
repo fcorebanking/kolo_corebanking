@@ -1003,10 +1003,10 @@ class UserController extends Controller
             $msg     = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
             $sendSMS = \sendSMS($userAccunt->id, $msg, true, true, 'Reset Password OTP');
             $data    = [
-                'subtext' => "Reset Password",
-                'name'    => $userAccunt->first_name,
-                'desc'    => $msg,
-                'user'    => $userAccunt->first_name,
+                'subtext'      => "Reset Password",
+                'name'         => $userAccunt->first_name,
+                'desc'         => $msg,
+                'user'         => $userAccunt->first_name,
                 'company_name' => $userAccunt->company->company_name,
             ];
 

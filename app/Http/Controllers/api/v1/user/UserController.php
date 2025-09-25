@@ -580,10 +580,11 @@ class UserController extends Controller
                 $msg     = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
                 $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, false);
                 $data    = [
-                    'subtext' => "Reset Password",
-                    'name'    => $userAccunt->first_name,
-                    'desc'    => $msg,
-                    'user'    => $userAccunt->first_name,
+                    'subtext'      => "Reset Password",
+                    'name'         => $userAccunt->first_name,
+                    'desc'         => $msg,
+                    'user'         => $userAccunt->first_name,
+                    'company_name' => $userAccunt->company->company_name,
                 ];
                 Mail::to($userAccunt->email)->send(new ResetAccountMail($data));
                 \logInfo($sendSMS, "resend OTP response");
@@ -608,10 +609,11 @@ class UserController extends Controller
 
                     $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, \false);
                     $data    = [
-                        'subtext' => "Reset Password",
-                        'name'    => $userAccunt->first_name,
-                        'desc'    => $msg,
-                        'user'    => $userAccunt->first_name,
+                        'subtext'      => "Reset Password",
+                        'name'         => $userAccunt->first_name,
+                        'desc'         => $msg,
+                        'user'         => $userAccunt->first_name,
+                        'company_name' => $userAccunt->company->company_name,
                     ];
                     Mail::to($userAccunt->email)->send(new ResetAccountMail($data));
                     \logInfo($sendSMS, "resend OTP response");

@@ -120,7 +120,7 @@
                         you will be given acesss to use the system
                     </h5>
 
-                    <p style="font-size: 16px;">For more details: mail: <a href="mailto:info@wiredbanking.ng">info@wiredbanking.ng</a> or call:
+                    <p style="font-size: 16px;">For more details: mail: <a href="mailto:info@finova.ng">info@finova.ng</a> or call:
                         <a href="tel:018880311">018880311</a>
                     </p>
                 </div>

@@ -1503,48 +1503,6 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                     if ($can_proceed) {
                         $smsapi = $setting->smsapi;
                         $msg1   = $msg;
-                        switch ($title) {
-
-                            case 'Company Registration':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'Account Replacement':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'Account':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'Password reset':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'Account reset for':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'PIn reset':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'Customer Transfer':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'Finova Login Security':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'OTP Confirmation':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'Verify OTP':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'OTP Confirmation':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-                            case 'Reset Password OTP':
-                                $smsapi->api_url = $smsapi->api_url . "dnd" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                                break;
-
-                            default:
-                                $smsapi->api_url = $smsapi->api_url . "generic" . "&" . $smsapi->sender_variable . "=" . $company_short;
-                        }
 
                         //          $smsapi->api_url = $smsapi->api_url . "&" . $smsapi->sender_variable . "=" . $company_short;
                         $msg    = str_replace(' ', '%20', $msg);
@@ -1620,7 +1578,8 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                     }*/
                                     logInfo("{$apicur}", "SMS 2FA Get api response");
 
-                                    $response = Http::get($apicur);
+                                    // $response = Http::get($apicur);
+                                    $response = smsCustomer($phone, $msg, $company->short_name, $title);
                                     //$response = smsCustomer($phone, $msg, $company->short_name);
 
                                 } else {
@@ -4645,19 +4604,63 @@ function debitCreditCompany($data)
     return $txn;
 }
 
-function smsCustomer($phone, $msg, $company)
+function smsCustomer($phone, $msg, $company_short, $title)
 {
     $apikey = env('SMS_API_KEY');
+    $type   = 'plain';
+    switch ($title) {
 
+        case 'Company Registration':
+            $type = "dnd";
+            break;
+        case 'Account Replacement':
+            $type = "dnd";
+            break;
+        case 'Account':
+            $type = "dnd";
+            break;
+        case 'Password reset':
+            $type = "dnd";
+            break;
+        case 'Account reset for':
+            $type = "dnd";
+            break;
+        case 'PIn reset':
+            $type = "dnd";
+            break;
+        case 'Customer Transfer':
+            $type = "dnd";
+            break;
+        case 'Finova Login Security':
+            $type = "dnd";
+            break;
+        case 'OTP Confirmation':
+            $type = "dnd";
+            break;
+        case 'Verify OTP':
+            $type = "dnd";
+            break;
+        case 'OTP Confirmation':
+            $type = "dnd";
+            break;
+        case 'Reset Password OTP':
+            $type = "dnd";
+            break;
+
+        default:
+            $type = "generic";
+    }
     $data = [
         'api_key' => $apikey,
         'to'      => $phone,
-        'from'    => $company,
+        'from'    => $company_short,
         'sms'     => $msg,
         'type'    => 'plain',
         'channel' => "generic",
 
     ];
+
+    $post_data = json_encode($data);
 // terma
     $url      = "https://api.ng.termii.com/api/sms/send";
     $response = Http::post($url, $data);

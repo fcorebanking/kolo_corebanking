@@ -1505,7 +1505,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                         $msg1   = $msg;
 
                         //          $smsapi->api_url = $smsapi->api_url . "&" . $smsapi->sender_variable . "=" . $company_short;
-                        $msg    = str_replace(' ', '%20', $msg);
+                       // $msg    = str_replace(' ', '%20', $msg);
                         $apicur = "$smsapi->api_url&$smsapi->phone_variable=$phone&$smsapi->message_variable=$msg";
                         $method = $smsapi->requestMethod->request_method;
                         //wba SMS charge

@@ -1237,48 +1237,6 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
 
         // }
         if (! $isApi) {
-            switch ($title) {
-
-                case 'Company Registration':
-                    $company_short = "N-Alert";
-                    break;
-                case 'Account Replacement':
-                    $company_short = "N-Alert";
-                    break;
-                case 'Account':
-                    $company_short = "N-Alert";
-                    break;
-                case 'Password reset':
-                    $company_short = "N-Alert";
-                    break;
-                case 'Account reset for':
-                    $company_short = "N-Alert";
-                    break;
-                case 'PIn reset':
-                    $company_short = "N-Alert";
-                    break;
-                case 'Customer Transfer':
-                    $company_short = "N-Alert";
-                    break;
-                case 'Finova Login Security':
-                    $company_short = "N-Alert";
-                    break;
-                case 'OTP Confirmation':
-                    $company_short = "N-Alert";
-                    break;
-                case 'Verify OTP':
-                    $company_short = "N-Alert";
-                    break;
-                case 'OTP Confirmation':
-                    $company_short = "N-Alert";
-                    break;
-                case 'Reset Password OTP':
-                    $company_short = "N-Alert";
-                    break;
-
-                default:
-                    $company_short = $company->short_name;
-            }
 
         } else {
             $company_short = $company->short_name;
@@ -1505,7 +1463,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                         $msg1   = $msg;
 
                         //          $smsapi->api_url = $smsapi->api_url . "&" . $smsapi->sender_variable . "=" . $company_short;
-                       // $msg    = str_replace(' ', '%20', $msg);
+                        // $msg    = str_replace(' ', '%20', $msg);
                         $apicur = "$smsapi->api_url&$smsapi->phone_variable=$phone&$smsapi->message_variable=$msg";
                         $method = $smsapi->requestMethod->request_method;
                         //wba SMS charge
@@ -4609,48 +4567,59 @@ function smsCustomer($phone, $msg, $company_short, $title)
 {
     $apikey = env('SMS_API_KEY');
     $type   = 'plain';
+
     switch ($title) {
 
         case 'Company Registration':
-            $type = "dnd";
+            $type          = "dnd";
+            $company_short = "N-Alert";
             break;
         case 'Account Replacement':
-            $type = "dnd";
+            $type          = "dnd";
+            $company_short = "N-Alert";
             break;
         case 'Account':
-            $type = "dnd";
+            $type          = "dnd";
+            $company_short = "N-Alert";
             break;
         case 'Password reset':
-            $type = "dnd";
+            $type          = "dnd";
+            $company_short = "N-Alert";
             break;
         case 'Account reset for':
-            $type = "dnd";
+            $type          = "dnd";
+            $company_short = "N-Alert";
             break;
         case 'PIn reset':
-            $type = "dnd";
+            $type          = "dnd";
+            $company_short = "N-Alert";
             break;
         case 'Customer Transfer':
-            $type = "dnd";
+            $type          = "dnd";
+            $company_short = "N-Alert";
             break;
         case 'Finova Login Security':
-            $type = "dnd";
+            $type          = "dnd";
+            $company_short = "N-Alert";
             break;
         case 'OTP Confirmation':
-            $type = "dnd";
+            $type          = "dnd";
+            $company_short = "N-Alert";
             break;
         case 'Verify OTP':
-            $type = "dnd";
-            break;
-        case 'OTP Confirmation':
-            $type = "dnd";
+            $type          = "dnd";
+            $company_short = "N-Alert";
             break;
         case 'Reset Password OTP':
-            $type = "dnd";
+            $type          = "dnd";
+            $company_short = "N-Alert";
             break;
 
         default:
             $type = "generic";
+
     }
+
     $data = [
         'api_key' => $apikey,
         'to'      => $phone,

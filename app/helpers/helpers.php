@@ -1547,7 +1547,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                             }
                             //$result = $response->body();
                             $result = $response;
-                            logInfo("{$result}", "SMS 2FA sms api response");
+                           logInfo(json_encode($result), "SMS 2FA sms api response");
                             if (isset($userinfo->id)) {
                                 $sms_logdata = [
                                     'user_id'    => $userinfo->id,

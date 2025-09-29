@@ -330,8 +330,7 @@ class RegisterController extends Controller
 
                     \logInfo($url, "url log");
 
-                    $myMessage = "Welcome to Finova, We are excited to have you around. Your Details are as follows <br>
-                    Account Name: " . $user->company->company_name . "
+                    $myMessage = "Account Name: " . $user->company->company_name . "
                     Account Number: " . $user->company->wallet->vaccount . "<br>Bank: " . $user->company->wallet->bank->bank_name . " <br> Company Setup pin: " . $user->company->transaction_pin . " Login Pin: $loginPin<br>";
 
                     $msg = 'A Verification email has been sent to your email account. Click on the link in the email to verify your account<br><br>';

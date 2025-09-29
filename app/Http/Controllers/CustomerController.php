@@ -2612,7 +2612,7 @@ class CustomerController extends Controller
             $subtext = "Password reset";
             $reason  = "";
             $msg     = "Your Account Password Has just Been reset! <br> Your new Password is: $newpsw <br> ($getcompanyName) You can login and reset your password!";
-            $this->sendTransactionReportEmail($subtext, $msg, $reason, $getuser );
+            $this->sendTransactionReportEmail($subtext, $msg, $reason, $getuser);
 
             return response()->json(['status' => 1, 'message' => 'Password reset Sent!']);
         }
@@ -2645,7 +2645,7 @@ class CustomerController extends Controller
             $subtext = "PIn reset";
             $reason  = "";
             $msg     = "Transaction Pin Has just Been reset! <br> Your new Pin is $txnpin";
-            $this->sendTransactionReportEmail($subtext, $msg, $reason, $getuser );
+            $this->sendTransactionReportEmail($subtext, $msg, $reason, $getuser);
 
             return response()->json(['status' => 1, 'message' => 'PIn reset code Sent!', 'sms' => $smssent]);
         }

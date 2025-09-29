@@ -19,6 +19,10 @@
 Button Text
 @endcomponent --}}
 
-Thanks,<br>
+Warm regards,<br>
+OYINDAMOLA OLUYEMI,<br>
+Executive Director,<br>
+Finova Africa
+
 
 @endcomponent

@@ -354,7 +354,7 @@ class RegisterController extends Controller
             $smsstate = sendSMS($user->id, $welcomeMessage, true, false, 'Welcome Message', '', 0, false);
             // $sendSMS = \sendVansoSMS($userPhone, $welcomeMessage);
 
-            \logInfo($smsstate, "SMS response");
+            \logInfo(json_encode($smsstate), "SMS response");
 
             DB::commit();
 

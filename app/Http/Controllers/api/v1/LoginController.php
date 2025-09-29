@@ -2,7 +2,10 @@
 namespace App\Http\Controllers\api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Mail\TransactionReport;
 use App\Models\CarouselImage;
+use App\Models\Company;
+use App\Models\savings_product;
 use App\Models\User;
 use App\Models\UserCard;
 use App\Models\user_wallet;
@@ -10,6 +13,8 @@ use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class LoginController extends Controller
@@ -170,7 +175,10 @@ class LoginController extends Controller
 
             $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, true);
 
-            \logInfo($sendSMS, "My SMS response to pending login");
+            \logInfo(json_encode($sendSMS), "My SMS response to pending login");
+            $subtext = "OTP Confirmation";
+            $reason  = "";
+            $this->sendEmail($subtext, $msg, $reason, $userAccunt);
             return response()->json(['status' => true, 'message' => 'Account Pending Verification', 'data' => ['user_reference' => Auth::user()->uuid, "phone_number" => Auth::user()->phone]], 203);
         }
     }
@@ -191,5 +199,24 @@ class LoginController extends Controller
         ]);
         $result = json_decode((string) $response->getBody(), true);
         return response()->json($result, $this->successStatus);
+    }
+
+    private function sendEmail($subtext, $msg, $reason, $user)
+    {
+
+        $data = [
+            'subtext'      => $subtext,
+            'reason'       => $reason,
+            'desc'         => $msg,
+            'company_name' => $user->company->company_name,
+            'user'         => $user->company->company_name,
+        ];
+
+        try {
+            Mail::to($user->email)->send(new TransactionReport($data));
+        } catch (\Throwable $e) {
+            \Log::error("Failed to send TransactionReport email: " . $e->getMessage());
+            // continue silently
+        }
     }
 }

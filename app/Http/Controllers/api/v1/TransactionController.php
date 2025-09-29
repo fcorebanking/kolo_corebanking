@@ -3319,7 +3319,9 @@ class TransactionController extends Controller
                 if (! $userPOS) {
                     if ($currentRequest['action_type'] == "pre-balance-check-auth") {
                         return response()->json(["status" => false, 'message' => "Invalid POS terminal Code"]);
-                    } else if ($currentRequest['action_type'] == "pre-payout-auth") {
+                    } 
+                    
+                    if ($currentRequest['action_type'] == "pre-payout-auth") {
 
                         return response()->json(['data' => [
                             'transaction' => [
@@ -3336,7 +3338,9 @@ class TransactionController extends Controller
 
                     if ($currentRequest['action_type'] == "pre-balance-check-auth") {
                         return $response = response()->json(["status" => "INVALID_PIN", 'message' => "Invalid authentication"]);
-                    } else if ($currentRequest['action_type'] == "pre-payout-auth") {
+                    } 
+                    
+                    if ($currentRequest['action_type'] == "pre-payout-auth") {
                         return response()->json(['data' => [
                             'transaction' => [
                                 'shouldActionProceed' => false,

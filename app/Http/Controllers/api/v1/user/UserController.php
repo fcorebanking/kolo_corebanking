@@ -587,7 +587,7 @@ class UserController extends Controller
                     'company_name' => $userAccunt->company->company_name,
                 ];
                 Mail::to($userAccunt->email)->send(new ResetAccountMail($data));
-                \logInfo($sendSMS, "resend OTP response");
+                \logInfo(json_encode($sendSMS), "resend OTP response");
 
                 return response(['status' => true, 'message' => 'OTP Sent Successfully']);
             } else {

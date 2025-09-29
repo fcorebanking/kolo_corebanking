@@ -171,12 +171,12 @@ class WebhookController extends Controller
 
                 if ($this->fromTempWebhook == 'false') {
                     $customerAmount = in_array($this->webhookType, ['kuda', 'paystack'])
-                    ? ($this->amount / 100)
-                    : $this->amount;
+                        ? ($this->amount / 100)
+                        : $this->amount;
 
                     $originalAmount = in_array($this->webhookType, ['kuda', 'paystack'])
-                    ? ($this->amount / 100)
-                    : $this->amount;
+                        ? ($this->amount / 100)
+                        : $this->amount;
                 } else {
                     $customerAmount = $this->amount;
 
@@ -304,7 +304,7 @@ class WebhookController extends Controller
 
                 $smsstate = sendSMS($customer->id, $message, true, true, 'Credit Transaction', '', 0, false);
 
-                logInfo($smsstate);
+                logInfo(json_encode($smsstate));
 
                 // $this->sendNotificationToErrandPay($userId);
 

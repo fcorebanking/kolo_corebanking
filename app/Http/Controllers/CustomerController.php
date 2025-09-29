@@ -7,6 +7,7 @@ use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Http\Controllers\ThirdParty\WovenController;
 use App\Http\Controllers\TransactionController;
 use App\Imports\UsersImport;
+use App\Mail\TransactionReport;
 use App\Models\AddedLoanLog;
 use App\Models\banks;
 use App\Models\branch;
@@ -68,6 +69,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Image;
@@ -581,8 +583,7 @@ class CustomerController extends Controller
         // } catch (\Throwable $th) {
         //     //throw $th;
         // }
-        $branchName        = isset($user->bank->bank_name) ? $user->bank->bank_name : '';
-      
+        $branchName = isset($user->bank->bank_name) ? $user->bank->bank_name : '';
 
         $companyname = $auth->company->company_name;
         $datax       = [
@@ -762,8 +763,8 @@ class CustomerController extends Controller
 
                 $createCardResult['status'] = 1;
                 $userCard                   = UserCard::create([
-                    "user_id"          => $user->id,
-                    "card_name"        => "{$user->first_name} {$user->last_name}",
+                    "user_id"   => $user->id,
+                    "card_name" => "{$user->first_name} {$user->last_name}",
                     "card_type_id"     => 2,
                     "card_category_id" => $request->card_category,
                     "card_number"      => $createCardResult['result']['data']["card_pan"] ?? $createVirtualCard['result']['data']["maskedPan"],
@@ -2607,6 +2608,12 @@ class CustomerController extends Controller
             $newPSW = bcrypt($newpsw);
             $user->update(['password' => $newPSW]);
             $smssent = sendSMS($getuser->id, "Your Account Password Has just Been reset! <br> Your new Password is: $newpsw <br> ($getcompanyName) You can login and reset your password!", true, true, 'Password reset');
+
+            $subtext = "Password reset";
+            $reason  = "";
+            $msg     = "Your Account Password Has just Been reset! <br> Your new Password is: $newpsw <br> ($getcompanyName) You can login and reset your password!";
+            $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
+
             return response()->json(['status' => 1, 'message' => 'Password reset Sent!']);
         }
         return response()->json(['status' => 0, 'message' => 'Error sending reset code!']);
@@ -2634,8 +2641,15 @@ class CustomerController extends Controller
 
             $user->update(['pin' => $txnpin]);
             $smssent = sendSMS($getuser->id, "Transaction Pin Has just Been reset! <br> Your new Pin is: $txnpin", true, true, 'PIn reset');
+
+            $subtext = "PIn reset";
+            $reason  = "";
+            $msg     = "Transaction Pin Has just Been reset! <br> Your new Pin is $txnpin";
+            $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
+
             return response()->json(['status' => 1, 'message' => 'PIn reset code Sent!', 'sms' => $smssent]);
         }
+
         return response()->json(['status' => 0, 'message' => 'Error sending reset code!']);
     }
     public function activate_entry($id)
@@ -3720,6 +3734,25 @@ class CustomerController extends Controller
         $maxcust = plans::where('id', $sub->plan_id)->first()->max_customers;
         logInfo(json_encode($maxcust), "max customers plans");
         return $maxcust;
+    }
+
+    private function sendTransactionReportEmail($subtext, $msg, $reason, $user)
+    {
+
+        $data = [
+            'subtext'      => $subtext,
+            'reason'       => $reason,
+            'desc'         => $msg,
+            'company_name' => $user->company->company_name,
+            'user'         => $user->company->company_name,
+        ];
+
+        try {
+            Mail::to($user->email)->send(new TransactionReport($data));
+        } catch (\Throwable $e) {
+            \Log::error("Failed to send TransactionReport email: " . $e->getMessage());
+            // continue silently
+        }
     }
 
 }

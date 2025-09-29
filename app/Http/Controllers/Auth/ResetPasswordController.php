@@ -127,6 +127,11 @@ class ResetPasswordController extends Controller
 
         $sendSms = sendEmail("Request to Change Password", $msg, $userInfo);
 
+        $subtext = "Debit Transaction";
+        $reason  = "";
+        $msg     = "Debit Amt:$request->final_amount,<br><br> Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . "<br><br> Avail Bal:" . $debitCustomer['charge_balance_after'] . "<br><br>Date:" . date('Y-m-d') . " <br><br>Ref: " . $request->transaction_reference;
+        $this->sendTransactionReportEmail($subtext, $msg, $reason, $currentUser);
+
         Session::flash("success", "A Reset Password email has been sent to your email account. Follow the instructions to reset account");
 
         return \redirect()->back()->with($data);
@@ -223,4 +228,5 @@ class ResetPasswordController extends Controller
             return \response()->json(['status' => 0, 'message' => 'Password Link Expired. Kindly resend password link and try again']);
         }
     }
+
 }

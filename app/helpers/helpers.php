@@ -4573,6 +4573,7 @@ function smsCustomer($phone, $msg, $company_short, $title)
         case 'Company Registration':
             $type          = "dnd";
             $company_short = "N-Alert";
+
             break;
         case 'Account Replacement':
             $type          = "dnd";
@@ -4637,4 +4638,53 @@ function smsCustomer($phone, $msg, $company_short, $title)
     $result   = json_decode($response->getBody()->getContents());
     return $result;
 
+}
+
+function goldencreditSMSPost($phone, $transaction_type, $amount = null, $balance = null, $account_id = null, $code = null)
+{
+
+    if ($transaction_type == "otp") {
+        $endpoint = "https://appservice.karadyn.com/app/sms/otp";
+        $data     = [
+            "Phone" => $phone,
+            "Code"  => $code,
+
+        ];
+    }
+
+    if ($transaction_type == "transaction") {
+        $endpoint = "https://appservice.karadyn.com/app/sms/sendtransaction";
+        $data     = [
+            "Phone"     => $phone,
+            "Amount"    => $amount,
+            "Type"      => "Deposit",
+            "Balance"   => $balance,
+            "AccountID" => $account_id,
+            "Date"      => Carbon::now,
+
+        ];
+    }
+
+    if ($transaction_type == "passwordreset") {
+        $endpoint = "https://appservice.karadyn.com/app/sms/passwordreset";
+        $data     = [
+            "Phone" => $phone,
+            "Code"  => $code,
+
+        ];
+    }
+
+    $response = Http::withHeaders(goldencreditHeader())->post("$endpoint", $data);
+    return $response;
+}
+
+function goldencreditHeader()
+{
+    $header = [
+        "Content-Type" => "application/json",
+        "Authorization"       => "cyuwnGScgR.YpNGHxHQorOFtN5ApLil4Ohn1ZPDqE68SFn4Jog2",
+        "Clientid"    => "XCPfFbVaPLPfVcBC",
+    ];
+
+    return $header;
 }

@@ -577,9 +577,17 @@ class UserController extends Controller
 
                 // $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone.($getCompanyName) Alternatively, dial *7006*80*00";
 
-                $msg     = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
-                $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, false);
-                $data    = [
+                $msg = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
+                if ($userAccunt->company->id == 33) {
+                    $phone            = $userAccunt->phone;
+                    $transaction_type = "otp";
+                    $code             = $otpCode;
+                    goldencreditSMSPost($phone, $transaction_type, $code);
+                } else {
+                    $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, false);
+                    \logInfo(json_encode($sendSMS), "resend OTP response");
+                }
+                $data = [
                     'subtext'      => "Reset Password",
                     'name'         => $userAccunt->first_name,
                     'desc'         => $msg,
@@ -587,7 +595,6 @@ class UserController extends Controller
                     'company_name' => $userAccunt->company->company_name,
                 ];
                 Mail::to($userAccunt->email)->send(new ResetAccountMail($data));
-                \logInfo(json_encode($sendSMS), "resend OTP response");
 
                 return response(['status' => true, 'message' => 'OTP Sent Successfully']);
             } else {
@@ -937,9 +944,14 @@ class UserController extends Controller
 
                 // $msg = "You request to reset your Password/Pin.. kindly find OTP.. $otpCode  Do not share with anyone. $getCompanyName";
                 $msg = "Your $getCompanyName Verification Pin is $otpCode . it expires in 30 mins.";
-
-                $sendSMS = \sendSMS($checkPhoneWithAccountReference->id, $msg, \true, false, "OTP Confirmation", '', 0, false);
-
+                if ($userAccunt->company->id == 33) {
+                    $phone            = $userAccunt->phone;
+                    $transaction_type = "otp";
+                    $code             = $otpCode;
+                    goldencreditSMSPost($phone, $transaction_type, $code);
+                } else {
+                    $sendSMS = \sendSMS($checkPhoneWithAccountReference->id, $msg, \true, false, "OTP Confirmation", '', 0, false);
+                }
                 return response(['status' => true, 'message' => 'OTP Sent Successfully']);
             } else {
                 $checkPhone = User::where(['phone' => $request->phone_number])->first();

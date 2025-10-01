@@ -2607,7 +2607,14 @@ class CustomerController extends Controller
             $newpsw = substr(str_shuffle(str_repeat('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', mt_rand(1, 8))), 1, 8);
             $newPSW = bcrypt($newpsw);
             $user->update(['password' => $newPSW]);
-            $smssent = sendSMS($getuser->id, "Your Account Password Has just Been reset! <br> Your new Password is: $newpsw <br> ($getcompanyName) You can login and reset your password!", true, true, 'Password reset');
+            if (auth()->user()->company_id == 33) {
+                $phone            = $getuser->phone;
+                $transaction_type = "passwordreset";
+                $code             = $newpsw;
+                goldencreditSMSPost($phone, $transaction_type, $code);
+            } else {
+                $smssent = sendSMS($getuser->id, "Your Account Password Has just Been reset! <br> Your new Password is: $newpsw <br> ($getcompanyName) You can login and reset your password!", true, true, 'Password reset');
+            }
 
             $subtext = "Password reset";
             $reason  = "";
@@ -2640,8 +2647,14 @@ class CustomerController extends Controller
             $txnpin = rand(1231, 7879);
 
             $user->update(['pin' => $txnpin]);
-            $smssent = sendSMS($getuser->id, "Transaction Pin Has just Been reset! <br> Your new Pin is: $txnpin", true, true, 'PIn reset');
-
+            if (auth()->user()->company_id == 33) {
+                $phone            = $getuser->phone;
+                $transaction_type = "otp";
+                $code             = $txnpin;
+                goldencreditSMSPost($phone, $transaction_type, $code);
+            } else {
+                $smssent = sendSMS($getuser->id, "Transaction Pin Has just Been reset! <br> Your new Pin is: $txnpin", true, true, 'PIn reset');
+            }
             $subtext = "PIn reset";
             $reason  = "";
             $msg     = "Transaction Pin Has just Been reset! <br> Your new Pin is $txnpin";

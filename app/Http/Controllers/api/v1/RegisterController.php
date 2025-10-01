@@ -350,7 +350,16 @@ class RegisterController extends Controller
 
             // $welcomeMessage = "Welcome FirstName! Your account number is 5080135881. Bank Name: Asset Matrix MFB.  upload your Valid ID and link BVN. Have Access via USSD. Simply dial *7006*10#. T&Cs applyEnjoy 24/7.";
             //             sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 'Create Account', $accno = '', $usesms = 0, $isApi = false, $all_sms_email = 1, $sms_logdata = [])
-            $smsstate = sendSMS($user->id, "Welcome to " . $companyRecord->company_name . ". Your OTP is $otp. Alternatively, dial *7006*80*00%23 To verify your phone from the registered phone number", true, false, 'Verify OTP', '');
+
+            if ($companyRecord->id == 33) {
+                $phone            = $user->phone;
+                $transaction_type = "otp";
+                $code             = $otp;
+                goldencreditSMSPost($phone, $transaction_type, $code);
+            } else {
+                $smsstate = sendSMS($user->id, "Welcome to " . $companyRecord->company_name . ". Your OTP is $otp. ", true, false, 'Verify OTP', '');
+            }
+
             $smsstate = sendSMS($user->id, $welcomeMessage, true, false, 'Welcome Message', '', 0, false);
             // $sendSMS = \sendVansoSMS($userPhone, $welcomeMessage);
 

@@ -173,9 +173,16 @@ class LoginController extends Controller
 
             $msg = "kindly find OTP.. $otpCode  Do not share with anyone. ($getCompanyName) alternative dial *7006*80*00%23 to verify your phone without OTP.";
 
-            $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, true);
+            if (Auth::user()->company->id == 33) {
+                $phone            = $userAccunt->phone;
+                $transaction_type = "otp";
+                $code             = $otpCode;
+                goldencreditSMSPost($phone, $transaction_type, $code);
+            } else {
+                $sendSMS = \sendSMS($userAccunt->id, $msg, true, false, "OTP Confirmation", '', 0, true);
+                \logInfo(json_encode($sendSMS), "My SMS response to pending login");
+            }
 
-            \logInfo(json_encode($sendSMS), "My SMS response to pending login");
             $subtext = "OTP Confirmation";
             $reason  = "";
             $this->sendEmail($subtext, $msg, $reason, $userAccunt);

@@ -1059,10 +1059,18 @@ class TransactionController extends Controller
                         $bankAccount['status'] = false;
                         return response()->json($bankAccount);
                     }
+                    if ($currentUser->company->id == 33) {
+                        $phone            = $currentUser->phone;
+                        $transaction_type = "transaction";
+                        $amount           = $request->final_amount;
+                        $balance          = $debitCustomer['charge_balance_after'];
+                        $account_id       = $currentUser->id;
 
-                    sendSMS($currentUser->id, "Debit Amt:$request->final_amount, Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . " Avail Bal:" . $debitCustomer['charge_balance_after'] . "Date:" . date('Y-m-d') . " Ref: " . $request->transaction_reference, true, true, 'Debit Transaction');
-                    // $transaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
-
+                        goldencreditSMSPost($phone, $transaction_type, $amount, $balance, $account_id);
+                    } else {
+                        sendSMS($currentUser->id, "Debit Amt:$request->final_amount, Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . " Avail Bal:" . $debitCustomer['charge_balance_after'] . "Date:" . date('Y-m-d') . " Ref: " . $request->transaction_reference, true, true, 'Debit Transaction');
+                        // $transaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
+                    }
                     $newdescription = $request->description == "" ? $currentUser->first_name : $request->description;
 
                     $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
@@ -3319,8 +3327,8 @@ class TransactionController extends Controller
                 if (! $userPOS) {
                     if ($currentRequest['action_type'] == "pre-balance-check-auth") {
                         return response()->json(["status" => false, 'message' => "Invalid POS terminal Code"]);
-                    } 
-                    
+                    }
+
                     if ($currentRequest['action_type'] == "pre-payout-auth") {
 
                         return response()->json(['data' => [
@@ -3338,8 +3346,8 @@ class TransactionController extends Controller
 
                     if ($currentRequest['action_type'] == "pre-balance-check-auth") {
                         return $response = response()->json(["status" => "INVALID_PIN", 'message' => "Invalid authentication"]);
-                    } 
-                    
+                    }
+
                     if ($currentRequest['action_type'] == "pre-payout-auth") {
                         return response()->json(['data' => [
                             'transaction' => [

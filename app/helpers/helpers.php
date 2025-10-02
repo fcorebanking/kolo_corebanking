@@ -4660,7 +4660,7 @@ function goldencreditSMSPost($phone, $transaction_type, $amount = null, $balance
             "Type"      => "Deposit",
             "Balance"   => $balance,
             "AccountID" => $account_id,
-            "Date"      => Carbon::now,
+            "Date"      => Carbon::now(),
 
         ];
     }
@@ -4681,9 +4681,9 @@ function goldencreditSMSPost($phone, $transaction_type, $amount = null, $balance
 function goldencreditHeader()
 {
     $header = [
-        "Content-Type" => "application/json",
-        "Authorization"       => "cyuwnGScgR.YpNGHxHQorOFtN5ApLil4Ohn1ZPDqE68SFn4Jog2",
-        "Clientid"    => "XCPfFbVaPLPfVcBC",
+        "Content-Type"  => "application/json",
+        "Authorization" => "cyuwnGScgR.YpNGHxHQorOFtN5ApLil4Ohn1ZPDqE68SFn4Jog2",
+        "Clientid"      => "XCPfFbVaPLPfVcBC",
     ];
 
     return $header;

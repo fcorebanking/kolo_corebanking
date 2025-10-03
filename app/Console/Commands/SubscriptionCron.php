@@ -151,6 +151,8 @@ class SubscriptionCron extends Command
         $companywallet->balance = $companywallet->balance - $amt_to_pay;
         $balanceBefore          = $companywallet->sms;
         $companywallet->sms += 200;
+        $companywallet->save();
+
         $subCompany->update([
             'transaction_id' => $transaction->id,
             'plan_id'        => $plan->id,

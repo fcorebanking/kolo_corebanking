@@ -42,116 +42,34 @@ class PlanController extends Controller
         $auth = auth()->user();
 
         if ($request->qrt > 0) {
-            $duration = $request->qrt;
-            $plan     = $this->getPlan($request, $duration);
+            $duration  = $request->qrt;
+            $fdate     = date("Y-m-d");
+            $daysToAdd = $duration * 31;
+
+            $plan = $this->getPlan($request);
             //max_staff max_branch max_customers
             $this->getMaxCustomers($auth, $plan);
 
-            $amt_to_pay = $this->getAmountPaid($plan, $auth, $duration);
+            $companybalance = $auth->company->wallet->balance;
+            $company_name   = $auth->company->short_name;
+            $amt_to_pay     = $this->getAmountPaid($plan, $auth, $duration, $companybalance, $company_name);
             \logInfo($amt_to_pay, "Plan amount converted");
 
-            $finalpayment = $amt_to_pay;
-            if ($finalpayment < 0) {
-                $finalpayment = 0;
+            $sameplan     = 0;
+            $myoldplanend = '';
+            $sub          = $this->checkSub($auth, $plan, $sameplan, $myoldplanend, $fdate);
+
+            if (isset($sub['sameplan'])) {
+                $sameplan = $sub['sameplan'];
             }
-            if ($companybalance >= $finalpayment) {
-                $transactionId = generate_txnID();
-                if ($sameplan == 1) {
-                    $endpayment = add_day_to_date($daysToAdd, $myoldplanend);
-                } else {
-                    $endpayment = add_day_to_date($daysToAdd, $fdate);
-                }
-                $transaction = transactions::create([
-                    "balance_before"         => $auth->company->wallet->balance,
-                    "amount"                 => $finalpayment,
-                    'company_id'             => $auth->company_id,
-                    "description"            => "Wiredbanking Subsciption",
-                    "transaction_reference"  => $transactionId,
-                    "transaction_remarks_id" => 1,
-                    "transaction_type_id"    => 18,
-                    "company_balance_before" => $auth->company->wallet->balance,
-                    "company_amount"         => $finalpayment,
-                    "credit_debit_type_id"   => 2,
-                    "created_date"           => date('Y-m-d'),
-                    "created_by"             => $auth->id,
-                ]);
 
-                $companywallet = company_wallet::where('company_id', $auth->company_id)->first();
-                //echo "before addition $companywallet->balance ";
-                if ($moneyleft > 0 && $sameplan != 1) {
-                    $companywallet->balance     = $companywallet->balance + $moneyleft;
-                    $transaction['description'] = $transaction['description'] . " and refund of $moneyleft from previous plan";
-                    // echo "after addition $companywallet->balance $moneyleft <br>";
-
-                }
-                //echo "$moneyleft > 0 && $sameplan";
-                $companywallet->balance = $companywallet->balance - $finalpayment;
-                $balanceBefore          = $companywallet->sms;
-                $companywallet->sms += 200;
-                // echo "after sub $companywallet->balance ";
-                //die(" <br> plan compare $plan->id == $sub->plan_id");
-
-                if ($companywallet->save()) {
-                    if ($hassub == 1) {
-                        $sub->update([
-                            'transaction_id' => $transaction->id,
-                            'plan_id'        => $plan->id,
-                            'quantity'       => $duration,
-                            'start_date'     => $fdate,
-                            'end_date'       => $endpayment,
-                            'status'         => 1,
-                        ]);
-                    } else {
-                        sub::create([
-                            'company_id'     => $auth->company_id,
-                            'transaction_id' => $transaction->id,
-                            'plan_id'        => $plan->id,
-                            'quantity'       => $duration,
-                            'start_date'     => $fdate,
-                            'end_date'       => $endpayment,
-                            'status'         => 1,
-                        ]);
-                    }
-                    sublog::create([
-                        'company_id'     => $auth->company_id,
-                        'transaction_id' => $transaction->id,
-                        'plan_id'        => $plan->id,
-                        'quantity'       => $duration,
-                        'start_date'     => $fdate,
-                        'end_date'       => $endpayment,
-
-                    ]);
-                    $transaction = $transaction->update([
-                        "transaction_remarks_id" => 2,
-                        "balance_after"          => $companywallet->balance,
-                        "company_balance_after"  => $companywallet->balance,
-                        "modified_by"            => $auth->id,
-                    ]);
-
-                    $bonusTransactionId = \generate_txnID();
-
-                    $transaction = transactions::create([
-                        "balance_before"         => $balanceBefore,
-                        "amount"                 => 200,
-                        "balance_after"          => $companywallet->sms,
-                        'company_id'             => $auth->company_id,
-                        "description"            => "Subscription Bonus SMS unit",
-                        "transaction_reference"  => $bonusTransactionId,
-                        "transaction_remarks_id" => 2,
-                        "transaction_type_id"    => 67,
-                        "company_balance_before" => $balanceBefore,
-                        "company_amount"         => 200,
-                        "company_balance_after"  => $companywallet->sms,
-                        "credit_debit_type_id"   => 1,
-                        "created_date"           => date('Y-m-d'),
-                        "created_by"             => $auth->id,
-                    ]);
-
-                    return redirect()->route('company.subinvoicereview', [$company_name, $transactionId])->with('success', 'Subscription Successful!!!');
-                }
-            } else {
-                return redirect()->back()->with('fail', "Insuffient Balance!");
+            if (isset($sub['myoldplanend'])) {
+                $myoldplanend = $sub['myoldplanend'];
             }
+
+            $moneyleft = 0;
+
+            $this->paySubscription($amt_to_pay, $companybalance, $sameplan, $auth, $daysToAdd, $myoldplanend, $fdate, $moneyleft);
 
             return redirect()->back()->with('fail', "An Error Occured!");
         }
@@ -277,13 +195,10 @@ class PlanController extends Controller
         return plans::where('id', $sub->plan_id)->first()->daily_rates;
     }
 
-    private function getPlan(Request $request, $duration)
+    private function getPlan(Request $request)
     {
 
-        $fdate = date("Y-m-d");
-
-        $daysToAdd = $duration * 31;
-        $plan      = plans::find($request->id);
+        $plan = plans::find($request->id);
         logInfo(json_encode($plan), "Company Plan");
         return $plan;
     }
@@ -304,15 +219,15 @@ class PlanController extends Controller
         }
     }
 
-    private function getAmountPaid($plan, $auth, $duration)
+    //  getAmountPaid($plan, $auth, $duration, $companybalance, $company_name)
+    private function getAmountPaid($plan, $auth, $duration, $companybalance, $company_name)
     {
 
-        $plan_unit      = $plan->daily_rates;
-        $moneyleft      = 0;
-        $plan_discount  = $plan->discount_percent;
-        $monthlyamount  = $plan_unit * 31;
-        $companybalance = $auth->company->wallet->balance;
-        $company_name   = $auth->company->short_name;
+        $plan_unit     = $plan->daily_rates;
+        $moneyleft     = 0;
+        $plan_discount = $plan->discount_percent;
+        $monthlyamount = $plan_unit * 31;
+
         if (($duration >= 12) && ($plan_discount > 0)) {
             $amt_to_pay = (($plan_discount / 100) * ($monthlyamount * $duration));
         } else {
@@ -337,12 +252,11 @@ class PlanController extends Controller
         return $currencyExchange;
     }
 
-    public function checkSub($auth, $plan)
+    //checkSub($auth, $plan, $sameplan, $myoldplanend, $fdate)
+    public function checkSub($auth, $plan, $sameplan, $myoldplanend, $fdate)
     {
-        $sub          = sub::where(['company_id' => $auth->company_id])->first();
-        $hassub       = 0;
-        $sameplan     = 0;
-        $myoldplanend = '';
+        $sub    = sub::where(['company_id' => $auth->company_id])->first();
+        $hassub = 0;
 
         if ($sub) {
             $hassub       = 1;
@@ -379,6 +293,125 @@ class PlanController extends Controller
                     return redirect()->back()->with('fail', "You cannot downgrade while on a higher plan!");
                 }
             }
+        }
+
+        $checkSub['sameplan']     = $sameplan;
+        $checkSub['myoldplanend'] = $myoldplanend;
+        return $checkSub;
+    }
+
+    private function createTransaction($auth, $finalpayment, $transactionId)
+    {
+        return transactions::create([
+            "balance_before"         => $auth->company->wallet->balance,
+            "amount"                 => $finalpayment,
+            'company_id'             => $auth->company_id,
+            "description"            => "Finova Subscription",
+            "transaction_reference"  => $transactionId,
+            "transaction_remarks_id" => 1,
+            "transaction_type_id"    => 18,
+            "company_balance_before" => $auth->company->wallet->balance,
+            "company_amount"         => $finalpayment,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $auth->id,
+        ]);
+    }
+
+    //paySubscription($amt_to_pay, $companybalance, $sameplan, $auth, $daysToAdd, $myoldplanend, $fdate, $moneyleft)
+    public function paySubscription($amt_to_pay, $companybalance, $sameplan, $auth, $daysToAdd, $myoldplanend, $fdate, $moneyleft)
+    {
+        $finalpayment = $amt_to_pay;
+        if ($finalpayment < 0) {
+            $finalpayment = 0;
+        }
+        if ($companybalance >= $finalpayment) {
+            $transactionId = generate_txnID();
+            if ($sameplan == 1) {
+                $endpayment = add_day_to_date($daysToAdd, $myoldplanend);
+            } else {
+                $endpayment = add_day_to_date($daysToAdd, $fdate);
+            }
+
+            $transaction = $this->createTransaction($auth, $finalpayment, $transactionId);
+
+            $companywallet = company_wallet::where('company_id', $auth->company_id)->first();
+            //echo "before addition $companywallet->balance ";
+            if ($moneyleft > 0 && $sameplan != 1) {
+                //$companywallet->balance     = $companywallet->balance + $moneyleft;
+                //$transaction['description'] = $transaction['description'] . " and refund of $moneyleft from previous plan";
+                $transaction['description'] = $transaction['description'];
+                // echo "after addition $companywallet->balance $moneyleft <br>";
+
+            }
+            //echo "$moneyleft > 0 && $sameplan";
+            $companywallet->balance = $companywallet->balance - $finalpayment;
+            $balanceBefore          = $companywallet->sms;
+            $companywallet->sms += 200;
+            // echo "after sub $companywallet->balance ";
+            //die(" <br> plan compare $plan->id == $sub->plan_id");
+
+            if ($companywallet->save()) {
+                if ($hassub == 1) {
+                    $sub->update([
+                        'transaction_id' => $transaction->id,
+                        'plan_id'        => $plan->id,
+                        'quantity'       => $duration,
+                        'start_date'     => $fdate,
+                        'end_date'       => $endpayment,
+                        'status'         => 1,
+                    ]);
+                } else {
+                    sub::create([
+                        'company_id'     => $auth->company_id,
+                        'transaction_id' => $transaction->id,
+                        'plan_id'        => $plan->id,
+                        'quantity'       => $duration,
+                        'start_date'     => $fdate,
+                        'end_date'       => $endpayment,
+                        'status'         => 1,
+                    ]);
+                }
+                sublog::create([
+                    'company_id'     => $auth->company_id,
+                    'transaction_id' => $transaction->id,
+                    'plan_id'        => $plan->id,
+                    'quantity'       => $duration,
+                    'start_date'     => $fdate,
+                    'end_date'       => $endpayment,
+
+                ]);
+
+                $transaction->update([
+                    "transaction_remarks_id" => 2,
+                    "balance_after"          => $companywallet->balance,
+                    "company_balance_after"  => $companywallet->balance,
+                    "modified_by"            => $auth->id,
+                ]);
+
+                $bonusTransactionId = \generate_txnID();
+
+                $transaction = transactions::create([
+                    "balance_before"         => $balanceBefore,
+                    "amount"                 => 200,
+                    "balance_after"          => $companywallet->sms,
+                    'company_id'             => $auth->company_id,
+                    "description"            => "Subscription Bonus SMS unit",
+                    "transaction_reference"  => $bonusTransactionId,
+                    "transaction_remarks_id" => 2,
+                    "transaction_type_id"    => 67,
+                    "company_balance_before" => $balanceBefore,
+                    "company_amount"         => 200,
+                    "company_balance_after"  => $companywallet->sms,
+                    "credit_debit_type_id"   => 1,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => $auth->id,
+                ]);
+
+                return redirect()->route('company.subinvoicereview', [$company_name, $transactionId])->with('success', 'Subscription Successful!!!');
+            }
+        } else {
+            return redirect()->back()->with('fail', "Insuffient Balance!");
         }
     }
 

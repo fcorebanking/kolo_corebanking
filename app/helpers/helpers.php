@@ -4566,60 +4566,34 @@ function debitCreditCompany($data)
 function smsCustomer($phone, $msg, $company_short, $title)
 {
     $apikey = env('SMS_API_KEY');
-    $type   = 'plain';
 
-    switch ($title) {
+    $type = match ($title) {
+        'Company Registration'  => 'dnd',
+        'Account Replacement'   => 'dnd',
+        'Account'               => 'dnd',
+        'Password reset'        => 'dnd',
+        'Account reset for'     => 'dnd',
+        'PIn reset'             => 'dnd',
+        'Customer Transfer'     => 'dnd',
+        'Finova Login Security' => 'dnd',
+        'OTP Confirmation'      => 'dnd',
+        'Verify OTP'            => 'dnd',
+        'Reset Password OTP'    => 'dnd',
+        'Finova Login Security' => 'dnd',
+        default                 => 'generic', // fallback
+    };
 
-        case 'Company Registration':
-            $type          = "dnd";
-            $company_short = "N-Alert";
+    $type = match ($company_short) {
+        'Gosentra'    => 'dnd',
+        'kipkash'     => 'dnd',
+        'Finovaedge'  => 'dnd',
+        'STRINGS PAY' => 'dnd',
+        'SDDTIF'      => 'dnd',
+        'COCTAL'      => 'dnd',
+        'GoldRidg'    => 'dnd',
 
-            break;
-        case 'Account Replacement':
-            $type          = "dnd";
-            $company_short = "N-Alert";
-            break;
-        case 'Account':
-            $type          = "dnd";
-            $company_short = "N-Alert";
-            break;
-        case 'Password reset':
-            $type          = "dnd";
-            $company_short = "N-Alert";
-            break;
-        case 'Account reset for':
-            $type          = "dnd";
-            $company_short = "N-Alert";
-            break;
-        case 'PIn reset':
-            $type          = "dnd";
-            $company_short = "N-Alert";
-            break;
-        case 'Customer Transfer':
-            $type          = "dnd";
-            $company_short = "N-Alert";
-            break;
-        case 'Finova Login Security':
-            $type          = "dnd";
-            $company_short = "N-Alert";
-            break;
-        case 'OTP Confirmation':
-            $type          = "dnd";
-            $company_short = "N-Alert";
-            break;
-        case 'Verify OTP':
-            $type          = "dnd";
-            $company_short = "N-Alert";
-            break;
-        case 'Reset Password OTP':
-            $type          = "dnd";
-            $company_short = "N-Alert";
-            break;
-
-        default:
-            $type = "generic";
-
-    }
+        default       => 'generic',
+    };
 
     $data = [
         'api_key' => $apikey,
@@ -4627,7 +4601,7 @@ function smsCustomer($phone, $msg, $company_short, $title)
         'from'    => $company_short,
         'sms'     => $msg,
         'type'    => 'plain',
-        'channel' => "generic",
+        'channel' => $type,
 
     ];
 

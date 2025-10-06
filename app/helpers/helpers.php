@@ -4595,6 +4595,22 @@ function smsCustomer($phone, $msg, $company_short, $title)
         default       => 'generic',
     };
 
+    $validCompanies = [
+        'Gosentra',
+        'kipkash',
+        'Finovaedge',
+        'STRINGS PAY',
+        'SDDTIF',
+        'COCTAL',
+        'GoldRidg',
+    ];
+
+    if (! in_array($company_short, $validCompanies, true)) {
+        if ($type == "dnd") {
+            $company_short = "N-Alert";
+        }
+    }
+
     $data = [
         'api_key' => $apikey,
         'to'      => $phone,

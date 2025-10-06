@@ -1083,8 +1083,9 @@ class TransactionController extends Controller
                     $transaction->description = $myDescription;
 
                     $transaction->balance_before = $customerBalanceBefore;
-                    $transaction->amount         = $request->final_amount + $charge;
-                    $transaction->balance_after  = $customerChargeBalanceAfter;
+                    //  $transaction->amount         = $request->final_amount + $charge;
+                    $transaction->amount        = $request->final_amount;
+                    $transaction->balance_after = $customerChargeBalanceAfter;
 
                     $transaction->company_balance_before = $companyBalanceBefore;
                     $transaction->company_amount         = $request->final_amount + $wbaCharge;

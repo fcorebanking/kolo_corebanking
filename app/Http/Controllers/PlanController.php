@@ -40,72 +40,16 @@ class PlanController extends Controller
 
         logInfo($request->all(), "Subscription Request");
         $auth = auth()->user();
-        if ($request->qrt > 0) {
 
-            $plan = $this->getPlan($request);
+        if ($request->qrt > 0) {
+            $duration = $request->qrt;
+            $plan     = $this->getPlan($request, $duration);
             //max_staff max_branch max_customers
             $this->getMaxCustomers($auth, $plan);
-            $plan_unit      = $plan->daily_rates;
-            $moneyleft      = 0;
-            $plan_discount  = $plan->discount_percent;
-            $monthlyamount  = $plan_unit * 31;
-            $companybalance = $auth->company->wallet->balance;
-            $company_name   = $auth->company->short_name;
-            if (($duration >= 12) && ($plan_discount > 0)) {
-                $amt_to_pay = (($plan_discount / 100) * ($monthlyamount * $duration));
-            } else {
-                $amt_to_pay = $monthlyamount * $duration;
-            }
-            $currencyExchange = $this->flutterwaveController->getExchangeRater($amt_to_pay, $auth->company->currency->code, "USD");
-            if (! $currencyExchange['status']) {
-                return redirect()->back()->with('fail', $currencyExchange['message']);
-            }
-            $amt_to_pay = $currencyExchange['data']['final_amount'];
+
+            $amt_to_pay = $this->getAmountPaid($plan, $auth, $duration);
             \logInfo($amt_to_pay, "Plan amount converted");
-            $sub          = sub::where(['company_id' => $auth->company_id])->first();
-            $hassub       = 0;
-            $sameplan     = 0;
-            $myoldplanend = '';
-            if ($sub) {
-                $hassub       = 1;
-                $myoldplanend = $sub->end_date;
-                if ($sub->end_date > $fdate) {
-                    if ($plan->id > $sub->plan_id) {
-                        if (isset($sub->TXNlog->amount)) {
-                            \logInfo(json_encode($sub), "TXNLog sub");
-                            \logInfo(json_encode($sub->TXNlog->amount), "TXNLog Amount");
-                            $myoldplanqrt = $sub->quantity;
-                            \logInfo(json_encode($myoldplanqrt), "TXNLog myoldplanqrt");
-                            // echo "myoldplanqrt: $myoldplanqrt <br>";
-                            $txnamt = $sub->TXNlog->amount;
-                            // echo "txn : $txnamt <br>";
-                            $oldunit    = $txnamt / $myoldplanqrt;
-                            $dailyRates = $sub->plan->daily_rates ?? $this->getDailyRates($sub);
-                            // echo "oldunit : $oldunit <br>";
-                            if ($myoldplanend > $fdate) {
-                                $daysleft = diff_btw_date($fdate, $myoldplanend);
-                                \logInfo(json_encode($daysleft), "TXNLog daysleft");
-                                \logInfo(json_encode($dailyRates), "TXNLog dailyrates");
-                                // echo "$fdate, $myoldplanend <br>";
-                                $currencyExchange = $this->flutterwaveController->getExchangeRater($dailyRates, $auth->company->currency->code, "USD");
-                                if (! $currencyExchange['status']) {
-                                    // return response()->json($currencyExchange);
-                                    return redirect()->back()->with('fail', $currencyExchange['message']);
-                                }
-                                $oldunit   = $currencyExchange['data']['final_amount'];
-                                $moneyleft = $oldunit * $daysleft;
-                                // echo "$oldunit * $daysleft <br>";
-                            }
-                        } else {
-                            $sameplan = 1;
-                        }
-                    } else if ($plan->id == $sub->plan_id) {
-                        $sameplan = 1;
-                    } else {
-                        return redirect()->back()->with('fail', "You cannot downgrade while on a higher plan!");
-                    }
-                }
-            }
+
             $finalpayment = $amt_to_pay;
             if ($finalpayment < 0) {
                 $finalpayment = 0;
@@ -333,18 +277,18 @@ class PlanController extends Controller
         return plans::where('id', $sub->plan_id)->first()->daily_rates;
     }
 
-    private function getPlan(Request $request)
+    private function getPlan(Request $request, $duration)
     {
 
-        $fdate     = date("Y-m-d");
-        $duration  = $request->qrt;
+        $fdate = date("Y-m-d");
+
         $daysToAdd = $duration * 31;
         $plan      = plans::find($request->id);
         logInfo(json_encode($plan), "Company Plan");
         return $plan;
     }
 
-    public function getMaxCustomers($auth, $plan)
+    private function getMaxCustomers($auth, $plan)
     {
         $totalStaff    = count($auth->company->allStaff);
         $totalBranch   = count($auth->company->branch);
@@ -359,4 +303,83 @@ class PlanController extends Controller
             return redirect()->back()->with('fail', "The maximum customer limit of the selected plan does not match your current subscription.");
         }
     }
+
+    private function getAmountPaid($plan, $auth, $duration)
+    {
+
+        $plan_unit      = $plan->daily_rates;
+        $moneyleft      = 0;
+        $plan_discount  = $plan->discount_percent;
+        $monthlyamount  = $plan_unit * 31;
+        $companybalance = $auth->company->wallet->balance;
+        $company_name   = $auth->company->short_name;
+        if (($duration >= 12) && ($plan_discount > 0)) {
+            $amt_to_pay = (($plan_discount / 100) * ($monthlyamount * $duration));
+        } else {
+            $amt_to_pay = $monthlyamount * $duration;
+        }
+
+        logInfo(json_encode($amt_to_pay), "Company Subcription amount to pay before exchange");
+        //  $amt_to_pay = $this->getExchangeRater($amt_to_pay, $company);
+
+        $currencyExchange = $this->getExchangeRater($amt_to_pay, $auth);
+        $amt_to_pay       = $currencyExchange['data']['final_amount'];
+        logInfo(json_encode($amt_to_pay), "Company Subcription amount to pay ater exchange");
+        return $amt_to_pay;
+    }
+
+    private function getExchangeRater($amt_to_pay, $auth)
+    {
+        $currencyExchange = $this->flutterwaveController->getExchangeRater($amt_to_pay, $auth->company->currency->code, "USD");
+        if (! $currencyExchange['status']) {
+            return redirect()->back()->with('fail', $currencyExchange['message']);
+        }
+        return $currencyExchange;
+    }
+
+    public function checkSub($auth, $plan)
+    {
+        $sub          = sub::where(['company_id' => $auth->company_id])->first();
+        $hassub       = 0;
+        $sameplan     = 0;
+        $myoldplanend = '';
+
+        if ($sub) {
+            $hassub       = 1;
+            $myoldplanend = $sub->end_date;
+            if ($sub->end_date > $fdate) {
+                if ($plan->id > $sub->plan_id) {
+                    if (isset($sub->TXNlog->amount)) {
+                        \logInfo(json_encode($sub), "TXNLog sub");
+                        \logInfo(json_encode($sub->TXNlog->amount), "TXNLog Amount");
+                        $myoldplanqrt = $sub->quantity;
+                        \logInfo(json_encode($myoldplanqrt), "TXNLog myoldplanqrt");
+                        // echo "myoldplanqrt: $myoldplanqrt <br>";
+                        $txnamt = $sub->TXNlog->amount;
+                        // echo "txn : $txnamt <br>";
+                        $oldunit    = $txnamt / $myoldplanqrt;
+                        $dailyRates = $sub->plan->daily_rates ?? $this->getDailyRates($sub);
+                        // echo "oldunit : $oldunit <br>";
+                        if ($myoldplanend > $fdate) {
+                            $daysleft = diff_btw_date($fdate, $myoldplanend);
+                            \logInfo(json_encode($daysleft), "TXNLog daysleft");
+                            \logInfo(json_encode($dailyRates), "TXNLog dailyrates");
+                            // echo "$fdate, $myoldplanend <br>";
+                            $currencyExchange = $this->getExchangeRater($amt_to_pay, $auth);
+                            $oldunit          = $currencyExchange['data']['final_amount'];
+                            $moneyleft        = $oldunit * $daysleft;
+                            // echo "$oldunit * $daysleft <br>";
+                        }
+                    } else {
+                        $sameplan = 1;
+                    }
+                } else if ($plan->id == $sub->plan_id) {
+                    $sameplan = 1;
+                } else {
+                    return redirect()->back()->with('fail', "You cannot downgrade while on a higher plan!");
+                }
+            }
+        }
+    }
+
 }

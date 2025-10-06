@@ -151,51 +151,53 @@ class SubscriptionCron extends Command
         $companywallet->balance = $companywallet->balance - $amt_to_pay;
         $balanceBefore          = $companywallet->sms;
         $companywallet->sms += 200;
-        $companywallet->save();
+        //  $companywallet->save();
 
-        $subCompany->update([
-            'transaction_id' => $transaction->id,
-            'plan_id'        => $plan->id,
-            'quantity'       => $duration,
-            'start_date'     => $fdate,
-            'end_date'       => $endpayment,
-            'status'         => 1,
-        ]);
+        if ($companywallet->save()) {
+            $subCompany->update([
+                'transaction_id' => $transaction->id,
+                'plan_id'        => $plan->id,
+                'quantity'       => $duration,
+                'start_date'     => $fdate,
+                'end_date'       => $endpayment,
+                'status'         => 1,
+            ]);
 
-        sublog::create([
-            'company_id'     => $company->id,
-            'transaction_id' => $transaction->id,
-            'plan_id'        => $plan->id,
-            'quantity'       => $duration,
-            'start_date'     => $fdate,
-            'end_date'       => $endpayment,
+            sublog::create([
+                'company_id'     => $company->id,
+                'transaction_id' => $transaction->id,
+                'plan_id'        => $plan->id,
+                'quantity'       => $duration,
+                'start_date'     => $fdate,
+                'end_date'       => $endpayment,
 
-        ]);
+            ]);
 
-        $transaction = $transaction->update([
-            "transaction_remarks_id" => 2,
-            "balance_after"          => $companywallet->balance,
-            "company_balance_after"  => $companywallet->balance,
-            "modified_by"            => $company->id,
-        ]);
+            $transaction->update([
+                "transaction_remarks_id" => 2,
+                "balance_after"          => $companywallet->balance,
+                "company_balance_after"  => $companywallet->balance,
+                "modified_by"            => $company->id,
+            ]);
 
-        $bonusTransactionId = \generate_txnID();
+            $bonusTransactionId = \generate_txnID();
 
-        return transactions::create([
-            "balance_before"         => $balanceBefore,
-            "amount"                 => 200,
-            "balance_after"          => $companywallet->sms,
-            'company_id'             => $company->id,
-            "description"            => "Subscription Bonus SMS unit",
-            "transaction_reference"  => $bonusTransactionId,
-            "transaction_remarks_id" => 2,
-            "transaction_type_id"    => 67,
-            "company_balance_before" => $balanceBefore,
-            "company_amount"         => 200,
-            "company_balance_after"  => $companywallet->sms,
-            "credit_debit_type_id"   => 1,
-            "created_date"           => date('Y-m-d'),
-            "created_by"             => $company->id,
-        ]);
+            return transactions::create([
+                "balance_before"         => $balanceBefore,
+                "amount"                 => 200,
+                "balance_after"          => $companywallet->sms,
+                'company_id'             => $company->id,
+                "description"            => "Subscription Bonus SMS unit",
+                "transaction_reference"  => $bonusTransactionId,
+                "transaction_remarks_id" => 2,
+                "transaction_type_id"    => 67,
+                "company_balance_before" => $balanceBefore,
+                "company_amount"         => 200,
+                "company_balance_after"  => $companywallet->sms,
+                "credit_debit_type_id"   => 1,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => $company->id,
+            ]);
+        }
     }
 }

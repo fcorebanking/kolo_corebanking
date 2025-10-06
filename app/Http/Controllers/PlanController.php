@@ -41,23 +41,10 @@ class PlanController extends Controller
         logInfo($request->all(), "Subscription Request");
         $auth = auth()->user();
         if ($request->qrt > 0) {
-            $fdate     = date("Y-m-d");
-            $duration  = $request->qrt;
-            $daysToAdd = $duration * 31;
-            $plan      = plans::find($request->id);
+
+            $plan = $this->getPlan($request);
             //max_staff max_branch max_customers
-            $totalStaff    = count($auth->company->allStaff);
-            $totalBranch   = count($auth->company->branch);
-            $totalCustomer = count($auth->company->allCustomer);
-            if ($totalStaff > $plan->max_staff) {
-                return redirect()->back()->with('fail', "The maximum staff limit of the selected plan does not match your current subscription.");
-            }
-            if ($totalBranch > $plan->max_branch) {
-                return redirect()->back()->with('fail', "The maximum branch limit of the selected plan does not match your current subscription. you have " . $totalBranch . " branch and you are allowed " . $plan->max_branch);
-            }
-            if ($totalCustomer >= $plan->max_customers) {
-                return redirect()->back()->with('fail', "The maximum customer limit of the selected plan does not match your current subscription.");
-            }
+            $this->getMaxCustomers($auth, $plan);
             $plan_unit      = $plan->daily_rates;
             $moneyleft      = 0;
             $plan_discount  = $plan->discount_percent;
@@ -344,5 +331,32 @@ class PlanController extends Controller
     public function getDailyRates($sub)
     {
         return plans::where('id', $sub->plan_id)->first()->daily_rates;
+    }
+
+    private function getPlan(Request $request)
+    {
+
+        $fdate     = date("Y-m-d");
+        $duration  = $request->qrt;
+        $daysToAdd = $duration * 31;
+        $plan      = plans::find($request->id);
+        logInfo(json_encode($plan), "Company Plan");
+        return $plan;
+    }
+
+    public function getMaxCustomers($auth, $plan)
+    {
+        $totalStaff    = count($auth->company->allStaff);
+        $totalBranch   = count($auth->company->branch);
+        $totalCustomer = count($auth->company->allCustomer);
+        if ($totalStaff > $plan->max_staff) {
+            return redirect()->back()->with('fail', "The maximum staff limit of the selected plan does not match your current subscription.");
+        }
+        if ($totalBranch > $plan->max_branch) {
+            return redirect()->back()->with('fail', "The maximum branch limit of the selected plan does not match your current subscription. you have " . $totalBranch . " branch and you are allowed " . $plan->max_branch);
+        }
+        if ($totalCustomer >= $plan->max_customers) {
+            return redirect()->back()->with('fail', "The maximum customer limit of the selected plan does not match your current subscription.");
+        }
     }
 }

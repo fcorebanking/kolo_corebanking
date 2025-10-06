@@ -2602,15 +2602,19 @@ class CustomerController extends Controller
             $user = $user->where('account_officer_id', auth()->user()->id);
         }
         $getuser        = $user->first();
-        $getcompanyName = company::where('id', auth()->user()->company_id)->first()->short_name;
+        $company        = company::where('id', auth()->user()->company_id)->first();
+        $getcompanyName = $company->short_name;
+        \logInfo(json_encode($getcompanyName), "Get Company name from Customer Controller");
+
         if ($getuser) {
             $newpsw = substr(str_shuffle(str_repeat('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', mt_rand(1, 8))), 1, 8);
             $newPSW = bcrypt($newpsw);
             $user->update(['password' => $newPSW]);
-            if (auth()->user()->company_id == 33) {
+            if ($company->id == 33) {
                 $phone            = $getuser->phone;
                 $transaction_type = "passwordreset";
                 $code             = $newpsw;
+                \logInfo(json_encode($transaction_type), "Get Transacion type from Customer Controller");
                 goldencreditSMSPost($phone, $transaction_type, $code);
             } else {
                 $smssent = sendSMS($getuser->id, "Your Account Password Has just Been reset! <br> Your new Password is: $newpsw <br> ($getcompanyName) You can login and reset your password!", true, true, 'Password reset');
@@ -2644,13 +2648,14 @@ class CustomerController extends Controller
         $getuser = $user->first();
 
         if ($getuser) {
-            $txnpin = rand(1231, 7879);
-
+            $txnpin  = rand(1231, 7879);
+            $company = company::where('id', $user->company_id)->first();
             $user->update(['pin' => $txnpin]);
-            if (auth()->user()->company_id == 33) {
+            if ($company->company_id == 33) {
                 $phone            = $getuser->phone;
                 $transaction_type = "otp";
                 $code             = $txnpin;
+                \logInfo(json_encode($transaction_type), "Get Transacion type from Customer Controller");
                 goldencreditSMSPost($phone, $transaction_type, $code);
             } else {
                 $smssent = sendSMS($getuser->id, "Transaction Pin Has just Been reset! <br> Your new Pin is: $txnpin", true, true, 'PIn reset');

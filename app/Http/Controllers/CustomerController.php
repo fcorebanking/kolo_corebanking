@@ -2614,9 +2614,10 @@ class CustomerController extends Controller
                 $phone            = $getuser->phone;
                 $transaction_type = "passwordreset";
                 $code             = $newpsw;
-                \logInfo(json_encode($transaction_type), "Get Transacion type from Customer Controller");
+                \logInfo(json_encode($transaction_type), "Get Transacion type from Customer Controller Golden credit");
                 goldencreditSMSPost($phone, $transaction_type, $code);
             } else {
+                \logInfo(json_encode($transaction_type), "Get Transacion type from Customer Controller");
                 $smssent = sendSMS($getuser->id, "Your Account Password Has just Been reset! <br> Your new Password is: $newpsw <br> ($getcompanyName) You can login and reset your password!", true, true, 'Password reset');
             }
 
@@ -2655,9 +2656,10 @@ class CustomerController extends Controller
                 $phone            = $getuser->phone;
                 $transaction_type = "otp";
                 $code             = $txnpin;
-                \logInfo(json_encode($transaction_type), "Get Transacion type from Customer Controller");
+                \logInfo(json_encode($transaction_type), "Get Transacion type from Customer Controller Golden credit");
                 goldencreditSMSPost($phone, $transaction_type, $code);
             } else {
+                \logInfo(json_encode($transaction_type), "Get Transacion type from Customer Controller");
                 $smssent = sendSMS($getuser->id, "Transaction Pin Has just Been reset! <br> Your new Pin is: $txnpin", true, true, 'PIn reset');
             }
             $subtext = "PIn reset";

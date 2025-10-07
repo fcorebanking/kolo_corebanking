@@ -79,7 +79,7 @@ class PlanController extends Controller
 
             $moneyleft = 0;
 
-            $this->paySubscription($amt_to_pay, $companybalance, $sameplan, $auth, $daysToAdd, $myoldplanend, $fdate, $moneyleft, $hassub, $sub);
+            $this->paySubscription($amt_to_pay, $companybalance, $sameplan, $auth, $daysToAdd, $myoldplanend, $fdate, $moneyleft, $hassub, $sub, $duration, $plan);
 
             return redirect()->back()->with('fail', "An Error Occured!");
         }
@@ -331,7 +331,7 @@ class PlanController extends Controller
     }
 
     //paySubscription($amt_to_pay, $companybalance, $sameplan, $auth, $daysToAdd, $myoldplanend, $fdate, $moneyleft)
-    public function paySubscription($amt_to_pay, $companybalance, $sameplan, $auth, $daysToAdd, $myoldplanend, $fdate, $moneyleft, $hassub, $sub)
+    public function paySubscription($amt_to_pay, $companybalance, $sameplan, $auth, $daysToAdd, $myoldplanend, $fdate, $moneyleft, $hassub, $sub, $duration, $plan)
     {
         $finalpayment = $amt_to_pay;
         if ($finalpayment < 0) {

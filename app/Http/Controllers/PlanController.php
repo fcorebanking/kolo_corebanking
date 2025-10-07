@@ -325,6 +325,8 @@ class PlanController extends Controller
         if ($finalpayment < 0) {
             $finalpayment = 0;
         }
+
+        \logInfo(json_encode($sameplan), "pay subscription sameplan");
         if ($companybalance >= $finalpayment) {
             $transactionId = generate_txnID();
             if ($sameplan == 1) {

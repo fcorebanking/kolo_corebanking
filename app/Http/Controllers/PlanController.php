@@ -67,6 +67,12 @@ class PlanController extends Controller
                 $myoldplanend = $sub['myoldplanend'];
             }
 
+            if (isset($sub['hassub'])) {
+                $hassub = $sub['hassub'];
+            } else {
+                $hassub = 0;
+            }
+
             $moneyleft = 0;
 
             $this->paySubscription($amt_to_pay, $companybalance, $sameplan, $auth, $daysToAdd, $myoldplanend, $fdate, $moneyleft);
@@ -297,6 +303,7 @@ class PlanController extends Controller
 
         $checkSub['sameplan']     = $sameplan;
         $checkSub['myoldplanend'] = $myoldplanend;
+        $checkSub['hassub']       = $hassub;
         return $checkSub;
     }
 

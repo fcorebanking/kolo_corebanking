@@ -182,19 +182,19 @@ class Kernel extends ConsoleKernel
                 Log::error('Your WebCron Job failed');
             });
 
-        /*  $schedule->job(new SubscriptionCron)->everySixHours()->onSuccess(function () {
-            Log::info('Your SubscriptionCron Job executed successfully.');
-        })
-            ->onFailure(function () {
-                Log::error('Your SubscriptionCron Job failed');
-            });*/
-
-        $schedule->job(new SubscriptionCron)->everyTenMinutes()->onSuccess(function () {
+        $schedule->job(new SubscriptionCron)->everySixHours()->onSuccess(function () {
             Log::info('Your SubscriptionCron Job executed successfully.');
         })
             ->onFailure(function () {
                 Log::error('Your SubscriptionCron Job failed');
             });
+
+        /*  $schedule->job(new SubscriptionCron)->everyTenMinutes()->onSuccess(function () {
+            Log::info('Your SubscriptionCron Job executed successfully.');
+        })
+            ->onFailure(function () {
+                Log::error('Your SubscriptionCron Job failed');
+            });*/
     }
 
     /**

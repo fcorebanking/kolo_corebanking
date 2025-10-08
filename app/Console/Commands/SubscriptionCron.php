@@ -8,7 +8,6 @@ use App\Models\plans;
 use App\Models\sub;
 use App\Models\sublog;
 use App\Models\transactions;
-use DB;
 use Illuminate\Console\Command;
 
 class SubscriptionCron extends Command
@@ -124,9 +123,18 @@ class SubscriptionCron extends Command
         $endpayment    = add_day_to_date($daysToAdd, $myoldplanend);
         $transaction   = $this->createTransaction($company, $amt_to_pay, $transactionId);
         if ($transaction != null) {
-            DB::transaction(function () use ($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment) {
+
+            try {
+                logInfo(json_encode($company->short_name), "Starting paySubscription for ");
+
                 $this->paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment);
-            });
+
+                logInfo(json_encode($company->short_name), "Finished paySubscription successfully ");
+
+            } catch (\Throwable $e) {
+                logInfo("Error in paySubscription: " . $e->getMessage());
+                throw $e; // important: rethrow so transaction rolls back
+            }
 
         }
 
@@ -155,13 +163,15 @@ class SubscriptionCron extends Command
         $companywallet     = company_wallet::where('company_id', $company->id)->first();
         $oldCompanyBalance = $companywallet->balance;
         logInfo(json_encode($oldCompanyBalance), "OldCompanyBalance");
+
         $companywallet->balance = $oldCompanyBalance - $amt_to_pay;
         logInfo(json_encode($companywallet->balance), "CompanyBalance after subscrition deduction");
         $balanceBefore = $companywallet->sms;
         $companywallet->sms += 200;
-        //  $companywallet->save();
+        $companywallet->save();
 
-        if ($companywallet->save()) {
+        logInfo($companywallet->toJson(), "Company wallet before saving");
+        if ($companywallet) {
             logInfo(json_encode($companywallet->balance), "CompanyBalance after save");
             $subCompany->update([
                 'transaction_id' => $transaction->id,

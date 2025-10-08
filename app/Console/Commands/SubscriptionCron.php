@@ -145,7 +145,7 @@ class SubscriptionCron extends Command
 
     public function createTransaction($company, $amt_to_pay, $transactionId)
     {
-        return transactions::create([
+        $transaction = transactions::create([
             "balance_before"         => $company->wallet->balance,
             "amount"                 => $amt_to_pay,
             'company_id'             => $company->id,
@@ -159,6 +159,7 @@ class SubscriptionCron extends Command
             "created_date"           => date('Y-m-d'),
             "created_by"             => $company->id,
         ]);
+        return $transaction;
     }
 
     private function paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment)

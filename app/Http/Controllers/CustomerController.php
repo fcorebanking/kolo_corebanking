@@ -2650,7 +2650,7 @@ class CustomerController extends Controller
 
         if ($getuser) {
             $txnpin  = rand(1231, 7879);
-            $company = company::where('id', $user->company_id)->first();
+            $company = company::where('id', auth()->user()->company_id)->first();
             $user->update(['pin' => $txnpin]);
             if ($company->company_id == 33) {
                 $phone            = $getuser->phone;

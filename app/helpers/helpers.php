@@ -4568,22 +4568,17 @@ function smsCustomer($phone, $msg, $company_short, $title)
     $apikey = env('SMS_API_KEY');
 
     $type = match ($title) {
-        'Company Registration'  => 'dnd',
-        'Account Replacement'   => 'dnd',
-        'Account'               => 'dnd',
         'Password reset'        => 'dnd',
         'Account reset for'     => 'dnd',
         'PIn reset'             => 'dnd',
-        'Customer Transfer'     => 'dnd',
         'Finova Login Security' => 'dnd',
         'OTP Confirmation'      => 'dnd',
         'Verify OTP'            => 'dnd',
         'Reset Password OTP'    => 'dnd',
-        'Finova Login Security' => 'dnd',
         default                 => 'generic', // fallback
     };
 
-    if ($type != null) {
+    if ($type != "generic") {
         $company_short = "N-Alert";
     } else {
         $type = match ($company_short) {

@@ -51,9 +51,7 @@ class SubscriptionCron extends Command
                     $company_name = $company->short_name;
                     logInfo(json_encode($companybalance), "Company balance for {$company_name} Subcription");
                     if ($companybalance >= $amt_to_pay) {
-                        DB::transaction(function () use ($subCompany, $company, $amt_to_pay, $plan, $duration) {
-                            $this->subscribe($subCompany, $company, $amt_to_pay, $plan, $duration);
-                        });
+                        $this->subscribe($subCompany, $company, $amt_to_pay, $plan, $duration);
 
                     }
 
@@ -126,7 +124,10 @@ class SubscriptionCron extends Command
         $endpayment    = add_day_to_date($daysToAdd, $myoldplanend);
         $transaction   = $this->createTransaction($company, $amt_to_pay, $transactionId);
         if ($transaction != null) {
-            $this->paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment);
+            DB::transaction(function () use ($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment) {
+                $this->paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment);
+            });
+
         }
 
     }

@@ -4567,7 +4567,7 @@ function smsCustomer($phone, $msg, $company_short, $title)
 {
     $apikey = env('SMS_API_KEY');
 
-    $type = match ($title) {
+    /* $type = match ($title) {
         'Company Registration'  => 'dnd',
         'Account Replacement'   => 'dnd',
         'Account'               => 'dnd',
@@ -4593,6 +4593,31 @@ function smsCustomer($phone, $msg, $company_short, $title)
         'GoldRidg'    => 'dnd',
 
         default       => 'generic',
+    };*/
+
+    $type = match ($title) {
+        'Company Registration',
+        'Account Replacement',
+        'Account',
+        'Password reset',
+        'Account reset for',
+        'PIn reset',
+        'Customer Transfer',
+        'Finova Login Security',
+        'OTP Confirmation',
+        'Verify OTP',
+        'Reset Password OTP' => 'dnd',
+
+        default              => match ($company_short) {
+            'Gosentra',
+            'kipkash',
+            'Finovaedge',
+            'STRINGS PAY',
+            'SDDTIF',
+            'COCTAL',
+            'GoldRidg' => 'dnd',
+            default    => 'generic',
+        },
     };
 
     $validCompanies = [

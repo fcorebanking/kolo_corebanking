@@ -8,7 +8,7 @@ use App\Models\plans;
 use App\Models\sub;
 use App\Models\sublog;
 use App\Models\transactions;
-//use DB;
+use DB;
 use Illuminate\Console\Command;
 
 class SubscriptionCron extends Command
@@ -126,7 +126,7 @@ class SubscriptionCron extends Command
         $transaction   = $this->createTransaction($company, $amt_to_pay, $transactionId);
 
         logInfo(json_encode($transaction), "Starting paySubscription for this transaction ");
-        /*   if ($transaction != null) {
+        if ($transaction != null) {
             DB::transaction(function () use ($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment) {
                 try {
 
@@ -139,7 +139,7 @@ class SubscriptionCron extends Command
                     throw $e; // important: rethrow so transaction rolls back
                 }
             });
-        }*/
+        }
 
     }
 

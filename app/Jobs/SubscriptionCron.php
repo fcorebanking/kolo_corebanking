@@ -1,5 +1,5 @@
 <?php
-namespace App\Jobs;
+namespace App\Console\Commands;
 
 use App\Http\Controllers\ThirdParty\FlutterwaveController;
 use App\Models\Company;
@@ -8,26 +8,30 @@ use App\Models\plans;
 use App\Models\sub;
 use App\Models\sublog;
 use App\Models\transactions;
-use Illuminate\Bus\Queueable;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use DB;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
-class SubscriptionCron
+class SubscriptionCron extends Command
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
     /**
-     * Create a new job instance.
+     * The name and signature of the console command.
+     *
+     * @var string
      */
-    public function __construct()
-    {
-        //
-    }
+    protected $signature = 'subscription:cron';
 
     /**
-     * Execute the job.
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Command description';
+
+    /**
+     * Execute the console command.
+     *
+     * @return int
      */
     public function handle()
     {
@@ -40,7 +44,7 @@ class SubscriptionCron
                     $duration   = 1;
                     $company    = $this->getCompany($subCompany->company_id);
                     $amt_to_pay = $this->getAmountPaid($plan, $company, $duration);
-                    if (! $company->wallet || is_null($company->wallet->balance)) {
+                    if ($company->wallet || is_null($company->wallet->balance)) {
                         continue;
                     }
                     $companybalance = $company->wallet->balance;
@@ -48,7 +52,9 @@ class SubscriptionCron
                     $company_name = $company->short_name;
                     logInfo(json_encode($companybalance), "Company balance for {$company_name} Subcription");
                     if ($companybalance >= $amt_to_pay) {
+                        logInfo(json_encode($company->short_name), "Starting paySubscription for ");
                         $this->subscribe($subCompany, $company, $amt_to_pay, $plan, $duration);
+
                     }
 
                 }
@@ -119,15 +125,28 @@ class SubscriptionCron
         $myoldplanend  = $subCompany->end_date;
         $endpayment    = add_day_to_date($daysToAdd, $myoldplanend);
         $transaction   = $this->createTransaction($company, $amt_to_pay, $transactionId);
+
+        logInfo(json_encode($transaction), "Starting paySubscription for this transaction ");
         if ($transaction != null) {
-            $this->paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment);
+            DB::transaction(function () use ($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment) {
+                try {
+
+                    $this->paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment);
+
+                    logInfo(json_encode($company->short_name), "Finished paySubscription successfully ");
+
+                } catch (\Throwable $e) {
+                    logInfo("Error in paySubscription: " . $e->getMessage());
+                    throw $e; // important: rethrow so transaction rolls back
+                }
+            });
         }
 
     }
 
     public function createTransaction($company, $amt_to_pay, $transactionId)
     {
-        return transactions::create([
+        $transaction = transactions::create([
             "balance_before"         => $company->wallet->balance,
             "amount"                 => $amt_to_pay,
             'company_id'             => $company->id,
@@ -141,58 +160,68 @@ class SubscriptionCron
             "created_date"           => date('Y-m-d'),
             "created_by"             => $company->id,
         ]);
+        return $transaction;
     }
 
-    public function paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment)
+    private function paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment)
     {
-        $companywallet          = company_wallet::where('company_id', $company->id)->first();
-        $companywallet->balance = $companywallet->balance - $amt_to_pay;
-        $balanceBefore          = $companywallet->sms;
+        $companywallet     = company_wallet::where('company_id', $company->id)->first();
+        $oldCompanyBalance = $companywallet->balance;
+        logInfo(json_encode($oldCompanyBalance), "OldCompanyBalance");
+
+        $companywallet->balance = $oldCompanyBalance - $amt_to_pay;
+        logInfo(json_encode($companywallet->balance), "CompanyBalance after subscrition deduction");
+        $balanceBefore = $companywallet->sms;
         $companywallet->sms += 200;
-        $subCompany->update([
-            'transaction_id' => $transaction->id,
-            'plan_id'        => $plan->id,
-            'quantity'       => $duration,
-            'start_date'     => $fdate,
-            'end_date'       => $endpayment,
-            'status'         => 1,
-        ]);
+        $companywallet->save();
 
-        sublog::create([
-            'company_id'     => $company->id,
-            'transaction_id' => $transaction->id,
-            'plan_id'        => $plan->id,
-            'quantity'       => $duration,
-            'start_date'     => $fdate,
-            'end_date'       => $endpayment,
+        logInfo($companywallet->toJson(), "Company wallet before saving");
+        if ($companywallet) {
+            logInfo(json_encode($companywallet->balance), "CompanyBalance after save");
+            $subCompany->update([
+                'transaction_id' => $transaction->id,
+                'plan_id'        => $plan->id,
+                'quantity'       => $duration,
+                'start_date'     => $fdate,
+                'end_date'       => $endpayment,
+                'status'         => 1,
+            ]);
 
-        ]);
+            sublog::create([
+                'company_id'     => $company->id,
+                'transaction_id' => $transaction->id,
+                'plan_id'        => $plan->id,
+                'quantity'       => $duration,
+                'start_date'     => $fdate,
+                'end_date'       => $endpayment,
 
-        $transaction = $transaction->update([
-            "transaction_remarks_id" => 2,
-            "balance_after"          => $companywallet->balance,
-            "company_balance_after"  => $companywallet->balance,
-            "modified_by"            => $company->id,
-        ]);
+            ]);
 
-        $bonusTransactionId = \generate_txnID();
+            $transaction->update([
+                "transaction_remarks_id" => 2,
+                "balance_after"          => $companywallet->balance,
+                "company_balance_after"  => $companywallet->balance,
+                "modified_by"            => $company->id,
+            ]);
 
-        return transactions::create([
-            "balance_before"         => $balanceBefore,
-            "amount"                 => 200,
-            "balance_after"          => $companywallet->sms,
-            'company_id'             => $company->id,
-            "description"            => "Subscription Bonus SMS unit",
-            "transaction_reference"  => $bonusTransactionId,
-            "transaction_remarks_id" => 2,
-            "transaction_type_id"    => 67,
-            "company_balance_before" => $balanceBefore,
-            "company_amount"         => 200,
-            "company_balance_after"  => $companywallet->sms,
-            "credit_debit_type_id"   => 1,
-            "created_date"           => date('Y-m-d'),
-            "created_by"             => $company->id,
-        ]);
+            $bonusTransactionId = \generate_txnID();
+
+            return transactions::create([
+                "balance_before"         => $balanceBefore,
+                "amount"                 => 200,
+                "balance_after"          => $companywallet->sms,
+                'company_id'             => $company->id,
+                "description"            => "Subscription Bonus SMS unit",
+                "transaction_reference"  => $bonusTransactionId,
+                "transaction_remarks_id" => 2,
+                "transaction_type_id"    => 67,
+                "company_balance_before" => $balanceBefore,
+                "company_amount"         => 200,
+                "company_balance_after"  => $companywallet->sms,
+                "credit_debit_type_id"   => 1,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => $company->id,
+            ]);
+        }
     }
-
 }

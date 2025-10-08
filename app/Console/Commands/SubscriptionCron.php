@@ -8,6 +8,7 @@ use App\Models\plans;
 use App\Models\sub;
 use App\Models\sublog;
 use App\Models\transactions;
+use DB;
 use Illuminate\Console\Command;
 
 class SubscriptionCron extends Command
@@ -50,7 +51,10 @@ class SubscriptionCron extends Command
                     $company_name = $company->short_name;
                     logInfo(json_encode($companybalance), "Company balance for {$company_name} Subcription");
                     if ($companybalance >= $amt_to_pay) {
-                        $this->subscribe($subCompany, $company, $amt_to_pay, $plan, $duration);
+                        DB::transaction(function () use ($subCompany, $company, $amt_to_pay, $plan, $duration) {
+                            $this->subscribe($subCompany, $company, $amt_to_pay, $plan, $duration);
+                        });
+
                     }
 
                 }

@@ -8,6 +8,7 @@ use App\Models\plans;
 use App\Models\sub;
 use App\Models\sublog;
 use App\Models\transactions;
+use DB;
 use Illuminate\Console\Command;
 
 class SubscriptionCron extends Command
@@ -122,20 +123,21 @@ class SubscriptionCron extends Command
         $myoldplanend  = $subCompany->end_date;
         $endpayment    = add_day_to_date($daysToAdd, $myoldplanend);
         $transaction   = $this->createTransaction($company, $amt_to_pay, $transactionId);
+
+        logInfo(json_encode($transaction), "Starting paySubscription for this transaction ");
         if ($transaction != null) {
+            DB::transaction(function () use ($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment) {
+                try {
+                    logInfo(json_encode($company->short_name), "Starting paySubscription for ");
+                    $this->paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment);
 
-            try {
-                logInfo(json_encode($company->short_name), "Starting paySubscription for ");
+                    logInfo(json_encode($company->short_name), "Finished paySubscription successfully ");
 
-                $this->paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment);
-
-                logInfo(json_encode($company->short_name), "Finished paySubscription successfully ");
-
-            } catch (\Throwable $e) {
-                logInfo("Error in paySubscription: " . $e->getMessage());
-                throw $e; // important: rethrow so transaction rolls back
-            }
-
+                } catch (\Throwable $e) {
+                    logInfo("Error in paySubscription: " . $e->getMessage());
+                    throw $e; // important: rethrow so transaction rolls back
+                }
+            });
         }
 
     }

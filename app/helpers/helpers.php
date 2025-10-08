@@ -4567,7 +4567,7 @@ function smsCustomer($phone, $msg, $company_short, $title)
 {
     $apikey = env('SMS_API_KEY');
 
-    /* $type = match ($title) {
+    $type = match ($title) {
         'Company Registration'  => 'dnd',
         'Account Replacement'   => 'dnd',
         'Account'               => 'dnd',
@@ -4583,43 +4583,23 @@ function smsCustomer($phone, $msg, $company_short, $title)
         default                 => 'generic', // fallback
     };
 
-    $type = match ($company_short) {
-        'Gosentra'    => 'dnd',
-        'kipkash'     => 'dnd',
-        'Finovaedge'  => 'dnd',
-        'STRINGS PAY' => 'dnd',
-        'SDDTIF'      => 'dnd',
-        'COCTAL'      => 'dnd',
-        'GoldRidg'    => 'dnd',
+    if ($type != null) {
+        $company_short = "N-Alert";
+    } else {
+        $type = match ($company_short) {
+            'Gosentra'    => 'dnd',
+            'kipkash'     => 'dnd',
+            'Finovaedge'  => 'dnd',
+            'STRINGS PAY' => 'dnd',
+            'SDDTIF'      => 'dnd',
+            'COCTAL'      => 'dnd',
+            'GoldRidg'    => 'dnd',
 
-        default       => 'generic',
-    };*/
+            default       => 'generic',
+        };
+    }
 
-    $type = match ($title) {
-        'Company Registration',
-        'Account Replacement',
-        'Account',
-        'Password reset',
-        'Account reset for',
-        'PIn reset',
-        'Customer Transfer',
-        'Finova Login Security',
-        'OTP Confirmation',
-        'Verify OTP',
-        'Reset Password OTP' => 'dnd',
-
-        default              => match ($company_short) {
-            'Gosentra',
-            'kipkash',
-            'Finovaedge',
-            'STRINGS PAY',
-            'SDDTIF',
-            'COCTAL',
-            'GoldRidg' => 'dnd',
-            default    => 'generic',
-        },
-    };
-
+/*
     $validCompanies = [
         'Gosentra',
         'kipkash',
@@ -4635,6 +4615,9 @@ function smsCustomer($phone, $msg, $company_short, $title)
             $company_short = "N-Alert";
         }
     }
+*/
+    logInfo($company_short, "Company Short Name: ");
+    logInfo($type, "Channel: ");
 
     $data = [
         'api_key' => $apikey,

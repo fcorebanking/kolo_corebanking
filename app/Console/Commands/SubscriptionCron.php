@@ -43,7 +43,7 @@ class SubscriptionCron extends Command
                     $duration   = 1;
                     $company    = $this->getCompany($subCompany->company_id);
                     $amt_to_pay = $this->getAmountPaid($plan, $company, $duration);
-                    if (! $company->wallet || is_null($company->wallet->balance)) {
+                    if ($company->wallet || is_null($company->wallet->balance)) {
                         continue;
                     }
                     $companybalance = $company->wallet->balance;
@@ -51,6 +51,7 @@ class SubscriptionCron extends Command
                     $company_name = $company->short_name;
                     logInfo(json_encode($companybalance), "Company balance for {$company_name} Subcription");
                     if ($companybalance >= $amt_to_pay) {
+                        logInfo(json_encode($company->short_name), "Starting paySubscription for ");
                         $this->subscribe($subCompany, $company, $amt_to_pay, $plan, $duration);
 
                     }
@@ -128,7 +129,7 @@ class SubscriptionCron extends Command
         if ($transaction != null) {
             DB::transaction(function () use ($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment) {
                 try {
-                    logInfo(json_encode($company->short_name), "Starting paySubscription for ");
+
                     $this->paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment);
 
                     logInfo(json_encode($company->short_name), "Finished paySubscription successfully ");

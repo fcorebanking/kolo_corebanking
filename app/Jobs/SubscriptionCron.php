@@ -173,10 +173,9 @@ class SubscriptionCron extends Command
         logInfo(json_encode($companywallet->balance), "CompanyBalance after subscrition deduction");
         $balanceBefore = $companywallet->sms;
         $companywallet->sms += 200;
-        $companywallet->save();
 
         logInfo($companywallet->toJson(), "Company wallet before saving");
-        if ($companywallet) {
+        if ($companywallet->save()) {
             logInfo(json_encode($companywallet->balance), "CompanyBalance after save");
             $subCompany->update([
                 'transaction_id' => $transaction->id,

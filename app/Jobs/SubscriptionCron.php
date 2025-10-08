@@ -1,5 +1,5 @@
 <?php
-namespace App\Console\Commands;
+namespace App\Jobs;
 
 use App\Http\Controllers\ThirdParty\FlutterwaveController;
 use App\Models\Company;
@@ -9,29 +9,26 @@ use App\Models\sub;
 use App\Models\sublog;
 use App\Models\transactions;
 use DB;
-use Illuminate\Console\Command;
+use Illuminate\Bus\Queueable;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class SubscriptionCron extends Command
+class SubscriptionCron
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'subscription:cron';
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * The console command description.
-     *
-     * @var string
+     * Create a new job instance.
      */
-    protected $description = 'Command description';
+    public function __construct()
+    {
+        //
+    }
 
     /**
-     * Execute the console command.
-     *
-     * @return int
+     * Execute the job.
      */
     public function handle()
     {

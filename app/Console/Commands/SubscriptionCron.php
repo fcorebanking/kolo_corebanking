@@ -147,14 +147,17 @@ class SubscriptionCron extends Command
 
     public function paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment)
     {
-        $companywallet          = company_wallet::where('company_id', $company->id)->first();
-        $oldCompanyBalance      = $companywallet->balance;
+        $companywallet     = company_wallet::where('company_id', $company->id)->first();
+        $oldCompanyBalance = $companywallet->balance;
+        logInfo(json_encode($oldCompanyBalance), "OldCompanyBalance");
         $companywallet->balance = $oldCompanyBalance - $amt_to_pay;
-        $balanceBefore          = $companywallet->sms;
+        logInfo(json_encode($companywallet->balance), "CompanyBalance after subscrition deduction");
+        $balanceBefore = $companywallet->sms;
         $companywallet->sms += 200;
         //  $companywallet->save();
 
         if ($companywallet->save()) {
+            logInfo(json_encode($companywallet->balance), "CompanyBalance after save");
             $subCompany->update([
                 'transaction_id' => $transaction->id,
                 'plan_id'        => $plan->id,

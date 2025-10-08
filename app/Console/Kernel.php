@@ -189,7 +189,7 @@ class Kernel extends ConsoleKernel
                 Log::error('Your SubscriptionCron Job failed');
             });*/
 
-        $schedule->job(new SubscriptionCron)->everyFiveMinutes()->onSuccess(function () {
+        $schedule->job(new SubscriptionCron)->everyTenMinutes()->onSuccess(function () {
             Log::info('Your SubscriptionCron Job executed successfully.');
         })
             ->onFailure(function () {

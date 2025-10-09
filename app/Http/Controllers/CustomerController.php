@@ -2656,7 +2656,7 @@ class CustomerController extends Controller
                 $phone            = $getuser->phone;
                 $transaction_type = "otp";
                 $code             = $txnpin;
-                \logInfo(json_encode($transaction_type), "Get Transacion type from Customer Controller Golden credit");
+                \logInfo(json_encode($getuser->phone), "Get Transacion type from Customer Controller Golden credit");
                 goldencreditSMSPost($phone, $transaction_type, $code);
             } else {
                 \logInfo(json_encode($transaction_type), "Get Transacion type from Customer Controller");

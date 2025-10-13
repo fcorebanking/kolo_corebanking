@@ -1023,7 +1023,7 @@ class UserController extends Controller
             ];
 
             Mail::to($userAccunt->email)->send(new ResetAccountMail($data));
-            return response(['status' => true, 'message' => 'OTP Sent Successfully']);
+            return response(['status' => true, 'message' => 'OTP Sent Successfully', 'user_reference' => $userAccunt->account_reference]);
         } else {
             return response()->json(['status' => false, 'message' => 'This account could not be found'], 400);
         }

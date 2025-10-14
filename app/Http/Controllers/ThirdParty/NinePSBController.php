@@ -296,7 +296,7 @@ class NinePSBController extends WebhookController
                 if ($verifyAccountResponse["code"] != "00") {
                     return [
                         'status'  => false,
-                        'message' => $createAccountResponse["message"],
+                        'message' => $verifyAccountResponse["message"],
                     ];
                 } else {
                     return [

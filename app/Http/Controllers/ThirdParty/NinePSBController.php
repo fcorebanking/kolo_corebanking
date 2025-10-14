@@ -18,13 +18,13 @@ class NinePSBController extends WebhookController
         $this->token = "";
         if (env('APP_MODE') == 'test') {
 
-            $this->publicKey  = env('9PSB_TEST_PUBLIC_KEY');
-            $this->privateKey = env('9PSB_TEST_PRIVATE_KEY');
+            $this->publicKey  = env('NINEPSB_TEST_PUBLIC_KEY');
+            $this->privateKey = env('NINEPSB_TEST_PRIVATE_KEY');
             $this->baseUrl    = "https://baastest.9psb.com.ng/ipaymw-api/v1/merchant";
 
         } else {
-            $this->publicKey  = env('9PSB_LIVE_PUBLIC_KEY');
-            $this->privateKey = env('9PSB_LIVE_PRIVATE_KEY');
+            $this->publicKey  = env('NINEPSB_LIVE_PUBLIC_KEY');
+            $this->privateKey = env('NINEPSB_LIVE_PRIVATE_KEY');
             $this->baseUrl    = "";
         }
     }

@@ -125,6 +125,61 @@ class TransactionController extends Controller
             ]
         );
     }
+
+    public function verifyBankAccountTest(Request $request)
+    {
+
+        $validation = Validator::make($request->all(), [
+            "bank_code"      => 'required',
+            "account_number" => 'required|numeric|gt:0',
+        ]);
+        if ($validation->fails()) {
+            $ra = ["status" => false, "message" => "Bank code and account number is required"];
+            return response()->json($ra, 406);
+        }
+
+        $preferredEbankingPartner = PreferredEbankingPartner::all();
+
+        $ebankingService = new EbankingService($preferredEbankingPartner);
+
+        $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->account_number);
+
+        if (! $bankAccount['status']) {
+            return response()->json($bankAccount, 400);
+        }
+
+        $bank_name = "";
+
+        if (isset($bankAccount["data"]["bank_code"])) {
+            $bank      = banks::where('bank_code', $bankAccount["data"]["bank_code"])->first();
+            $bank_name = $bank->bank_name;
+        } else {
+            $bank_name = $bankAccount['data']['bank_name'];
+        }
+
+        $accountName = $bankAccount["data"]["account_name"];
+
+        $myAccountName = [];
+
+        $myAccountName = explode(" ", $accountName);
+
+        $firstName = strlen($myAccountName[0]) < 3 ? $myAccountName[1] : $myAccountName[0];
+        $lastName  = count($myAccountName) > 2 ? (strlen($myAccountName[2]) < 3 ? $myAccountName[1] : $myAccountName[2]) : (count($myAccountName) > 1 ? $myAccountName[1] : "");
+
+        return response()->json(
+            [
+                'status'  => true,
+                'message' => "Account Verified Successfully",
+                'data'    => [
+                    'first_name' => $firstName,
+                    'last_name'  => $lastName,
+                    'bank_name'  => $bank_name,
+
+                ],
+            ]
+        );
+    }
+
     public function verifyBankAccountFull(Request $request)
     {
         try {

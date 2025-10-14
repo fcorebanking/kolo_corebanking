@@ -111,6 +111,7 @@ Route::prefix('/ussd-apis')->group(function () {
 });
 
 Route::post('/verify-bank-account', [TransactionController::class, 'verifyBankAccount'])->name('v1-verify-bank-account');
+Route::post('/verify-bank-account-test', [TransactionController::class, 'verifyBankAccountTest'])->name('v1-verify-bank-account-test');
 Route::post('/verify-account-full', [TransactionController::class, 'verifyBankAccountFullname'])->name('v1-verify-account-full');
 //Route::middleware('auth:api')->post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
 Route::post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
@@ -254,7 +255,9 @@ Route::prefix('/transactions')->group(function () {
         Route::post('/verify-smart-card', [TransactionController::class, 'verifySmartCard'])->middleware('log.route');
         Route::get('/get-data-bundles/{networkProvider}', [TransactionController::class, 'getDataBundles']);
         Route::middleware('checkAccountStatus')->post('/bank-transfer', [TransactionController::class, 'transferToBankAccount'])->middleware('log.route');
+        Route::middleware('checkAccountStatus')->post('/bank-transfer-test', [TransactionController::class, 'transferToBankAccountTest'])->middleware('log.route');
     });
+
     Route::middleware('checkApiKey')->get('/status/sh/{transactionReference}', [TransactionController::class, 'processSafeHavenVerifyAndReverseTransaction'])->middleware('log.route');
     Route::middleware('checkApiKey')->get('/list', [TransactionController::class, 'getAllTransactions']);
     Route::middleware('checkApiKey')->post('/user-transactions', [TransactionController::class, 'getUserTransactions'])->middleware('log.route');

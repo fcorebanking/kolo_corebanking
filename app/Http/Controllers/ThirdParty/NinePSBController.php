@@ -287,7 +287,7 @@ class NinePSBController extends WebhookController
 
             $verifyAccountResponse = $this->ninePSBPostRequest($url, $body);
 
-            logInfo($verifyAccountResponse, "Kuda Verify Account Response");
+            logInfo($verifyAccountResponse, "9PSB Verify Account Response");
 
             if ($verifyAccountResponse->successful()) {
 
@@ -314,7 +314,7 @@ class NinePSBController extends WebhookController
                 return ['status' => false, 'message' => 'verify bank failed. Kindly contact support for assistance'];
             }
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Kuda Error");
+            logInfo($e->getMessage(), "9PSB Error");
 
             return ['status' => false, 'message' => 'Error verify bank failed. Kindly contact support for assistance'];
         }

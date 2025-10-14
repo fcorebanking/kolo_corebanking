@@ -144,9 +144,9 @@ class TransactionController extends Controller
 
         $ebankingService = new EbankingService($preferredEbankingPartner);
 
-          \logInfo(json_encode($ebankingService), "ebankingService");
-
         $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->account_number);
+
+        \logInfo(json_encode($bankAccount), "bankAccount");
 
         if (! $bankAccount['status']) {
             return response()->json($bankAccount, 400);

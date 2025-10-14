@@ -138,7 +138,11 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
+        
+
         $preferredEbankingPartner = PreferredEbankingPartner::all();
+
+         \logInfo(json_encode($preferredEbankingPartner), "preferredEbankingPartner");
 
         $ebankingService = new EbankingService($preferredEbankingPartner);
 

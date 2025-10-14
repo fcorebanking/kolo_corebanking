@@ -121,7 +121,7 @@ class EbankingService
 
             $ninePSBController = new NinePSBController();
 
-            $bankTransfer = $ninePSBController->verifyAccount($bankCode, $accountNumber);
+            $bankTransfer = $ninePSBController->verifyBankAccount($bankCode, $accountNumber);
         }
         return $bankAccount;
     }

@@ -19,7 +19,7 @@ class NinePSBController extends WebhookController
 
         $this->token = '';
 
-        if (env('APP_MODE') === 'test') {
+        if (env('APP_MODE') == 'test') {
             $this->publicKey  = env('PSB9_TEST_PUBLIC_KEY');
             $this->privateKey = env('PSB9_TEST_PRIVATE_KEY');
             $this->baseUrl    = 'https://baastest.9psb.com.ng/ipaymw-api/v1/merchant';
@@ -41,8 +41,9 @@ class NinePSBController extends WebhookController
         logInfo($body, "9PSB Request in controller body");
 
         $header = ['Content-Type' => 'application/json'];
+        $url    = $this->baseUrl . "/authenticate";
         try {
-            $response = Http::post($this->baseUrl . "/authenticate", $body);
+            $response = Http::post($url, $body);
 
             logInfo($response->body(), "9PSB response kuda controller ");
 

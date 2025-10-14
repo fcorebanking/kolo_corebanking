@@ -138,13 +138,13 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
-        
-
         $preferredEbankingPartner = PreferredEbankingPartner::all();
 
-         \logInfo(json_encode($preferredEbankingPartner), "preferredEbankingPartner");
+        \logInfo(json_encode($preferredEbankingPartner), "preferredEbankingPartner");
 
         $ebankingService = new EbankingService($preferredEbankingPartner);
+
+          \logInfo(json_encode($ebankingService), "ebankingService");
 
         $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->account_number);
 

@@ -270,7 +270,8 @@ class NinePSBController extends WebhookController
 
             ],
         ];
-        $jsonBody = \json_encode($body);
+        $jsonBody    = \json_encode($body);
+        $requestBody = $jsonBody;
 
         $url = $this->baseUrl . "/account/enquiry";
 

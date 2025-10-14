@@ -5,6 +5,7 @@ use App\Http\Controllers\ThirdParty\FairMoneyController;
 use App\Http\Controllers\ThirdParty\KudaBusinessController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\MonnifyController;
+use App\Http\Controllers\ThirdParty\NinePSBController;
 use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Http\Controllers\ThirdParty\WovenController;
 use App\Services\ebanking\BankTransferType;
@@ -78,6 +79,11 @@ class EbankingService
             $safeHavenController = new FairMoneyController();
 
             $bankTransfer = $safeHavenController->bankTransfer($bankTransferType->accountNumber, $bankTransferType->shortBankCode, $accountName, $bankTransferType->amount, $bankTransferType->description, $bankTransferType->transactionReference, );
+        } else if ($this->bankTransferPartner == 19) {
+
+            $ninePSBController = new NinePSBController();
+
+            $bankTransfer = $ninePSBController->bankTransfer($bankTransferType->transactionReference, $bankTransferType->accountNumber, $bankTransferType->bankCode, $bankTransferType->sessionId, $bankTransferType->amount, $bankAccount['data']['account_name'], $bankTransferType->description, $this->bankTransferPartner);
         }
 
         if (! $bankTransfer['status']) {

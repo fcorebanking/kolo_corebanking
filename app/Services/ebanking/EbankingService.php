@@ -117,6 +117,11 @@ class EbankingService
         } else if ($this->accountVerificationPartner == 13) {
             $safeHavenController = new SafehavenController();
             $bankAccount         = $safeHavenController->verifyAccount($bankCode, $accountNumber);
+        } else if ($this->accountVerificationPartner == 19) {
+
+            $ninePSBController = new NinePSBController();
+
+            $bankTransfer = $ninePSBController->verifyAccount($bankCode, $accountNumber);
         }
         return $bankAccount;
     }

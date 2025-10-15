@@ -399,7 +399,7 @@ class VTPassController extends Controller
         if (isset($response['data']['content']['transactions']['status']) && $response['data']['content']['transactions']['status'] == "delivered") {
             $transactionId = $response['data']['content']['transactions']['transactionId'];
             $transaction   = transactions::lockForUpdate()->where(['transaction_reference' => $transactionId, 'amount' => $response['data']['content']['transactions']['amount']])->first();
-            if ($transaction->transaction_remarks_id == 6) {
+            if (isset($transaction->transaction_remarks_id) && $transaction->transaction_remarks_id == 6) {
                 if ($transaction->description == "Buy Airtime Initialized") {
 
                     $this->processAirtime($response, $transaction);

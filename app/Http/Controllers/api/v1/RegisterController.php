@@ -362,13 +362,16 @@ class RegisterController extends Controller
                 $code             = $otp;
                 goldencreditSMSPost($phone, $transaction_type, $code);
             } else {
-                $smsstate = sendSMS($user->id, "Welcome to " . $companyRecord->company_name . ". Your OTP is $otp. ", true, false, 'Verify OTP', '');
+
+                if ($companyRecord->id != 47) {
+                    $smsstate = sendSMS($user->id, "Welcome to " . $companyRecord->company_name . ". Your OTP is $otp. ", true, false, 'Verify OTP', '');
+                    $smsstate = sendSMS($user->id, $welcomeMessage, true, false, 'Welcome Message', '', 0, false);
+                    \logInfo(json_encode($smsstate), "SMS response");
+                }
+
             }
 
-            $smsstate = sendSMS($user->id, $welcomeMessage, true, false, 'Welcome Message', '', 0, false);
             // $sendSMS = \sendVansoSMS($userPhone, $welcomeMessage);
-
-            \logInfo(json_encode($smsstate), "SMS response");
 
             DB::commit();
 

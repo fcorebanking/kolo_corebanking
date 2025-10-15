@@ -161,7 +161,7 @@ class RegisterController extends Controller
         // echo \json_encode($createAdminAccount);
 
         $companyIDs            = [];
-        $companyIDsAddBankName = [22, 32];
+        $companyIDsAddBankName = [22, 32, 47];
 
         $companyIDsStatus            = false;
         $companyIDsAddBankNameStatus = false;
@@ -193,7 +193,12 @@ class RegisterController extends Controller
             $virtualAccount->bankCode     = $customSelectedBank;
             $virtualAccount->currencyCode = $companyRecord->currency->code;
             if ($companyIDsAddBankNameStatus) {
-                $virtualAccount->firstName = "{$companyRecord->short_name}/" . $request->first_name;
+                if ($companyRecord->id == 47) {
+                    $virtualAccount->firstName = "$request->first_name " . "{$request->last_name}" . "/{$companyRecord->short_name}";
+                } else {
+                    $virtualAccount->firstName = "{$companyRecord->short_name}/" . $request->first_name;
+                }
+
             } else {
                 $virtualAccount->firstName = $request->first_name;
             }

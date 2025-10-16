@@ -5644,128 +5644,204 @@ class TransactionController extends Controller
         $vtPassController->handleWebhook($request);
     }
 
-    public function checkCustomerAndCompanyBalanceBeforeBuyAirtime($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
-    {
-        $response = [];
+    public function checkCustomerAndCompanyBalanceBeforeBuyAirtime(
+        $customerAccountId,
+        $companyId,
+        $originalAmount,
+        $customerCashback = 0,
+        $companyCashback = null,
+        $user = null
+    ) {
+        $response = [
+            "status"       => false,
+            "responseCode" => 0,
+            "message"      => "An unexpected error occurred",
+        ];
 
-        if (! Auth::check()) {
-            $currentUser = $user;
-        } else {
-            $currentUser = auth()->user();
+        // Determine user
+        $currentUser = Auth::check() ? auth()->user() : $user;
+
+        if ($originalAmount <= 0) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Invalid transaction amount",
+            ];
         }
 
-        if ($originalAmount > 0) {
+        // Get customer wallet
+        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
 
-            $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
-
-            if (! $userWallet) {
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
-            }
-
-            $customerInitialBalance = $userWallet->balance;
-
-            $customerCashbackAmount = $customerCashback * $originalAmount;
-            $companyCashbackAmount  = $companyCashback * $originalAmount;
-
-            if ($customerInitialBalance > ($originalAmount - $customerCashbackAmount)) {
-
-                $company    = Company::find($companyId);
-                $companyIDs = [1, 29, 36];
-
-                $companyIDsStatus = false;
-
-                if (in_array($company->id, $companyIDs)) {
-                    $companyIDsStatus = true;
-                }
-
-                $companyAfterBalance = $company->wallet->balance - $originalAmount;
-
-                logInfo(json_encode($companyAfterBalance), "checkCustomerAndCompanyBalanceBeforeBuyAirtime Company after balance for cash back");
-
-                if ($company->wallet->balance > 100000 && ($companyAfterBalance > 100000)) {
-                    $companyIDsStatus = true;
-                }
-
-                if ($company->wallet->balance > 100100) {
-
-                    $response = [
-                        "status"  => true,
-                        'message' => "Amount is Valid",
-
-                    ];
-                } else {
-                    $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
-                }
-            }
-            return $response;
+        if (! $userWallet) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Invalid customer provided",
+            ];
         }
+
+        $customerInitialBalance = $userWallet->balance;
+
+        // Compute cashback values (safe defaults)
+        $customerCashbackAmount = (float) $customerCashback * $originalAmount;
+        $companyCashbackAmount  = (float) $companyCashback * $originalAmount;
+
+        // ✅ Ensure customer has enough to pay after cashback
+        if ($customerInitialBalance < ($originalAmount - $customerCashbackAmount)) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Insufficient customer balance",
+            ];
+        }
+
+        // Fetch company and check its wallet
+        $company = Company::find($companyId);
+
+        if (! $company || ! $company->wallet) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Invalid company or wallet not found",
+            ];
+        }
+
+        $companyIDs       = [1, 29, 36];
+        $companyIDsStatus = in_array($company->id, $companyIDs);
+
+        $companyAfterBalance = $company->wallet->balance - $originalAmount;
+
+        logInfo(json_encode($companyAfterBalance), "checkCustomerAndCompanyBalanceBeforeBuyAirtime Company after balance for cash back");
+
+        // ✅ Logic for switcher company wallet balance
+        if ($company->wallet->balance > 100000 && $companyAfterBalance > 100000) {
+            $companyIDsStatus = true;
+        }
+
+        if ($company->wallet->balance > 100100 || $companyIDsStatus) {
+            return [
+                "status"       => true,
+                "responseCode" => 1,
+                "message"      => "Amount is valid",
+            ];
+        }
+
+        return [
+            "status"       => false,
+            "responseCode" => 0,
+            "message"      => "Switcher-related error... Please contact support",
+        ];
     }
 
-    public function checkCustomerAndCompanyBalanceBeforeBuyElectricity($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
-    {
+    public function checkCustomerAndCompanyBalanceBeforeBuyElectricity(
+        $customerAccountId,
+        $companyId,
+        $originalAmount,
+        $customerCharge,
+        $companyCharge,
+        $user = null
+    ) {
         logInfo($customerAccountId, "checkCustomerAndCompanyBalanceBeforeBuyElectricity customerAccountId");
         logInfo($companyId, "checkCustomerAndCompanyBalanceBeforeBuyElectricity companyId");
 
-        $response = [];
+        // Default response (prevents returning null)
+        $response = [
+            "status"       => false,
+            "responseCode" => 0,
+            "message"      => "Unknown error occurred",
+        ];
 
-        if (! Auth::check()) {
-            $currentUser = $user;
-        } else {
-            $currentUser = auth()->user();
+        // Resolve user
+        $currentUser = Auth::check() ? auth()->user() : $user;
+
+        // Validate amount
+        if ($originalAmount <= 0) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Invalid transaction amount",
+            ];
         }
 
-        if ($originalAmount > 0) {
+        // Lock customer wallet for concurrency safety
+        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)
+            ->lockForUpdate()
+            ->first();
 
-            $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
-
-            if (! $userWallet) {
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
-            }
-
-            logInfo(json_encode($userWallet), "checkCustomerAndCompanyBalanceBeforeBuyElectricity User to be debitted");
-
-            $customerInitialBalance = $userWallet->balance;
-
-            logInfo($originalAmount, "checkCustomerAndCompanyBalanceBeforeBuyElectricity Original Amount to be debitted");
-            logInfo($customerCharge, " checkCustomerAndCompanyBalanceBeforeBuyElectricityCharge to be debitted");
-            if ($customerInitialBalance > ($originalAmount + $customerCharge)) {
-
-                $company = Company::find($companyId);
-
-                $companyIDs = [1, 29, 36];
-
-                $companyIDsStatus = false;
-
-                if (in_array($company->id, $companyIDs)) {
-                    $companyIDsStatus = true;
-                }
-
-                $companyWallet = company_wallet::where('company_id', $companyId)->first();
-
-                logInfo(json_encode($companyWallet), "checkCustomerAndCompanyBalanceBeforeBuyElectricity Company to be debitted");
-
-                $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge);
-
-                logInfo(json_encode($companyAfterBalance), "Company after balance");
-
-                if ($companyWallet->balance > 100000 && ($companyAfterBalance > 100000)) {
-                    $companyIDsStatus = true;
-                }
-
-                if (($companyWallet->balance > ($originalAmount + $customerCharge)) && ($companyIDsStatus)) {
-
-                    $response = [
-                        "status"  => true,
-                        'message' => "Amount is Valid",
-
-                    ];
-                } else {
-                    $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
-                }
-            }
-        } else {
-            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        if (! $userWallet) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Invalid customer provided",
+            ];
         }
+
+        logInfo(json_encode($userWallet), "Customer wallet to be debited");
+
+        $customerInitialBalance = $userWallet->balance;
+        $totalDebit             = $originalAmount + $customerCharge;
+
+        logInfo($originalAmount, "Original Amount");
+        logInfo($customerCharge, "Customer Charge");
+
+        // ✅ Step 1: Ensure customer has sufficient balance
+        if ($customerInitialBalance < $totalDebit) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Insufficient customer balance",
+            ];
+        }
+
+        // ✅ Step 2: Get company wallet
+        $company = Company::find($companyId);
+
+        if (! $company) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Invalid company specified",
+            ];
+        }
+
+        $companyWallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
+
+        if (! $companyWallet) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Company wallet not found",
+            ];
+        }
+
+        logInfo(json_encode($companyWallet), "Company wallet to be debited");
+
+        $companyIDs       = [1, 29, 36];
+        $companyIDsStatus = in_array($company->id, $companyIDs);
+
+        $companyAfterBalance = $companyWallet->balance - ($originalAmount + $companyCharge);
+
+        logInfo($companyAfterBalance, "Company after balance");
+
+        // ✅ Step 3: Ensure company wallet has safe limits
+        if ($companyWallet->balance > 100000 && $companyAfterBalance > 100000) {
+            $companyIDsStatus = true;
+        }
+
+        if (($companyWallet->balance >= ($originalAmount + $companyCharge)) && $companyIDsStatus) {
+            $response = [
+                "status"       => true,
+                "responseCode" => 1,
+                "message"      => "Amount is valid",
+            ];
+        } else {
+            $response = [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Switcher-related error. Please contact support",
+            ];
+        }
+
         return $response;
     }
 

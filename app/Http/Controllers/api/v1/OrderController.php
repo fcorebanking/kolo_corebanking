@@ -200,6 +200,12 @@ class OrderController extends Controller
                 $contact->contact = $request->contact;
                 $contact->save();
 
+            } else {
+                $contact = DeliveryDetailModel::create([
+                    'user_id' => $userId,
+                    'address' => $request->address,
+                    'contact' => $request->contact,
+                ]);
             }
             return $contact;
         }

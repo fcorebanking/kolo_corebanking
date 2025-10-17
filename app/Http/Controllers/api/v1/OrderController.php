@@ -72,7 +72,7 @@ class OrderController extends Controller
                 $qrt         = $product['quantity'];
                 $wbID        = $wb_account_details->id;
                 $user_wallet = user_wallet::where('wb_account_detail_id', $wbID)->first();
-                $product_id  = $product['product']['id'];
+                $product_id  = $product['id'];
 
                 if ($user_wallet) {
                     $balanceBefore = $balance = $user_wallet->balance;

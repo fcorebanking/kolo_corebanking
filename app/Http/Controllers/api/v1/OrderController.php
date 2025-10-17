@@ -67,15 +67,14 @@ class OrderController extends Controller
         $wb_account_details = wb_account_details::where('virtual_accnum', $request->account_id)->first();
         logInfo($wb_account_details->user_id, "User Order detail");
         logInfo(auth()->user()->id, "User Order detail ID");
-
+        $wbID        = $wb_account_details->id;
         $user_wallet = user_wallet::where('wb_account_detail_id', $wbID)->first();
         logInfo($user_wallet->balance, "User Order detail balance");
         $products = $request->input('product');
 
         if ($wb_account_details) {
             foreach ($products as $product) {
-                $qrt  = $product['quantity'];
-                $wbID = $wb_account_details->id;
+                $qrt = $product['quantity'];
 
                 $product_id = $product['id'];
 

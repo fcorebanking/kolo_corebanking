@@ -62,7 +62,7 @@ class OrderController extends Controller
 
         // Use authenticated user OR fallback to wallet owner
         $authUser  = auth()->user();
-        $userId    = $authUser->id ?? $wbAccount->user_id;
+        $userId    = $authUser ? $authUser->id : $wbAccount->user_id;
         $companyId = $authUser->company_id ?? null;
         $branchId  = $authUser->branch_id ?? null;
 
@@ -193,6 +193,7 @@ class OrderController extends Controller
 
         if ($request->address && $request->contact) {
             $contact          = DeliveryDetailModel::firstOrNew(['user_id' => $userId]);
+            $contact->user_id = $userId;
             $contact->address = $request->address;
             $contact->contact = $request->contact;
             $contact->save();

@@ -102,11 +102,13 @@ class OrderController extends Controller
             $amount   = $ecom->amount;
             $totalPay = $amount * $quantity;
 
+            logInfo($totalPay, "totalPay");
+
             if ($request->deliveryMethod === 'delivery' && $ecom->delivery_fee > 0) {
                 $totalPay += $ecom->delivery_fee;
             }
 
-            logInfo($totalPay, "totalPay");
+            logInfo($totalPay, "totalPay after delivery");
 
             if ($userWallet->balance < $totalPay) {
                 return response()->json(['status' => false, 'message' => 'Balance not enough!'], 400);
@@ -114,6 +116,8 @@ class OrderController extends Controller
 
             $balanceBefore = $userWallet->balance;
             $userWallet->balance -= $totalPay;
+
+            logInfo($userWallet->balance, "balance  after deduction");
 
             // 🔹 Create Transaction
             $txn = $this->createTransaction(

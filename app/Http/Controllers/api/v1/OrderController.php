@@ -105,6 +105,8 @@ class OrderController extends Controller
                 $totalPay += $ecom->delivery_fee;
             }
 
+            logInfo($totalPay, "totalPay");
+
             if ($userWallet->balance < $totalPay) {
                 return response()->json(['status' => false, 'message' => 'Balance not enough!'], 400);
             }

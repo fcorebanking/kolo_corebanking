@@ -197,9 +197,9 @@ class OrderController extends Controller
                 $contact->address = $request->address;
                 $contact->contact = $request->contact;
                 $contact->save();
-                return $contact;
-            }
 
+            }
+            return $contact;
         }
 
         return null;

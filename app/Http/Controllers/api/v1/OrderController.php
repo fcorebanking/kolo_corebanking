@@ -61,8 +61,9 @@ class OrderController extends Controller
         }
 
         // Use authenticated user OR fallback to wallet owner
-        $authUser  = auth()->user();
-        $userId    = $authUser ? $authUser->id : $wbAccount->user_id;
+        $authUser = auth()->user();
+        $userId   = $authUser ? $authUser->id : $wbAccount->user_id;
+        logInfo($userId, "userId ");
         $companyId = $authUser->company_id ?? null;
         $branchId  = $authUser->branch_id ?? null;
 

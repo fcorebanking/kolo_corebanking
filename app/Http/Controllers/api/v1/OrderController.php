@@ -106,10 +106,21 @@ class OrderController extends Controller
                             $address = $request->address;
                             $contact = $request->contact;
                             logInfo(auth()->user()->id, "User Order update contact");
-                            $contact          = DeliveryDetailModel::where('user_id', auth()->user()->id)->first();
-                            $contact->contact = $request->contact;
-                            $contact->address = $request->address;
-                            $contact->save();
+                            $contact = DeliveryDetailModel::where('user_id', auth()->user()->id)->first();
+                            if ($contact != null) {
+                                logInfo(json_encode($contact), "User Order detail contact");
+                                $contact->contact = $request->contact;
+                                $contact->address = $request->address;
+                                $contact->save();
+                            } else {
+                                DeliveryDetailModel::create([
+                                    'user_id' => auth()->user()->id,
+                                    'address' => $request->address,
+                                    'contact' => $request->contact,
+
+                                ]);
+                            }
+
                         } else {
                             return response()->json(['status' => false, 'message' => 'Enter Address and Contact!'], 400);
                         }

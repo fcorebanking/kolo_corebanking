@@ -105,6 +105,7 @@ class OrderController extends Controller
                         if ($request->address != null && $request->contact != null) {
                             $address = $request->address;
                             $contact = $request->contact;
+                            logInfo(auth()->user()->id, "User Order update contact");
                             DeliveryDetailModel::updateOrCreate(
                                 ['user_id' => auth()->user()->id,
                                     'contact'  => $request->contact,

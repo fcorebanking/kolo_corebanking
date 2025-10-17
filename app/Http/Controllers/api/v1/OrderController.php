@@ -192,11 +192,14 @@ class OrderController extends Controller
         }
 
         if ($request->address && $request->contact) {
-            $contact          = DeliveryDetailModel::firstOrNew(['user_id' => $userId]);
-            $contact->address = $request->address;
-            $contact->contact = $request->contact;
-            $contact->save();
-            return $contact;
+            $contact = DeliveryDetailModel::where(['user_id' => $userId])->first();
+            if ($contact != null) {
+                $contact->address = $request->address;
+                $contact->contact = $request->contact;
+                $contact->save();
+                return $contact;
+            }
+
         }
 
         return null;

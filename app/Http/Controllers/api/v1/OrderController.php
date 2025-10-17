@@ -185,7 +185,6 @@ class OrderController extends Controller
     {
         if ($request->contact_id) {
             $del = DeliveryDetailModel::where(['user_id' => $userId, 'id' => $request->contact_id])->first();
-            logInfo(json_encode($del), "Does contact exist");
             if ($del) {
                 return $del;
             }
@@ -193,20 +192,10 @@ class OrderController extends Controller
         }
 
         if ($request->address && $request->contact) {
-            $contact = DeliveryDetailModel::where(['user_id' => $userId])->first();
-            logInfo(json_encode($contact), "Does contact exist delivery");
-            if ($contact != null) {
-                $contact->address = $request->address;
-                $contact->contact = $request->contact;
-                $contact->save();
-
-            } else {
-                $contact = DeliveryDetailModel::create([
-                    'user_id' => $userId,
-                    'address' => $request->address,
-                    'contact' => $request->contact,
-                ]);
-            }
+            $contact          = DeliveryDetailModel::firstOrNew(['user_id' => $userId]);
+            $contact->address = $request->address;
+            $contact->contact = $request->contact;
+            $contact->save();
             return $contact;
         }
 

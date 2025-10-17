@@ -37,210 +37,197 @@ class OrderController extends Controller
 
     public function makeOrder(Request $request)
     {
-        \logInfo($request->all(), "4ts Finova Received Webhook");
+        logInfo($request->all(), "4ts Finova Received Webhook");
+
+        // 🔹 Validate Input
         $validator = Validator::make($request->all(), [
-
             'account_id'     => 'required',
-            'product'        => 'required',
-            'contact_id'     => 'nullable',
-            'address'        => 'nullable',
-            'contact'        => 'nullable',
-            'deliveryMethod' => 'nullable',
-
+            'product'        => 'required|array',
+            'contact_id'     => 'nullable|integer',
+            'address'        => 'nullable|string',
+            'contact'        => 'nullable|string',
+            'deliveryMethod' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
-            $errors = '';
-            foreach ($validator->messages()->getMessages() as $field_name => $messages) {
-                // Go through each message for this field.
-                foreach ($messages as $message) {
-                    $errors .= "$message ";
-                }
-            }
-            $datax = [
-                'message' => $errors,
-                'status'  => false,
-            ];
-            return response()->json($datax, 406);
+            $errors = collect($validator->errors()->all())->implode(' ');
+            return response()->json(['message' => $errors, 'status' => false], 406);
         }
 
-        $wb_account_details = wb_account_details::where('virtual_accnum', $request->account_id)->first();
-        logInfo($wb_account_details->user_id, "User Order detail");
-        logInfo(auth()->user()->id, "User Order detail ID");
-        $wbID        = $wb_account_details->id;
-        $user_wallet = user_wallet::where('wb_account_detail_id', $wbID)->first();
-        logInfo($user_wallet->balance, "User Order detail balance");
-        $products = $request->input('product');
+        // 🔹 Fetch Wallet & User
+        $wbAccount = wb_account_details::where('virtual_accnum', $request->account_id)->first();
+        if (! $wbAccount) {
+            return response()->json(['status' => false, 'message' => 'Invalid Account Selected!'], 400);
+        }
 
-        if ($wb_account_details) {
-            foreach ($products as $product) {
-                $qrt = $product['quantity'];
+        // Use authenticated user OR fallback to wallet owner
+        $authUser  = auth()->user();
+        $userId    = $authUser->id ?? $wbAccount->user_id;
+        $companyId = $authUser->company_id ?? null;
+        $branchId  = $authUser->branch_id ?? null;
 
-                $product_id = $product['id'];
+        $userWallet = user_wallet::where('wb_account_detail_id', $wbAccount->id)->first();
+        if (! $userWallet) {
+            return response()->json(['status' => false, 'message' => 'Invalid Account Wallet!'], 400);
+        }
 
-                if ($user_wallet) {
-                    $balanceBefore = $balance = $user_wallet->balance;
-                    $ecom          = EcomerceProductModel::where(['id' => $product_id, 'company_id' => auth()->user()->company_id])->first();
-                    if ($ecom->quantity < $qrt) {
-                        $datax = [
-                            'message' => "Item No Available!",
-                            'status'  => false,
-                        ];
-                        return response()->json($datax, 404);
-                    }
-                    if ($ecom) {
-                        $address     = '';
-                        $contact     = '';
-                        $addressID   = null;
-                        $haveContact = $request->contact_id;
-                        if ($haveContact != null) {
-                            $del = DeliveryDetailModel::where(['user_id' => auth()->user()->id, 'id' => $haveContact])->first();
-                            if ($del) {
-                                $address   = $del->address;
-                                $contact   = $del->contact;
-                                $addressID = $del->id;
-                            }
-                        }
+        logInfo($userWallet->balance, "User Wallet Balance");
 
-                        if ($request->address != null && $request->contact != null) {
-                            $address = $request->address;
-                            $contact = $request->contact;
-                            logInfo(auth()->user()->id, "User Order update contact");
-                            $contact = DeliveryDetailModel::where('user_id', auth()->user()->id)->first();
-                            if ($contact != null) {
-                                logInfo(json_encode($contact), "User Order detail contact");
-                                $contact->contact = $request->contact;
-                                $contact->address = $request->address;
-                                $contact->save();
-                            } else {
-                                DeliveryDetailModel::create([
-                                    'user_id' => auth()->user()->id,
-                                    'address' => $request->address,
-                                    'contact' => $request->contact,
+        // 🔹 Iterate through products
+        foreach ($request->input('product') as $product) {
+            $quantity  = $product['quantity'];
+            $productId = $product['id'];
 
-                                ]);
-                            }
+            $ecom = EcomerceProductModel::where([
+                'id'         => $productId,
+                'company_id' => $companyId,
+            ])->first();
 
-                        } else {
-                            return response()->json(['status' => false, 'message' => 'Enter Address and Contact!'], 400);
-                        }
-
-                        $amount   = $ecom->amount;
-                        $totalpay = $amount * $qrt;
-                        if ($request->deliveryMethod) {
-                            if ($request->deliveryMethod == 'delivery') {
-                                $totalpay += $ecom->delivery_fee;
-                            }
-                        }
-                        if ($balance < $totalpay) {
-                            return response()->json(['status' => false, 'message' => 'Balance not enough!'], 400);
-                        }
-                        $balance -= $totalpay;
-                        $user_wallet->balance = $balance;
-                        $ledger_cr            = null;
-                        $ledger_dr            = null;
-                        $ledger_Settings      = get_CR_DR_TXN_Type_Ledger(77, auth()->user()->company_id);
-                        if ($ledger_Settings) {
-                            $ledger_cr = $ledger_Settings->ledger_cr;
-                            $ledger_dr = $ledger_Settings->ledger_dr;
-                        }
-                        $data = [
-                            "balance_before"         => $balanceBefore,
-                            "amount"                 => $totalpay,
-                            "description"            => "E-Commerce Purchase of ",
-                            "account_id"             => $wbID,
-                            "branch_id"              => auth()->user()->branch_id,
-                            "transaction_status_id"  => 1,
-                            "transaction_reference"  => generate_txnID(),
-                            "transaction_type_id"    => 77, //debit 7
-                            "credit_debit_type_id"   => 2,  //debit 2
-                            "transaction_remarks_id" => 2,  //success 2
-                            "balance_after"          => $balance,
-                            "created_date"           => date("Y-m-d"),
-                            "created_by"             => auth()->user()->id,
-                            "company_id"             => auth()->user()->company_id,
-                            "ledger_dr"              => $ledger_dr,
-                            "ledger_cr"              => $ledger_cr,
-                        ];
-                        if ($request->deliveryMethod) {
-                            if ($request->deliveryMethod == 'delivery' && $ecom->delivery_fee > 0) {
-                                $deliveryTransactionID = 106;
-                                $ledger_cr             = null;
-                                $ledger_dr             = null;
-                                $ledger_Settings       = get_CR_DR_TXN_Type_Ledger($deliveryTransactionID, auth()->user()->company_id);
-                                if ($ledger_Settings) {
-                                    $ledger_cr = $ledger_Settings->ledger_cr;
-                                    $ledger_dr = $ledger_Settings->ledger_dr;
-                                }
-                                $dataFee = [
-                                    "balance_before"         => $balanceBefore,
-                                    "amount"                 => $ecom->delivery_fee,
-                                    "description"            => "E-Commerce Delivery Fee",
-                                    "account_id"             => $wbID,
-                                    "branch_id"              => auth()->user()->branch_id,
-                                    "transaction_status_id"  => 1,
-                                    "transaction_reference"  => generate_txnID(),
-                                    "transaction_type_id"    => $deliveryTransactionID, //debit 7
-                                    "credit_debit_type_id"   => 2,                      //debit 2
-                                    "transaction_remarks_id" => 2,                      //success 2
-                                    "balance_after"          => $balance,
-                                    "created_date"           => date("Y-m-d"),
-                                    "created_by"             => auth()->user()->id,
-                                    "company_id"             => auth()->user()->company_id,
-                                    "ledger_dr"              => $ledger_dr,
-                                    "ledger_cr"              => $ledger_cr,
-                                ];
-                                transactions::create($dataFee);
-                            }
-                        }
-                        $txn = transactions::create($data);
-                        if ($txn) {
-                            $user_wallet->save();
-                            if ($addressID == null) {
-                                $DeliveryDetailModel          = new DeliveryDetailModel;
-                                $DeliveryDetailModel->user_id = auth()->user()->id;
-                                $DeliveryDetailModel->address = $address;
-                                $DeliveryDetailModel->contact = $contact;
-                                $DeliveryDetailModel->save();
-                                $addressID = $DeliveryDetailModel->id;
-                            }
-                            $OrderModel                            = new OrderModel;
-                            $OrderModel->user_id                   = auth()->user()->id;
-                            $OrderModel->ecomerce_product_model_id = $ecom->id;
-                            $OrderModel->qrty                      = $product['quantity'];
-                            $OrderModel->status_id                 = 2;
-                            $OrderModel->wb_account_detail_id      = $wbID;
-                            $OrderModel->transaction_id            = $txn->id;
-                            $OrderModel->delivery_detail_model_id  = $addressID;
-                            if ($request->deliveryMethod) {
-                                if ($request->deliveryMethod == 'delivery' && $ecom->delivery_fee > 0) {
-                                    $OrderModel->delivery_fee = $ecom->delivery_fee;
-                                }
-                            }
-
-                            $OrderModel->amount       = $amount;
-                            $OrderModel->orderID      = time() . $txn->id;
-                            $OrderModel->total_amount = $totalpay;
-                            $OrderModel->save();
-                            $ecom->quantity -= $qrt;
-                            $ecom->save();
-                            $txn->description .= $OrderModel->product->name . "with Order ID #$OrderModel->orderID";
-                            $txn->save();
-                            return response()->json(['status' => true, 'message' => 'Order Successful Awaiting Delivery', 'orderID' => $OrderModel->orderID], 200);
-                        }
-                        return response()->json(['status' => true, 'message' => 'Order Failed untraced error'], 400);
-
-                    } else {
-                        return response()->json(['status' => false, 'message' => 'Order failed'], 400);
-                    }
-                } else {
-                    return response()->json(['status' => false, 'message' => 'Invalide Account Wallet!'], 400);
-                }
+            if (! $ecom) {
+                return response()->json(['status' => false, 'message' => 'Product not found'], 404);
             }
-        } else {
-            return response()->json(['status' => false, 'message' => 'Invalide Account selected!'], 400);
+
+            if ($ecom->quantity < $quantity) {
+                return response()->json(['status' => false, 'message' => 'Item Not Available!'], 404);
+            }
+
+            // 🔹 Handle address/contact
+            $delivery = $this->getOrCreateDeliveryDetail($request, $userId);
+            if (! $delivery) {
+                return response()->json(['status' => false, 'message' => 'Enter Address and Contact!'], 400);
+            }
+
+            // 🔹 Payment Calculation
+            $amount   = $ecom->amount;
+            $totalPay = $amount * $quantity;
+
+            if ($request->deliveryMethod === 'delivery' && $ecom->delivery_fee > 0) {
+                $totalPay += $ecom->delivery_fee;
+            }
+
+            if ($userWallet->balance < $totalPay) {
+                return response()->json(['status' => false, 'message' => 'Balance not enough!'], 400);
+            }
+
+            $balanceBefore = $userWallet->balance;
+            $userWallet->balance -= $totalPay;
+
+            // 🔹 Create Transaction
+            $txn = $this->createTransaction(
+                $wbAccount->id,
+                $userId,
+                $companyId,
+                $branchId,
+                77, // transaction type
+                $balanceBefore,
+                $totalPay,
+                $userWallet->balance,
+                "E-Commerce Purchase of "
+            );
+
+            if ($txn && $request->deliveryMethod === 'delivery' && $ecom->delivery_fee > 0) {
+                $this->createTransaction(
+                    $wbAccount->id,
+                    $userId,
+                    $companyId,
+                    $branchId,
+                    106, // delivery fee type
+                    $balanceBefore,
+                    $ecom->delivery_fee,
+                    $userWallet->balance,
+                    "E-Commerce Delivery Fee"
+                );
+            }
+
+            $userWallet->save();
+
+            // 🔹 Create Order
+            $order = new OrderModel([
+                'user_id'                   => $userId,
+                'ecomerce_product_model_id' => $ecom->id,
+                'qrty'                      => $quantity,
+                'status_id'                 => 2,
+                'wb_account_detail_id'      => $wbAccount->id,
+                'transaction_id'            => $txn->id,
+                'delivery_detail_model_id'  => $delivery->id,
+                'amount'                    => $amount,
+                'orderID'                   => time() . $txn->id,
+                'total_amount'              => $totalPay,
+            ]);
+
+            if ($request->deliveryMethod === 'delivery' && $ecom->delivery_fee > 0) {
+                $order->delivery_fee = $ecom->delivery_fee;
+            }
+
+            $order->save();
+
+            // 🔹 Update Product Stock
+            $ecom->decrement('quantity', $quantity);
+
+            // 🔹 Update Transaction Description
+            $txn->description .= $order->product->name . " with Order ID #{$order->orderID}";
+            $txn->save();
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Order Successful Awaiting Delivery',
+                'orderID' => $order->orderID,
+            ], 200);
+        }
+
+        return response()->json(['status' => false, 'message' => 'Order Failed'], 400);
+    }
+
+/**
+ * Create or update delivery detail
+ */
+    private function getOrCreateDeliveryDetail(Request $request, $userId)
+    {
+        if ($request->contact_id) {
+            $del = DeliveryDetailModel::where(['user_id' => $userId, 'id' => $request->contact_id])->first();
+            if ($del) {
+                return $del;
+            }
 
         }
+
+        if ($request->address && $request->contact) {
+            $contact          = DeliveryDetailModel::firstOrNew(['user_id' => $userId]);
+            $contact->address = $request->address;
+            $contact->contact = $request->contact;
+            $contact->save();
+            return $contact;
+        }
+
+        return null;
+    }
+
+/**
+ * Create transaction record
+ */
+    private function createTransaction($wbID, $userId, $companyId, $branchId, $txnTypeId, $before, $amount, $after, $description)
+    {
+        $ledger = get_CR_DR_TXN_Type_Ledger($txnTypeId, $companyId);
+        $txnRef = generate_txnID();
+
+        return transactions::create([
+            'balance_before'         => $before,
+            'amount'                 => $amount,
+            'description'            => $description,
+            'account_id'             => $wbID,
+            'branch_id'              => $branchId,
+            'transaction_status_id'  => 1,
+            'transaction_reference'  => $txnRef,
+            'transaction_type_id'    => $txnTypeId,
+            'credit_debit_type_id'   => 2, // debit
+            'transaction_remarks_id' => 2, // success
+            'balance_after'          => $after,
+            'created_date'           => now()->toDateString(),
+            'created_by'             => $userId,
+            'company_id'             => $companyId,
+            'ledger_dr'              => $ledger->ledger_dr ?? null,
+            'ledger_cr'              => $ledger->ledger_cr ?? null,
+        ]);
     }
     public function showOrdersAll()
     {

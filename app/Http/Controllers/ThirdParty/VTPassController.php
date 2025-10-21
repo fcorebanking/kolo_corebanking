@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\ThirdParty;
+namespace App\Services;
 
 use App\Http\Controllers\Controller;
 use App\Models\company_settings;

@@ -4668,6 +4668,7 @@ function goldencreditSMSPost($phone, $transaction_type, $amount = null, $balance
     }
 
     $response = Http::withHeaders(goldencreditHeader())->post("$endpoint", $data);
+    logInfo($response, "Golden Credit Sms : ");
     return $response;
 }
 

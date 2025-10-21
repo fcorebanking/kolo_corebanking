@@ -301,7 +301,12 @@ class RegisterController extends Controller
             ];
 
             if ($request->referral) {
-                $refeUser = User::where(['company_id' => $companyRecord->id, 'username' => $request->referral])->first();
+                $refeUser = User::where('company_id', $companyRecord->id)
+                    ->where(function ($query) use ($request) {
+                        $query->where('username', $request->referral)
+                            ->orWhere('id', $request->referral);
+                    })
+                    ->first();
                 if (! $refeUser) {
                     return response()->json(['status' => false, 'message' => 'Invalid referral username']);
                 }

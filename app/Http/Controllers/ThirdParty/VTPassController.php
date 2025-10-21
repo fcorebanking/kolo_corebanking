@@ -1,5 +1,5 @@
 <?php
-namespace App\Services;
+namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\Controller;
 use App\Models\company_settings;
@@ -407,12 +407,10 @@ class VTPassController extends Controller
         }
 
         if (! $txnData || $txnData['status'] == "reversed") {
-            $transaction = 
-            logInfo("TRANSACTION REVERSAL TO WALLET ", "VTPASSWebHook");
+            $transaction =
+                logInfo("TRANSACTION REVERSAL TO WALLET ", "VTPASSWebHook");
             return;
         }
-
-        
 
         DB::beginTransaction();
         try {
@@ -434,8 +432,6 @@ class VTPassController extends Controller
                 DB::rollBack();
                 return;
             }
-
-             
 
             switch ($transaction->description) {
                 case "Buy Airtime Initialized":
@@ -575,348 +571,342 @@ class VTPassController extends Controller
         }
     }
 
-   
-
     public function processDataBundle(array $response, $transaction)
-{
-    $parentTx = $transaction;
+    {
+        $parentTx = $transaction;
 
-    // Avoid reprocessing
-    if ($parentTx->transaction_remarks_id == 2) {
-        Log::info("Webhook ignored: transaction already processed", ['ref' => $parentTx->transaction_reference]);
-        return;
-    }
-
-    // Extract data from response
-    $txnData = $response['data']['content']['transactions'] ?? null;
-    if (!$txnData) {
-        Log::error("processDataBundle: invalid response format", ['response' => $response]);
-        return;
-    }
-
-    $final_amount = $txnData['total_amount'] ?? $txnData['amount'] ?? 0;
-    $phoneNumber  = $txnData['phone'] ?? null;
-
-    // Get user and ensure account
-    $user = $this->getUser($parentTx);
-    if (!$user) {
-        Log::error("processDataBundle: user or account missing", ['transaction_id' => $parentTx->id]);
-        return;
-    }
-    $accountId = $parentTx->account_id;
-
-    // Debit
-    $debitCustomer = debitCustomerAndCompanyWithCompanyCashback(
-        $accountId,
-        $user->company_id,
-        $final_amount,
-        0,      // customer cashback %
-        0.01    // company cashback %
-    );
-
-    if (!is_array($debitCustomer) || !isset($debitCustomer['balance_before'])) {
-        Log::error("processDataBundle: debit helper returned unexpected data", ['transaction_id' => $parentTx->id]);
-        return;
-    }
-
-    DB::beginTransaction();
-    try {
-        // Update main transaction
-        $parentTx->update([
-            "balance_before"         => $debitCustomer['balance_before'],
-            "amount"                 => $final_amount,
-            "account_id"             => $accountId,
-            "balance_after"          => $debitCustomer["balance_after"],
-            "company_balance_before" => $debitCustomer["company_balance_before"] ?? null,
-            "company_balance_after"  => $debitCustomer["company_balance_after"] ?? null,
-            "company_amount"         => $debitCustomer["company_amount"] ?? 0,
-            "description"            => "Purchase of Data worth ₦{$final_amount}" . ($phoneNumber ? " for {$phoneNumber}" : ""),
-            "transaction_remarks_id" => 1,
-            "transaction_type_id"    => 12,
-            "credit_debit_type_id"   => 2,
-        ]);
-
-        // Cashback creation (if applicable)
-        $customerCashback = $debitCustomer["customer_cashback"] ?? 0;
-        if ($customerCashback > 0) {
-            $cashbackTransactionId = generate_txnID();
-            $ledger_cr = null;
-            $ledger_dr = null;
-
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(66, $user->company_id);
-            if ($ledger_Settings) {
-                $ledger_cr = $ledger_Settings->ledger_cr;
-                $ledger_dr = $ledger_Settings->ledger_dr;
-            }
-
-            transactions::create([
-                "balance_before"         => $debitCustomer['cashback_balance_before'] ?? null,
-                "amount"                 => $customerCashback,
-                "account_id"             => $accountId,
-                "balance_after"          => $debitCustomer["cashback_balance_after"] ?? null,
-                "company_balance_before" => $debitCustomer["company_cashback_balance_before"] ?? null,
-                "company_balance_after"  => $debitCustomer["company_cashback_balance_after"] ?? null,
-                "company_amount"         => $debitCustomer["company_cashback"] ?? 0,
-                "description"            => "Cashback on Data Purchase",
-                "company_id"             => $parentTx->company_id,
-                "branch_id"              => $parentTx->branch_id,
-                "parent_transaction_id"  => $parentTx->id,
-                "transaction_reference"  => $cashbackTransactionId,
-                "transaction_remarks_id" => 2,
-                "transaction_type_id"    => 66,
-                "credit_debit_type_id"   => 1,
-                "created_date"           => date('Y-m-d'),
-                "created_by"             => $parentTx->created_by,
-                "ledger_cr"              => $ledger_cr,
-                "ledger_dr"              => $ledger_dr,
-            ]);
+        // Avoid reprocessing
+        if ($parentTx->transaction_remarks_id == 2) {
+            Log::info("Webhook ignored: transaction already processed", ['ref' => $parentTx->transaction_reference]);
+            return;
         }
 
-        // Mark as successful
-        $modifierId = auth()->id() ?? $parentTx->created_by ?? null;
-        $this->updateTransactionAsSuccessful($parentTx, $debitCustomer["balance_after"] ?? 0, true, $modifierId);
+        // Extract data from response
+        $txnData = $response['data']['content']['transactions'] ?? null;
+        if (! $txnData) {
+            Log::error("processDataBundle: invalid response format", ['response' => $response]);
+            return;
+        }
 
-        DB::commit();
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        Log::error("processDataBundle failed: " . $e->getMessage(), [
-            'transaction_id' => $parentTx->id,
-            'exception' => $e,
-        ]);
+        $final_amount = $txnData['total_amount'] ?? $txnData['amount'] ?? 0;
+        $phoneNumber  = $txnData['phone'] ?? null;
+
+        // Get user and ensure account
+        $user = $this->getUser($parentTx);
+        if (! $user) {
+            Log::error("processDataBundle: user or account missing", ['transaction_id' => $parentTx->id]);
+            return;
+        }
+        $accountId = $parentTx->account_id;
+
+        // Debit
+        $debitCustomer = debitCustomerAndCompanyWithCompanyCashback(
+            $accountId,
+            $user->company_id,
+            $final_amount,
+            0,  // customer cashback %
+            0.01// company cashback %
+        );
+
+        if (! is_array($debitCustomer) || ! isset($debitCustomer['balance_before'])) {
+            Log::error("processDataBundle: debit helper returned unexpected data", ['transaction_id' => $parentTx->id]);
+            return;
+        }
+
+        DB::beginTransaction();
+        try {
+            // Update main transaction
+            $parentTx->update([
+                "balance_before"         => $debitCustomer['balance_before'],
+                "amount"                 => $final_amount,
+                "account_id"             => $accountId,
+                "balance_after"          => $debitCustomer["balance_after"],
+                "company_balance_before" => $debitCustomer["company_balance_before"] ?? null,
+                "company_balance_after"  => $debitCustomer["company_balance_after"] ?? null,
+                "company_amount"         => $debitCustomer["company_amount"] ?? 0,
+                "description"            => "Purchase of Data worth ₦{$final_amount}" . ($phoneNumber ? " for {$phoneNumber}" : ""),
+                "transaction_remarks_id" => 1,
+                "transaction_type_id"    => 12,
+                "credit_debit_type_id"   => 2,
+            ]);
+
+            // Cashback creation (if applicable)
+            $customerCashback = $debitCustomer["customer_cashback"] ?? 0;
+            if ($customerCashback > 0) {
+                $cashbackTransactionId = generate_txnID();
+                $ledger_cr             = null;
+                $ledger_dr             = null;
+
+                $ledger_Settings = get_CR_DR_TXN_Type_Ledger(66, $user->company_id);
+                if ($ledger_Settings) {
+                    $ledger_cr = $ledger_Settings->ledger_cr;
+                    $ledger_dr = $ledger_Settings->ledger_dr;
+                }
+
+                transactions::create([
+                    "balance_before"         => $debitCustomer['cashback_balance_before'] ?? null,
+                    "amount"                 => $customerCashback,
+                    "account_id"             => $accountId,
+                    "balance_after"          => $debitCustomer["cashback_balance_after"] ?? null,
+                    "company_balance_before" => $debitCustomer["company_cashback_balance_before"] ?? null,
+                    "company_balance_after"  => $debitCustomer["company_cashback_balance_after"] ?? null,
+                    "company_amount"         => $debitCustomer["company_cashback"] ?? 0,
+                    "description"            => "Cashback on Data Purchase",
+                    "company_id"             => $parentTx->company_id,
+                    "branch_id"              => $parentTx->branch_id,
+                    "parent_transaction_id"  => $parentTx->id,
+                    "transaction_reference"  => $cashbackTransactionId,
+                    "transaction_remarks_id" => 2,
+                    "transaction_type_id"    => 66,
+                    "credit_debit_type_id"   => 1,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => $parentTx->created_by,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
+                ]);
+            }
+
+            // Mark as successful
+            $modifierId = auth()->id() ?? $parentTx->created_by ?? null;
+            $this->updateTransactionAsSuccessful($parentTx, $debitCustomer["balance_after"] ?? 0, true, $modifierId);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error("processDataBundle failed: " . $e->getMessage(), [
+                'transaction_id' => $parentTx->id,
+                'exception'      => $e,
+            ]);
+        }
     }
-}
-
-    
 
     public function processElectricity(array $response, $transaction)
-{
-    // Avoid double-processing
-    if ($transaction->transaction_remarks_id == 2) {
-        Log::info("Webhook ignored: electricity transaction already processed", ['ref' => $transaction->transaction_reference]);
-        return;
-    }
+    {
+        // Avoid double-processing
+        if ($transaction->transaction_remarks_id == 2) {
+            Log::info("Webhook ignored: electricity transaction already processed", ['ref' => $transaction->transaction_reference]);
+            return;
+        }
 
-    // Extract total amount safely
-    $txnData = $response['data']['content']['transactions'] ?? null;
-    if (!$txnData || !isset($txnData['total_amount'])) {
-        Log::error("processElectricity: invalid response data", ['response' => $response]);
-        return;
-    }
+        // Extract total amount safely
+        $txnData = $response['data']['content']['transactions'] ?? null;
+        if (! $txnData || ! isset($txnData['total_amount'])) {
+            Log::error("processElectricity: invalid response data", ['response' => $response]);
+            return;
+        }
 
-    $final_amount = $txnData['total_amount'];
-    $meterNumber  = $txnData['meterNumber'] ?? null;
-    $electricityToken = $txnData['token'] ?? null;
+        $final_amount     = $txnData['total_amount'];
+        $meterNumber      = $txnData['meterNumber'] ?? null;
+        $electricityToken = $txnData['token'] ?? null;
 
-    // Get company settings
-    $companySettings = $this->getCompanySettings($transaction);
-    if (!$companySettings) {
-        Log::error("processElectricity: missing company settings", ['transaction_id' => $transaction->id]);
-        return;
-    }
+        // Get company settings
+        $companySettings = $this->getCompanySettings($transaction);
+        if (! $companySettings) {
+            Log::error("processElectricity: missing company settings", ['transaction_id' => $transaction->id]);
+            return;
+        }
 
-    // Calculate charges
-    $wbaCharge = getWbaTransferCharges(13, $final_amount);
+        // Calculate charges
+        $wbaCharge = getWbaTransferCharges(13, $final_amount);
 
-    // Perform debit
-    $debitCustomer = $this->customDebitCustomerAndCompanyWithCharge($transaction, $final_amount, $companySettings, $wbaCharge);
-    if (!is_array($debitCustomer) || !isset($debitCustomer['balance_before'])) {
-        Log::error("processElectricity: debit helper failed", ['transaction_id' => $transaction->id]);
-        return;
-    }
+        // Perform debit
+        $debitCustomer = $this->customDebitCustomerAndCompanyWithCharge($transaction, $final_amount, $companySettings, $wbaCharge);
+        if (! is_array($debitCustomer) || ! isset($debitCustomer['balance_before'])) {
+            Log::error("processElectricity: debit helper failed", ['transaction_id' => $transaction->id]);
+            return;
+        }
 
-    DB::beginTransaction();
-    try {
-        // Update main transaction
-        $transaction->update([
-            "balance_before"         => $debitCustomer['balance_before'],
-            "amount"                 => $final_amount,
-            "balance_after"          => $debitCustomer["balance_after"],
-            "company_balance_before" => $debitCustomer["company_balance_before"],
-            "company_amount"         => $debitCustomer["company_amount"],
-            "company_balance_after"  => $debitCustomer["company_balance_after"],
-            "description"            => "Purchase of Electricity worth ₦{$final_amount}" . ($meterNumber ? " for meter {$meterNumber}" : ""),
-            "transaction_remarks_id" => 1,
-            "transaction_type_id"    => 14,
-            "credit_debit_type_id"   => 2,
-        ]);
+        DB::beginTransaction();
+        try {
+            // Update main transaction
+            $transaction->update([
+                "balance_before"         => $debitCustomer['balance_before'],
+                "amount"                 => $final_amount,
+                "balance_after"          => $debitCustomer["balance_after"],
+                "company_balance_before" => $debitCustomer["company_balance_before"],
+                "company_amount"         => $debitCustomer["company_amount"],
+                "company_balance_after"  => $debitCustomer["company_balance_after"],
+                "description"            => "Purchase of Electricity worth ₦{$final_amount}" . ($meterNumber ? " for meter {$meterNumber}" : ""),
+                "transaction_remarks_id" => 1,
+                "transaction_type_id"    => 14,
+                "credit_debit_type_id"   => 2,
+            ]);
 
-        // Record charge transaction if charge applies
-        if (!empty($companySettings->bills_payment_charge)) {
-            $transactionChargeId = generate_txnID();
-            $ledger_cr = null;
-            $ledger_dr = null;
+            // Record charge transaction if charge applies
+            if (! empty($companySettings->bills_payment_charge)) {
+                $transactionChargeId = generate_txnID();
+                $ledger_cr           = null;
+                $ledger_dr           = null;
 
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(51, $transaction->company_id);
-            if ($ledger_Settings) {
-                $ledger_cr = $ledger_Settings->ledger_cr;
-                $ledger_dr = $ledger_Settings->ledger_dr;
+                $ledger_Settings = get_CR_DR_TXN_Type_Ledger(51, $transaction->company_id);
+                if ($ledger_Settings) {
+                    $ledger_cr = $ledger_Settings->ledger_cr;
+                    $ledger_dr = $ledger_Settings->ledger_dr;
+                }
+
+                transactions::create([
+                    "balance_before"         => $debitCustomer['charge_balance_before'] ?? null,
+                    "amount"                 => $companySettings->bills_payment_charge,
+                    "balance_after"          => $debitCustomer["charge_balance_after"] ?? null,
+                    "account_id"             => $transaction->account_id ?? $debitCustomer['account_id'] ?? null,
+                    "company_id"             => $transaction->company_id,
+                    "branch_id"              => $transaction->branch_id,
+                    "company_balance_before" => $debitCustomer["company_charge_balance_before"] ?? null,
+                    "company_amount"         => $wbaCharge,
+                    "company_balance_after"  => $debitCustomer["company_charge_balance_after"] ?? null,
+                    "description"            => "Charge for Electricity Purchase",
+                    "transaction_reference"  => $transactionChargeId,
+                    "parent_transaction_id"  => $transaction->id,
+                    "transaction_remarks_id" => 1,
+                    "transaction_type_id"    => 51,
+                    "credit_debit_type_id"   => 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => $transaction->created_by,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
+                ]);
             }
 
-            transactions::create([
-                "balance_before"         => $debitCustomer['charge_balance_before'] ?? null,
-                "amount"                 => $companySettings->bills_payment_charge,
-                "balance_after"          => $debitCustomer["charge_balance_after"] ?? null,
-                "account_id"             => $transaction->account_id ?? $debitCustomer['account_id'] ?? null,
-                "company_id"             => $transaction->company_id,
-                "branch_id"              => $transaction->branch_id,
-                "company_balance_before" => $debitCustomer["company_charge_balance_before"] ?? null,
-                "company_amount"         => $wbaCharge,
-                "company_balance_after"  => $debitCustomer["company_charge_balance_after"] ?? null,
-                "description"            => "Charge for Electricity Purchase",
-                "transaction_reference"  => $transactionChargeId,
-                "parent_transaction_id"  => $transaction->id,
-                "transaction_remarks_id" => 1,
-                "transaction_type_id"    => 51,
-                "credit_debit_type_id"   => 2,
-                "created_date"           => date('Y-m-d'),
-                "created_by"             => $transaction->created_by,
-                "ledger_cr"              => $ledger_cr,
-                "ledger_dr"              => $ledger_dr,
+            // Update token info
+            if ($electricityToken) {
+                $transaction->update([
+                    "transaction_remarks_id" => 2,
+                    "description"            => "Purchased Electricity Token: {$electricityToken} Amount: ₦{$final_amount}",
+                ]);
+            } else {
+                $transaction->update([
+                    "transaction_remarks_id" => 2,
+                    "description"            => "Electricity Purchase of ₦{$final_amount} completed (Token unavailable)",
+                ]);
+            }
+
+            DB::commit();
+
+            // Send SMS notification
+            $availableBal = $debitCustomer["charge_balance_after"] ?? $debitCustomer["balance_after"];
+            $smsMessage   = "Electricity Token: " . ($electricityToken ?? 'N/A') .
+            ", Amount: ₦{$final_amount}, Avail Bal: ₦" . number_format($availableBal, 2);
+
+            sendSMS($transaction->created_by, $smsMessage, true, true, 'Electricity Token');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error("processElectricity failed: " . $e->getMessage(), [
+                'transaction_id' => $transaction->id,
+                'exception'      => $e,
             ]);
         }
-
-        // Update token info
-        if ($electricityToken) {
-            $transaction->update([
-                "transaction_remarks_id" => 2,
-                "description"            => "Purchased Electricity Token: {$electricityToken} Amount: ₦{$final_amount}",
-            ]);
-        } else {
-            $transaction->update([
-                "transaction_remarks_id" => 2,
-                "description"            => "Electricity Purchase of ₦{$final_amount} completed (Token unavailable)",
-            ]);
-        }
-
-        DB::commit();
-
-        // Send SMS notification
-        $availableBal = $debitCustomer["charge_balance_after"] ?? $debitCustomer["balance_after"];
-        $smsMessage = "Electricity Token: " . ($electricityToken ?? 'N/A') . 
-                      ", Amount: ₦{$final_amount}, Avail Bal: ₦" . number_format($availableBal, 2);
-
-        sendSMS($transaction->created_by, $smsMessage, true, true, 'Electricity Token');
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        Log::error("processElectricity failed: " . $e->getMessage(), [
-            'transaction_id' => $transaction->id,
-            'exception' => $e,
-        ]);
     }
-}
-
-    
 
     public function processCableTV(array $response, $transaction)
-{
-    // Prevent double-processing
-    if ($transaction->transaction_remarks_id == 2) {
-        Log::info("CableTV transaction already processed", ['ref' => $transaction->transaction_reference]);
-        return;
-    }
-
-    // Validate response
-    $txnData = $response['data']['content']['transactions'] ?? null;
-    if (!$txnData || !isset($txnData['total_amount'])) {
-        Log::error("processCableTV: invalid response", ['response' => $response]);
-        return;
-    }
-
-    $final_amount = $txnData['total_amount'];
-    $smartCard    = $txnData['purchased_code'] ?? 'Unknown';
-
-    // Charges and settings
-    $companySettings = $this->getCompanySettings($transaction);
-    if (!$companySettings) {
-        Log::error("processCableTV: Missing company settings", ['transaction_id' => $transaction->id]);
-        return;
-    }
-
-    $wbaCharge = getWbaTransferCharges(12, $final_amount); // No divide by 100
-
-    // Perform debit
-    $debitCustomer = $this->customDebitCustomerAndCompanyWithCharge($transaction, $final_amount, $companySettings, $wbaCharge);
-    if (!is_array($debitCustomer) || !isset($debitCustomer['balance_before'])) {
-        Log::error("processCableTV: Debit failed", ['transaction_id' => $transaction->id]);
-        return;
-    }
-
-    DB::beginTransaction();
-    try {
-        // Update main transaction
-        $transaction->update([
-            "balance_before"         => $debitCustomer['balance_before'],
-            "amount"                 => $final_amount,
-            "balance_after"          => $debitCustomer["balance_after"],
-            "company_balance_before" => $debitCustomer["company_balance_before"],
-            "company_amount"         => $debitCustomer["company_amount"],
-            "company_balance_after"  => $debitCustomer["company_balance_after"],
-            "description"            => "Cable TV Subscription worth ₦{$final_amount} for Smartcard {$smartCard}",
-            "transaction_remarks_id" => 1,
-            "transaction_type_id"    => 13,
-            "credit_debit_type_id"   => 2,
-        ]);
-
-        // Record charge transaction
-        if (!empty($companySettings->bills_payment_charge)) {
-            $transactionChargeId = generate_txnID();
-            $ledger_cr = null;
-            $ledger_dr = null;
-
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(51, $transaction->company_id);
-            if ($ledger_Settings) {
-                $ledger_cr = $ledger_Settings->ledger_cr;
-                $ledger_dr = $ledger_Settings->ledger_dr;
-            }
-
-            transactions::create([
-                "balance_before"         => $debitCustomer['charge_balance_before'] ?? null,
-                "amount"                 => $companySettings->bills_payment_charge,
-                "balance_after"          => $debitCustomer["charge_balance_after"] ?? null,
-                "account_id"             => $transaction->account_id,
-                "company_id"             => $transaction->company_id,
-                "branch_id"              => $transaction->branch_id,
-                "company_balance_before" => $debitCustomer["company_charge_balance_before"] ?? null,
-                "company_amount"         => $wbaCharge,
-                "company_balance_after"  => $debitCustomer["company_charge_balance_after"] ?? null,
-                "description"            => "Charge for Cable TV Subscription",
-                "transaction_reference"  => $transactionChargeId,
-                "parent_transaction_id"  => $transaction->id,
-                "transaction_remarks_id" => 1,
-                "transaction_type_id"    => 51,
-                "credit_debit_type_id"   => 2,
-                "created_date"           => date('Y-m-d'),
-                "created_by"             => $transaction->created_by,
-                "ledger_dr"              => $ledger_dr,
-                "ledger_cr"              => $ledger_cr,
-            ]);
+    {
+        // Prevent double-processing
+        if ($transaction->transaction_remarks_id == 2) {
+            Log::info("CableTV transaction already processed", ['ref' => $transaction->transaction_reference]);
+            return;
         }
 
-        // Mark as successful
-        $transaction->update([
-            "transaction_remarks_id" => 2,
-            "description"            => "Cable TV Subscription of ₦{$final_amount} completed successfully for Smartcard {$smartCard}",
-        ]);
+        // Validate response
+        $txnData = $response['data']['content']['transactions'] ?? null;
+        if (! $txnData || ! isset($txnData['total_amount'])) {
+            Log::error("processCableTV: invalid response", ['response' => $response]);
+            return;
+        }
 
-        DB::commit();
+        $final_amount = $txnData['total_amount'];
+        $smartCard    = $txnData['purchased_code'] ?? 'Unknown';
 
-        // Notify user
-        $availBal = $debitCustomer["charge_balance_after"] ?? $debitCustomer["balance_after"];
-        sendSMS(
-            $transaction->created_by,
-            "Cable TV Subscription successful for Smartcard {$smartCard}, Amount ₦{$final_amount}, Avail Bal: ₦" . number_format($availBal, 2),
-            true,
-            true,
-            'Cable TV'
-        );
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        Log::error("processCableTV failed: " . $e->getMessage(), [
-            'transaction_id' => $transaction->id,
-            'exception' => $e,
-        ]);
+        // Charges and settings
+        $companySettings = $this->getCompanySettings($transaction);
+        if (! $companySettings) {
+            Log::error("processCableTV: Missing company settings", ['transaction_id' => $transaction->id]);
+            return;
+        }
+
+        $wbaCharge = getWbaTransferCharges(12, $final_amount); // No divide by 100
+
+        // Perform debit
+        $debitCustomer = $this->customDebitCustomerAndCompanyWithCharge($transaction, $final_amount, $companySettings, $wbaCharge);
+        if (! is_array($debitCustomer) || ! isset($debitCustomer['balance_before'])) {
+            Log::error("processCableTV: Debit failed", ['transaction_id' => $transaction->id]);
+            return;
+        }
+
+        DB::beginTransaction();
+        try {
+            // Update main transaction
+            $transaction->update([
+                "balance_before"         => $debitCustomer['balance_before'],
+                "amount"                 => $final_amount,
+                "balance_after"          => $debitCustomer["balance_after"],
+                "company_balance_before" => $debitCustomer["company_balance_before"],
+                "company_amount"         => $debitCustomer["company_amount"],
+                "company_balance_after"  => $debitCustomer["company_balance_after"],
+                "description"            => "Cable TV Subscription worth ₦{$final_amount} for Smartcard {$smartCard}",
+                "transaction_remarks_id" => 1,
+                "transaction_type_id"    => 13,
+                "credit_debit_type_id"   => 2,
+            ]);
+
+            // Record charge transaction
+            if (! empty($companySettings->bills_payment_charge)) {
+                $transactionChargeId = generate_txnID();
+                $ledger_cr           = null;
+                $ledger_dr           = null;
+
+                $ledger_Settings = get_CR_DR_TXN_Type_Ledger(51, $transaction->company_id);
+                if ($ledger_Settings) {
+                    $ledger_cr = $ledger_Settings->ledger_cr;
+                    $ledger_dr = $ledger_Settings->ledger_dr;
+                }
+
+                transactions::create([
+                    "balance_before"         => $debitCustomer['charge_balance_before'] ?? null,
+                    "amount"                 => $companySettings->bills_payment_charge,
+                    "balance_after"          => $debitCustomer["charge_balance_after"] ?? null,
+                    "account_id"             => $transaction->account_id,
+                    "company_id"             => $transaction->company_id,
+                    "branch_id"              => $transaction->branch_id,
+                    "company_balance_before" => $debitCustomer["company_charge_balance_before"] ?? null,
+                    "company_amount"         => $wbaCharge,
+                    "company_balance_after"  => $debitCustomer["company_charge_balance_after"] ?? null,
+                    "description"            => "Charge for Cable TV Subscription",
+                    "transaction_reference"  => $transactionChargeId,
+                    "parent_transaction_id"  => $transaction->id,
+                    "transaction_remarks_id" => 1,
+                    "transaction_type_id"    => 51,
+                    "credit_debit_type_id"   => 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => $transaction->created_by,
+                    "ledger_dr"              => $ledger_dr,
+                    "ledger_cr"              => $ledger_cr,
+                ]);
+            }
+
+            // Mark as successful
+            $transaction->update([
+                "transaction_remarks_id" => 2,
+                "description"            => "Cable TV Subscription of ₦{$final_amount} completed successfully for Smartcard {$smartCard}",
+            ]);
+
+            DB::commit();
+
+            // Notify user
+            $availBal = $debitCustomer["charge_balance_after"] ?? $debitCustomer["balance_after"];
+            sendSMS(
+                $transaction->created_by,
+                "Cable TV Subscription successful for Smartcard {$smartCard}, Amount ₦{$final_amount}, Avail Bal: ₦" . number_format($availBal, 2),
+                true,
+                true,
+                'Cable TV'
+            );
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error("processCableTV failed: " . $e->getMessage(), [
+                'transaction_id' => $transaction->id,
+                'exception'      => $e,
+            ]);
+        }
     }
-}
 
     public function updateTransactionAsSuccessful($transaction, $balance = 0, $updateBalance = true, $modifierId = null)
     {

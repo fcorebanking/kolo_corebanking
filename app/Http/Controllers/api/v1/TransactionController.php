@@ -4155,6 +4155,11 @@ class TransactionController extends Controller
             return response()->json($customerBalance, 400);
         }
 
+        $checkVTPASSBalance = $this - checkVTPASSBalance($request->final_amount);
+        if (! $checkVTPASSBalance) {
+            return response()->json("Service is not available at the moment . Please try again later", 400);
+        }
+
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 11, "Buy Airtime Initialized");
 
         $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0, 0.01);
@@ -4319,6 +4324,11 @@ class TransactionController extends Controller
 
         if (! $customerBalance['status']) {
             return response()->json($customerBalance, 400);
+        }
+
+        $checkVTPASSBalance = $this - checkVTPASSBalance($request->final_amount);
+        if (! $checkVTPASSBalance) {
+            return response()->json("Service is not available at the moment . Please try again later", 400);
         }
 
         $dataBundles = $this->getDataBundlesList($request->network_provider);
@@ -4630,6 +4640,11 @@ class TransactionController extends Controller
             return response()->json($customerBalance, 400);
         }
 
+        $checkVTPASSBalance = $this - checkVTPASSBalance($request->final_amount);
+        if (! $checkVTPASSBalance) {
+            return response()->json("Service is not available at the moment . Please try again later", 400);
+        }
+
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 14, "Buy Electricity Initialized");
 
         $body = [
@@ -4814,6 +4829,11 @@ class TransactionController extends Controller
 
         if (! $customerBalance['status']) {
             return response()->json($customerBalance, 400);
+        }
+
+        $checkVTPASSBalance = $this - checkVTPASSBalance($request->final_amount);
+        if (! $checkVTPASSBalance) {
+            return response()->json("Service is not available at the moment . Please try again later", 400);
         }
 
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 13, "Subscribe TV Initialized");
@@ -5589,7 +5609,7 @@ class TransactionController extends Controller
         $network        = $request->network;
         $accountName    = auth()->user()->first_name;
         $originalAmount = $request->amount;
-       return  $this->checkVTPASSBalance($originalAmount);
+        return $this->checkVTPASSBalance($originalAmount);
         $kudaController = new KudaController();
         return $kudaController->getBiller($type, $network);
     }

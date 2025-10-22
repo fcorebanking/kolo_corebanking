@@ -5585,11 +5585,11 @@ class TransactionController extends Controller
 
     public function buyAirtimeTest(Request $request)
     {
-        $type        = "electricity";
-        $network     = $request->network;
-        $accountName = auth()->user()->first_name;
-        $originalAmount     = $request->amount;
-        $this->checkVTPASSBalance($originalAmount);
+        $type           = "electricity";
+        $network        = $request->network;
+        $accountName    = auth()->user()->first_name;
+        $originalAmount = $request->amount;
+       return  $this->checkVTPASSBalance($originalAmount);
         $kudaController = new KudaController();
         return $kudaController->getBiller($type, $network);
     }

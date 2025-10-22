@@ -242,6 +242,7 @@ Route::prefix('/transactions')->group(function () {
 
         Route::middleware('checkAccountStatus')->post('/initiate-transaction', [TransactionController::class, 'initiateTransaction'])->middleware('log.route');
         Route::get('/history', [TransactionController::class, 'transactionHistory']);
+        Route::post('/filter-history', [TransactionController::class, 'transactionHistoryMobile']);
         Route::get('/pos-history', [TransactionController::class, 'posTransactionHistory']);
 
         Route::middleware('checkAccountStatus')->post('/buy-airtime', [TransactionController::class, 'buyAirtime'])->middleware('log.route');

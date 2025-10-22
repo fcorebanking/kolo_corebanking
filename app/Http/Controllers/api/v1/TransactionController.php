@@ -5202,6 +5202,44 @@ class TransactionController extends Controller
         return response()->json(['status' => true, 'message' => 'Transactions fetched successfully', 'data' => $transactions], 200);
     }
 
+    public function transactionHistoryMobile(Request $request)
+    {
+
+        $pageLimit = isset($request->limit) ? $request->limit : 100;
+
+        $transactions = transactions::where(['account_id' => $request->user()->accounts->first()->id]);
+        // exclude bank transfer,sms charges,registration,
+        $hidecharge = auth()->user()->company->Transactionsettings->hide_charge_on_statement ?? '1';
+
+        $hideChargeLog = auth()->user()->company->Transactionsettings->hide_charge_on_statement ?? "1";
+
+        \logInfo($hideChargeLog, "Hide Charge ");
+
+        if ($hidecharge == '2') {
+            // $get_list_of_excluded_transaction_ids = getTransactionIdByName(['USSD Session Charge','Physical Card Funding Charge','Virtual Card Funding Charge','USSD Wallet Funding Charge','Customer Whatsapp Charge','Company Whatsapp Charge','POS Credit Charge']);
+            //$get_list_of_excluded_transaction_ids = [108, 107, 100, 99, 92, 91, 76, 62, 58, 55, 54, 51, 42, 41, 39, 38, 33, 27, 6];
+            $get_list_of_excluded_transaction_ids = [125, 108, 107, 100, 99, 92, 91, 76, 55, 51, 27];
+            $transactions                         = $transactions->whereNotIn('transaction_type_id', $get_list_of_excluded_transaction_ids);
+        }
+        if ($request->from != null && $request->to != null) {
+            $transactions = $transactions->where('created_at', '>=', $request->from)
+                ->where('created_at', '<=', $request->to);
+
+            $transactions = $transactions->orderBy('created_at', 'DESC')->get();
+
+            $transactions = $transactions->map(function ($transaction) {
+                $transaction_remark              = transaction_remarks::where('id', $transaction->transaction_remarks_id)->first();
+                $transaction->transaction_status = $transaction_remark->transaction_remark; // 👈 add your parameter
+                return $transaction;
+            });
+        } else{
+              return response()->json(['status' => true, 'message' => 'Transactions fetched failed', 'data' => "error"], 400);
+        }
+
+//ransactionResource::collection($transactions)
+        return response()->json(['status' => true, 'message' => 'Transactions fetched successfully', 'data' => $transactions], 200);
+    }
+
     public function posTransactionHistory(Request $request)
     {
 

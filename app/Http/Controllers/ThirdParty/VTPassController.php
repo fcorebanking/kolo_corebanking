@@ -908,6 +908,31 @@ class VTPassController extends Controller
         }
     }
 
+    public function checkVTPASSBalance()
+    {
+        try {
+
+            $endpoint = "balance";
+
+            $dataResponse = $this->vtpassGetRequest($endpoint);
+
+            logInfo($dataResponse, "VTPass Check Balance Response Log");
+
+            if (isset($dataResponse['code'])) {
+                if ($dataResponse["code"] == 1) {
+                    return ["status" => true, 'message' => "Balance Successful", 'balance' => $dataResponse["contents"]["balance"]];
+                } else {
+                    return ["status" => false, 'message' => "Kindly contact admin for support"];
+                }
+            } else {
+                return ["status" => false, 'message' => 'Please contact support'];
+            }
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), "VTPASS Data Error");
+            return ["status" => false, 'message' => 'Failed, Please contact support'];
+        }
+    }
+
     public function updateTransactionAsSuccessful($transaction, $balance = 0, $updateBalance = true, $modifierId = null)
     {
         if ($updateBalance) {

@@ -5232,8 +5232,8 @@ class TransactionController extends Controller
                 $transaction->transaction_status = $transaction_remark->transaction_remark; // 👈 add your parameter
                 return $transaction;
             });
-        } else{
-              return response()->json(['status' => true, 'message' => 'Transactions fetched failed', 'data' => "error"], 400);
+        } else {
+            return response()->json(['status' => true, 'message' => 'Transactions fetched failed', 'data' => "error"], 400);
         }
 
 //ransactionResource::collection($transactions)
@@ -5585,9 +5585,11 @@ class TransactionController extends Controller
 
     public function buyAirtimeTest(Request $request)
     {
-        $type           = "electricity";
-        $network        = $request->network;
-        $accountName    = auth()->user()->first_name;
+        $type        = "electricity";
+        $network     = $request->network;
+        $accountName = auth()->user()->first_name;
+        $amount      = 10000;
+        $this->checkVTPASSBalance($originalAmount);
         $kudaController = new KudaController();
         return $kudaController->getBiller($type, $network);
     }
@@ -5680,6 +5682,17 @@ class TransactionController extends Controller
     {
         $vtPassController = new VTPassController();
         $vtPassController->handleWebhook($request);
+    }
+
+    public function checkVTPASSBalance($originalAmount)
+    {
+        $vtPassController = new VTPassController();
+        $response         = $vtPassController->checkVTPASSBalance($originalAmount);
+        if ($originalAmount > $response['balance']) {
+            return false;
+        } else {
+            return true;
+        }
     }
 
     public function checkCustomerAndCompanyBalanceBeforeBuyAirtime(

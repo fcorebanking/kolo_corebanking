@@ -5588,7 +5588,7 @@ class TransactionController extends Controller
         $type        = "electricity";
         $network     = $request->network;
         $accountName = auth()->user()->first_name;
-        $amount      = 10000;
+        $originalAmount     = $request->amount;
         $this->checkVTPASSBalance($originalAmount);
         $kudaController = new KudaController();
         return $kudaController->getBiller($type, $network);

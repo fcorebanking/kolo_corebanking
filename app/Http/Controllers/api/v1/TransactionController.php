@@ -4155,7 +4155,7 @@ class TransactionController extends Controller
             return response()->json($customerBalance, 400);
         }
 
-        $checkVTPASSBalance = $this - checkVTPASSBalance($request->final_amount);
+        $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
         if (! $checkVTPASSBalance) {
             return response()->json("Service is not available at the moment . Please try again later", 400);
         }
@@ -4326,7 +4326,7 @@ class TransactionController extends Controller
             return response()->json($customerBalance, 400);
         }
 
-        $checkVTPASSBalance = $this - checkVTPASSBalance($request->final_amount);
+        $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
         if (! $checkVTPASSBalance) {
             return response()->json("Service is not available at the moment . Please try again later", 400);
         }
@@ -4640,7 +4640,7 @@ class TransactionController extends Controller
             return response()->json($customerBalance, 400);
         }
 
-        $checkVTPASSBalance = $this - checkVTPASSBalance($request->final_amount);
+        $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
         if (! $checkVTPASSBalance) {
             return response()->json("Service is not available at the moment . Please try again later", 400);
         }
@@ -4831,7 +4831,7 @@ class TransactionController extends Controller
             return response()->json($customerBalance, 400);
         }
 
-        $checkVTPASSBalance = $this - checkVTPASSBalance($request->final_amount);
+        $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
         if (! $checkVTPASSBalance) {
             return response()->json("Service is not available at the moment . Please try again later", 400);
         }

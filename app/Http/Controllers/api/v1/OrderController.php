@@ -31,6 +31,7 @@ class OrderController extends Controller
 
     public function category()
     {
+        logInfo(auth()->user()->company_id, "Ecommerce category company id");
         $ra = ["status" => true, "data" => EcommerceCategory::where(['company_id' => auth()->user()->company_id])->get()];
         return response()->json($ra, 200);
     }

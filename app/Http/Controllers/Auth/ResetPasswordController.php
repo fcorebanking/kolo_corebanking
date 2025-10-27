@@ -127,10 +127,10 @@ class ResetPasswordController extends Controller
 
         $sendSms = sendEmail("Request to Change Password", $msg, $userInfo);
 
-        $subtext = "Debit Transaction";
+        $subtext = "Reset Password";
         $reason  = "";
-        $msg     = "Debit Amt:$request->final_amount,<br><br> Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . "<br><br> Avail Bal:" . $debitCustomer['charge_balance_after'] . "<br><br>Date:" . date('Y-m-d') . " <br><br>Ref: " . $request->transaction_reference;
-        $this->sendTransactionReportEmail($subtext, $msg, $reason, $currentUser);
+
+        $this->sendTransactionReportEmail($subtext, $msg, $reason, $userInfo);
 
         Session::flash("success", "A Reset Password email has been sent to your email account. Follow the instructions to reset account");
 

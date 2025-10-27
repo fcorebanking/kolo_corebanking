@@ -127,10 +127,10 @@ class ResetPasswordController extends Controller
 
         $sendSms = sendEmail("Request to Change Password", $msg, $userInfo);
 
-        $subtext = "Reset Password";
-        $reason  = "";
-
-        $this->sendTransactionReportEmail($subtext, $msg, $reason, $userInfo);
+        //  $subtext = "Reset Password";
+        //   $reason  = "";
+//
+        //   $this->sendTransactionReportEmail($subtext, $msg, $reason, $userInfo);
 
         Session::flash("success", "A Reset Password email has been sent to your email account. Follow the instructions to reset account");
 

@@ -1055,7 +1055,8 @@ class TransactionController extends Controller
             return response()->json($transactionPinValidation, 400);
         }
 
-        $transaction = transactions::lockForUpdate()->where(['transaction_reference' => $request->transaction_reference, 'amount' => $request->final_amount])->first();
+       // $transaction = transactions::lockForUpdate()->where(['transaction_reference' => $request->transaction_reference, 'amount' => $request->final_amount])->first();
+        $transaction = transactions::lockForUpdate()->where(['transaction_reference' => $request->transaction_reference])->first();
 
         if ($transaction) {
             if ($transaction->transaction_remarks_id == 2) {

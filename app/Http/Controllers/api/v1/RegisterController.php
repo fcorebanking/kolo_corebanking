@@ -113,6 +113,7 @@ class RegisterController extends Controller
         \logInfo($companyRecord->id, "Current company ID");
 
         $savings_product = $companyRecord->savingsProducts[0];
+        \logInfo(json_encode($companyRecord->savingsProducts[0]), "savingsProducts");
         $selectedProduct = $savings_product;
 
         if (! ($selectedProduct)) {

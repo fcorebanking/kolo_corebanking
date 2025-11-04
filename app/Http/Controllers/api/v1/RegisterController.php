@@ -86,7 +86,7 @@ class RegisterController extends Controller
             }
         }
 
-        \logInfo($request->all(), "Registration request");
+        \logInfo(json_encode($request->all()), "Registration request");
 
         // if (!empty($request->nin) && $request->nin === "") {
         //     $ra = array("status" => false, "message" => "NIN is required!");

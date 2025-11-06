@@ -78,13 +78,13 @@ class RegisterController extends Controller
             }
         }
 
-        /*  if ($request->company != 37) {
+        if ($request->company != 37) {
             $bvnCheck = $this->verifyBVN($request);
             if ($bvnCheck['status'] == false) {
                 return response()->json(["status" => false, "message" => "Failed to verify BVN!"], 400);
 
             }
-        }*/
+        }
 
         \logInfo(json_encode($request->all()), "Registration request");
 

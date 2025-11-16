@@ -4567,6 +4567,8 @@ function smsCustomer($phone, $msg, $company_short, $title)
 {
     $apikey = env('SMS_API_KEY');
 
+    logInfo("{$apikey}", "SMS_API_KEY SMS Customer");
+
     $type = match ($title) {
         'Password reset'        => 'dnd',
         'Account reset for'     => 'dnd',

@@ -148,6 +148,8 @@ class VTPassController extends Controller
                 "phone"             => $phone,
             ];
 
+            logInfo(json_encode($body), "VTPass Subscribe CableTV Request");
+
             $endpoint = "pay";
 
             $meterResponse = $this->vtpassPostRequest($endpoint, $body);

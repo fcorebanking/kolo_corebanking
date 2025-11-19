@@ -595,7 +595,7 @@ class WebhookController extends Controller
 
         logInfo(json_encode($requestResponse), "request Response");
 
-        $user_id = UserCard::where('card_name', $this->accountReference)->orWhere('masked_pan', $this->transactionReference)->first()->user_id;
+        $user_id = UserCard::where('card_name', $this->accountReference)->orWhere('masked_pan', $this->transactionReference)->orWhere('card_reference', $this->accountReference)->first()->user_id;
 
         logInfo($user_id, "User Card username ID");
 
@@ -617,6 +617,8 @@ class WebhookController extends Controller
         if ($requestResponse['type'] == "card.balance") {
             $this->getSudoUserCardBalance($account);
         }
+
+        if ($requestResponse['type'] == "transaction.created") {}
 
     }
 

@@ -2296,7 +2296,7 @@ class TransactionController extends Controller
         $request->input('data.reference');
 
         $safeHavenController->transactionReference = $request->input('data.object.maskedPan');
-        $safeHavenController->accountReference     = $request->input('data.object.customer.name');
+        $safeHavenController->accountReference     = $request->input('data.object.customer.name') ?? $request->input('data.object.card');
 
         $handleWebhook = $safeHavenController->handleSudoWebhook($request);
 

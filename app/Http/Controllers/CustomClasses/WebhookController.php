@@ -587,7 +587,7 @@ class WebhookController extends Controller
         return $sweepAccount;
     }
 
-    public function handleSudoWebhook()
+    public function handleSudoWebhook(Request $request)
     {
         logInfo($this->accountReference, "Card Name");
         logInfo($this->transactionReference, "Masked Pan");

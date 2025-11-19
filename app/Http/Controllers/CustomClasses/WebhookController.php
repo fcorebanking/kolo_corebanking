@@ -591,7 +591,7 @@ class WebhookController extends Controller
     {
         logInfo($this->accountReference, "Card Name");
         logInfo($this->transactionReference, "Masked Pan");
-        $requestResponse = $this->request->all();
+        $requestResponse = $request->all();
 
         logInfo(json_encode($requestResponse), "request Response");
 

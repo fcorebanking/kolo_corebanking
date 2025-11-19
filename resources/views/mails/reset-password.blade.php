@@ -7,7 +7,7 @@
 </p>
 
 <p>
-    <?php echo $data['desc'] ?>
+    {{$data['desc']}}
 </p>
 
 <p>

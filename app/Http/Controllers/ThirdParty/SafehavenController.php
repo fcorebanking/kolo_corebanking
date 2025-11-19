@@ -692,6 +692,7 @@ class SafehavenController extends WebhookController
             $customer = $this->getSudoCustomerSudoCustomer($customer_sudo_account_id);
         }
 
+
         $body = [
             "customerId"      => $customer_sudo_account_id ?? $customer['data']['_id'],
             "fundingSourceId" => $this->fundingSourceId,
@@ -738,12 +739,12 @@ class SafehavenController extends WebhookController
         $address   = $request->address ?? $customer->address;
 
         $body = [
-            "type"           => "individual",
-            "emailAddress"   => $email,
-            "name"           => "{$firstName} {$lastName}",
-            "status"         => "active",
-            "phoneNumber"    => $phone,
-            "individual"     => [
+            "type"         => "individual",
+            "emailAddress" => $email,
+            "name"         => "{$firstName} {$lastName}",
+            "status" => "active",
+            "phoneNumber" => $phone,
+            "individual" => [
                 "firstName" => $firstName,
                 "lastName"  => $lastName,
                 "dob"       => $customer->dob,

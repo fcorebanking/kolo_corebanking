@@ -596,7 +596,7 @@ class WebhookController extends Controller
 
         logInfo($user_id, "User Card username ID");
 
-        $user = User::where('id', $userCard->user_id)->first();
+        $user = User::where('id', $user_id)->first();
 
         logInfo($user->first_name, "User first name");
 

@@ -614,7 +614,7 @@ class WebhookController extends Controller
         $accountId   = $mainAccount->id;
         $userId      = $account->user_id;
 
-        if ($requestType->type == "card.balance") {
+        if ($requestResponse->type == "card.balance") {
             $this->getSudoUserCardBalance($account);
         }
 

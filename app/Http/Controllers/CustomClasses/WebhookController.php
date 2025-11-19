@@ -591,6 +591,7 @@ class WebhookController extends Controller
     {
         logInfo($this->accountReference, "Card Name");
         logInfo($this->transactionReference, "Masked Pan");
+        $requestType = $this->request;
 
         $user_id = UserCard::where('card_name', $this->accountReference)->orWhere('masked_pan', $this->transactionReference)->first()->user_id;
 
@@ -611,7 +612,7 @@ class WebhookController extends Controller
         $accountId   = $mainAccount->id;
         $userId      = $account->user_id;
 
-        if ($this->request->type == "card.balance") {
+        if ($requestType->type == "card.balance") {
             $this->getSudoUserCardBalance($account);
         }
 

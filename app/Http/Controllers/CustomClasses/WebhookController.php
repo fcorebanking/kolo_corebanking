@@ -609,20 +609,20 @@ class WebhookController extends Controller
         $branchId    = $mainAccount->user->branch->id;
         $accountId   = $mainAccount->id;
         $userId      = $mainAccount->user_id;
-        logInfo(json_encode($account), "Virtual Accont Object");
+        logInfo(json_encode($mainAccount), "Virtual Accont Object");
 
-        $user_wallet = $this->getUserWallet($account);
+        $user_wallet = $this->getUserWallet($mainAccount);
 
         if ($requestResponse['type'] == "card.balance") {
-            $this->getSudoUserCardBalance($user_wallet, $account);
+            $this->getSudoUserCardBalance($user_wallet, $mainAccount);
         }
 
         if ($requestResponse['type'] == "transaction.created" || $requestResponse['type'] == "authorization.request") {
-            $this->getSudoUserAuthorization($request, $user_wallet, $account);
+            $this->getSudoUserAuthorization($request, $user_wallet, $mainAccount);
         }
 
         if ($requestResponse['type'] == "transaction.refund") {
-            $this->getSudoUserRefund($account);
+            $this->getSudoUserRefund($mainAccount);
         }
 
     }

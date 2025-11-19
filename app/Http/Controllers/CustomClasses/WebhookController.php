@@ -611,13 +611,10 @@ class WebhookController extends Controller
         $accountId   = $mainAccount->id;
         $userId      = $account->user_id;
 
-        logInfo(json_encode($account), "Virtual Accont");
-        $user_wallet = user_wallet::where('wb_account_detail_id', $account->id)->first();
+        if ($request->type == "card.balance") {
+            $this->getSudoUserCardBalance($account);
+        }
 
-        logInfo($user_wallet->balance, "Virtual Accont Amount");
-        $data = [
-            "balance" => $user_wallet->balance,
-        ];
     }
 
     private function getVirtualAccountNumber($kudaVirtualNumber)
@@ -632,6 +629,17 @@ class WebhookController extends Controller
         }
 
         return $virtualAccount;
+    }
+
+    private function getSudoUserCardBalance($account)
+    {
+        logInfo(json_encode($account), "Virtual Accont");
+        $user_wallet = user_wallet::where('wb_account_detail_id', $account->id)->first();
+
+        logInfo($user_wallet->balance, "Virtual Accont Amount");
+        $data = [
+            "balance" => $user_wallet->balance,
+        ];
     }
 
 }

@@ -619,7 +619,7 @@ class WebhookController extends Controller
         }
 
         if ($requestResponse['type'] == "transaction.created") {
-            $this->getSudoUserAuthorization($account);
+            $this->getSudoUserAuthorization($request, $account);
         }
 
         if ($requestResponse['type'] == "transaction.refund") {
@@ -654,7 +654,7 @@ class WebhookController extends Controller
 
     }
 
-    private function getSudoUserAuthorization($account)
+    private function getSudoUserAuthorization($request, $account)
     {
         logInfo(json_encode($account), "Virtual Accont");
         $user_wallet = user_wallet::where('wb_account_detail_id', $account->id)->first();

@@ -595,31 +595,30 @@ class WebhookController extends Controller
 
         logInfo(json_encode($requestResponse), "request Response");
 
-        $user_id = UserCard::where('card_name', $this->accountReference)->orWhere('masked_pan', $this->transactionReference)->orWhere('card_reference', $this->accountReference)->first()->user_id;
-
+        $user_id = $this->getUserCard();
         logInfo($user_id, "User Card username ID");
 
-        $user = User::where('id', $user_id)->first();
-
+        $user = $this->getUser($user_id);
         logInfo($user->first_name, "User first name");
 
         $virtualAccount = $user->virtual_account;
-
         logInfo($user->$virtualAccount, "User Virtual Accont");
 
-        $account     = wb_account_details::where('virtual_accnum', $virtualAccount)->first();
-        $mainAccount = wb_account_details::where('virtual_accnum', $virtualAccount)->first();
-        $companyId   = $account->user->company->id;
-        $branchId    = $account->user->branch->id;
+        $mainAccount = $this->getMainAccount($virtualAccount);
+        $companyId   = $mainAccount->user->company->id;
+        $branchId    = $mainAccount->user->branch->id;
         $accountId   = $mainAccount->id;
-        $userId      = $account->user_id;
+        $userId      = $mainAccount->user_id;
+        logInfo(json_encode($account), "Virtual Accont Object");
+
+        $user_wallet = $this->getUserWallet($account);
 
         if ($requestResponse['type'] == "card.balance") {
-            $this->getSudoUserCardBalance($account);
+            $this->getSudoUserCardBalance($user_wallet, $account);
         }
 
         if ($requestResponse['type'] == "transaction.created" || $requestResponse['type'] == "authorization.request") {
-            $this->getSudoUserAuthorization($request, $account);
+            $this->getSudoUserAuthorization($request, $user_wallet, $account);
         }
 
         if ($requestResponse['type'] == "transaction.refund") {
@@ -642,10 +641,8 @@ class WebhookController extends Controller
         return $virtualAccount;
     }
 
-    private function getSudoUserCardBalance($account)
+    private function getSudoUserCardBalance($user_wallet, $account)
     {
-        logInfo(json_encode($account), "Virtual Accont");
-        $user_wallet = user_wallet::where('wb_account_detail_id', $account->id)->first();
 
         logInfo($user_wallet->balance, "Virtual Accont Amount");
         $data = [
@@ -654,12 +651,9 @@ class WebhookController extends Controller
 
     }
 
-    private function getSudoUserAuthorization($request, $account)
+    private function getSudoUserAuthorization($request, $user_wallet, $account)
     {
-        logInfo(json_encode($account), "Virtual Accont");
-        $user_wallet = user_wallet::where('wb_account_detail_id', $account->id)->first();
 
-        logInfo($user_wallet->balance, "Virtual Accont Amount");
         $amount = $request->input('data.object.amount');
 
         logInfo($amount, "Amount");
@@ -682,6 +676,27 @@ class WebhookController extends Controller
                 ],
             ], 406);
         }
+    }
+
+    private function getUserCard()
+    {
+        return UserCard::where('card_name', $this->accountReference)->orWhere('masked_pan', $this->transactionReference)->orWhere('card_reference', $this->accountReference)->first()->user_id;
+
+    }
+
+    private function getUser($user_id)
+    {
+        return User::where('id', $user_id)->first();
+    }
+
+    private function getMainAccount($virtualAccount)
+    {
+        return wb_account_details::where('virtual_accnum', $virtualAccount)->first();
+    }
+
+    private function getUserWallet($account)
+    {
+        return user_wallet::where('wb_account_detail_id', $account->id)->first();
     }
 
 }

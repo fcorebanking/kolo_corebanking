@@ -618,7 +618,7 @@ class WebhookController extends Controller
             $this->getSudoUserCardBalance($account);
         }
 
-        if ($requestResponse['type'] == "transaction.created") {
+        if ($requestResponse['type'] == "transaction.created" || $requestResponse['type'] == "authorization.request") {
             $this->getSudoUserAuthorization($request, $account);
         }
 

@@ -591,7 +591,9 @@ class WebhookController extends Controller
     {
         logInfo($this->accountReference, "Card Name");
         logInfo($this->transactionReference, "Masked Pan");
-        $requestType = $this->request->all();
+        $requestResponse = $this->request->all();
+
+        logInfo(json_encode($requestResponse), "request Response");
 
         $user_id = UserCard::where('card_name', $this->accountReference)->orWhere('masked_pan', $this->transactionReference)->first()->user_id;
 

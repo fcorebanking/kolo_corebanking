@@ -618,7 +618,13 @@ class WebhookController extends Controller
             $this->getSudoUserCardBalance($account);
         }
 
-        if ($requestResponse['type'] == "transaction.created") {}
+        if ($requestResponse['type'] == "transaction.created") {
+            $this->getSudoUserAuthorization($account);
+        }
+
+        if ($requestResponse['type'] == "transaction.refund") {
+            $this->getSudoUserRefund($account);
+        }
 
     }
 
@@ -645,6 +651,37 @@ class WebhookController extends Controller
         $data = [
             "balance" => $user_wallet->balance,
         ];
+
+    }
+
+    private function getSudoUserAuthorization($account)
+    {
+        logInfo(json_encode($account), "Virtual Accont");
+        $user_wallet = user_wallet::where('wb_account_detail_id', $account->id)->first();
+
+        logInfo($user_wallet->balance, "Virtual Accont Amount");
+        $amount = $request->input('data.object.amount');
+
+        logInfo($amount, "Amount");
+        $formatedAmount = abs($amount);
+
+        logInfo($formatedAmount, "formated Amount");
+
+        if ($formatedAmount < $user_wallet->balance) {
+            response()->json([
+                "statusCode" => 200,
+                "data"       => [
+                    "responseCode" => "00",
+                ],
+            ], 406);
+        } else {
+            response()->json([
+                "statusCode" => 400,
+                "data"       => [
+                    "responseCode" => "51",
+                ],
+            ], 406);
+        }
     }
 
 }

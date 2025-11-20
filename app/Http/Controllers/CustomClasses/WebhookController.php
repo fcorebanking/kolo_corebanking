@@ -789,6 +789,8 @@ class WebhookController extends Controller
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;
         }
+
+        logInfo("transaction created working", "debitSudoTransaction");
         // Save Charges to transaction table
 
         $transaction = transactions::create([

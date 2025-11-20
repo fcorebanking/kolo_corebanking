@@ -819,8 +819,8 @@ class WebhookController extends Controller
                 "status"          => true,
                 'message'         => "Amount is Valid",
                 'account_id'      => $user->accounts->first()->id,
-                'balance'         => $userWallet->balance,
-                'company_balance' => $companyWallet->balance,
+                'balance'         => $user_wallet->balance,
+                'company_balance' => $user->company->balance,
             ];
         } else {
             $response = ["status" => false, 'message' => "Switcher Error... Please contact support $companyWallet->balance $amount"];

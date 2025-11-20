@@ -683,6 +683,8 @@ class WebhookController extends Controller
                     logInfo($debitCustomer["balance_after"], "New Wallet Balance");
                     $customerAccountId = $user_wallet->wb_account_detail_id;
 
+                    logInfo($customerAccountId, "customerAccountId");
+
                     $this->debitSudoTransaction($debitCustomer, $formatedAmount, $customerAccountId, $companyId, $description, $branchId, $user);
 
                     response()->json([

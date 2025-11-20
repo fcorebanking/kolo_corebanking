@@ -668,7 +668,7 @@ class WebhookController extends Controller
 
         logInfo($formatedAmount, "formated Amount");
 
-        if ($formatedAmount < $user_wallet->balance) {
+        if ($formatedAmount < $oldBalance) {
             $checkCompanyBalance = $this->checkCompanyBalance($user_wallet, $amount, $companyId, $user);
             if ($checkCompanyBalance['status']) {
                 // \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $companyId , $amount, $companySettings->bills_payment_charge, $wbaCharge);

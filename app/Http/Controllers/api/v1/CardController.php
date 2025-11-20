@@ -30,136 +30,162 @@ class CardController extends Controller
 
     public function createUserCard(Request $request)
     {
-        //return \response()->json(['status' => false, 'message' => 'This service is currently unavailable and will be restored soon']);
+        $transactionId = generateTransactionReference();
 
-        $transactionId = \generateTransactionReference();
-
-        $validation = Validator::make($request->all(), [
+        // Validate request
+        $validator = Validator::make($request->all(), [
             "card_category" => 'required',
             "amount"        => 'required|numeric|gt:0',
         ]);
 
-        if ($validation->fails()) {
-            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
-            return response()->json($ra, 406);
+        if ($validator->fails()) {
+            return response()->json([
+                "status"  => false,
+                "message" => $validator->errors()->first(),
+            ], 406);
         }
 
         $user = auth()->user();
 
+        // Temporary service restriction
         if ($user->company_id != 14) {
-            return \response()->json(['status' => false, 'message' => 'This service is currently unavailable and will be restored soon']);
+            return response()->json([
+                'status'  => false,
+                'message' => 'This service is currently unavailable and will be restored soon',
+            ]);
         }
 
+        // Fetch company settings
         $companySettings = company_settings::where('company_id', $user->company_id)->first();
+        $cardCurrency    = $companySettings->preferred_virtual_card_currency == "1" ? "NGN" : "USD";
 
-        $cardCurrency = $companySettings->preferred_virtual_card_currency == "1" ? "NGN" : "USD";
+        // Check if card exists already
+        $existingCard = UserCard::where('user_id', $user->id)
+            ->where('card_category_id', 1)
+            ->first();
 
-        $checkCard = UserCard::where('user_id', $user->id)->where('card_category_id', 1)->first();
-        if ($checkCard != null) {
-            $customer_sudo_account_id = $checkCard->card_reference;
-        } else {
-            $customer_sudo_account_id = null;
+        if ($existingCard) {
+            return response()->json([
+                'status'  => false,
+                'message' => "Virtual Card already exists",
+            ], 400);
         }
 
-        if ($checkCard) {
-            return \response()->json(['status' => false, 'message' => "Virtual Card already exists"], 400);
-        }
+        // Setup card funding & creation fee
+        $fundAmount  = $cardCurrency == "USD" ? 2 : 100;
+        $creationFee = getWbaTransferCharges(
+            $companySettings->preferred_virtual_card_currency == "1" ? 30 : 29,
+            1000
+        );
 
-        $cardFundingAmount      = $cardCurrency == "USD" ? 2 : 100;
-        $cardFundingDebitAmount = $cardFundingAmount;
+        $fundDebitAmount = $fundAmount;
 
-        $initialCreationFee = getWbaTransferCharges($companySettings->preferred_virtual_card_currency == "1" ? 30 : 29, 1000);
-        $creationFee        = $initialCreationFee;
+        // If USD, convert fees using Flutterwave rate
+        if ($cardCurrency === "USD") {
 
-        if ($cardCurrency == "USD") {
-            $flutterwaveController = new FlutterwaveController();
+            $flutter = new FlutterwaveController();
+            $rateRes = $flutter->getExchangeRater(
+                $creationFee,
+                $user->company->currency->code,
+                $cardCurrency
+            );
 
-            $exhangeRate = $flutterwaveController->getExchangeRater($creationFee, auth()->user()->company->currency->code, $cardCurrency);
-
-            if (! $exhangeRate['status']) {
-                return response()->json(["status" => false, 'message' => "Failed to Verify Account"], 400);
+            if (! $rateRes['status']) {
+                return response()->json([
+                    "status"  => false,
+                    "message" => "Failed to Verify Account",
+                ], 400);
             }
 
-            $rate                   = $exhangeRate["data"]["rate"];
-            $creationFee            = $rate * $initialCreationFee;
-            $cardFundingDebitAmount = $rate * $cardFundingAmount;
+            $rate            = $rateRes["data"]["rate"];
+            $creationFee     = $rate * $creationFee;
+            $fundDebitAmount = $rate * $fundAmount;
         }
 
-        $debitCustomer = debitCustomerAndCompanyWithCharge($user->accounts->first()->id, $user->company->id, $creationFee, 0, 0);
+        // Debit user + company
+        $debit = debitCustomerAndCompanyWithCharge(
+            $user->accounts->first()->id,
+            $user->company_id,
+            $creationFee,
+            0,
+            0
+        );
 
-        if (! $debitCustomer['status']) {
-            return \response()->json($debitCustomer, 400);
+        if (! $debit['status']) {
+            return response()->json($debit, 400);
         }
 
-        $description     = $request->description == "" ? "Funding Virtual Card" : $request->description;
-        $ledger_cr       = null;
-        $ledger_dr       = null;
-        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(23, $user->company_id);
-        if ($ledger_Settings) {
-            $ledger_cr = $ledger_Settings->ledger_cr;
-            $ledger_dr = $ledger_Settings->ledger_dr;
-        }
+        // Ledger settings
+        $ledger   = get_CR_DR_TXN_Type_Ledger(23, $user->company_id);
+        $ledgerCr = $ledger->ledger_cr ?? null;
+        $ledgerDr = $ledger->ledger_dr ?? null;
 
-        $transaction = transactions::create([
-            "balance_before"         => $debitCustomer['balance_before'],
+        // Log transaction
+        transactions::create([
+            "balance_before"         => $debit['balance_before'],
             "amount"                 => $creationFee,
-            "balance_after"          => $debitCustomer['balance_after'],
-            "account_id"             => $debitCustomer['account_id'],
-            "description"            => "$cardCurrency Virtual Card Creation Fee and funding of $cardCurrency $cardFundingAmount",
+            "balance_after"          => $debit['balance_after'],
+            "account_id"             => $debit['account_id'],
+            "description"            => "$cardCurrency Virtual Card Creation Fee + funding of $cardCurrency $fundAmount",
             "transaction_reference"  => $transactionId,
             "company_id"             => $user->company_id,
-            "company_balance_before" => $debitCustomer["company_balance_before"],
+            "company_balance_before" => $debit["company_balance_before"],
             "company_amount"         => $creationFee,
-            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "company_balance_after"  => $debit["company_balance_after"],
             "transaction_remarks_id" => 1,
             "transaction_type_id"    => 23,
             "credit_debit_type_id"   => 2,
-            "created_date"           => date('Y-m-d'),
+            "created_date"           => now()->toDateString(),
             "created_by"             => $user->id,
-            "ledger_dr"              => $ledger_dr,
-            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledgerDr,
+            "ledger_cr"              => $ledgerCr,
         ]);
 
-        $safehavenController = new SafehavenController();
+        // Call SafeHaven API to create card
+        $safehaven = new SafehavenController();
+        $sudoRef   = $existingCard->card_reference ?? null;
 
-        /*    $createVirtualCard = $safehavenController->createVirtualCard(
-            $request->cardCompanyName,
-            $cardFundingAmount,
-            $cardCurrency,
-            $user->first_name,
-            $user->last_name,
-            "1994/04/04",
-            $user->email,
-            $user->phone
-        );*/
+        $cardRes = $safehaven->createVirtualCard($request, $user, $sudoRef);
 
-        $createVirtualCard = $safehavenController->createVirtualCard($request, $user, $customer_sudo_account_id);
-
-        if (! $createVirtualCard['status']) {
-            return \response()->json($createVirtualCard['message'], 400);
+        if (! $cardRes['status']) {
+            return response()->json($cardRes['message'], 400);
         }
 
-        \updateTransactionAsSuccessfulOnly($transactionId);
+        updateTransactionAsSuccessfulOnly($transactionId);
 
+        $cardData = $cardRes['result']['data'];
+
+        // Store new card record
         $userCard = UserCard::create([
-            "user_id"          => $user->id,
-            "card_name"        => "{$user->first_name} {$user->last_name}",
+            "user_id"   => $user->id,
+            "card_name" => "{$user->first_name} {$user->last_name}",
             "card_type_id"     => 2,
             "card_category_id" => $request->card_category,
-            "card_number"      => $createVirtualCard['result']['data']["card_pan"] ?? $createVirtualCard['result']['data']["maskedPan"],
-            "masked_pan"       => $createVirtualCard['result']['data']["maskedPan"],
-            "card_reference"   => $createVirtualCard['result']['data']["_id"],
+            "card_number"      => $cardData["card_pan"] ?? $cardData["maskedPan"],
+            "masked_pan"       => $cardData["maskedPan"],
+            "card_reference"   => $cardData["_id"],
             "currency_id"      => $companySettings->preferred_virtual_card_currency,
-            "exp_date"         => $createVirtualCard['result']['data']["expiryYear"],
-            "cvv"              => $createVirtualCard['result']['data']["expiryYear"],
-            "created_by"       => $createVirtualCard['result']['data']["customer"],
+            "exp_date"         => $cardData["expiryYear"],
+            "cvv"              => $cardData["expiryYear"],
+            "created_by"       => $cardData["customer"],
         ]);
 
-        $msg = "You have successfully created a Virtual Card, \nCard No: " . $createVirtualCard['result']['data']["maskedPan"] . "\nExp Date: " . $createVirtualCard['result']['data']["expiryYear"] . "\nCVV: " . $createVirtualCard['result']['data']["expiryYear"];
+        // Send SMS notification
+        $smsMessage = "You have successfully created a Virtual Card,\n"
+            . "Card No: {$cardData["maskedPan"]}\n"
+            . "Exp Date: {$cardData["expiryYear"]}\n"
+            . "CVV: {$cardData["expiryYear"]}";
 
-        \sendSMS($user->id, $msg, true, true, "Virtual Card Creation");
+        sendSMS($user->id, $smsMessage, true, true, "Virtual Card Creation");
 
-        return \response()->json(['status' => true, 'message' => "Customer Card Created successfully", 'data' => ['card' => $userCard, 'balance' => $debitCustomer['charge_balance_after']]]);
+        return response()->json([
+            'status'  => true,
+            "message" => "Customer Card Created successfully",
+            'data'    => [
+                'card'    => $userCard,
+                'balance' => $debit['charge_balance_after'],
+            ],
+        ]);
     }
 
     public function debitCustomer($amount)

@@ -611,18 +611,21 @@ class WebhookController extends Controller
         $userId      = $mainAccount->user_id;
         logInfo(json_encode($mainAccount), "Virtual Accont Object");
 
+        $this->transactionReference = $request->input('data.object.transactionMetadata.reference');
+        logInfo(json_encode($this->transactionReference), "Sudo Transaction Reference");
+
         $user_wallet = $this->getUserWallet($mainAccount);
 
         if ($requestResponse['type'] == "card.balance") {
-            $this->getSudoUserCardBalance($user_wallet, $mainAccount);
+            $this->getSudoUserCardBalance($user_wallet);
         }
 
         if ($requestResponse['type'] == "transaction.created" || $requestResponse['type'] == "authorization.request") {
-            $this->getSudoUserAuthorization($request, $user_wallet, $mainAccount);
+            $this->getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user);
         }
 
-        if ($requestResponse['type'] == "transaction.refund") {
-            $this->getSudoUserRefund($mainAccount);
+        if ($requestResponse['type'] == "refund") {
+            $this->getSudoUserRefund($user_wallet);
         }
 
     }
@@ -641,20 +644,24 @@ class WebhookController extends Controller
         return $virtualAccount;
     }
 
-    private function getSudoUserCardBalance($user_wallet, $account)
+    private function getSudoUserCardBalance($user_wallet)
     {
 
         logInfo($user_wallet->balance, "Virtual Accont Amount");
+
         $data = [
             "balance" => $user_wallet->balance,
         ];
 
     }
 
-    private function getSudoUserAuthorization($request, $user_wallet, $account)
+    private function getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user)
     {
 
-        $amount = $request->input('data.object.amount');
+        $amount      = $request->input('data.object.amount');
+        $description = $request->input('data.object.transactionMetadata.type');
+        $oldBalance  = $user_wallet->balance;
+        logInfo($oldBalance, "Old Wallet Balance");
 
         logInfo($amount, "Amount");
         $formatedAmount = abs($amount);
@@ -662,12 +669,32 @@ class WebhookController extends Controller
         logInfo($formatedAmount, "formated Amount");
 
         if ($formatedAmount < $user_wallet->balance) {
-            response()->json([
-                "statusCode" => 200,
-                "data"       => [
-                    "responseCode" => "00",
-                ],
-            ], 406);
+            $checkCompanyBalance = $this->checkCompanyBalance($user_wallet, $amount);
+            if ($checkCompanyBalance['status']) {
+                // \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $companyId , $amount, $companySettings->bills_payment_charge, $wbaCharge);
+                $debitCustomer = \debitCustomerAndCompanyWithCharge($user_wallet->wb_account_detail_id, $companyId, $amount, 0, 0);
+                if ($debitCustomer['status']) {
+                    logInfo($debitCustomer["balance_after"], "New Wallet Balance");
+                    $customerAccountId = $user_wallet->wb_account_detail_id;
+
+                    $this->debitSudoTransaction($debitCustomer, $amount, $customerAccountId, $companyId, $description, $branchId, $user);
+                    response()->json([
+                        "statusCode" => 200,
+                        "data"       => [
+                            "responseCode" => "00",
+                        ],
+                    ], 406);
+                }
+
+            } else {
+                response()->json([
+                    "statusCode" => 400,
+                    "data"       => [
+                        "responseCode" => "51",
+                    ],
+                ], 406);
+            }
+
         } else {
             response()->json([
                 "statusCode" => 400,
@@ -676,6 +703,29 @@ class WebhookController extends Controller
                 ],
             ], 406);
         }
+    }
+
+    private function getSudoUserRefund($user_wallet, $companyId, $branchId)
+    {
+        $amount = $request->input('data.object.amount');
+
+        $oldBalance = $user_wallet->balance;
+        logInfo($user_wallet->balance, "Old Wallet Balance");
+
+        $creditCustomer = creditCustomerAndCompanyWithCharge($user_wallet->wb_account_detail_id, $companyId, $amount, 0, 0);
+        if ($creditCustomer['status']) {
+            $newdescription    = "Card Refund";
+            $customerAccountId = $user_wallet->wb_account_detail_id;
+            $this->refundSudoTransaction($amount, $companyId, $newdescription, $branchId, $customerAccountId, $user);
+            logInfo($creditCompany['balance_before'], "New Wallet Balance");
+        }
+
+        response()->json([
+            "statusCode" => 200,
+            "data"       => [
+                "responseCode" => "00",
+            ],
+        ], 406);
     }
 
     private function getUserCard()
@@ -697,6 +747,85 @@ class WebhookController extends Controller
     private function getUserWallet($account)
     {
         return user_wallet::where('wb_account_detail_id', $account->id)->first();
+    }
+
+    private function refundSudoTransaction($amount, $companyId, $newdescription, $branchId, $customerAccountId, $user)
+    {
+        $transaction = transactions::create([
+            "balance_before"         => $creditCustomer['balance_before'],
+            "amount"                 => $amount,
+            "company_amount"         => $amount,
+            "balance_after"          => $creditCustomer['balance_after'],
+            'company_balance_before' => $creditCustomer['company_balance_before'],
+            'company_balance_after'  => $creditCustomer['company_balance_after'],
+            "description"            => $newdescription,
+            "company_id"             => $companyId,
+            "branch_id"              => $branchId,
+            "account_id"             => $customerAccountId,
+            "transaction_reference"  => $this->transactionReference,
+            "transaction_remarks_id" => 2,
+            "transaction_type_id"    => 23,
+            "credit_debit_type_id"   => 1,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $user->id,
+        ]);
+    }
+
+    private function debitSudoTransaction($debitCustomer, $amount, $customerAccountId, $companyId, $description, $branchId, $user)
+    {
+        $ledger_cr       = null;
+        $ledger_dr       = null;
+        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(23, $companyId);
+        if ($ledger_Settings) {
+            $ledger_cr = $ledger_Settings->ledger_cr;
+            $ledger_dr = $ledger_Settings->ledger_dr;
+        }
+        // Save Charges to transaction table
+
+        $transaction = transactions::create([
+
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $amount,
+            "balance_after"          => $debitCustomer["balance_after"],
+            "account_id"             => $customerAccountId,
+            "company_id"             => $companyId,
+            "branch_id"              => $branchId,
+            "company_balance_before" => $debitCustomer["company_balance_before"],
+            "company_amount"         => $debitCustomer["company_amount"],
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "description"            => "Card {$description} {$amount}",
+            "transaction_reference"  => $this->transactionReference,
+            "transaction_remarks_id" => 2,
+            "transaction_type_id"    => 23,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $user->id,
+            "ledger_dr"              => $ledger_dr,
+            "ledger_cr"              => $ledger_cr,
+
+        ]);
+    }
+
+    private function checkCompanyBalance($user_wallet, $amount)
+    {
+
+        $response = [];
+
+        $companyWallet = company_wallet::where('company_id', \auth()->user()->company_id)->first();
+
+        if ($companyWallet->balance >= $amount) {
+
+            $response = [
+                "status"          => true,
+                'message'         => "Amount is Valid",
+                'account_id'      => auth()->user()->accounts->first()->id,
+                'balance'         => $userWallet->balance,
+                'company_balance' => $companyWallet->balance,
+            ];
+        } else {
+            $response = ["status" => false, 'message' => "Switcher Error... Please contact support $companyWallet->balance $amount"];
+        }
+        return $response;
     }
 
 }

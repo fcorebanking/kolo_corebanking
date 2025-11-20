@@ -34,8 +34,8 @@ class CardController extends Controller
 
         // Validate request
         $validator = Validator::make($request->all(), [
-            "card_category" => 'required',
-            "amount"        => 'required|numeric|gt:0',
+            "card_category" => 'nullable',
+            "amount"        => 'nullable|numeric|gt:0',
         ]);
 
         if ($validator->fails()) {

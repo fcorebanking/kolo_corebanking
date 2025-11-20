@@ -674,7 +674,7 @@ class WebhookController extends Controller
             logInfo(json_encode($checkCompanyBalance), "checkCompanyBalance Sudo");
             if ($checkCompanyBalance['status']) {
                 // \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $companyId , $amount, $companySettings->bills_payment_charge, $wbaCharge);
-                $debitCustomer = \debitCustomerAndCompanyWithCharge($user_wallet->wb_account_detail_id, $companyId, $formatedAmount, 0, 0);
+                $debitCustomer = \debitCustomerAndCompanyWithCharge($user_wallet->wb_account_detail_id, $companyId, $formatedAmount, 0, 0, $user);
                 logInfo(json_encode($debitCustomer), "debitCustomer Sudo");
                 if ($debitCustomer['status']) {
                     logInfo($debitCustomer["balance_after"], "New Wallet Balance");

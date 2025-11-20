@@ -688,29 +688,27 @@ class WebhookController extends Controller
                     $this->debitSudoTransaction($debitCustomer, $formatedAmount, $customerAccountId, $companyId, $description, $branchId, $user);
 
                     response()->json([
-                        "statusCode" => 200,
-                        "data"       => [
-                            "responseCode" => "00",
-                        ],
+
+                        "statusCode"   => 200,
+                        "responseCode" => "00",
+
                     ], 200);
                 }
 
             } else {
                 response()->json([
-                    "statusCode" => 400,
-                    "data"       => [
-                        "responseCode" => "51",
-                    ],
-                ], 406);
+                    "statusCode"   => 403,
+                    "responseCode" => "96",
+                    "message"      => "Error",
+                ], 403);
             }
 
         } else {
             response()->json([
-                "statusCode" => 400,
-                "data"       => [
-                    "responseCode" => "51",
-                ],
-            ], 406);
+                "statusCode"   => 403,
+                "responseCode" => "51",
+                "message"      => "Insufficient fund",
+            ], 403);
         }
     }
 

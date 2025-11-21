@@ -646,7 +646,7 @@ class SafehavenController extends WebhookController
 
     public function createPhysicalCard($request, $transactionId, $customer, $customer_sudo_account_id)
     {
-        if (isset($customer_sudo_account_id) && $customer_sudo_account_id == null) {
+        if ($customer_sudo_account_id == null) {
             $customer = $this->createSudoCustomer($request, $customer);
         }
 

@@ -670,14 +670,14 @@ class CustomerController extends Controller
 
             // Debit company
             //    $companyDebit = debitCompanyWithCharge($auth->company_id, $wbaSettings->charge, 0);
-            $companyDebit = debitCompanyCardWallet($auth->company_id, $companySettings->new_physical_card_charge);
+            $companyDebit = $this->debitCompanyCardWallet($auth->company_id, $companySettings->new_physical_card_charge);
             if (! $companyDebit['status']) {
                 DB::rollback();
                 return response()->json(['status' => 0, 'message' => $companyDebit['message']]);
             }
             $userWallet = user_wallet::where('wb_account_detail_id', $customer->accounts->first()->id)->lockForUpdate()->first();
             // Debit customer wallet
-            $customerDebit = debitCustomerWithChargeforCard($customer->accounts->first()->id, $companySettings->new_physical_card_charge, 0, $customer, $userWallet);
+            $customerDebit = $this->debitCustomerWithChargeforCard($customer->accounts->first()->id, $companySettings->new_physical_card_charge, 0, $customer, $userWallet);
 
             if (! $customerDebit['status']) {
                 DB::rollback();

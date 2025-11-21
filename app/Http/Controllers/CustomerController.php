@@ -634,7 +634,7 @@ class CustomerController extends Controller
             'bvn'                => 'required|string',
             'customer_reference' => 'required|string',
             'card_number'        => 'required|string',
-            'card_type'        => 'required|string',
+            'card_type'          => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -753,6 +753,11 @@ class CustomerController extends Controller
                 "exp_date"         => $cardResponse['result']['data']["expiration"],
                 "cvv"              => $cardResponse['result']['data']["cvv"],
                 "created_by"       => $auth->id,
+            ]);
+
+            CardRequestLog::create([
+                "user_id"    => $customer->id,
+                "company_id" => $auth->company_id,
             ]);
 
             DB::commit();

@@ -650,6 +650,9 @@ class SafehavenController extends WebhookController
             $customer = $this->createSudoCustomer($request, $customer);
         }
 
+        logInfo("$customer_sudo_account_id", "customer_sudo_account_id");
+        logInfo($customer['data']['_id'], "customer");
+
         $body = [
 
             "customerId"      => $customer_sudo_account_id ?? $customer['data']['_id'],
@@ -665,7 +668,7 @@ class SafehavenController extends WebhookController
 
         ];
 
-        logInfo($body, "Sudo Customer Register Physical Card request body");
+        logInfo(json_encode($body), "Sudo Customer Register Physical Card request body");
 
         $endpoint = "$this->baseSudoUrl/cards";
 

@@ -3776,6 +3776,8 @@ class CustomerController extends Controller
 
             $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
         }
+        logInfo(json_encode($response), "debitCompanyCardWallet");
+
         return $response;
     }
 
@@ -3812,6 +3814,8 @@ class CustomerController extends Controller
         } else {
             $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
         }
+        logInfo(json_encode($response), "debitCustomerWithChargeforCard");
+
         return $response;
     }
 

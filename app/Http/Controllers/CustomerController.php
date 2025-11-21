@@ -742,12 +742,12 @@ class CustomerController extends Controller
                 "card_name" => "{$customer->first_name} {$customer->last_name}",
                 "card_type_id"     => 2,
                 "card_category_id" => 2,
-                "card_number"      => $cardResponse['result']['data']["card_pan"],
+                "card_number"      => $cardResponse['result']['data']["maskedPan"],
                 "masked_pan"       => $cardResponse['result']['data']["maskedPan"],
                 "card_reference"   => $cardResponse['result']['data']["_id"],
                 "currency_id"      => $companySettings->preferred_virtual_card_currency,
-                "exp_date"         => $cardResponse['result']['data']["expiration"],
-                "cvv"              => $cardResponse['result']['data']["cvv"],
+                "exp_date"         => $cardResponse['result']['data']["expiryYear"] ?? "",
+                "cvv"              => $cardResponse['result']['data']["cvv"] ?? "",
                 "created_by"       => $auth->id,
             ]);
 
@@ -757,7 +757,7 @@ class CustomerController extends Controller
             ]);
 
             DB::commit();
-            return response()->json(['status' => 1, 'message' => 'Card created successfully', 'data' => $cardResponse]);
+            return response()->json(['status' => 1, 'message' => 'Card mapped successfully', 'data' => $cardResponse]);
 
         } catch (\Exception $e) {
             DB::rollback();

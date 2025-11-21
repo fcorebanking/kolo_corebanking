@@ -707,10 +707,10 @@ function createPhysicalCard() {
     }
 
     if (cardType == "") {
-        _getValidationField[5].innerHTML = 'Card Type is Required';
-        _getValidationField[5].style.display = 'block';
+        _getValidationField[6].innerHTML = 'Card Type is Required';
+        _getValidationField[6].style.display = 'block';
     } else {
-        _getValidationField[5].style.display = 'none';
+        _getValidationField[6].style.display = 'none';
     }
 
     if (firstName == "" || lastName == "" || bvn == "" || email == "" || phone == "" || address == "" || cardNumber == "" || cardType == "") return false

@@ -670,18 +670,14 @@ class CustomerController extends Controller
 
             // Debit company
             //    $companyDebit = debitCompanyWithCharge($auth->company_id, $wbaSettings->charge, 0);
-            $companyDebit = debitCompanyWithCharge($auth->company_id, 0, 0);
+            $companyDebit = debitCompanyCardWallet($auth->company_id, $companySettings->new_physical_card_charge);
             if (! $companyDebit['status']) {
                 DB::rollback();
                 return response()->json(['status' => 0, 'message' => $companyDebit['message']]);
             }
-
+            $userWallet = user_wallet::where('wb_account_detail_id', $customer->accounts->first()->id)->lockForUpdate()->first();
             // Debit customer wallet
-            $customerDebit = debitCustomerOnly(
-                $customer->accounts->first()->id,
-                $companySettings->new_physical_card_charge,
-                $customer
-            );
+            $customerDebit = debitCustomerWithChargeforCard($customer->accounts->first()->id, $companySettings->new_physical_card_charge, 0, $customer, $userWallet);
 
             if (! $customerDebit['status']) {
                 DB::rollback();
@@ -3756,6 +3752,67 @@ class CustomerController extends Controller
             \Log::error("Failed to send TransactionReport email: " . $e->getMessage());
             // continue silently
         }
+    }
+
+    private function debitCompanyCardWallet($companyId, $formatedAmount)
+    {
+        $response                    = [];
+        $companyWallet               = company_wallet::where('company_id', $companyId)->first();
+        $oldCompanyCardWalletBalance = $companyWallet->card_balance;
+        logInfo("$oldCompanyCardWalletBalance", "Initial Card wallet Balance for {$companyWallet->company_id}");
+        if ($formatedAmount < $oldCompanyCardWalletBalance) {
+            $companyWallet->card_balance = $oldCompanyCardWalletBalance - $formatedAmount;
+            logInfo("$companyWallet->card_balance ", "New Card wallet Balance for {$companyWallet->company_id}");
+            $companyWallet->save();
+            $response = [
+                "status"         => true,
+                'amount'         => $formatedAmount,
+                'message'        => "Amount is Valid",
+                'message'        => "Amount is Valid",
+                'balance_before' => $oldCompanyCardWalletBalance,
+                'balance_after'  => $companyWallet->card_balance,
+            ];
+        } else {
+
+            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        }
+
+    }
+
+    private function debitCustomerWithChargeforCard($customerAccountId, $originalAmount, $charge, $user, $userWallet)
+    {
+
+        $response = [];
+
+        if ($originalAmount > 0) {
+
+            $customerInitialBalance = $userWallet->balance;
+
+            $debitAmount = $originalAmount + $charge;
+
+            $minBalance = $user->company->setting->min_withdraw_charge;
+
+            if (($customerInitialBalance - $minBalance) > $debitAmount) {
+
+                $customerBalanceAfter = $userWallet->balance -= $debitAmount;
+                $userWallet->save();
+
+                $response = [
+                    "status"         => true,
+                    'amount'         => $debitAmount,
+                    'message'        => "Amount is Valid",
+                    'message'        => "Amount is Valid",
+                    'account_id'     => $customerAccountId,
+                    'balance_before' => $customerInitialBalance,
+                    'balance_after'  => $customerBalanceAfter,
+                ];
+            } else {
+                $response = ["status" => false, 'message' => "Not Sufficient funds"];
+            }
+        } else {
+            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        }
+        return $response;
     }
 
 }

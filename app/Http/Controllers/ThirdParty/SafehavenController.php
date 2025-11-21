@@ -35,8 +35,8 @@ class SafehavenController extends WebhookController
         $this->clientAssertion     = env('APP_MODE') == 'test' ? config('safehaven.client_assertion_test') : config('safehaven.client_assertion_live');
         $this->baseUrl             = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
         $this->debitAccount        = "0117187948" ?? "0115361250";
-        $this->baseSudoUrl         = env('APP_MODE') == 'test' ? config('base_url_sudo_test') : config('base_url_sudo_live');
-        $this->baseSudoKey         = env('APP_MODE') == 'test' ? config('base_url_sudo_test_key') : config('base_url_sudo_live_key');
+        $this->baseSudoUrl         = env('APP_MODE') == 'test' ? config('safehaven.base_url_sudo_test') : config('base_url_sudo_live');
+        $this->baseSudoKey         = env('APP_MODE') == 'test' ? config('safehaven.base_url_sudo_test_key') : config('base_url_sudo_live_key');
         // $this->baseSudoUrl     = config('safehaven.base_url_sudo_test');
         //  $this->baseSudoKey     = config('safehaven.base_url_sudo_test_key');
 

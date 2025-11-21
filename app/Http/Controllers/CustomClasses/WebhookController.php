@@ -625,7 +625,7 @@ class WebhookController extends Controller
         }
 
         if ($requestResponse['type'] == "refund") {
-            $this->getSudoUserRefund($user_wallet);
+            $this->getSudoUserRefund($request, $user_wallet, $companyId, $branchId);
         }
 
     }
@@ -717,19 +717,24 @@ class WebhookController extends Controller
         }
     }
 
-    private function getSudoUserRefund($user_wallet, $companyId, $branchId)
+    private function getSudoUserRefund($request, $user_wallet, $companyId, $branchId)
     {
         $amount = $request->input('data.object.amount');
+        logInfo($amount, "Amount");
+        $formatedAmount = abs($amount);
+
+        logInfo($formatedAmount, "formated Amount");
 
         $oldBalance = $user_wallet->balance;
         logInfo($user_wallet->balance, "Old Wallet Balance");
 
         $customerAccountId = $user_wallet->wb_account_detail_id;
-        $creditCustomer    = $this->creditCustomerSudo($customerAccountId, $originalAmount, $charge = 0.0, $user_wallet);
+        $creditCustomer    = $this->creditCustomerSudo($customerAccountId, $formatedAmount, $charge = 0.0, $user_wallet);
+        $creditCompany     = $this->creditCompanyCardWallet($companyId, $formatedAmount);
 
         if ($creditCustomer['status']) {
             $newdescription = "Card Refund";
-            $this->refundSudoTransaction($amount, $companyId, $newdescription, $branchId, $customerAccountId, $user);
+            $this->refundSudoTransaction($creditCustomer, $creditCompany, $formatedAmount, $companyId, $newdescription, $branchId, $customerAccountId, $user);
             logInfo($creditCompany['balance_before'], "New Wallet Balance");
         }
 
@@ -763,15 +768,15 @@ class WebhookController extends Controller
 
     }
 
-    private function refundSudoTransaction($amount, $companyId, $newdescription, $branchId, $customerAccountId, $user)
+    private function refundSudoTransaction($creditCustomer, $creditCompany, $amount, $companyId, $newdescription, $branchId, $customerAccountId, $user)
     {
         $transaction = transactions::create([
             "balance_before"         => $creditCustomer['balance_before'],
             "amount"                 => $amount,
             "company_amount"         => $amount,
             "balance_after"          => $creditCustomer['balance_after'],
-            'company_balance_before' => $creditCustomer['company_balance_before'],
-            'company_balance_after'  => $creditCustomer['company_balance_after'],
+            'company_balance_before' => $creditCompany['balance_before'],
+            'company_balance_after'  => $creditCompany['balance_after'],
             "description"            => $newdescription,
             "company_id"             => $companyId,
             "branch_id"              => $branchId,
@@ -908,8 +913,6 @@ class WebhookController extends Controller
 
         if ($originalAmount > 0) {
 
-            $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
-
             logInfo($userWallet, "User wallet log");
             $customerInitialBalance = $userWallet->balance;
 
@@ -938,7 +941,7 @@ class WebhookController extends Controller
         $companyWallet               = company_wallet::where('company_id', $companyId)->first();
         $oldCompanyCardWalletBalance = $companyWallet->card_balance;
         logInfo("$oldCompanyCardWalletBalance", "Initial Card wallet Balance for {$companyWallet->company_id}");
-        $companyWallet->card_balance = $oldCompanyCardWalletBalance - $formatedAmount;
+        $companyWallet->card_balance = $oldCompanyCardWalletBalance + $formatedAmount;
         logInfo("$companyWallet->card_balance ", "New Card wallet Balance for {$companyWallet->company_id}");
         $companyWallet->save();
         $response = [

@@ -736,18 +736,31 @@ class CustomerController extends Controller
             $transaction->transaction_remarks_id = 2;
             $transaction->save();
 
+            $cardTypeMap = [
+                'visa'       => 1,
+                'verve'      => 2,
+                'mastercard' => 3,
+                'afrigo'     => 4,
+            ];
+
+// Normalize input to lowercase (to avoid case issues)
+            $inputCardType = strtolower($request->card_type);
+
+// Get matching code (or null if not found)
+            $cardTypeCode = $cardTypeMap[$inputCardType] ?? null;
+
             // Save card details
             UserCard::create([
                 "user_id"   => $customer->id,
                 "card_name" => "{$customer->first_name} {$customer->last_name}",
-                "card_type_id"     => 2,
+                "card_type_id"     => $cardTypeCode,
                 "card_category_id" => 2,
                 "card_number"      => $cardResponse['result']['data']["maskedPan"],
                 "masked_pan"       => $cardResponse['result']['data']["maskedPan"],
                 "card_reference"   => $cardResponse['result']['data']["_id"],
                 "currency_id"      => $companySettings->preferred_virtual_card_currency,
                 "exp_date"         => $cardResponse['result']['data']["expiryYear"] ?? "",
-                "cvv"              => $cardResponse['result']['data']["cvv"] ?? "",
+                "cvv"              => "",
                 "created_by"       => $auth->id,
             ]);
 
@@ -760,7 +773,7 @@ class CustomerController extends Controller
             return response()->json(['status' => 1, 'message' => 'Card mapped successfully', 'data' => $cardResponse]);
 
         } catch (\Exception $e) {
-            DB::rollback();
+            // DB::rollback();
             return response()->json(['status' => 0, 'message' => $e->getMessage()]);
         }
     }

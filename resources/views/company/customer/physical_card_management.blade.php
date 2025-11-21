@@ -134,7 +134,7 @@
                             <div class="row">
                                 <div class="form-group mb-4 col-sm-12">
                                     <label for="card_type">Card Type</label>
-                                    <select class="form-control" id="c-card_type" name="card_type">
+                                    <select class="form-control" id="c-cardtype" name="card_type">
                                         <option value="" selected disabled>Select Card Type</option>
                                         <option value="Verve">Verve</option>
                                         <option value="AfriGo">AfriGo</option>

@@ -3754,67 +3754,87 @@ class CustomerController extends Controller
         }
     }
 
-    private function debitCompanyCardWallet($companyId, $formatedAmount)
+    private function debitCompanyCardWallet($companyId, $formattedAmount)
     {
-        $response                    = [];
-        $companyWallet               = company_wallet::where('company_id', $companyId)->first();
-        $oldCompanyCardWalletBalance = $companyWallet->card_balance;
-        logInfo("$oldCompanyCardWalletBalance", "Initial Card wallet Balance for {$companyWallet->company_id}");
-        if ($formatedAmount < $oldCompanyCardWalletBalance) {
-            $companyWallet->card_balance = $oldCompanyCardWalletBalance - $formatedAmount;
-            logInfo("$companyWallet->card_balance ", "New Card wallet Balance for {$companyWallet->company_id}");
-            $companyWallet->save();
-            $response = [
-                "status"         => true,
-                'amount'         => $formatedAmount,
-                'message'        => "Amount is Valid",
-                'message'        => "Amount is Valid",
-                'balance_before' => $oldCompanyCardWalletBalance,
-                'balance_after'  => $companyWallet->card_balance,
-            ];
-        } else {
+        $response = [];
 
-            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        // Ensure the wallet exists
+        $companyWallet = company_wallet::where('company_id', $companyId)->first();
+
+        if (! $companyWallet) {
+            return [
+                "status"  => false,
+                "message" => "Company wallet not found",
+            ];
         }
+
+        $initialBalance = $companyWallet->card_balance;
+
+        logInfo("{$initialBalance}", "Initial Card wallet balance for company {$companyId}");
+
+        // Validate amount
+        if ($formattedAmount <= 0 || $formattedAmount > $initialBalance) {
+            return [
+                "status"  => false,
+                "message" => "Invalid Transaction Amount",
+            ];
+        }
+
+        // Deduct balance
+        $companyWallet->card_balance = $initialBalance - $formattedAmount;
+        $companyWallet->save();
+
+        logInfo("{$companyWallet->card_balance}", "New Card wallet balance for company {$companyId}");
+
+        $response = [
+            "status"         => true,
+            "amount"         => $formattedAmount,
+            "message"        => "Amount is valid",
+            "balance_before" => $initialBalance,
+            "balance_after"  => $companyWallet->card_balance,
+        ];
+
         logInfo(json_encode($response), "debitCompanyCardWallet");
 
         return $response;
     }
 
-    private function debitCustomerWithChargeforCard($customerAccountId, $originalAmount, $charge, $user, $userWallet)
+    private function debitCustomerWithChargeForCard($customerAccountId, $originalAmount, $charge, $user, $userWallet)
     {
-
-        $response = [];
-
-        if ($originalAmount > 0) {
-
-            $customerInitialBalance = $userWallet->balance;
-
-            $debitAmount = $originalAmount + $charge;
-
-            $minBalance = $user->company->setting->min_withdraw_charge;
-
-            if (($customerInitialBalance - $minBalance) > $debitAmount) {
-
-                $customerBalanceAfter = $userWallet->balance -= $debitAmount;
-                $userWallet->save();
-
-                $response = [
-                    "status"         => true,
-                    'amount'         => $debitAmount,
-                    'message'        => "Amount is Valid",
-                    'message'        => "Amount is Valid",
-                    'account_id'     => $customerAccountId,
-                    'balance_before' => $customerInitialBalance,
-                    'balance_after'  => $customerBalanceAfter,
-                ];
-            } else {
-                $response = ["status" => false, 'message' => "Not Sufficient funds"];
-            }
-        } else {
-            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        // Validate amount
+        if ($originalAmount <= 0) {
+            return [
+                "status"  => false,
+                "message" => "Invalid Transaction Amount",
+            ];
         }
-        logInfo(json_encode($response), "debitCustomerWithChargeforCard");
+
+        $initialBalance = $userWallet->balance;
+        $debitAmount    = $originalAmount + $charge;
+        $minBalance     = $user->company->setting->min_withdraw_charge;
+
+        // Check sufficient funds (maintaining minimum balance)
+        if (($initialBalance - $debitAmount) < $minBalance) {
+            return [
+                "status"  => false,
+                "message" => "Not Sufficient Funds",
+            ];
+        }
+
+        // Deduct funds properly
+        $userWallet->balance = $initialBalance - $debitAmount;
+        $userWallet->save();
+
+        $response = [
+            "status"         => true,
+            "amount"         => $debitAmount,
+            "message"        => "Amount is valid",
+            "account_id"     => $customerAccountId,
+            "balance_before" => $initialBalance,
+            "balance_after"  => $userWallet->balance,
+        ];
+
+        logInfo(json_encode($response), "debitCustomerWithChargeForCard");
 
         return $response;
     }

@@ -853,104 +853,156 @@ class WebhookController extends Controller
 
     private function debitCustomerWithChargeSudo($customerAccountId, $originalAmount, $charge, $user, $userWallet)
     {
-
-        $response = [];
-
-        if ($originalAmount > 0) {
-
-            $customerInitialBalance = $userWallet->balance;
-
-            $debitAmount = $originalAmount + $charge;
-
-            $minBalance = $user->company->setting->min_withdraw_charge;
-
-            if (($customerInitialBalance - $minBalance) > $debitAmount) {
-
-                $customerBalanceAfter = $userWallet->balance -= $debitAmount;
-                $userWallet->save();
-
-                $response = [
-                    "status"         => true,
-                    'amount'         => $debitAmount,
-                    'message'        => "Amount is Valid",
-                    'message'        => "Amount is Valid",
-                    'account_id'     => $customerAccountId,
-                    'balance_before' => $customerInitialBalance,
-                    'balance_after'  => $customerBalanceAfter,
-                ];
-            } else {
-                $response = ["status" => false, 'message' => "Not Sufficient funds"];
-            }
-        } else {
-            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        // Validate amount
+        if ($originalAmount <= 0) {
+            return [
+                "status"  => false,
+                "message" => "Invalid Transaction Amount",
+            ];
         }
-        return $response;
+
+        $initialBalance = $userWallet->balance;
+        $debitAmount    = $originalAmount + $charge;
+
+        // Minimum balance allowed to remain in the wallet
+        $minBalance = $user->company->setting->min_withdraw_charge;
+
+        // Check sufficient funds
+        if (($initialBalance - $minBalance) <= $debitAmount) {
+            return [
+                "status"  => false,
+                "message" => "Not Sufficient funds",
+            ];
+        }
+
+        // Debit the wallet
+        $newBalance          = $initialBalance - $debitAmount;
+        $userWallet->balance = $newBalance;
+        $userWallet->save();
+
+        return [
+            "status"         => true,
+            "amount"         => $debitAmount,
+            "message"        => "Amount is valid",
+            "account_id"     => $customerAccountId,
+            "balance_before" => $initialBalance,
+            "balance_after"  => $newBalance,
+        ];
     }
 
-    private function debitCompanyCardWallet($companyId, $formatedAmount)
+    private function debitCompanyCardWallet($companyId, $formattedAmount)
     {
-        $response                    = [];
-        $companyWallet               = company_wallet::where('company_id', $companyId)->first();
-        $oldCompanyCardWalletBalance = $companyWallet->card_balance;
-        logInfo("$oldCompanyCardWalletBalance", "Initial Card wallet Balance for {$companyWallet->company_id}");
-        $companyWallet->card_balance = $oldCompanyCardWalletBalance - $formatedAmount;
-        logInfo("$companyWallet->card_balance ", "New Card wallet Balance for {$companyWallet->company_id}");
+        $response = [];
+
+        // Ensure wallet exists
+        $companyWallet = company_wallet::where('company_id', $companyId)->first();
+        if (! $companyWallet) {
+            return [
+                "status"  => false,
+                "message" => "Company wallet not found",
+            ];
+        }
+
+        $initialBalance = $companyWallet->card_balance;
+
+        logInfo("$initialBalance", "Initial Card wallet balance for company {$companyId}");
+
+        // Validate transaction
+        if ($formattedAmount <= 0 || $formattedAmount > $initialBalance) {
+            return [
+                "status"  => false,
+                "message" => "Invalid Transaction Amount",
+            ];
+        }
+
+        // Update new balance
+        $companyWallet->card_balance = $initialBalance - $formattedAmount;
         $companyWallet->save();
-        $response = [
+
+        logInfo("{$companyWallet->card_balance}", "New Card wallet balance for company {$companyId}");
+
+        return [
             "status"         => true,
-            'amount'         => $formatedAmount,
-            'message'        => "Amount is Valid",
-            'message'        => "Amount is Valid",
-            'balance_before' => $oldCompanyCardWalletBalance,
-            'balance_after'  => $companyWallet->card_balance,
+            "amount"         => $formattedAmount,
+            "message"        => "Amount is valid",
+            "balance_before" => $initialBalance,
+            "balance_after"  => $companyWallet->card_balance,
         ];
     }
 
     private function creditCustomerSudo($customerAccountId, $originalAmount, $charge = 0.0, $userWallet)
     {
-
-        $response = [];
-
-        if ($originalAmount > 0) {
-
-            logInfo($userWallet, "User wallet log");
-            $customerInitialBalance = $userWallet->balance;
-
-            $creditAmount = $originalAmount - $charge;
-
-            $customerBalanceAfter = $userWallet->balance += $creditAmount;
-            $userWallet->save();
-
-            $response = [
-                "status"         => true,
-                'message'        => "Amount is Valid",
-                'amount'         => $creditAmount,
-                'account_id'     => $customerAccountId,
-                'balance_before' => $customerInitialBalance,
-                'balance_after'  => $customerBalanceAfter,
+        // Validate credit amount
+        if ($originalAmount <= 0) {
+            return [
+                "status"  => false,
+                "message" => "Invalid Transaction Amount",
             ];
-        } else {
-            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
         }
-        return $response;
+
+        // Do not allow negative credit after charge deduction
+        if ($originalAmount < $charge) {
+            return [
+                "status"  => false,
+                "message" => "Charge cannot be greater than the amount",
+            ];
+        }
+
+        $initialBalance = $userWallet->balance;
+        $creditAmount   = $originalAmount - $charge;
+
+        // Apply credit
+        $newBalance          = $initialBalance + $creditAmount;
+        $userWallet->balance = $newBalance;
+        $userWallet->save();
+
+        return [
+            "status"         => true,
+            "message"        => "Amount credited successfully",
+            "amount"         => $creditAmount,
+            "account_id"     => $customerAccountId,
+            "balance_before" => $initialBalance,
+            "balance_after"  => $newBalance,
+        ];
     }
 
-    private function creditCompanyCardWallet($companyId, $formatedAmount)
+    private function creditCompanyCardWallet($companyId, $formattedAmount)
     {
-        $response                    = [];
-        $companyWallet               = company_wallet::where('company_id', $companyId)->first();
-        $oldCompanyCardWalletBalance = $companyWallet->card_balance;
-        logInfo("$oldCompanyCardWalletBalance", "Initial Card wallet Balance for {$companyWallet->company_id}");
-        $companyWallet->card_balance = $oldCompanyCardWalletBalance + $formatedAmount;
-        logInfo("$companyWallet->card_balance ", "New Card wallet Balance for {$companyWallet->company_id}");
+        // Check for valid amount
+        if ($formattedAmount <= 0) {
+            return [
+                "status"  => false,
+                "message" => "Invalid credit amount",
+            ];
+        }
+
+        // Fetch company wallet
+        $companyWallet = company_wallet::where('company_id', $companyId)->first();
+
+        if (! $companyWallet) {
+            return [
+                "status"  => false,
+                "message" => "Company wallet not found",
+            ];
+        }
+
+        $initialBalance = $companyWallet->card_balance;
+
+        logInfo($initialBalance, "Initial Card Wallet Balance for {$companyWallet->company_id}");
+
+        // Perform credit
+        $newBalance                  = $initialBalance + $formattedAmount;
+        $companyWallet->card_balance = $newBalance;
         $companyWallet->save();
-        $response = [
+
+        logInfo($newBalance, "New Card Wallet Balance for {$companyWallet->company_id}");
+
+        return [
             "status"         => true,
-            'amount'         => $formatedAmount,
-            'message'        => "Amount is Valid",
-            'message'        => "Amount is Valid",
-            'balance_before' => $oldCompanyCardWalletBalance,
-            'balance_after'  => $companyWallet->card_balance,
+            "message"        => "Amount credited successfully",
+            "amount"         => $formattedAmount,
+            "balance_before" => $initialBalance,
+            "balance_after"  => $newBalance,
         ];
     }
 

@@ -619,149 +619,149 @@ class CustomerController extends Controller
     }
 
     public function createPhysicalCard(Request $request)
-{
-    // Disable service (optional)
-    // return response()->json(['status' => 0, 'message' => 'This service has been disabled']);
+    {
+        // Disable service (optional)
+        // return response()->json(['status' => 0, 'message' => 'This service has been disabled']);
 
-    $auth = auth()->user();
+        $auth = auth()->user();
 
-    $validator = Validator::make($request->all(), [
-        'first_name'         => 'required|string|max:50|min:2',
-        'last_name'          => 'required|string|max:50|min:2',
-        'phone'              => 'required|string',
-        'address'            => 'required|string',
-        'email'              => 'required|email',
-        'bvn'                => 'required|string',
-        'customer_reference' => 'required|string',
-        'card_number'        => 'required|string',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'status'  => 0,
-            'message' => $validator->errors()->first(),
+        $validator = Validator::make($request->all(), [
+            'first_name'         => 'required|string|max:50|min:2',
+            'last_name'          => 'required|string|max:50|min:2',
+            'phone'              => 'required|string',
+            'address'            => 'required|string',
+            'email'              => 'required|email',
+            'bvn'                => 'required|string',
+            'customer_reference' => 'required|string',
+            'card_number'        => 'required|string',
         ]);
-    }
 
-    if ($auth->company_id != 14) {
-        return response()->json(['status' => 0, 'message' => 'This service has been disabled. Kindly contact support.']);
-    }
-
-    $customer = User::where('uuid', $request->customer_reference)->first();
-
-    if (! $customer) {
-        return response()->json(['status' => 0, 'message' => 'Invalid Customer Reference']);
-    }
-
-    // Determine if customer already has a physical card
-    $existingCard = UserCard::where('user_id', $customer->id)
-        ->where('card_category_id', 2)
-        ->first();
-
-    $customer_sudo_account_id = $existingCard->card_reference ?? null;
-
-    DB::beginTransaction();
-
-    try {
-        $transactionId   = generateTransactionReference();
-        $wbaSettings     = WbaCharge::find(17);
-        $companySettings = company_settings::where('company_id', $auth->company_id)->first();
-
-        // Debit company
-        $companyDebit = debitCompanyWithCharge($auth->company_id, $wbaSettings->charge, 0);
-        if (! $companyDebit['status']) {
-            DB::rollback();
-            return response()->json(['status' => 0, 'message' => $companyDebit['message']]);
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 0,
+                'message' => $validator->errors()->first(),
+            ]);
         }
 
-        // Debit customer wallet
-        $customerDebit = debitCustomerOnly(
-            $customer->accounts->first()->id,
-            $companySettings->new_physical_card_charge,
-            $customer
-        );
-
-        if (! $customerDebit['status']) {
-            DB::rollback();
-            return response()->json(['status' => 0, 'message' => $customerDebit['message']]);
+        if ($auth->company_id != 14) {
+            return response()->json(['status' => 0, 'message' => 'This service has been disabled. Kindly contact support.']);
         }
 
-        // Ledger
-        $ledger = get_CR_DR_TXN_Type_Ledger(23, $auth->company_id);
-        $ledger_cr = $ledger->ledger_cr ?? null;
-        $ledger_dr = $ledger->ledger_dr ?? null;
+        $customer = User::where('uuid', $request->customer_reference)->first();
 
-        // Create transaction record
-        $transaction = transactions::create([
-            "balance_before"         => $customerDebit['balance_before'],
-            "company_balance_before" => $companyDebit['balance_before'],
-            "account_id"             => $customerDebit['account_id'],
-            "branch_id"              => $auth->branch->id,
-            "amount"                 => $companySettings->new_physical_card_charge,
-            "company_amount"         => $wbaSettings->charge,
-            "balance_after"          => $customerDebit['balance_after'],
-            "company_balance_after"  => $companyDebit['balance_after'],
-            "company_id"             => $auth->company_id,
-            "description"            => "Purchase of Physical Card",
-            "transaction_reference"  => $transactionId,
-            "transaction_remarks_id" => 1,
-            "transaction_type_id"    => 23,
-            "credit_debit_type_id"   => 2,
-            "created_date"           => date('Y-m-d'),
-            "created_by"             => $auth->id,
-            "ledger_cr"              => $ledger_cr,
-            "ledger_dr"              => $ledger_dr,
-        ]);
-
-        // Update customer info
-        $customer->update([
-            'bvn'                 => $request->bvn,
-            'address'             => $request->address,
-            'user_card_status_id' => 2,
-        ]);
-
-        // Call Safehaven API for physical card creation
-        $safehaven = new SafehavenController();
-        $cardResponse = $safehaven->createPhysicalCard(
-            $request,
-            $transactionId,
-            $customer,
-            $customer_sudo_account_id
-        );
-
-        if (! $cardResponse['status']) {
-            DB::rollback();
-            return response()->json(['status' => 0, 'message' => $cardResponse['message']]);
+        if (! $customer) {
+            return response()->json(['status' => 0, 'message' => 'Invalid Customer Reference']);
         }
 
-        // Mark transaction as confirmed debit
-        $transaction->transaction_remarks_id = 2;
-        $transaction->save();
+        // Determine if customer already has a physical card
+        $existingCard = UserCard::where('user_id', $customer->id)
+            ->where('card_category_id', 2)
+            ->first();
 
-        // Save card details
-        UserCard::create([
-            "user_id"          => $customer->id,
-            "card_name"        => "{$customer->first_name} {$customer->last_name}",
-            "card_type_id"     => 2,
-            "card_category_id" => 2,
-            "card_number"      => $cardResponse['result']['data']["card_pan"],
-            "masked_pan"       => $cardResponse['result']['data']["maskedPan"],
-            "card_reference"   => $cardResponse['result']['data']["_id"],
-            "currency_id"      => $companySettings->preferred_virtual_card_currency,
-            "exp_date"         => $cardResponse['result']['data']["expiration"],
-            "cvv"              => $cardResponse['result']['data']["cvv"],
-            "created_by"       => $auth->id,
-        ]);
+        $customer_sudo_account_id = $existingCard->card_reference ?? null;
 
-        DB::commit();
-        return response()->json(['status' => 1, 'message' => 'Card created successfully', 'data' => $cardResponse]);
+        DB::beginTransaction();
 
-    } catch (\Exception $e) {
-        DB::rollback();
-        return response()->json(['status' => 0, 'message' => $e->getMessage()]);
+        try {
+            $transactionId   = generateTransactionReference();
+            $wbaSettings     = WbaCharge::find(17);
+            $companySettings = company_settings::where('company_id', $auth->company_id)->first();
+
+            // Debit company
+            //    $companyDebit = debitCompanyWithCharge($auth->company_id, $wbaSettings->charge, 0);
+            $companyDebit = debitCompanyWithCharge($auth->company_id, 0, 0);
+            if (! $companyDebit['status']) {
+                DB::rollback();
+                return response()->json(['status' => 0, 'message' => $companyDebit['message']]);
+            }
+
+            // Debit customer wallet
+            $customerDebit = debitCustomerOnly(
+                $customer->accounts->first()->id,
+                $companySettings->new_physical_card_charge,
+                $customer
+            );
+
+            if (! $customerDebit['status']) {
+                DB::rollback();
+                return response()->json(['status' => 0, 'message' => $customerDebit['message']]);
+            }
+
+            // Ledger
+            $ledger    = get_CR_DR_TXN_Type_Ledger(23, $auth->company_id);
+            $ledger_cr = $ledger->ledger_cr ?? null;
+            $ledger_dr = $ledger->ledger_dr ?? null;
+
+            // Create transaction record
+            $transaction = transactions::create([
+                "balance_before"         => $customerDebit['balance_before'],
+                "company_balance_before" => $companyDebit['balance_before'],
+                "account_id"             => $customerDebit['account_id'],
+                "branch_id"              => $auth->branch->id,
+                "amount"                 => $companySettings->new_physical_card_charge,
+                "company_amount"         => $wbaSettings->charge,
+                "balance_after"          => $customerDebit['balance_after'],
+                "company_balance_after"  => $companyDebit['balance_after'],
+                "company_id"             => $auth->company_id,
+                "description"            => "Purchase of Physical Card",
+                "transaction_reference"  => $transactionId,
+                "transaction_remarks_id" => 1,
+                "transaction_type_id"    => 23,
+                "credit_debit_type_id"   => 2,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => $auth->id,
+                "ledger_cr"              => $ledger_cr,
+                "ledger_dr"              => $ledger_dr,
+            ]);
+
+            // Update customer info
+            $customer->update([
+                'bvn'                 => $request->bvn,
+                'address'             => $request->address,
+                'user_card_status_id' => 2,
+            ]);
+
+            // Call Safehaven API for physical card creation
+            $safehaven    = new SafehavenController();
+            $cardResponse = $safehaven->createPhysicalCard(
+                $request,
+                $transactionId,
+                $customer,
+                $customer_sudo_account_id
+            );
+
+            if (! $cardResponse['status']) {
+                DB::rollback();
+                return response()->json(['status' => 0, 'message' => $cardResponse['message']]);
+            }
+
+            // Mark transaction as confirmed debit
+            $transaction->transaction_remarks_id = 2;
+            $transaction->save();
+
+            // Save card details
+            UserCard::create([
+                "user_id"   => $customer->id,
+                "card_name" => "{$customer->first_name} {$customer->last_name}",
+                "card_type_id"     => 2,
+                "card_category_id" => 2,
+                "card_number"      => $cardResponse['result']['data']["card_pan"],
+                "masked_pan"       => $cardResponse['result']['data']["maskedPan"],
+                "card_reference"   => $cardResponse['result']['data']["_id"],
+                "currency_id"      => $companySettings->preferred_virtual_card_currency,
+                "exp_date"         => $cardResponse['result']['data']["expiration"],
+                "cvv"              => $cardResponse['result']['data']["cvv"],
+                "created_by"       => $auth->id,
+            ]);
+
+            DB::commit();
+            return response()->json(['status' => 1, 'message' => 'Card created successfully', 'data' => $cardResponse]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['status' => 0, 'message' => $e->getMessage()]);
+        }
     }
-}
-
 
     public function addPhysicalCard(Request $request)
     {

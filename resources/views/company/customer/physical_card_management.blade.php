@@ -131,6 +131,20 @@
                                 </div>
                             </div>
 
+                            <div class="row">
+                                <div class="form-group mb-4 col-sm-12">
+                                    <label for="card_type">Card Type</label>
+                                    <select class="form-control" id="c-card_type" name="card_type">
+                                        <option value="" selected disabled>Select Card Type</option>
+                                        <option value="Verve">Verve</option>
+                                        <option value="AfriGo">AfriGo</option>
+                                        <option value="MasterCard">MasterCard</option>
+                                        <option value="Visa">Visa</option>
+                                    </select>
+                                    <span class="validation-text"></span>
+                                </div>
+                            </div>
+
                         </div>
                         <div class="modal-footer">
                             <button class="btn" data-dismiss="modal"><i class="flaticon-cancel-12"></i>

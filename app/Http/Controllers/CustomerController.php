@@ -634,6 +634,7 @@ class CustomerController extends Controller
             'bvn'                => 'required|string',
             'customer_reference' => 'required|string',
             'card_number'        => 'required|string',
+            'card_type'        => 'required|string',
         ]);
 
         if ($validator->fails()) {

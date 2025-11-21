@@ -41,6 +41,7 @@ class SafehavenController extends WebhookController
         //  $this->baseSudoKey     = config('safehaven.base_url_sudo_test_key');
 
         $this->fundingSourceId = env('APP_MODE') == 'test' ? "67d40044ad1be81c57ff0684" : "66d0e8d1761ef1f1cf6bdfdc";
+        $this->debitAccountId  = env('APP_MODE') == 'test' ? "67d9ba1c39198caf19512516" : "67dac34b5eb41985c50d402c";
 
     }
 
@@ -657,6 +658,10 @@ class SafehavenController extends WebhookController
             "currency"        => "NGN",
             "status"          => "active",
             "number"          => $request->card_number,
+            "status"          => "active",
+            "debitAccountId"  => $this->debitAccountId,
+            "brand"           => $request->card_type,
+            "amount"          => 123,
 
         ];
 
@@ -699,7 +704,7 @@ class SafehavenController extends WebhookController
             "type"            => "virtual",
             "currency"        => "NGN",
             "status"          => "active",
-            "debitAccountId"  => "67d9ba1c39198caf19512516",
+            "debitAccountId"  => $this->debitAccountId,
             "brand"           => "Verve",
             "amount"          => 123,
 

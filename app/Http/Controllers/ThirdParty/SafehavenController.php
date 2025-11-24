@@ -649,10 +649,17 @@ class SafehavenController extends WebhookController
     {
 
         if ($customer_sudo_account_id == null) {
-            $customer_sudo_account_id =
-            $customer                 = $this->createSudoCustomer($request, $customer);
+            // check if user has a customer base with Sudo
+            $customer_sudo_account_id = $this->getCustomerSudoID($customer);
+
+            if ($customer_sudo_account_id == null) {
+                $customer = $this->createSudoCustomer($request, $customer);
+            } else {
+                $customer = $this->getSudoCardCustomerInfo($customer_sudo_account_id);
+            }
+
         } else {
-            $customer = $this->getSudoCustomerSudoCustomer($customer_sudo_account_id);
+            $customer = $this->getSudoCardCustomerInfo($customer_sudo_account_id);
         }
 
         logInfo("$customer_sudo_account_id", "customer_sudo_account_id");
@@ -708,11 +715,11 @@ class SafehavenController extends WebhookController
             if ($customer_sudo_account_id == null) {
                 $customer = $this->createSudoCustomer($request, $customer);
             } else {
-                $customer = $this->getSudoCustomerSudoCustomer($customer_sudo_account_id);
+                $customer = $this->getSudoCardCustomerInfo($customer_sudo_account_id);
             }
 
         } else {
-            $customer = $this->getSudoCustomerSudoCustomer($customer_sudo_account_id);
+            $customer = $this->getSudoCardCustomerInfo($customer_sudo_account_id);
         }
 
         $body = [

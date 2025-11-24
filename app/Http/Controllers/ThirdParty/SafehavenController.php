@@ -707,6 +707,8 @@ class SafehavenController extends WebhookController
 
             if ($customer_sudo_account_id == null) {
                 $customer = $this->createSudoCustomer($request, $customer);
+            } else {
+                $customer = $this->getSudoCustomerSudoCustomer($customer_sudo_account_id);
             }
 
         } else {
@@ -891,8 +893,10 @@ class SafehavenController extends WebhookController
         $existingCard  = UserCard::where('user_id', $user->id)->first();
         $cardReference = $existingCard->card_reference;
         $customer      = $this->getSudoCardCustomerInfo($cardReference);
-        if (isset($customer[''])) {
-
+        if (isset($customer['data']['customer']['_id'])) {
+            return $customer['data']['customer']['_id'];
+        } else {
+            return null;
         }
     }
 

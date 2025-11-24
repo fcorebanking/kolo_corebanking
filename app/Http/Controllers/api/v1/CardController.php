@@ -167,7 +167,7 @@ class CardController extends Controller
             "currency_id"      => $companySettings->preferred_virtual_card_currency,
             "exp_date"         => $cardData["expiryYear"],
             "cvv"              => $cardData["expiryYear"],
-            "created_by"       => $cardData["customer"],
+            "created_by"       => $user->id,
         ]);
 
         // Send SMS notification

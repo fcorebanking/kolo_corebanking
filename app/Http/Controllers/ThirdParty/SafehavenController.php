@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\CustomClasses\WebhookController;
+use App\Models\UserCard;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -648,7 +649,8 @@ class SafehavenController extends WebhookController
     {
 
         if ($customer_sudo_account_id == null) {
-            $customer = $this->createSudoCustomer($request, $customer);
+            $customer_sudo_account_id =
+            $customer                 = $this->createSudoCustomer($request, $customer);
         } else {
             $customer = $this->getSudoCustomerSudoCustomer($customer_sudo_account_id);
         }
@@ -698,8 +700,15 @@ class SafehavenController extends WebhookController
 
     public function createVirtualCard($request, $customer, $customer_sudo_account_id)
     {
+
         if ($customer_sudo_account_id == null) {
-            $customer = $this->createSudoCustomer($request, $customer);
+            // check if user has a customer base with Sudo
+            $customer_sudo_account_id = $this->getCustomerSudoID($user);
+
+            if ($customer_sudo_account_id == null) {
+                $customer = $this->createSudoCustomer($request, $customer);
+            }
+
         } else {
             $customer = $this->getSudoCustomerSudoCustomer($customer_sudo_account_id);
         }
@@ -874,6 +883,38 @@ class SafehavenController extends WebhookController
             logInfo($e->getMessage(), "Providus Error");
 
             return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+        }
+    }
+
+    public function getCustomerSudoID($user)
+    {
+        $existingCard  = UserCard::where('user_id', $user->id)->first();
+        $cardReference = $existingCard->card_reference;
+        $customer      = $this->getSudoCardCustomerInfo($cardReference);
+        if (isset($customer[''])) {
+
+        }
+    }
+
+    public function getSudoCardCustomerInfo($cardReference)
+    {
+
+        $endpoint = "$this->baseSudoUrl/cards/$cardReference";
+
+        try {
+            $result = $this->sudoGetRequest($endpoint);
+
+            logInfo(json_encode($result), "Sudo Customer Get Card Result");
+
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return $result;
+            } else {
+                return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Sudo Customer Get Result Error");
+
+            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
         }
     }
 }

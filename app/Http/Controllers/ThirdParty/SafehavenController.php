@@ -634,6 +634,12 @@ class SafehavenController extends WebhookController
         return $response->json();
     }
 
+    public function sudoPutRequest($endpoint)
+    {
+        $response = Http::withHeaders($this->sudoHeader())->put("$endpoint");
+        return $response->json();
+    }
+
     public function sudoHeader()
     {
         $header = [
@@ -897,14 +903,19 @@ class SafehavenController extends WebhookController
 
     public function getCustomerSudoID($user)
     {
-        $existingCard  = UserCard::where('user_id', $user->id)->first();
-        $cardReference = $existingCard->card_reference;
-        $customer      = $this->getSudoCardCustomerInfo($cardReference);
-        if (isset($customer['data']['customer']['_id'])) {
-            return $customer['data']['customer']['_id'];
+        $existingCard = UserCard::where('user_id', $user->id)->first();
+        if ($existingCard != null) {
+            $cardReference = $existingCard->card_reference;
+            $customer      = $this->getSudoCardCustomerInfo($cardReference);
+            if (isset($customer['data']['customer']['_id'])) {
+                return $customer['data']['customer']['_id'];
+            } else {
+                return null;
+            }
         } else {
             return null;
         }
+
     }
 
     public function getSudoCardCustomerInfo($cardReference)
@@ -914,6 +925,27 @@ class SafehavenController extends WebhookController
 
         try {
             $result = $this->sudoGetRequest($endpoint);
+
+            logInfo(json_encode($result), "Sudo Customer Get Card Result");
+
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return $result;
+            } else {
+                return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Sudo Customer Get Result Error");
+
+            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
+        }
+    }
+
+    public function enrollcard2fa($cardReference)
+    {
+        $endpoint = "$this->baseSudoUrl/cards/$cardReference/enroll2fa";
+
+        try {
+            $result = $this->sudoPutRequest($endpoint);
 
             logInfo(json_encode($result), "Sudo Customer Get Card Result");
 

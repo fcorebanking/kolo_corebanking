@@ -591,6 +591,23 @@ class CardController extends Controller
         }
     }
 
+    public function enroll2FA()
+    {
+
+        $existingCard = UserCard::where('user_id', auth()->user()->id)
+            ->where('card_category_id', 1)
+            ->first();
+        // $virtualFirstCard = UserCard::where('user_id', auth()->user()->id)->first();
+
+        $safehaven = new SafehavenController();
+
+        $virtualFirstCard = $safehaven->enrollcard2fa($existingCard->card_reference);
+
+        if ($virtualFirstCard) {
+            return response()->json(['status' => true, 'message' => 'Cards enroll 2fa updated successfully', 'data' => $virtualCard]);
+        }
+    }
+
     public function getCardDetails(Request $request)
     {
         $validation = Validator::make($request->all(), [

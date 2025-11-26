@@ -298,6 +298,8 @@ Route::prefix('/virtual-cards')->group(function () {
         Route::get('/block-unblock', [CardController::class, 'blockUnblockCard'])->middleware('log.route');
 
         Route::middleware('checkAccountStatus')->post('/create', [CardController::class, 'createUserCard'])->middleware('log.route');
+       Route::middleware('checkAccountStatus')->post('/create', [CardController::class, 'changeUserCardPin'])->middleware('log.route');
+      
         Route::middleware('checkAccountStatus')->post('/fund', [CardController::class, 'fundVirtualCard'])->middleware('log.route');
         Route::middleware('checkAccountStatus')->post('/withdraw', [CardController::class, 'withdrawVirtualCard'])->middleware('log.route');
         Route::get('/get-balance', [CardController::class, 'getBalance'])->middleware('log.route');

@@ -188,6 +188,53 @@ class CardController extends Controller
         ]);
     }
 
+    public function changeUserCardPin(Request $request)
+    {
+
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            "card_reference" => 'required|string',
+            "old_pin"        => 'required|numeric',
+            "new_pin"        => 'required|numeric',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                "status"  => false,
+                "message" => $validator->errors()->first(),
+            ], 406);
+        }
+
+        $user = auth()->user();
+
+        // Temporary service restriction
+        if ($user->company_id != 14) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'This service is currently unavailable and will be restored soon',
+            ]);
+        }
+
+        // Call SafeHaven API to create card
+        $safehaven = new SafehavenController();
+        $cardRes   = $safehaven->changeUserCardPin($request);
+
+        if (! $cardRes['status']) {
+            return response()->json($cardRes['message'], 400);
+        }
+
+        // Send SMS notification
+        $smsMessage = "You have successfully changed your Card Pin,\n";
+
+        sendSMS($user->id, $smsMessage, true, true, "Virtual Card Pin Updated");
+
+        return response()->json([
+            'status'  => true,
+            "message" => "Virtual Card Pin Updated",
+
+        ]);
+    }
+
     public function debitCustomer($amount)
     {
 

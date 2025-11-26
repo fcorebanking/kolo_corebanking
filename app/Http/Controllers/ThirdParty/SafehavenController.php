@@ -634,10 +634,29 @@ class SafehavenController extends WebhookController
         return $response->json();
     }
 
-    public function sudoPutRequest($endpoint)
+    public function sudoPutRequest($endpoint, array $body = [])
     {
-        $response = Http::withHeaders($this->sudoHeader())->put("$endpoint");
-        return $response->json();
+        try {
+            if (! empty($body)) {
+                // PUT with body
+                $response = Http::withHeaders($this->sudoHeader())
+                    ->put($endpoint, $body);
+            } else {
+                // PUT without body
+                $response = Http::withHeaders($this->sudoHeader())
+                    ->put($endpoint);
+            }
+
+            return $response->json();
+
+        } catch (\Exception $e) {
+            logInfo($e->getMessage(), "Sudo PUT Request Error");
+            return [
+                'status'  => false,
+                'message' => 'PUT Request Failed',
+                'error'   => $e->getMessage(),
+            ];
+        }
     }
 
     public function sudoHeader()
@@ -946,6 +965,34 @@ class SafehavenController extends WebhookController
 
         try {
             $result = $this->sudoPutRequest($endpoint);
+
+            logInfo(json_encode($result), "Sudo Customer Get Card Result");
+
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return $result;
+            } else {
+                return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Sudo Customer Get Result Error");
+
+            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
+        }
+    }
+
+    public function changeUserCardPin(Request $request)
+    {
+        $cardReference = $request->card_reference;
+        $endpoint      = "$this->baseSudoUrl/cards/$cardReference/pin";
+
+        $body = [
+            "oldPin" => $request->old_pin,
+            "newPin" => $request->new_pin,
+
+        ];
+
+        try {
+            $result = $this->sudoPutRequest($endpoint, $body);
 
             logInfo(json_encode($result), "Sudo Customer Get Card Result");
 

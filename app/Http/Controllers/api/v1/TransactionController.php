@@ -1091,7 +1091,7 @@ class TransactionController extends Controller
                     $wbaCharge = $request->final_amount > 1000000 ? 100 : $wbaCharge;
 
                     // $charge =  $charge < $wbaCharge && $charge > 0 ?  ($wbaCharge + ($wbaCharge * 0.01)) : $charge;
-
+/*
                     $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
 
                     if (! $debitCustomer["status"]) {
@@ -1109,6 +1109,13 @@ class TransactionController extends Controller
                     $companyBalanceAfter        = $debitCustomer['company_balance_after'];
                     $companyChargeBalanceBefore = $debitCustomer['company_charge_balance_before'];
                     $companyChargeBalanceAfter  = $debitCustomer['company_charge_balance_after'];
+*/
+
+                    $customerBalance = $this->checkCustomerAndCompanyBalance($request->final_amount);
+
+                    if (! $customerBalance['status']) {
+                        return response()->json($customerBalance, 400);
+                    }
 
                     $preferredEbankingPartner = PreferredEbankingPartner::all();
                     $ebankingService          = new EbankingService($preferredEbankingPartner);
@@ -1118,47 +1125,6 @@ class TransactionController extends Controller
                     if (! $bankAccount['status']) {
                         $bankAccount['status'] = false;
                         return response()->json($bankAccount);
-                    }
-                    if ($currentUser->company->id == 33) {
-                        $phone            = $currentUser->phone;
-                        $transaction_type = "transaction";
-                        $amount           = $request->final_amount;
-                        $balance          = $debitCustomer['charge_balance_after'];
-                        $account_id       = $currentUser->id;
-
-                        goldencreditSMSPost($phone, $transaction_type, $amount, $balance, $account_id);
-                    } else {
-                        sendSMS($currentUser->id, "Debit Amt:$request->final_amount, Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . " Avail Bal:" . $debitCustomer['charge_balance_after'] . "Date:" . date('Y-m-d') . " Ref: " . $request->transaction_reference, true, true, 'Debit Transaction');
-                        // $transaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
-                    }
-                    $newdescription = $request->description == "" ? $currentUser->first_name : $request->description;
-
-                    $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
-
-                    $newdescription = $newdescription . "/" . $request->receipient_name . "/" . $request->destination_account . " - " . $bank->bank_name;
-
-                    $gatewayDescription = $currentUser->first_name . " " . $currentUser->last_name . " / " . $currentUser->company->company_name;
-                    $myDescription      = "You transferred funds to " . $bankAccount['data']['account_name'] . "/" . $request->destination_account . " / " . $bank->bank_name . " / " . $currentUser->company->company_name;
-
-                    $transaction->description = $myDescription;
-
-                    $transaction->balance_before = $customerBalanceBefore;
-                    //  $transaction->amount         = $request->final_amount + $charge;
-                    $transaction->amount        = $request->final_amount;
-                    $transaction->balance_after = $customerChargeBalanceAfter;
-
-                    $transaction->company_balance_before = $companyBalanceBefore;
-                    $transaction->company_amount         = $request->final_amount + $wbaCharge;
-                    $transaction->company_balance_after  = $companyChargeBalanceAfter;
-
-                    $transaction->save();
-
-                    $ledger_Settings = get_CR_DR_TXN_Type_Ledger(27, $transaction->company_id);
-                    if ($ledger_Settings) {
-                        $ledger_cr = $ledger_Settings->ledger_cr;
-                        $ledger_dr = $ledger_Settings->ledger_dr;
-                    } else {
-                        return ['status' => false, 'message' => 'Transaction failed, set Bank Transfer Charge ledger for this transaction type in ledger settings !'];
                     }
 
                     // $transactionRef2 = generateTransactionReference();
@@ -1216,6 +1182,63 @@ class TransactionController extends Controller
                         $bankTransfer['status'] = 0;
 
                         return $bankTransfer;
+                    } else {
+                        $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
+
+                        $accountId                   = $debitCustomer['account_id'];
+                        $customerBalanceBefore       = $debitCustomer['balance_before'];
+                        $customerBalanceAfter        = $debitCustomer['balance_after'];
+                        $customerChargeBalanceBefore = $debitCustomer['charge_balance_before'];
+                        $customerChargeBalanceAfter  = $debitCustomer['charge_balance_after'];
+
+                        $companyBalanceBefore       = $debitCustomer['company_balance_before'];
+                        $companyAmount              = $debitCustomer['company_amount'];
+                        $companyBalanceAfter        = $debitCustomer['company_balance_after'];
+                        $companyChargeBalanceBefore = $debitCustomer['company_charge_balance_before'];
+                        $companyChargeBalanceAfter  = $debitCustomer['company_charge_balance_after'];
+
+                        $newdescription = $request->description == "" ? $currentUser->first_name : $request->description;
+
+                        $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
+
+                        $newdescription = $newdescription . "/" . $request->receipient_name . "/" . $request->destination_account . " - " . $bank->bank_name;
+
+                        $gatewayDescription = $currentUser->first_name . " " . $currentUser->last_name . " / " . $currentUser->company->company_name;
+                        $myDescription      = "You transferred funds to " . $bankAccount['data']['account_name'] . "/" . $request->destination_account . " / " . $bank->bank_name . " / " . $currentUser->company->company_name;
+
+                        $transaction->description = $myDescription;
+
+                        $transaction->balance_before = $customerBalanceBefore;
+                        //  $transaction->amount         = $request->final_amount + $charge;
+                        $transaction->amount        = $request->final_amount;
+                        $transaction->balance_after = $customerChargeBalanceAfter;
+
+                        $transaction->company_balance_before = $companyBalanceBefore;
+                        $transaction->company_amount         = $request->final_amount + $wbaCharge;
+                        $transaction->company_balance_after  = $companyChargeBalanceAfter;
+
+                        $transaction->save();
+
+                        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(27, $transaction->company_id);
+                        if ($ledger_Settings) {
+                            $ledger_cr = $ledger_Settings->ledger_cr;
+                            $ledger_dr = $ledger_Settings->ledger_dr;
+                        } else {
+                            return ['status' => false, 'message' => 'Transaction failed, set Bank Transfer Charge ledger for this transaction type in ledger settings !'];
+                        }
+
+                        if ($currentUser->company->id == 33) {
+                            $phone            = $currentUser->phone;
+                            $transaction_type = "transaction";
+                            $amount           = $request->final_amount;
+                            $balance          = $debitCustomer['charge_balance_after'];
+                            $account_id       = $currentUser->id;
+
+                            goldencreditSMSPost($phone, $transaction_type, $amount, $balance, $account_id);
+                        } else {
+                            sendSMS($currentUser->id, "Debit Amt:$request->final_amount, Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . " Avail Bal:" . $debitCustomer['charge_balance_after'] . "Date:" . date('Y-m-d') . " Ref: " . $request->transaction_reference, true, true, 'Debit Transaction');
+                            // $transaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
+                        }
                     }
 
                     $transaction->transaction_remarks_id = 2;
@@ -1683,7 +1706,7 @@ class TransactionController extends Controller
                 return response()->json(
                     [
                         "status"  => true,
-                        'message' => "Transaction initialized",
+                        'message' => "Pending Transaction initialized",
                         'data'    => [
                             'charge'                => $charge ?? 0.00,
                             'transaction_reference' => $transactionId,
@@ -1755,7 +1778,7 @@ class TransactionController extends Controller
                 return response()->json(
                     [
                         "status"  => true,
-                        'message' => "Transaction initialized",
+                        'message' => "Pending Transaction initialized",
                         'data'    => [
                             'charge'                => $charge ?? 0.00,
                             'transaction_reference' => $transactionId,

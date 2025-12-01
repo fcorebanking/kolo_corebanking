@@ -688,7 +688,7 @@ class SafehavenController extends WebhookController
         }
 
         logInfo("$customer_sudo_account_id", "customer_sudo_account_id");
-        logInfo("{$customer['data']['_id']}", "customer");
+        //   logInfo("{$customer['data']['_id']}", "customer");
 
         $body = [
 

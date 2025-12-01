@@ -2205,56 +2205,81 @@ class TransactionController extends Controller
 
     public function validatePinCheckCompanyBalance($transactionId, $transactionPin, $amount)
     {
-        $response = [];
+        $user    = auth()->user();
+        $company = $user->company;
+        $wallet  = $company->wallet;
 
-        if (\auth()->user()->company->transaction_pin == $transactionPin) {
-
-            $sourceCompanytransaction = transactions::where(['transaction_reference' => $transactionId, 'amount' => $amount])->orWhere(['id' => $transactionId, 'amount' => $amount])->first();
-
-            if ($sourceCompanytransaction) {
-
-                if ($amount > 0) {
-
-                    if (auth()->user()->company->wallet->balance > $amount) {
-
-                        if (auth()->user()->company->wallet->balance >= $amount) {
-                            auth()->user()->balance_fails         = 0;
-                            auth()->user()->transaction_pin_fails = 0;
-                            auth()->user()->save();
-                            $response = ["status" => true, "responseCode" => 1, 'message' => "Amount and pin are Valid", 'balance' => auth()->user()->company->wallet->balance];
-                        } else {
-                            $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient funds"];
-                        }
-                    } else {
-                        if (auth()->user()->balance_fails < 2) {
-                            auth()->user()->balance_fails += 1;
-                            auth()->user()->save();
-                            $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds.  Your account will be restricted after " . (3 - auth()->user()->transaction_pin_fails) . " wrong attempts"];
-                        } else {
-                            // auth()->user()->status_id = 5;
-                            $this->restrictUserAccount(2, "Multiple Insuficient balance trials");
-
-                            $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support"];
-                        }
-                    }
-                } else {
-                    $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid Transaction Amount"];
-                }
-            } else {
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid Transaction ID"];
-            }
-        } else {
-            if (auth()->user()->transaction_pin_fails < 2) {
-                auth()->user()->transaction_pin_fails += 1;
-                auth()->user()->save();
-                $response = ["status" => false, "responseCode" => 2, 'message' => "Invalid Transaction pin. Your account will be restricted after " . (3 - auth()->user()->transaction_pin_fails) . " wrong attempts"];
-            } else {
-                $another  = $this->restrictUserAccount(2, "Multiple Invalid transaction pin");
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support", 'data' => $another];
-            }
+        // 1. Validate Transaction PIN
+        if ($company->transaction_pin !== $transactionPin) {
+            return $this->handlePinFailure($user);
         }
 
-        return $response;
+        // 2. Validate Transaction
+        $transaction = transactions::where([
+            'transaction_reference' => $transactionId,
+            'amount'                => $amount,
+        ])->orWhere([
+            'id'     => $transactionId,
+            'amount' => $amount,
+        ])->first();
+
+        if (! $transaction) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Invalid Transaction ID",
+            ];
+        }
+
+        // 3. Validate Amount
+        if ($amount <= 0) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Invalid Transaction Amount",
+            ];
+        }
+
+        // 4. Validate Company Wallet Balance
+        if ($wallet->balance < $amount) {
+            return $this->handleBalanceFailure($user);
+        }
+
+        // SUCCESS → Reset failure counters
+        $user->balance_fails         = 0;
+        $user->transaction_pin_fails = 0;
+        $user->save();
+
+        return [
+            "status"       => true,
+            "responseCode" => 1,
+            "message"      => "Amount and pin are valid",
+            "balance"      => $wallet->balance,
+        ];
+    }
+
+    private function handlePinFailure($user)
+    {
+        if ($user->transaction_pin_fails < 2) {
+            $user->transaction_pin_fails++;
+            $user->save();
+
+            return [
+                "status"       => false,
+                "responseCode" => 2,
+                "message"      => "Invalid Transaction PIN. Your account will be restricted after "
+                . (3 - $user->transaction_pin_fails) . " more attempt(s)",
+            ];
+        }
+
+        // Restrict User
+        $this->restrictUserAccount(2, "Multiple Invalid transaction pin");
+
+        return [
+            "status"       => false,
+            "responseCode" => 0,
+            "message"      => "Your account has been restricted. Please contact support",
+        ];
     }
 
     public function restrictUserAccount($restrictionId, $remark)
@@ -2803,6 +2828,11 @@ class TransactionController extends Controller
                         }
                     }
 
+                    $validatePinCheckCompanyBalance = $this->validatePinCheckCompanyBalance($request->transactionId, $request->transactionPin, $request->amount);
+                    if (! $validatePinCheckCompanyBalance['status']) {
+                        return \response()->json($validatePinCheckCompanyBalance, 400);
+                    }
+
                     $customerCharge = 0;
 
                     $transaction->transaction_remarks_id = 1;
@@ -2864,75 +2894,6 @@ class TransactionController extends Controller
 
                     logInfo(json_encode($transaction), "TXNBankDetails");
 
-                    if (isset($transaction->TXNBankDetails->user_id) && $transaction->TXNBankDetails->account_id != null) {
-                        if ($transaction->TXNBankDetails->user_id > 0) {
-
-                            $entityType = "both";
-
-                            if ($request->chargeAmount != null) {
-                                $customerCharge = $request->chargeAmount;
-                            }
-
-                            $debitCustomerAndCompany = debitCustomerAndCompanyWithCharge($transaction->TXNBankDetails->account_id, auth()->user()->company_id, $request->amount, $customerCharge, $companyCharge);
-                            logInfo(json_encode($debitCustomerAndCompany), "debitCustomerAndCompany Entity");
-                            if (! $debitCustomerAndCompany['status']) {
-                                $debitCustomerAndCompany['status'] = 0;
-                                return $debitCustomerAndCompany;
-                            }
-
-                            logInfo($debitCustomerAndCompany, "Debit Tagged customer Log");
-
-                            $accountId                   = $debitCustomerAndCompany['account_id'];
-                            $customerBalanceBefore       = $debitCustomerAndCompany['balance_before'];
-                            $customerBalanceAfter        = $debitCustomerAndCompany['balance_after'];
-                            $customerChargeBalanceBefore = $debitCustomerAndCompany['charge_balance_before'];
-                            $customerChargeBalanceAfter  = $debitCustomerAndCompany['charge_balance_after'];
-
-                            $companyBalanceBefore       = $debitCustomerAndCompany['company_balance_before'];
-                            $companyAmount              = $debitCustomerAndCompany['company_amount'];
-                            $companyBalanceAfter        = $debitCustomerAndCompany['company_balance_after'];
-                            $companyChargeBalanceBefore = $debitCustomerAndCompany['company_charge_balance_before'];
-                            $companyChargeBalanceAfter  = $debitCustomerAndCompany['company_charge_balance_after'];
-
-                            $transaction->balance_before         = $customerBalanceBefore;
-                            $transaction->amount                 = $request->amount + $customerCharge;
-                            $transaction->balance_after          = $customerChargeBalanceAfter;
-                            $transaction->company_balance_after  = $companyBalanceBefore;
-                            $transaction->company_amount         = $request->amount + $companyCharge;
-                            $transaction->company_balance_before = $companyChargeBalanceAfter;
-                        }
-                    } else {
-
-                        $entityType = "company";
-
-                        $chargeAmount = $request->amount > 1000000 ? 100 : $chargeAmount;
-
-                        $debitCompanyWithCharge = \debitCompanyWithCharge(\auth()->user()->company_id, $request->amount, $chargeAmount);
-
-                        logInfo(json_encode($debitCompanyWithCharge), "debitCompanyWithCharg Entity");
-                        if (! $debitCompanyWithCharge['status']) {
-                            $debitCompanyWithCharge['status'] = $debitCompanyWithCharge['responseCode'];
-                            return $debitCompanyWithCharge;
-                        }
-
-                        logInfo($debitCompanyWithCharge, "Debit Tagged company Log");
-
-                        $companyBalanceBefore       = $debitCompanyWithCharge['balance_before'];
-                        $companyBalanceAfter        = $debitCompanyWithCharge['balance_after'];
-                        $companyChargeBalanceBefore = $debitCompanyWithCharge['charge_balance_before'];
-                        $companyChargeBalanceAfter  = $debitCompanyWithCharge['charge_balance_after'];
-
-                        $transaction->balance_before         = 0;
-                        $transaction->balance_after          = 0;
-                        $transaction->company_balance_before = $companyBalanceBefore;
-                        $transaction->company_amount         = $request->amount + $chargeAmount;
-                        $transaction->company_balance_after  = $companyChargeBalanceAfter;
-                    }
-
-                    $transaction->save();
-
-                    DB::commit();
-
                     $bank = banks::where('bank_code', $request->bankCode)->orwhere('short_code', $request->bankCode)->first();
 
                     //9 safe heaven
@@ -2978,11 +2939,83 @@ class TransactionController extends Controller
                         $bankTransfer['status'] = 0;
 
                         return $bankTransfer;
+                    } else {
+                        if (isset($transaction->TXNBankDetails->user_id) && $transaction->TXNBankDetails->account_id != null) {
+                            if ($transaction->TXNBankDetails->user_id > 0) {
+
+                                $entityType = "both";
+
+                                if ($request->chargeAmount != null) {
+                                    $customerCharge = $request->chargeAmount;
+                                }
+
+                                $debitCustomerAndCompany = debitCustomerAndCompanyWithCharge($transaction->TXNBankDetails->account_id, auth()->user()->company_id, $request->amount, $customerCharge, $companyCharge);
+                                logInfo(json_encode($debitCustomerAndCompany), "debitCustomerAndCompany Entity");
+                                if (! $debitCustomerAndCompany['status']) {
+                                    $debitCustomerAndCompany['status'] = 0;
+                                    return $debitCustomerAndCompany;
+                                }
+
+                                logInfo($debitCustomerAndCompany, "Debit Tagged customer Log");
+
+                                $accountId                   = $debitCustomerAndCompany['account_id'];
+                                $customerBalanceBefore       = $debitCustomerAndCompany['balance_before'];
+                                $customerBalanceAfter        = $debitCustomerAndCompany['balance_after'];
+                                $customerChargeBalanceBefore = $debitCustomerAndCompany['charge_balance_before'];
+                                $customerChargeBalanceAfter  = $debitCustomerAndCompany['charge_balance_after'];
+
+                                $companyBalanceBefore       = $debitCustomerAndCompany['company_balance_before'];
+                                $companyAmount              = $debitCustomerAndCompany['company_amount'];
+                                $companyBalanceAfter        = $debitCustomerAndCompany['company_balance_after'];
+                                $companyChargeBalanceBefore = $debitCustomerAndCompany['company_charge_balance_before'];
+                                $companyChargeBalanceAfter  = $debitCustomerAndCompany['company_charge_balance_after'];
+
+                                $transaction->balance_before         = $customerBalanceBefore;
+                                $transaction->amount                 = $request->amount + $customerCharge;
+                                $transaction->balance_after          = $customerChargeBalanceAfter;
+                                $transaction->company_balance_after  = $companyBalanceBefore;
+                                $transaction->company_amount         = $request->amount + $companyCharge;
+                                $transaction->company_balance_before = $companyChargeBalanceAfter;
+                            }
+                        } else {
+
+                            $entityType = "company";
+
+                            $chargeAmount = $request->amount > 1000000 ? 100 : $chargeAmount;
+
+                            $debitCompanyWithCharge = \debitCompanyWithCharge(\auth()->user()->company_id, $request->amount, $chargeAmount);
+
+                            logInfo(json_encode($debitCompanyWithCharge), "debitCompanyWithCharg Entity");
+                            if (! $debitCompanyWithCharge['status']) {
+                                $debitCompanyWithCharge['status'] = $debitCompanyWithCharge['responseCode'];
+                                return $debitCompanyWithCharge;
+                            }
+
+                            logInfo($debitCompanyWithCharge, "Debit Tagged company Log");
+
+                            $companyBalanceBefore       = $debitCompanyWithCharge['balance_before'];
+                            $companyBalanceAfter        = $debitCompanyWithCharge['balance_after'];
+                            $companyChargeBalanceBefore = $debitCompanyWithCharge['charge_balance_before'];
+                            $companyChargeBalanceAfter  = $debitCompanyWithCharge['charge_balance_after'];
+
+                            $transaction->balance_before         = 0;
+                            $transaction->balance_after          = 0;
+                            $transaction->company_balance_before = $companyBalanceBefore;
+                            $transaction->company_amount         = $request->amount + $chargeAmount;
+                            $transaction->company_balance_after  = $companyChargeBalanceAfter;
+
+                            $transaction->description            = $myDescription;
+                            $transaction->transaction_remarks_id = 2;
+                        }
+
+                        $transaction->save();
+
+                        DB::commit();
                     }
 
-                    $transaction->description            = $myDescription;
-                    $transaction->transaction_remarks_id = 2;
-                    $transaction->save();
+                    //    $transaction->description            = $myDescription;
+                    //      $transaction->transaction_remarks_id = 2;
+                    //     $transaction->save();
 
                     return [
                         "status"  => 1,

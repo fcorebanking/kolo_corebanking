@@ -688,7 +688,7 @@ class SafehavenController extends WebhookController
         }
 
         logInfo("$customer_sudo_account_id", "customer_sudo_account_id");
-        logInfo($customer['data']['_id'], "customer");
+        logInfo("{$customer['data']['_id']}", "customer");
 
         $body = [
 
@@ -999,12 +999,12 @@ class SafehavenController extends WebhookController
             if (isset($result['statusCode']) && $result['statusCode'] == 200) {
                 return $result;
             } else {
-                return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
+                return ['status' => false, 'message' => "Card pin change failed... Please contact support"];
             }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Sudo Customer Get Result Error");
 
-            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
+            return ['status' => false, 'message' => "Card pin change failed ... Please contact support"];
         }
     }
 }

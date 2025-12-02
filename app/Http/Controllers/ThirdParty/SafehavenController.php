@@ -672,83 +672,99 @@ class SafehavenController extends WebhookController
 
     public function createPhysicalCard($request, $transactionId, $customer, $customer_sudo_account_id)
     {
+        /**
+         * 1. Resolve or create Sudo Customer
+         */
+        $customer_sudo_account_id = $customer_sudo_account_id ?? $this->getCustomerSudoID($customer);
 
-        if ($customer_sudo_account_id == null) {
-            // check if user has a customer base with Sudo
-            $customer_sudo_account_id = $this->getCustomerSudoID($customer);
+        if (is_null($customer_sudo_account_id)) {
+            // Create new Sudo Customer
+            $customer = $this->createSudoCustomer($request, $customer);
 
-            if ($customer_sudo_account_id == null) {
-                $customer = $this->createSudoCustomer($request, $customer);
-            } else {
-                $customer = $this->getSudoCardCustomerInfo($customer_sudo_account_id);
+            // Ensure creation returned a valid structure
+            if (! isset($customer['data']['_id'])) {
+                return ['status' => false, 'message' => "Failed to create Sudo customer"];
             }
 
+            $customer_sudo_account_id = $customer['data']['_id'];
         } else {
-            $customer = $this->getSudoCardCustomerInfo($customer_sudo_account_id);
+            // Fetch existing Sudo customer details
+            $customer                 = $this->getSudoCardCustomerInfo($customer_sudo_account_id);
+            $customer_sudo_account_id = $customer['data']['customer']['_id'];
         }
 
-        logInfo("$customer_sudo_account_id", "customer_sudo_account_id");
-        //   logInfo("{$customer['data']['_id']}", "customer");
+        logInfo($customer_sudo_account_id, "customer_sudo_account_id");
 
+        /**
+         * 2. Build request body
+         */
         $body = [
-
-            "customerId"      => $customer_sudo_account_id ?? $customer['data']['_id'],
+            "customerId"      => $customer_sudo_account_id,
             "fundingSourceId" => $this->fundingSourceId,
             "type"            => "physical",
             "currency"        => "NGN",
             "status"          => "active",
             "number"          => $request->card_number,
-            "status"          => "active",
             "debitAccountId"  => $this->debitAccountId,
             "brand"           => $request->card_type,
             "amount"          => 123,
-
         ];
 
         logInfo(json_encode($body), "Sudo Customer Register Physical Card request body");
 
-        $endpoint = "$this->baseSudoUrl/cards";
+        $endpoint = "{$this->baseSudoUrl}/cards";
 
+        /**
+         * 3. Execute request
+         */
         try {
             $result = $this->sudoPostRequest($endpoint, $body);
 
             logInfo(json_encode($result), "Sudo Customer Register Physical Card Result");
 
-            if (isset($result['statusCode'])) {
-                if ($result['statusCode'] == 200) {
-                    return ['status' => true, 'message' => $result['message'], 'result' => $result];
-                } else {
-                    return ['status' => false, 'message' => $result['message']];
-                }
-            } else {
-                return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return [
+                    'status'  => true,
+                    'message' => $result['message'],
+                    'result'  => $result,
+                ];
             }
+
+            return ['status' => false, 'message' => $result['message'] ?? "Failed to create card"];
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Sudo Customer Register Physical Error");
-
             return ['status' => false, 'message' => "Failed to create card... Please contact support"];
         }
     }
 
     public function createVirtualCard($request, $customer, $customer_sudo_account_id)
     {
+        /**
+         * 1. Resolve or create Sudo Customer
+         */
+        $customer_sudo_account_id = $customer_sudo_account_id ?? $this->getCustomerSudoID($customer);
 
-        if ($customer_sudo_account_id == null) {
-            // check if user has a customer base with Sudo
-            $customer_sudo_account_id = $this->getCustomerSudoID($customer);
+        if (is_null($customer_sudo_account_id)) {
+            // No Sudo ID → create new Sudo customer
+            $customer = $this->createSudoCustomer($request, $customer);
 
-            if ($customer_sudo_account_id == null) {
-                $customer = $this->createSudoCustomer($request, $customer);
-            } else {
-                $customer = $this->getSudoCardCustomerInfo($customer_sudo_account_id);
+            // Ensure valid structure returned
+            if (! isset($customer['data']['_id'])) {
+                return ['status' => false, 'message' => "Failed to create Sudo customer"];
             }
 
+            $customer_sudo_account_id = $customer['data']['_id'];
         } else {
-            $customer = $this->getSudoCardCustomerInfo($customer_sudo_account_id);
+            // Sudo ID exists → fetch full details
+            $customer                 = $this->getSudoCardCustomerInfo($customer_sudo_account_id);
+            $customer_sudo_account_id = $customer['data']['customer']['_id'];
         }
 
+        /**
+         * 2. Build request body
+         */
         $body = [
-            "customerId"      => $customer_sudo_account_id ?? $customer['data']['_id'],
+            "customerId"      => $customer_sudo_account_id,
             "fundingSourceId" => $this->fundingSourceId,
             "type"            => "virtual",
             "currency"        => "NGN",
@@ -756,30 +772,31 @@ class SafehavenController extends WebhookController
             "debitAccountId"  => $this->debitAccountId,
             "brand"           => "Verve",
             "amount"          => 123,
-
         ];
 
-        logInfo($body, "Sudo Customer Register Virtual Card body");
+        logInfo(json_encode($body), "Sudo Customer Register Virtual Card body");
 
-        $endpoint = "$this->baseSudoUrl/cards";
+        $endpoint = "{$this->baseSudoUrl}/cards";
 
+        /**
+         * 3. Execute request
+         */
         try {
             $result = $this->sudoPostRequest($endpoint, $body);
 
             logInfo(json_encode($result), "Sudo Customer Register Virtual Card Result");
 
-            if (isset($result['statusCode'])) {
-                if ($result['statusCode'] == 200) {
-                    return ['status' => true, 'message' => $result['message'], 'result' => $result];
-                } else {
-                    return ['status' => false, 'message' => $result['message']];
-                }
-            } else {
-                return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return [
+                    'status'  => true,
+                    'message' => $result['message'],
+                    'result'  => $result,
+                ];
             }
+
+            return ['status' => false, 'message' => $result['message'] ?? "Failed to create card"];
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Sudo Customer Register Virtual Card Error");
-
             return ['status' => false, 'message' => "Failed to create card... Please contact support"];
         }
     }

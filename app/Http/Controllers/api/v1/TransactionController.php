@@ -1126,6 +1126,7 @@ class TransactionController extends Controller
                         $bankAccount['status'] = false;
                         return response()->json($bankAccount);
                     }
+                       $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
 
                     // $transactionRef2 = generateTransactionReference();
 
@@ -1199,7 +1200,7 @@ class TransactionController extends Controller
 
                         $newdescription = $request->description == "" ? $currentUser->first_name : $request->description;
 
-                        $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
+                     
 
                         $newdescription = $newdescription . "/" . $request->receipient_name . "/" . $request->destination_account . " - " . $bank->bank_name;
 

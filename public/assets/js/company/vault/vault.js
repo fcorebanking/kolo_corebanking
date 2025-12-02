@@ -173,41 +173,65 @@ function create_vault() {
 }
 
 function verifyBankAccount() {
-    $('.btnsettlement').attr("disabled", "disabled");
-    $('.btnsettlement').css("opacity", ".5");
-    var transferBankCode = $('#bank').find('option:selected').attr('code');
-    var transferAccountNumber = $('#accountNumber').val();
 
+    var transferBankCode = $('#transferBankCode').val();
+    var transferAccountNumber = $('#transferAccountNumber').val();
 
+    if (transferBankCode != null) _getValidationField[4].style.display = 'none';
+
+    $('#transferAccountName').val("");
+
+    console.log(transferBankCode + " " + transferAccountNumber);
     if (transferAccountNumber.length == 10 && transferBankCode != "") {
-        $("#myBankLoader").show();
-        $("#myBankLoader").html("Loading...");
+        console.log("Verifying account number " + transferAccountNumber);
 
-        $('#transferAccountName').val("loading...");
+        $("#myBankLoader").show();
+
+        $('#transferAccountName').val("");
+        _getValidationField[5].style.display = 'none';
+
+
         data_info = {
             "bankCode": transferBankCode,
             "accountNumber": transferAccountNumber,
         }
-        $('#accountName').val('loading...')
 
         $.ajax({
-            url: '/company/wba/transaction/verify-bank-account',
+            url: 'verify-bank-account',
             type: 'post',
             data: data_info,
             dataType: 'json',
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function (data) {
+
+                console.log(data.status, "Response status");
+
                 if (data.status == 1) {
-                    $("#myBankLoader").html(data.data.account_name);
-                    $('.btnsettlement').css("opacity", "");
-                    $('.btnsettlement').removeAttr("disabled");
-                    $('#accountName').val(data.data.account_name)
+
+                    var newAccountNumber = $('#transferAccountNumber').val();
+
+                    if (newAccountNumber.length == 10) {
+                        $('#transferAccountName').val(data.data.account_name);
+                        $('#bankName').val(data.data.bank_name);
+                        $('#requestReference').val(data.data.request_reference);
+                        $('#sessionID').val(data.data.session_id);
+                        _getValidationField[5].style.display = 'none';
+                    } else {
+                        $('#transferAccountName').val("");
+                        $('#bankName').val("");
+                        _getValidationField[5].innerHTML = 'Invalid Account Number';
+                        _getValidationField[5].style.display = 'block';
+                    }
                 } else {
-                    $("#myBankLoader").html(data.message);
+                    console.log(data);
+                    _getValidationField[5].innerHTML = 'Invalid Account Number';
+                    _getValidationField[5].style.display = 'block';
                 }
 
+                $("#myBankLoader").hide();
             },
             error: function (jqXHR, status, error) {
+
                 $('.toast').addClass("bg-danger");
                 var msg = '';
                 if (jqXHR.status === 0) {
@@ -219,6 +243,7 @@ function verifyBankAccount() {
                 } else {
                     msg = 'Uncaught Error.\n' + error;
                 }
+
                 $('.toast-msg').html(msg);
             },
             xhr: function () {
@@ -241,5 +266,10 @@ function verifyBankAccount() {
         }).done(function () {
             // $('.toast').addClass("bg-success");
         });
+
+        // $('.toast').toast('show');
+    } else {
+        $('#accountName').val('');
+        $("#myBankLoader").hide();
     }
 }

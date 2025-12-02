@@ -1126,7 +1126,8 @@ class TransactionController extends Controller
                         $bankAccount['status'] = false;
                         return response()->json($bankAccount);
                     }
-                       $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
+                    $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
+                     $gatewayDescription = $currentUser->first_name . " " . $currentUser->last_name . " / " . $currentUser->company->company_name;
 
                     // $transactionRef2 = generateTransactionReference();
 
@@ -1200,11 +1201,9 @@ class TransactionController extends Controller
 
                         $newdescription = $request->description == "" ? $currentUser->first_name : $request->description;
 
-                     
-
                         $newdescription = $newdescription . "/" . $request->receipient_name . "/" . $request->destination_account . " - " . $bank->bank_name;
 
-                        $gatewayDescription = $currentUser->first_name . " " . $currentUser->last_name . " / " . $currentUser->company->company_name;
+                       
                         $myDescription      = "You transferred funds to " . $bankAccount['data']['account_name'] . "/" . $request->destination_account . " / " . $bank->bank_name . " / " . $currentUser->company->company_name;
 
                         $transaction->description = $myDescription;

@@ -1,3 +1,7 @@
+@include('inc.styles')
+
+@include('inc.scripts')
+
 @extends('layouts.app')
 
 @section('content')
@@ -15,6 +19,7 @@
                     <button class='btn btn-info' onclick='view_vault()'>Create Vault</button>
                     <button class='btn btn-success' onclick='staff_deposit()'>Staff Vault</button>
                     <button class='btn btn-secondary' onclick='branch_deposit()'>Branch Vault</button>
+
                     <div id='transfer_bank'>
                         <h3>Company Wallet to Bank</h3>
 

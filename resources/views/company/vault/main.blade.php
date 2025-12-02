@@ -9,7 +9,7 @@
             <div class="col-xl-12 col-lg-12 col-sm-12">
                 <div class="widget-content widget-content-area">
 
-                    <button class='btn btn-primary' onclick='transfer_vault_bank()'>Vault Transfer to Bank</button>
+                    <button class='btn btn-primary' onclick='transfer_bank()'>Vault Transfer to Bank</button>
                     <button class='btn btn-primary' onclick='transfer_vault()'>Vault Transfer</button>
                     <button class='btn btn-warning' onclick='deposit_vault()'>Fund Vault</button>
                     <button class='btn btn-info' onclick='view_vault()'>Create Vault</button>
@@ -184,7 +184,7 @@
 
                         </div>
                     </div>
-                    <div id='transfer_vault_bank'>
+                    <div id='transfer_bank'>
                         <h3>Company Wallet to Bank</h3>
 
                         <div class="row" style="flex-direction: row; justify-content: center; align-items: center;">

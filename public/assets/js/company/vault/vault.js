@@ -1,4 +1,7 @@
-document.getElementById('deposit_vault').style.display = 'none';
+var _getValidationField = document.getElementsByClassName('validation-text');
+
+
+ocument.getElementById('deposit_vault').style.display = 'none';
 document.getElementById('staff_deposit').style.display = 'none';
 document.getElementById('branch_deposit').style.display = 'none';
 document.getElementById('create_vault').style.display = 'none';

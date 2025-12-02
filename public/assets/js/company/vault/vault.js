@@ -171,3 +171,75 @@ function create_vault() {
     $('#html5-extension').DataTable().ajax.url("/company/vault-ajax").load();
     get_vaults();
 }
+
+function verifyBankAccount() {
+    $('.btnsettlement').attr("disabled", "disabled");
+    $('.btnsettlement').css("opacity", ".5");
+    var transferBankCode = $('#bank').find('option:selected').attr('code');
+    var transferAccountNumber = $('#accountNumber').val();
+
+
+    if (transferAccountNumber.length == 10 && transferBankCode != "") {
+        $("#myBankLoader").show();
+        $("#myBankLoader").html("Loading...");
+
+        $('#transferAccountName').val("loading...");
+        data_info = {
+            "bankCode": transferBankCode,
+            "accountNumber": transferAccountNumber,
+        }
+        $('#accountName').val('loading...')
+
+        $.ajax({
+            url: '/company/wba/transaction/verify-bank-account',
+            type: 'post',
+            data: data_info,
+            dataType: 'json',
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            success: function (data) {
+                if (data.status == 1) {
+                    $("#myBankLoader").html(data.data.account_name);
+                    $('.btnsettlement').css("opacity", "");
+                    $('.btnsettlement').removeAttr("disabled");
+                    $('#accountName').val(data.data.account_name)
+                } else {
+                    $("#myBankLoader").html(data.message);
+                }
+
+            },
+            error: function (jqXHR, status, error) {
+                $('.toast').addClass("bg-danger");
+                var msg = '';
+                if (jqXHR.status === 0) {
+                    msg = 'Not connected\n Verify Network.';
+                } else if (jqXHR.status == 404) {
+                    msg = 'Requested page not found. [404]';
+                } else if (jqXHR.status == 500) {
+                    msg = 'Internal Server Error [500].';
+                } else {
+                    msg = 'Uncaught Error.\n' + error;
+                }
+                $('.toast-msg').html(msg);
+            },
+            xhr: function () {
+                var xhr = $.ajaxSettings.xhr();
+                xhr.onprogress = function e() {
+                    // For downloads
+                    if (e.lengthComputable) {
+                        console.log(e.loaded / e.total);
+                        $(".toast-msg").html(e.loaded / e.total);
+                    }
+                };
+                xhr.upload.onprogress = function (e) {
+                    // For uploads
+                    if (e.lengthComputable) {
+                        console.log(e.loaded / e.total);
+                    }
+                };
+                return xhr;
+            }
+        }).done(function () {
+            // $('.toast').addClass("bg-success");
+        });
+    }
+}

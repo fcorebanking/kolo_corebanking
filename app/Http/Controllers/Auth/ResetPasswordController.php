@@ -125,7 +125,7 @@ class ResetPasswordController extends Controller
 
         logInfo($url, "Reset Password User");
 
-        logInfo($userinfo->email, "email data before send email");
+        logInfo($userInfo->email, "email data before send email");
 
         $sendSms = sendEmail("Request to Change Password", $msg, $userInfo);
 

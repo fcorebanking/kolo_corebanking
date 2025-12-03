@@ -5954,6 +5954,118 @@ class TransactionController extends Controller
 
     }
 
+    public function processVerifyAndReverseTransaction(Request $request)
+    {
+
+        $validation = Validator::make($request->all(), [
+            "transaction_reference" => "required|string",
+        ]);
+
+        $partnerType = "others";
+
+        if ($validation->fails()) {
+            return response()->json(['status' => 0, 'message' => $validation->errors()->all()[0]]);
+        }
+
+        $transaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
+
+        if (! $transaction) {
+            return response()->json(['status' => 0, 'message' => "Invalid Transaction reference"]);
+        }
+
+        if ($transaction->transaction_type_id != 8) {
+            return response()->json(['status' => 0, 'message' => "This transaction is not a bank transfer"]);
+        }
+
+        $startingDate    = Carbon::parse('2022-12-15 00:00:00');
+        $transactionDate = Carbon::parse($transaction->created_at);
+
+        if ($startingDate->gt($transactionDate)) {
+            return response()->json(['status' => 0, 'message' => "This transaction cannot be reversed"]);
+        }
+
+        if ($transaction->transaction_remarks_id == 5) {
+            return response()->json(['status' => 0, 'message' => "Transaction has already been reversed"]);
+        }
+
+        if ($transaction->created_at > Carbon::now()->subMinutes(30)) {
+            return response()->json(['status' => 0, 'message' => "Transaction must be at least 30 minutes before the transaction status can be confirmed"]);
+        }
+
+        $affliateCustomerCharge = 0;
+        $affliateCompanyCharge  = 0;
+        $whoToCredit            = $transaction->account_id == null ? 'company' : 'both';
+
+        $childTransaction = transactions::where('parent_transaction_id', $transaction->id)->first();
+
+        if ($childTransaction) {
+            $affliateCustomerCharge = $childTransaction->amount;
+            $affliateCompanyCharge  = $childTransaction->company_amount;
+        }
+
+        $kudaController = new KudaController();
+
+        $verifyTransaction = $kudaController->verifyTransaction($request->transaction_reference);
+
+        if ($verifyTransaction['status'] == "03") {
+            $partnerType            = "kuda_business";
+            $kudaBusinessController = new KudaBusinessController();
+            $verifyTransaction      = $kudaBusinessController->verifyTransaction($request->transaction_reference);
+        }
+
+        if ($verifyTransaction['status'] == "03") {
+            $partnerType         = "safehaven";
+            $safeHavenController = new SafehavenController();
+            $verifyTransaction   = $safeHavenController->getTransactionStatus($request->transaction_reference);
+        }
+
+        if ($verifyTransaction['status'] == "03") {
+            $partnerType = "monnify";
+
+            $monnifyController = new MonnifyController();
+            $verifyTransaction = $monnifyController->getTransactionStatus($request->transaction_reference);
+        }
+
+        if ($verifyTransaction['status'] == "00") {
+
+            $transaction->transaction_remarks_id = 2;
+            $transaction->save();
+
+            $verifyTransaction['status'] = 1;
+
+            return response()->json($verifyTransaction);
+        } else {
+
+            logInfo($verifyTransaction, "Verify Transaction Before");
+            if ($verifyTransaction['status'] == "02") {
+
+                $verifyTransaction['status'] = 1;
+
+                if ($partnerType == "safehaven" || $partnerType == "others" || $partnerType == "kuda_business") {
+
+                    logInfo($transaction, "Transaction Records for Safe haven");
+                    $totalCustomerAmount = $transaction->company_amount + $affliateCustomerCharge;
+                    $totalCompanyAmount  = $transaction->company_amount + $affliateCompanyCharge;
+                } else if ($partnerType != "safehaven") {
+                    $totalCustomerAmount = $transaction->amount + $affliateCustomerCharge;
+                    $totalCompanyAmount  = $transaction->amount + $affliateCompanyCharge;
+                }
+
+                $reversalResult = debitReversal($request->transaction_reference, $transaction->account_id, $transaction->company_id, $totalCustomerAmount, $totalCompanyAmount, $whoToCredit);
+
+                if (! $reversalResult['status']) {
+                    $reversalResult['status'] = 0;
+                    return response()->json($reversalResult);
+                }
+            } else {
+                $verifyTransaction['status'] = 0;
+            }
+
+            logInfo($verifyTransaction, "Verify Transaction Res");
+            return response()->json($verifyTransaction);
+        }
+    }
+
     private function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)
     {
 

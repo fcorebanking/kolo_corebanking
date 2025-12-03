@@ -257,6 +257,7 @@ Route::prefix('/transactions')->group(function () {
         Route::get('/get-data-bundles/{networkProvider}', [TransactionController::class, 'getDataBundles']);
         Route::middleware('checkAccountStatus')->post('/bank-transfer', [TransactionController::class, 'transferToBankAccount'])->middleware('log.route');
         Route::middleware('checkAccountStatus')->post('/bank-transfer-test', [TransactionController::class, 'transferToBankAccountTest'])->middleware('log.route');
+        Route::middleware('checkAccountStatus')->post('/process-verify-reverse-transactions', [TransactionController::class, 'processVerifyAndReverseTransaction'])->middleware('log.route');
     });
 
     Route::middleware('checkApiKey')->get('/status/sh/{transactionReference}', [TransactionController::class, 'processSafeHavenVerifyAndReverseTransaction'])->middleware('log.route');

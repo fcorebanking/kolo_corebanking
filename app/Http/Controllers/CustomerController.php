@@ -730,6 +730,9 @@ class CustomerController extends Controller
             if (! $cardResponse['status']) {
                 DB::rollback();
                 return response()->json(['status' => 0, 'message' => $cardResponse['message']]);
+            } else {
+
+                $card2FAResponse = $safehaven->enrollcard2fa($cardResponse['result']['data']["_id"]);
             }
 
             // Mark transaction as confirmed debit

@@ -985,7 +985,7 @@ class SafehavenController extends WebhookController
         try {
             $result = $this->sudoPutRequest($endpoint);
 
-            logInfo(json_encode($result), "Sudo Customer Get Card Result");
+            logInfo(json_encode($result), "Sudo Customer Put Card Result");
 
             if (isset($result['statusCode']) && $result['statusCode'] == 200) {
                 return $result;

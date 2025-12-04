@@ -6,6 +6,7 @@ use App\Models\UserCard;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class SafehavenController extends WebhookController
 {
@@ -808,6 +809,7 @@ class SafehavenController extends WebhookController
         $email     = $request->email ?? $customer->email;
         $phone     = $request->phone ?? $customer->phone;
         $address   = $request->address ?? $customer->address;
+        $address40 = str_pad(Str::limit($address, 40, ''), 40, ' ');
 
         $body = [
             "type"         => "individual",
@@ -822,7 +824,7 @@ class SafehavenController extends WebhookController
 
             ],
             "billingAddress" => [
-                "line1"      => $address ?? "",
+                "line1"      => $address40 ?? "",
                 "line2"      => "",
                 "city"       => $customer->state_of_origin ?? "LA",
                 "state"      => $customer->state_of_origin ?? "Lagos",

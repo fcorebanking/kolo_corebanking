@@ -2209,7 +2209,7 @@ class TransactionController extends Controller
         $company = $user->company;
         $wallet  = $company->wallet;
 
-               // 2. Validate Transaction
+        // 2. Validate Transaction
         $transaction = transactions::where([
             'transaction_reference' => $transactionId,
             'amount'                => $amount,

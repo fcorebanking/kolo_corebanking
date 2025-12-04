@@ -2203,18 +2203,13 @@ class TransactionController extends Controller
         $transaction->save();
     }
 
-    public function validatePinCheckCompanyBalance($transactionId, $transactionPin, $amount)
+    public function checkCompanyBalance($transactionId, $amount)
     {
         $user    = auth()->user();
         $company = $user->company;
         $wallet  = $company->wallet;
 
-        // 1. Validate Transaction PIN
-        if ($company->transaction_pin !== $transactionPin) {
-            return $this->handlePinFailure($user);
-        }
-
-        // 2. Validate Transaction
+               // 2. Validate Transaction
         $transaction = transactions::where([
             'transaction_reference' => $transactionId,
             'amount'                => $amount,
@@ -2828,9 +2823,9 @@ class TransactionController extends Controller
                         }
                     }
 
-                    $validatePinCheckCompanyBalance = $this->validatePinCheckCompanyBalance($request->transactionId, $request->transactionPin, $request->amount);
-                    if (! $validatePinCheckCompanyBalance['status']) {
-                        return \response()->json($validatePinCheckCompanyBalance, 400);
+                    $checkCompanyBalance = $this->checkCompanyBalance($request->transactionId, $request->amount);
+                    if (! $checkCompanyBalance['status']) {
+                        return \response()->json($checkCompanyBalance, 400);
                     }
 
                     $customerCharge = 0;

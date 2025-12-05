@@ -694,25 +694,32 @@ class WebhookController extends Controller
 
                     response()->json([
 
-                        "statusCode"   => 200,
-                        "responseCode" => "00",
+                        "statusCode" => 200,
+                        "data"       => [
+                            "responseCode" => "00",
+                        ],
 
                     ], 200);
                 }
 
             } else {
                 response()->json([
-                    "statusCode"   => 403,
-                    "responseCode" => "96",
-                    "message"      => "Error",
+                    "statusCode" => 403,
+                    "data"       => [
+                        "responseCode" => "96",
+                    ],
+
+                    "message"    => "Error",
                 ], 403);
             }
 
         } else {
             response()->json([
-                "statusCode"   => 403,
-                "responseCode" => "51",
-                "message"      => "Insufficient fund",
+                "statusCode" => 403,
+                "data"       => [
+                    "responseCode" => "51",
+                ],
+                "message"    => "Insufficient fund",
             ], 403);
         }
     }

@@ -1000,8 +1000,8 @@ class SafehavenController extends WebhookController
         $endpoint      = "$this->baseSudoUrl/cards/$cardReference/pin";
 
         $body = [
-            "oldPin" => $request->old_pin,
-            "newPin" => $request->new_pin,
+            "oldPin" => "{$request->old_pin}",
+            "newPin" => "{$request->new_pin}",
 
         ];
 

@@ -676,7 +676,7 @@ class WebhookController extends Controller
 
             if ($checkCompanyBalance['status']) {
 
-                $debitCustomer = $this->debitCustomerWithChargeSudo($customerAccountId, $formatedAmount, 0, $user, $user_wallet);
+                $debitCustomer = $this->debitCustomerWithChargeSudo($formatedAmount, 0, $user, $user_wallet);
                 logInfo(json_encode($debitCustomer), "debitCustomer Sudo");
 
                 $debitCompany = $this->debitCompanyCardWallet($companyId, $formatedAmount);
@@ -851,7 +851,7 @@ class WebhookController extends Controller
         return $response;
     }
 
-    private function debitCustomerWithChargeSudo($customerAccountId, $originalAmount, $charge, $user, $userWallet)
+    private function debitCustomerWithChargeSudo($originalAmount, $charge, $user, $userWallet)
     {
         // Validate amount
         if ($originalAmount <= 0) {
@@ -884,7 +884,6 @@ class WebhookController extends Controller
             "status"         => true,
             "amount"         => $debitAmount,
             "message"        => "Amount is valid",
-            "account_id"     => $customerAccountId,
             "balance_before" => $initialBalance,
             "balance_after"  => $newBalance,
         ];

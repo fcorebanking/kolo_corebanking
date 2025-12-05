@@ -692,7 +692,7 @@ class WebhookController extends Controller
 
                     $this->debitSudoTransaction($debitCustomer, $debitCompany, $formatedAmount, $customerAccountId, $companyId, $description, $branchId, $user);
 
-                    response()->json([
+                    return response()->json([
 
                         "statusCode" => 200,
                         "data"       => [
@@ -703,7 +703,7 @@ class WebhookController extends Controller
                 }
 
             } else {
-                response()->json([
+                return response()->json([
                     "statusCode" => 403,
                     "data"       => [
                         "responseCode" => "96",
@@ -714,7 +714,7 @@ class WebhookController extends Controller
             }
 
         } else {
-            response()->json([
+            return response()->json([
                 "statusCode" => 403,
                 "data"       => [
                     "responseCode" => "51",

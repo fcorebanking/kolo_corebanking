@@ -618,15 +618,15 @@ class WebhookController extends Controller
         $user_wallet = $this->getUserWallet($mainAccount);
 
         if ($requestResponse['type'] == "card.balance") {
-            $safehaven->getSudoUserCardBalance($user_wallet);
+            return $safehaven->getSudoUserCardBalance($user_wallet);
         }
 
         if ($requestResponse['type'] == "transaction.created" || $requestResponse['type'] == "authorization.request") {
-            $safehaven->getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user);
+            return $safehaven->getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user);
         }
 
         if ($requestResponse['type'] == "refund") {
-            $safehaven->getSudoUserRefund($request, $user_wallet, $companyId, $branchId);
+            return $safehaven->getSudoUserRefund($request, $user_wallet, $companyId, $branchId);
         }
 
     }

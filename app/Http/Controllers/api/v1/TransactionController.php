@@ -2324,8 +2324,8 @@ class TransactionController extends Controller
 
         $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
 
-         logInfo(json_encode($handleWebhook), "Handle web hook Sudo result");
-          logInfo("$httpCode", "httpCode");
+        logInfo(json_encode($handleWebhook), "Handle web hook Sudo result");
+        logInfo("$httpCode", "httpCode");
 
         return response()->json($handleWebhook, $httpCode);
     }

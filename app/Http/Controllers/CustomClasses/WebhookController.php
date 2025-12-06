@@ -591,12 +591,15 @@ class WebhookController extends Controller
     {
         $safehaven = new SafehavenController();
 
+        $this->transactionReference = $request->input('data.object.transactionMetadata.reference');
+        logInfo(json_encode($this->transactionReference), "Sudo Transaction Reference");
+
         $requestResponse = $request->all();
         logInfo(json_encode($requestResponse), "request Response");
 
         logInfo($this->accountReference, "Card Name");
 
-        $user_id = $safehaven->getUserCard();
+        $user_id = $safehaven->getUserCard($this->accountReference, $this->transactionReference);
         logInfo($user_id, "User Card username ID");
 
         $user = $this->getUser($user_id);
@@ -611,9 +614,6 @@ class WebhookController extends Controller
         $branchId  = $mainAccount->user->branch->id;
         $accountId = $mainAccount->id;
         $userId    = $mainAccount->user_id;
-
-        $this->transactionReference = $request->input('data.object.transactionMetadata.reference');
-        logInfo(json_encode($this->transactionReference), "Sudo Transaction Reference");
 
         $user_wallet = $this->getUserWallet($mainAccount);
 

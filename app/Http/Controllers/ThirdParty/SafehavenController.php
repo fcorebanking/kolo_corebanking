@@ -1140,9 +1140,9 @@ class SafehavenController extends WebhookController
         ], 406);
     }
 
-    public function getUserCard()
+    public function getUserCard($accountReference, $transactionReference)
     {
-        return UserCard::where('card_name', $this->accountReference)->orWhere('masked_pan', $this->transactionReference)->orWhere('card_reference', $this->accountReference)->first()->user_id;
+        return UserCard::where('card_name', $accountReference)->orWhere('masked_pan', $transactionReference)->orWhere('card_reference', $this->accountReference)->first()->user_id;
 
     }
 

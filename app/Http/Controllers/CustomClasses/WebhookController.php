@@ -597,9 +597,10 @@ class WebhookController extends Controller
         $requestResponse = $request->all();
         logInfo(json_encode($requestResponse), "request Response");
 
+        $this->accountReference = $request->input('data.object.card._id') ?? $request->input('data.object.card');
         logInfo($this->accountReference, "Card Name");
 
-        $user_id = $safehaven->getUserCard($this->accountReference, $this->transactionReference);
+        $user_id = $safehaven->getUserCard($this->accountReference);
         logInfo($user_id, "User Card username ID");
 
         $user = $this->getUser($user_id);
@@ -621,8 +622,12 @@ class WebhookController extends Controller
             return $safehaven->getSudoUserCardBalance($user_wallet);
         }
 
-        if ($requestResponse['type'] == "transaction.created" || $requestResponse['type'] == "authorization.request") {
-            return $safehaven->getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user, $this->transactionReference);
+        if ($requestResponse['type'] == "authorization.request") {
+            return $safehaven->getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user);
+        }
+
+        if ($requestResponse['type'] == "transaction.created") {
+            return $safehaven->getSudoUserTransaction($request, $user_wallet, $companyId, $branchId, $user, $this->transactionReference);
         }
 
         if ($requestResponse['type'] == "refund") {

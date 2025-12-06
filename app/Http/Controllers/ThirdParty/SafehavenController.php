@@ -1028,7 +1028,8 @@ class SafehavenController extends WebhookController
     private function getSudoUserCardBalance($user_wallet)
     {
 
-        logInfo($user_wallet->balance, "Virtual Accont Amount");
+        logInfo($user_wallet->balance, "Sudo Virtual Account Amount");
+
         return [
             'statusCode'   => 200,
             'responseCode' => "00",
@@ -1040,7 +1041,28 @@ class SafehavenController extends WebhookController
 
     }
 
-    public function getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user, $transactionReference)
+    public function getSudoUserTransaction($request, $user_wallet, $companyId, $branchId, $user, $transactionReference)
+    {
+
+        $amount      = $request->input('data.object.amount');
+        $description = $request->input('data.object.transactionMetadata.type');
+        $oldBalance  = $user_wallet->balance;
+        logInfo($oldBalance, "Old Wallet Balance");
+
+        logInfo($amount, "Amount");
+        $formatedAmount = abs($amount);
+
+        logInfo($formatedAmount, "formated Amount");
+
+        $debitCustomer = $this->debitCustomerWithChargeSudo($formatedAmount, 0, $user, $user_wallet);
+        logInfo(json_encode($debitCustomer), "debitCustomer Sudo");
+
+        $debitCompany = $this->debitCompanyCardWallet($companyId, $formatedAmount);
+        logInfo(json_encode($debitCompany), "debitCompany Card Wallet");
+
+    }
+
+    public function getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user)
     {
 
         $amount      = $request->input('data.object.amount');
@@ -1062,28 +1084,11 @@ class SafehavenController extends WebhookController
 
             if ($checkCompanyBalance['status']) {
 
-                $debitCustomer = $this->debitCustomerWithChargeSudo($formatedAmount, 0, $user, $user_wallet);
-                logInfo(json_encode($debitCustomer), "debitCustomer Sudo");
-
-                $debitCompany = $this->debitCompanyCardWallet($companyId, $formatedAmount);
-                logInfo(json_encode($debitCompany), "debitCompany Card Wallet");
-
-                if ($debitCustomer['status']) {
-                    logInfo($debitCustomer["balance_after"], "New Wallet Balance");
-                    logInfo($debitCompany["balance_after"], "New Wallet Balance");
-
-                    $customerAccountId = $user_wallet->wb_account_detail_id;
-
-                    logInfo($customerAccountId, "customerAccountId");
-
-                    $this->debitSudoTransaction($debitCustomer, $debitCompany, $formatedAmount, $customerAccountId, $companyId, $description, $branchId, $user, $transactionReference);
-
-                    return [
-                        'statusCode'   => 200,
-                        'responseCode' => "00",
-                        'httpCode'     => true,
-                    ];
-                }
+                return [
+                    'statusCode'   => 200,
+                    'responseCode' => "00",
+                    'httpCode'     => true,
+                ];
 
             } else {
                 return [
@@ -1134,9 +1139,9 @@ class SafehavenController extends WebhookController
         ];
     }
 
-    public function getUserCard($accountReference, $transactionReference)
+    public function getUserCard($accountReference)
     {
-        return UserCard::where('card_name', $accountReference)->orWhere('masked_pan', $transactionReference)->orWhere('card_reference', $this->accountReference)->first()->user_id;
+        return UserCard::where('card_reference', $this->accountReference)->first()->user_id;
 
     }
 

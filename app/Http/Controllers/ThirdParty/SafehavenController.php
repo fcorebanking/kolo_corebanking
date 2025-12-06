@@ -1056,7 +1056,7 @@ class SafehavenController extends WebhookController
 
         if ($formatedAmount < $oldBalance) {
             logInfo("amount working", "formated Amount if less than");
-            return ['status' => false, 'message' => "Failed to create card ... Please contact support"];
+            logInfo("ready to send response", "response");
 
             return response()->json([
                 "statusCode"   => 200,

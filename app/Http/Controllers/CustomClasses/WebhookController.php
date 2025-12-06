@@ -650,10 +650,10 @@ class WebhookController extends Controller
         logInfo($user_wallet->balance, "Virtual Accont Amount");
         return response()->json([
 
-            "statusCode"   => 200,
-            "responseCode" => "00",
-            "data"         => [
-                "balance" => $user_wallet->balance,
+            "statusCode" => 200,
+            "data"       => [
+                "responseCode" => "00",
+                "balance"      => $user_wallet->balance,
             ],
 
         ], 200);
@@ -678,8 +678,11 @@ class WebhookController extends Controller
 
             return response()->json([
 
-                "statusCode"   => 200,
-                "responseCode" => "00",
+                "statusCode" => 200,
+                "data"       => [
+                    "responseCode" => "00",
+
+                ],
 
             ], 200);
 

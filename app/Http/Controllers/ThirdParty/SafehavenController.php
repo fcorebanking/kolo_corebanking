@@ -1141,7 +1141,7 @@ class SafehavenController extends WebhookController
 
     public function getUserCard($accountReference)
     {
-        return UserCard::where('card_reference', $this->accountReference)->first()->user_id;
+        return UserCard::where('card_reference', $accountReference)->first()->user_id;
 
     }
 

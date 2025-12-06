@@ -1076,7 +1076,7 @@ class SafehavenController extends WebhookController
 
                     logInfo($customerAccountId, "customerAccountId");
 
-                    $this->debitSudoTransaction($debitCustomer, $debitCompany, $formatedAmount, $customerAccountId, $companyId, $description, $branchId, $user, $transactionReferenc);
+                    $this->debitSudoTransaction($debitCustomer, $debitCompany, $formatedAmount, $customerAccountId, $companyId, $description, $branchId, $user, $transactionReference);
 
                     return [
                         'statusCode'   => 200,

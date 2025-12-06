@@ -673,7 +673,7 @@ class WebhookController extends Controller
         logInfo($formatedAmount, "formated Amount");
 
         if ($formatedAmount < $oldBalance) {
-            logInfo("amount working", "formated Amount if less than ");
+            logInfo("amount working", "formated Amount if less than");
 
             return response()->json([
 

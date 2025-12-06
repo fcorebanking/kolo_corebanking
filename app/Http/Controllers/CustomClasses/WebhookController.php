@@ -598,7 +598,7 @@ class WebhookController extends Controller
         logInfo(json_encode($requestResponse), "request Response");
 
         $this->accountReference = $request->input('data.object.card._id') ?? $request->input('data.object.card');
-        logInfo($this->accountReference, "Card Name");
+        logInfo($this->accountReference, "Card Reference");
 
         $user_id = $safehaven->getUserCard($this->accountReference);
         logInfo($user_id, "User Card username ID");

@@ -622,7 +622,7 @@ class WebhookController extends Controller
         }
 
         if ($requestResponse['type'] == "transaction.created" || $requestResponse['type'] == "authorization.request") {
-            return $safehaven->getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user);
+            return $safehaven->getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user, $this->transactionReference);
         }
 
         if ($requestResponse['type'] == "refund") {

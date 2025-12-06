@@ -1040,7 +1040,7 @@ class SafehavenController extends WebhookController
 
     }
 
-    public function getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user)
+    public function getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user, $transactionReference)
     {
 
         $amount      = $request->input('data.object.amount');
@@ -1076,7 +1076,7 @@ class SafehavenController extends WebhookController
 
                     logInfo($customerAccountId, "customerAccountId");
 
-                    $this->debitSudoTransaction($debitCustomer, $debitCompany, $formatedAmount, $customerAccountId, $companyId, $description, $branchId, $user);
+                    $this->debitSudoTransaction($debitCustomer, $debitCompany, $formatedAmount, $customerAccountId, $companyId, $description, $branchId, $user, $transactionReferenc);
 
                     return [
                         'statusCode'   => 200,
@@ -1162,7 +1162,7 @@ class SafehavenController extends WebhookController
         ]);
     }
 
-    private function debitSudoTransaction($debitCustomer, $debitCompany, $amount, $customerAccountId, $companyId, $description, $branchId, $user)
+    private function debitSudoTransaction($debitCustomer, $debitCompany, $amount, $customerAccountId, $companyId, $description, $branchId, $user, $transactionReference)
     {
         $ledger_cr       = null;
         $ledger_dr       = null;
@@ -1187,7 +1187,7 @@ class SafehavenController extends WebhookController
             "company_amount"         => $debitCompany["amount"],
             "company_balance_after"  => $debitCompany["balance_after"],
             "description"            => "Card {$description} {$amount}",
-            "transaction_reference"  => $this->transactionReference,
+            "transaction_reference"  => $transactionReference,
             "transaction_remarks_id" => 2,
             "transaction_type_id"    => 23,
             "credit_debit_type_id"   => 2,

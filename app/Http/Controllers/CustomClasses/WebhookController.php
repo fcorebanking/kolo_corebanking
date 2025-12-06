@@ -589,11 +589,10 @@ class WebhookController extends Controller
 
     public function handleSudoWebhook(Request $request)
     {
-        logInfo($this->accountReference, "Card Name");
-        logInfo($this->transactionReference, "Masked Pan");
         $requestResponse = $request->all();
-
         logInfo(json_encode($requestResponse), "request Response");
+
+        logInfo($this->accountReference, "Card Name");
 
         $user_id = $this->getUserCard();
         logInfo($user_id, "User Card username ID");
@@ -602,14 +601,15 @@ class WebhookController extends Controller
         logInfo($user->first_name, "User first name");
 
         $virtualAccount = $user->virtual_account;
-        logInfo($user->$virtualAccount, "User Virtual Accont");
+        logInfo($virtualAccount, "User Virtual Accont");
 
         $mainAccount = $this->getMainAccount($virtualAccount);
-        $companyId   = $mainAccount->user->company->id;
-        $branchId    = $mainAccount->user->branch->id;
-        $accountId   = $mainAccount->id;
-        $userId      = $mainAccount->user_id;
         logInfo(json_encode($mainAccount), "Virtual Accont Object");
+
+        $companyId = $mainAccount->user->company->id;
+        $branchId  = $mainAccount->user->branch->id;
+        $accountId = $mainAccount->id;
+        $userId    = $mainAccount->user_id;
 
         $this->transactionReference = $request->input('data.object.transactionMetadata.reference');
         logInfo(json_encode($this->transactionReference), "Sudo Transaction Reference");
@@ -675,6 +675,13 @@ class WebhookController extends Controller
 
         if ($formatedAmount < $oldBalance) {
             logInfo("amount working", "formated Amount if less than ");
+
+            return response()->json([
+
+                "statusCode"   => 200,
+                "responseCode" => "00",
+
+            ], 200);
 
             $checkCompanyBalance = $this->checkCompanyBalance($user_wallet, $amount, $companyId, $user);
             logInfo(json_encode($checkCompanyBalance), "checkCompanyBalance Sudo");

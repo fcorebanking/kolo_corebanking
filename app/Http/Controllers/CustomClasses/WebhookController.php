@@ -605,7 +605,6 @@ class WebhookController extends Controller
 
         $mainAccount = $this->getMainAccount($virtualAccount);
         logInfo(json_encode($mainAccount), "Virtual Accont Object");
-
         $companyId = $mainAccount->user->company->id;
         $branchId  = $mainAccount->user->branch->id;
         $accountId = $mainAccount->id;
@@ -650,10 +649,10 @@ class WebhookController extends Controller
         logInfo($user_wallet->balance, "Virtual Accont Amount");
         return response()->json([
 
-            "statusCode" => 200,
-            "data"       => [
-                "responseCode" => "00",
-                "balance"      => $user_wallet->balance,
+            "statusCode"   => 200,
+            "responseCode" => "00",
+            "data"         => [
+                "balance" => $user_wallet->balance,
             ],
 
         ], 200);
@@ -675,16 +674,6 @@ class WebhookController extends Controller
 
         if ($formatedAmount < $oldBalance) {
             logInfo("amount working", "formated Amount if less than ");
-
-            return response()->json([
-
-                "statusCode" => 200,
-                "data"       => [
-                    "responseCode" => "00",
-
-                ],
-
-            ], 200);
 
             $checkCompanyBalance = $this->checkCompanyBalance($user_wallet, $amount, $companyId, $user);
             logInfo(json_encode($checkCompanyBalance), "checkCompanyBalance Sudo");

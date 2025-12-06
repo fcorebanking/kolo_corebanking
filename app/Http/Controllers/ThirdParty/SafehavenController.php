@@ -1029,15 +1029,14 @@ class SafehavenController extends WebhookController
     {
 
         logInfo($user_wallet->balance, "Virtual Accont Amount");
-        return response()->json([
-
-            "statusCode"   => 200,
-            "responseCode" => "00",
+        return [
+            'statusCode'   => 200,
+            'responseCode' => "00",
             "data"         => [
                 "balance" => $user_wallet->balance,
             ],
-
-        ], 200);
+            'httpCode'     => true,
+        ];
 
     }
 
@@ -1058,10 +1057,11 @@ class SafehavenController extends WebhookController
             logInfo("amount working", "formated Amount if less than");
             logInfo("ready to send response", "response");
 
-            return response()->json([
-                "statusCode"   => 200,
-                "responseCode" => "00",
-            ], 200, ['Content-Type' => 'application/json']);
+            return [
+                'statusCode'   => 200,
+                'responseCode' => "00",
+                'httpCode'     => true,
+            ];
 
             $checkCompanyBalance = $this->checkCompanyBalance($user_wallet, $amount, $companyId, $user);
             logInfo(json_encode($checkCompanyBalance), "checkCompanyBalance Sudo");

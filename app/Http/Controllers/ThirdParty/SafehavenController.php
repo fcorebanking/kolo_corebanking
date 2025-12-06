@@ -1057,12 +1057,6 @@ class SafehavenController extends WebhookController
             logInfo("amount working", "formated Amount if less than");
             logInfo("ready to send response", "response");
 
-            return [
-                'statusCode'   => 200,
-                'responseCode' => "00",
-                'httpCode'     => true,
-            ];
-
             $checkCompanyBalance = $this->checkCompanyBalance($user_wallet, $amount, $companyId, $user);
             logInfo(json_encode($checkCompanyBalance), "checkCompanyBalance Sudo");
 
@@ -1084,31 +1078,31 @@ class SafehavenController extends WebhookController
 
                     $this->debitSudoTransaction($debitCustomer, $debitCompany, $formatedAmount, $customerAccountId, $companyId, $description, $branchId, $user);
 
-                    return response()->json([
-
-                        "statusCode"   => 200,
-                        "responseCode" => "00",
-
-                    ], 200);
+                    return [
+                        'statusCode'   => 200,
+                        'responseCode' => "00",
+                        'httpCode'     => true,
+                    ];
                 }
 
             } else {
-                return response()->json([
-                    "statusCode"   => 403,
-                    "responseCode" => "96",
-
+                return [
+                    'statusCode'   => 403,
+                    'responseCode' => "96",
                     "message"      => "Error",
-                ], 403);
+                    'httpCode'     => false,
+                ];
+
             }
 
         } else {
-            return response()->json([
-                "statusCode" => 403,
-                "data"       => [
-                    "responseCode" => "51",
-                ],
-                "message"    => "Insufficient fund",
-            ], 403);
+            return [
+                'statusCode'   => 403,
+                'responseCode' => "51",
+                "message"      => "Insufficient fund",
+                'httpCode'     => false,
+            ];
+
         }
     }
 
@@ -1133,12 +1127,11 @@ class SafehavenController extends WebhookController
             logInfo($creditCompany['balance_before'], "New Wallet Balance");
         }
 
-        response()->json([
-            "statusCode" => 200,
-            "data"       => [
-                "responseCode" => "00",
-            ],
-        ], 406);
+        return [
+            'statusCode'   => 200,
+            'responseCode' => "00",
+            'httpCode'     => true,
+        ];
     }
 
     public function getUserCard($accountReference, $transactionReference)

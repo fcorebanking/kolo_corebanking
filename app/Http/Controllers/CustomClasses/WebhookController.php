@@ -675,6 +675,13 @@ class WebhookController extends Controller
         if ($formatedAmount < $oldBalance) {
             logInfo("amount working", "formated Amount if less than ");
 
+            return response()->json([
+
+                "statusCode"   => 200,
+                "responseCode" => "00",
+
+            ], 200);
+
             $checkCompanyBalance = $this->checkCompanyBalance($user_wallet, $amount, $companyId, $user);
             logInfo(json_encode($checkCompanyBalance), "checkCompanyBalance Sudo");
 

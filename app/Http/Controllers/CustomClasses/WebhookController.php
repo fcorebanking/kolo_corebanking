@@ -606,7 +606,7 @@ class WebhookController extends Controller
         }
 
         if ($requestResponse['type'] == "transaction.created") {
-            $this->accountReference = request->input('data.object.card');
+            $this->accountReference = $request->input('data.object.card');
         }
 
         if ($requestResponse['type'] == "refund") {

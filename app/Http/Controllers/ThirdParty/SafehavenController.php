@@ -1221,22 +1221,23 @@ class SafehavenController extends WebhookController
 
         $companyWallet = company_wallet::where('company_id', $companyId)->first();
 
-        if ($companyWallet->card_balance < 5001) {
+        if ($companyWallet->card_balance < 300001) {
             $response = ["status" => false, 'message' => "Below Threshold of 300000"];
-        }
-
-        if ($companyWallet->card_balance >= $amount) {
-
-            $response = [
-                "status"          => true,
-                'message'         => "Amount is Valid",
-                'account_id'      => $user->accounts->first()->id,
-                'balance'         => $user_wallet->balance,
-                'company_balance' => $user->company->balance,
-            ];
         } else {
-            $response = ["status" => false, 'message' => "Switcher Error... Please contact support $companyWallet->balance $amount"];
+            if ($companyWallet->card_balance >= $amount) {
+
+                $response = [
+                    "status"          => true,
+                    'message'         => "Amount is Valid",
+                    'account_id'      => $user->accounts->first()->id,
+                    'balance'         => $user_wallet->balance,
+                    'company_balance' => $user->company->balance,
+                ];
+            } else {
+                $response = ["status" => false, 'message' => "Switcher Error... Please contact support $companyWallet->balance $amount"];
+            }
         }
+
         return $response;
     }
 

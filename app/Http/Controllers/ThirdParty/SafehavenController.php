@@ -1060,6 +1060,16 @@ class SafehavenController extends WebhookController
         $debitCompany = $this->debitCompanyCardWallet($companyId, $formatedAmount);
         logInfo(json_encode($debitCompany), "debitCompany Card Wallet");
 
+        $customerAccountId = $user->id;
+
+        $this->debitSudoTransaction($debitCustomer, $debitCompany, $amount, $customerAccountId, $companyId, $description, $branchId, $user, $transactionReference);
+
+        return [
+            'statusCode'   => 200,
+            'responseCode' => "00",
+            'httpCode'     => true,
+        ];
+
     }
 
     public function getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user)

@@ -1103,7 +1103,7 @@ class SafehavenController extends WebhookController
             } else {
                 return [
                     'statusCode'   => 403,
-                    'responseCode' => "96",
+                    'responseCode' => "58",
                     "message"      => $checkCompanyBalance['message'],
                     'httpCode'     => false,
                 ];

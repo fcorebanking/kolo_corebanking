@@ -1137,10 +1137,10 @@ class HomeController extends Controller
         $company_wallet = company_wallet::where('company_id', $auth->company_id)->first();
 
         if ($amount < 1000) {
-            return response()->json(['status' => 0, 'message' => 'Minimum wallet fund is 1000!']);
+            return response()->json(['status' => 0, 'message' => 'Minimum wallet fund is 1000 !']);
         }
-        if ($amount < 500000 && $wallet == "card_balance") {
-            return response()->json(['status' => 0, 'message' => 'Minimum wallet fund is 500000!']);
+        if ($amount < 100000 && $wallet == "card_balance") {
+            return response()->json(['status' => 0, 'message' => 'Minimum wallet fund is 100000 !']);
         }
         if ($company_wallet->balance > $amount) {
             $balanceBefore = $company_wallet->balance;

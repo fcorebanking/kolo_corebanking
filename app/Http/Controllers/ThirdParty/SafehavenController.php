@@ -1025,7 +1025,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    private function getSudoUserCardBalance($user_wallet)
+    public function getSudoUserCardBalance($user_wallet)
     {
 
         logInfo($user_wallet->balance, "Sudo Virtual Account Amount");

@@ -1221,7 +1221,7 @@ class SafehavenController extends WebhookController
 
         $companyWallet = company_wallet::where('company_id', $companyId)->first();
 
-        if ($companyWallet->card_balance < 300000) {
+        if ($companyWallet->card_balance < 300001) {
             $response = ["status" => false, 'message' => "Below Threshold of 300000"];
         }
 

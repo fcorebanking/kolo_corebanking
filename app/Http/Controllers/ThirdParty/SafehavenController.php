@@ -1062,7 +1062,7 @@ class SafehavenController extends WebhookController
 
         $customerAccountId = $user->id;
 
-        $this->debitSudoTransaction($debitCustomer, $debitCompany, $amount, $customerAccountId, $companyId, $description, $branchId, $user, $transactionReference);
+        $this->debitSudoTransaction($debitCustomer, $debitCompany, $formatedAmount, $customerAccountId, $companyId, $description, $branchId, $user, $transactionReference);
 
         return [
             'statusCode'   => 200,
@@ -1104,7 +1104,7 @@ class SafehavenController extends WebhookController
                 return [
                     'statusCode'   => 403,
                     'responseCode' => "96",
-                    "message"      => "Error",
+                    "message"      => $checkCompanyBalance['message'],
                     'httpCode'     => false,
                 ];
 
@@ -1221,6 +1221,10 @@ class SafehavenController extends WebhookController
 
         $companyWallet = company_wallet::where('company_id', $companyId)->first();
 
+        if ($companyWallet->card_balance < 300000) {
+            $response = ["status" => false, 'message' => "Below Threshold of 300000"];
+        }
+
         if ($companyWallet->card_balance >= $amount) {
 
             $response = [
@@ -1230,8 +1234,6 @@ class SafehavenController extends WebhookController
                 'balance'         => $user_wallet->balance,
                 'company_balance' => $user->company->balance,
             ];
-        } else if ($companyWallet->card_balance < 300000) {
-            $response = ["status" => false, 'message' => "Below Threshold of 300000"];
         } else {
             $response = ["status" => false, 'message' => "Switcher Error... Please contact support $companyWallet->balance $amount"];
         }

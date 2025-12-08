@@ -1000,10 +1000,17 @@ class SafehavenController extends WebhookController
     public function changeUserCardPin(Request $request)
     {
         $cardReference = $request->card_reference;
-        $endpoint      = "$this->baseSudoUrl/cards/$cardReference/pin";
+        /*  $endpoint      = "$this->baseSudoUrl/cards/$cardReference/pin";
 
         $body = [
             "oldPin" => "{$request->old_pin}",
+            "newPin" => "{$request->new_pin}",
+
+        ];*/
+        $endpoint = "$this->baseSudoUrl/cards/$cardReference/reset-pin";
+
+        $body = [
+
             "newPin" => "{$request->new_pin}",
 
         ];
@@ -1011,7 +1018,7 @@ class SafehavenController extends WebhookController
         try {
             $result = $this->sudoPutRequest($endpoint, $body);
 
-            logInfo(json_encode($result), "Sudo Customer Get Card Result");
+            logInfo(json_encode($result), "Sudo Customer Get Card Change Pin Result");
 
             if (isset($result['statusCode']) && $result['statusCode'] == 200) {
                 return $result;

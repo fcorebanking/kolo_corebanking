@@ -1024,6 +1024,11 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
+        if ($request->bank_code == "090267") {
+            $ra = ["status" => false, "message" => "Service is not available right now"];
+            return response()->json($ra, 406);
+        }
+
         $charge = 0;
 
         $currentUser = auth()->user();

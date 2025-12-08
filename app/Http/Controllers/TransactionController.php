@@ -3074,6 +3074,11 @@ class TransactionController extends Controller
             $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
             return response()->json($ra, 406);
         }
+        if ($request->bankCode == "090267") {
+            $ra = ["status" => false, "message" => "Service is not available right now"];
+            return response()->json($ra, 406);
+        }
+
 
         return response()->json($this->bankTrS($request));
     }

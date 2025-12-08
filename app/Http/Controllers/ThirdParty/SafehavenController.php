@@ -663,6 +663,31 @@ class SafehavenController extends WebhookController
         }
     }
 
+    public function sudoPatchRequest($endpoint, array $body = [])
+    {
+        try {
+            if (! empty($body)) {
+                // PUT with body
+                $response = Http::withHeaders($this->sudoHeader())
+                    ->patch($endpoint, $body);
+            } else {
+                // PUT without body
+                $response = Http::withHeaders($this->sudoHeader())
+                    ->patch($endpoint);
+            }
+
+            return $response->json();
+
+        } catch (\Exception $e) {
+            logInfo($e->getMessage(), "Sudo PUT Request Error");
+            return [
+                'status'  => false,
+                'message' => 'PUT Request Failed',
+                'error'   => $e->getMessage(),
+            ];
+        }
+    }
+
     public function sudoHeader()
     {
         $header = [
@@ -1016,7 +1041,7 @@ class SafehavenController extends WebhookController
         ];
 
         try {
-            $result = $this->sudoPutRequest($endpoint, $body);
+            $result = $this->sudoPatchRequest($endpoint, $body);
 
             logInfo(json_encode($result), "Sudo Customer Get Card Change Pin Result");
 

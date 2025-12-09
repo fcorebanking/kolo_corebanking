@@ -644,9 +644,9 @@ class CustomerController extends Controller
             ]);
         }
 
-        if ($auth->company_id != 14) {
+   /*     if ($auth->company_id != 14) {
             return response()->json(['status' => 0, 'message' => 'This service has been disabled. Kindly contact support.']);
-        }
+        }*/
 
         $customer = User::where('uuid', $request->customer_reference)->first();
 

@@ -644,7 +644,7 @@ class CustomerController extends Controller
             ]);
         }
 
-   /*     if ($auth->company_id != 14) {
+        /*     if ($auth->company_id != 14) {
             return response()->json(['status' => 0, 'message' => 'This service has been disabled. Kindly contact support.']);
         }*/
 
@@ -734,7 +734,7 @@ class CustomerController extends Controller
 
                 $card2FAResponse = $safehaven->enrollcard2fa($cardResponse['result']['data']["_id"]);
                 if ($card2FAResponse) {
-                    $cardDetailsResponse = $safehaven->getSudoCardCustomerInfo($cardResponse['result']['data']["_id"]);
+                    $cardDetailsResponse = $safehaven->getPhysicalCardDetials($cardResponse['result']['data']["_id"]);
                 }
 
             }

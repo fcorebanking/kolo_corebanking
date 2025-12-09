@@ -733,6 +733,10 @@ class CustomerController extends Controller
             } else {
 
                 $card2FAResponse = $safehaven->enrollcard2fa($cardResponse['result']['data']["_id"]);
+                if ($card2FAResponse) {
+                    $cardDetailsResponse = $safehaven->getSudoCardCustomerInfo($cardResponse['result']['data']["_id"]);
+                }
+
             }
 
             // Mark transaction as confirmed debit
@@ -773,7 +777,8 @@ class CustomerController extends Controller
             ]);
 
             DB::commit();
-            return response()->json(['status' => 1, 'message' => 'Card mapped successfully', 'data' => $cardResponse]);
+            $pin = $cardDetailsResponse['data']['defaultPin'];
+            return response()->json(['status' => 1, 'message' => "Card mapped successfully Deafult Pin is {$pin} ", 'data' => $cardResponse]);
 
         } catch (\Exception $e) {
             // DB::rollback();

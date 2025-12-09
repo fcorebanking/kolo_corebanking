@@ -695,7 +695,7 @@ class CardController extends Controller
         $safehaven = new SafehavenController();
         $cardRes   = $safehaven->getPhysicalCardDetials($request->card_reference);
 
-        if (! $cardRes['status']) {
+        if (isset($cardRes['status']) && ! $cardRes['status']) {
             return response()->json($cardRes['message'], 400);
         }
 

@@ -923,42 +923,24 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function getPhysicalCardDetials($request, $transactionId)
+    public function getPhysicalCardDetials($cardReference)
     {
-        $body = [
-            "appId"           => $this->appId,
-            "appKey"          => $this->appKey,
-            "currencyCode"    => "566",
-            "MeansOfIdNumber" => "National ID",
-            "emailAddress"    => $request->email,
-            "firstName"       => $request->first_name,
-            "lastName"        => $request->last_name,
-            "mobileNr"        => $request->phone,
-            "streetAddress"   => $request->address,
-            "bvn"             => $request->bvn,
-            "PaymentRef"      => $transactionId,
-        ];
-
-        logInfo($body, "Providus request body");
+        $endpoint = "$this->baseSudoUrl/cards/$cardReference?reveal=true";
 
         try {
-            $cardResult = $this->providusPostRequest('PrepaidCardNewCardRequest', $body);
+            $result = $this->sudoGetRequest($endpoint);
 
-            logInfo($cardResult, "Providus Result");
+            logInfo(json_encode($result), "Sudo Customer Get Card Details with Pin");
 
-            if (isset($cardResult['StatusCode'])) {
-                if ($cardResult['StatusCode'] == "00") {
-                    return ['status' => true, 'message' => $cardResult['JsonData']];
-                } else {
-                    return ['status' => false, 'message' => $cardResult['JsonData']];
-                }
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return $result;
             } else {
-                return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+                return ['status' => false, 'message' => "Failed to get card... Please contact support"];
             }
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Providus Error");
+            logInfo($e->getMessage(), "Sudo Customer Get Result Error");
 
-            return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+            return ['status' => false, 'message' => "Failed to create card ... Please contact support"];
         }
     }
 

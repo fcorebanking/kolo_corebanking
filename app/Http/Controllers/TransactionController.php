@@ -3079,7 +3079,6 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
-
         return response()->json($this->bankTrS($request));
     }
     public function mobileMoneyTransfer(Request $request)

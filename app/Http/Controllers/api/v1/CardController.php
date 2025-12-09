@@ -681,6 +681,27 @@ class CardController extends Controller
         }
     }
 
+    public function getCardDetailswithPin(Request $request)
+    {
+        $validation = Validator::make($request->all(), [
+            "card_reference" => 'required',
+        ]);
+
+        if ($validation->fails()) {
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
+            return response()->json($ra, 406);
+        }
+
+        $safehaven = new SafehavenController();
+        $cardRes   = $safehaven->getCardDetails($request->card_reference);
+
+        if (! $cardRes['status']) {
+            return response()->json($cardRes['message'], 400);
+        }
+
+        return response()->json(['status' => true, 'message' => 'Card fetched successfully', 'data' => $cardRes]);
+    }
+
     public function restrictUserAccount($restrictionId, $remark)
     {
         if (count(auth()->user()->customerPermissions) > 0) {

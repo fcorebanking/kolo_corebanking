@@ -305,7 +305,7 @@ Route::prefix('/virtual-cards')->group(function () {
         Route::middleware('checkAccountStatus')->post('/withdraw', [CardController::class, 'withdrawVirtualCard'])->middleware('log.route');
         Route::get('/get-balance', [CardController::class, 'getBalance'])->middleware('log.route');
         Route::get('/get-card-details', [CardController::class, 'getCardDetails'])->middleware('log.route');
-        Route::get('/get-card-full-details', [CardController::class, 'getCardDetailswithPin'])->middleware('log.route');
+        Route::post('/get-card-full-details', [CardController::class, 'getCardDetailswithPin'])->middleware('log.route');
 
         Route::get('/get-card', [CardController::class, 'getVirtualCard'])->middleware('log.route');
         Route::get('/transactions', [CardController::class, 'transactionHistory']);

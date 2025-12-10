@@ -711,7 +711,7 @@ class SafehavenController extends WebhookController
         if (is_null($customer_sudo_account_id)) {
             // Create new Sudo Customer
             $customer = $this->createSudoCustomer($request, $customer);
-
+            logInfo(json_encode($customer), "SudoCustomer");
             // Ensure creation returned a valid structure
             if (! isset($customer['data']['_id'])) {
                 return ['status' => false, 'message' => "Failed to create Sudo customer"];

@@ -3791,6 +3791,8 @@ class CustomerController extends Controller
 
         $initialBalance = $companyWallet->card_balance;
 
+        logInfo("$formattedAmount", "formattedAmount debitCompanyCardWallet");
+
         logInfo("{$initialBalance}", "Initial Card wallet balance for company {$companyId}");
 
         // Validate amount

@@ -1308,6 +1308,8 @@ class SafehavenController extends WebhookController
 
         $initialBalance = $companyWallet->card_balance;
 
+        logInfo("$formattedAmount", "formattedAmount debitCompanyCardWallet");
+
         logInfo("$initialBalance", "Initial Card wallet balance for company {$companyId}");
 
         // Validate transaction

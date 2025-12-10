@@ -701,7 +701,7 @@ class SafehavenController extends WebhookController
 
     public function createPhysicalCard($request, $transactionId, $customer, $customer_sudo_account_id)
     {
-        logInfo(json_encode($customer), "Customer");
+        // logInfo(json_encode($customer), "Customer");
         /**
          * 1. Resolve or create Sudo Customer
          */
@@ -718,8 +718,10 @@ class SafehavenController extends WebhookController
                 return ['status' => false, 'message' => "Failed to create Sudo customer"];
             }
 
+            $user_id = $customer->accounts->first()->user_id;
+
             $usercardsudo = UserCard::create([
-                "user_id"          => $customer->id,
+                "user_id"          => $user_id,
                 "card_name"        => "",
                 "card_type_id"     => 2,
                 "card_category_id" => 2,
@@ -728,7 +730,7 @@ class SafehavenController extends WebhookController
                 "currency_id"      => 1,
                 "exp_date"         => "",
                 "cvv"              => "",
-                "created_by"       => $customer->id,
+                "created_by"       => $user_id,
                 "sudo_customer_id" => $sudoCustomer['data']['_id'],
             ]);
 

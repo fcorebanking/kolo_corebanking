@@ -994,6 +994,22 @@ class TransactionController extends Controller
                     ],
                 ]
             );
+        }
+
+        if ($wbAccount == null) {
+            $companyAccount = company_wallet::where('vaccount', $request->account_number)->first();
+            return response()->json(
+                [
+                    'status'  => true,
+                    'message' => "Account Verified Successfully",
+                    'data'    => [
+                        'first_name' => $companyAccount->company->company_name,
+                        'last_name'  => "",
+                        'bank_name'  => "",
+
+                    ],
+                ]
+            );
         } else {
 
             return response()->json(

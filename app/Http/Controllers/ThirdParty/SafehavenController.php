@@ -720,6 +720,8 @@ class SafehavenController extends WebhookController
 
             $user_id = $customer->accounts->first()->user_id;
 
+            logInfo(json_encode($user_id), "user_id");
+
             $usercardsudo = UserCard::create([
                 "user_id"          => $user_id,
                 "card_name"        => "",

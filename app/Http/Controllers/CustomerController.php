@@ -3794,7 +3794,7 @@ class CustomerController extends Controller
         logInfo("{$initialBalance}", "Initial Card wallet balance for company {$companyId}");
 
         // Validate amount
-        if ($formattedAmount <= 0 || $formattedAmount > $initialBalance) {
+        if ($formattedAmount > $initialBalance) {
             return [
                 "status"  => false,
                 "message" => "Invalid Transaction Amount",

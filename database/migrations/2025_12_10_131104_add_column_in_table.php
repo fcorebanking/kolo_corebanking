@@ -14,7 +14,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('user_cards', function (Blueprint $table) {
-            //
+            $table->string('sudo_customer_id')->nullable();
         });
     }
 

@@ -3796,7 +3796,7 @@ class CustomerController extends Controller
         logInfo("{$initialBalance}", "Initial Card wallet balance for company {$companyId}");
 
         // Validate amount
-        if ($formattedAmount > $initialBalance) {
+        if ($formattedAmount > $initialBalance || $formattedAmount < 0) {
             return [
                 "status"  => false,
                 "message" => "Invalid Transaction Amount",
@@ -3825,7 +3825,7 @@ class CustomerController extends Controller
     private function debitCustomerWithChargeForCard($customerAccountId, $originalAmount, $charge, $user, $userWallet)
     {
         // Validate amount
-        if ($originalAmount <= 0) {
+        if ($originalAmount < 0) {
             return [
                 "status"  => false,
                 "message" => "Invalid Transaction Amount",

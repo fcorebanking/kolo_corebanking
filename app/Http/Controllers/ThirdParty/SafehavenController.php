@@ -717,6 +717,20 @@ class SafehavenController extends WebhookController
                 return ['status' => false, 'message' => "Failed to create Sudo customer"];
             }
 
+            UserCard::create([
+                "user_id"          => $customer->id,
+                "card_name"        => "",
+                "card_type_id"     => 2,
+                "card_category_id" => 2,
+                "card_number"      => "",
+                "masked_pan"       => "",
+                "currency_id"      => 1,
+                "exp_date"         => "",
+                "cvv"              => "",
+                "created_by"       => $customer->id,
+                "sudo_customer_id" => $customer['data']['_id'],
+            ]);
+
             $customer_sudo_account_id = $customer['data']['_id'];
             logInfo($customer_sudo_account_id, "createSudoCustomer");
         }
@@ -752,9 +766,10 @@ class SafehavenController extends WebhookController
 
             if (isset($result['statusCode']) && $result['statusCode'] == 200) {
                 return [
-                    'status'  => true,
-                    'message' => $result['message'],
-                    'result'  => $result,
+                    'status'                   => true,
+                    'message'                  => $result['message'],
+                    'result'                   => $result,
+                    'customer_sudo_account_id' => $customer_sudo_account_id,
                 ];
             }
 
@@ -948,13 +963,8 @@ class SafehavenController extends WebhookController
     {
         $existingCard = UserCard::where('user_id', $user->id)->first();
         if ($existingCard != null) {
-            $cardReference = $existingCard->card_reference;
-            $customer      = $this->getSudoCardCustomerInfo($cardReference);
-            if (isset($customer['data']['customer']['_id'])) {
-                return $customer['data']['customer']['_id'];
-            } else {
-                return null;
-            }
+            return $existingCard->sudo_customer_id;
+
         } else {
             return null;
         }
@@ -970,6 +980,28 @@ class SafehavenController extends WebhookController
             $result = $this->sudoGetRequest($endpoint);
 
             logInfo(json_encode($result), "Sudo Customer Get Card Customer info");
+
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return $result;
+            } else {
+                return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Sudo Customer Get Result Error");
+
+            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
+        }
+    }
+
+    public function getSudoCustomerInfo($customerID)
+    {
+
+        $endpoint = "$this->baseSudoUrl/customers/$customerID";
+
+        try {
+            $result = $this->sudoGetRequest($endpoint);
+
+            logInfo(json_encode($result), "Sudo Customer Get Customer info");
 
             if (isset($result['statusCode']) && $result['statusCode'] == 200) {
                 return $result;

@@ -22,6 +22,7 @@ class UserCard extends Model implements MustVerifyEmail
         'exp_date',
         'cvv',
         'created_by',
+        'sudo_customer_id',
     ];
 
     protected $hidden = ['user_id'];

@@ -756,8 +756,27 @@ class CustomerController extends Controller
 // Get matching code (or null if not found)
             $cardTypeCode = $cardTypeMap[$inputCardType] ?? null;
 
+            UserCard::updateOrCreate(
+                [
+                    "sudo_customer_id" => $cardResponse['sudo_customer_id'],
+                    "card_category_id" => 2,
+                    "card_type_id"     => $cardTypeCode,
+                    "exp_date"         => $cardResponse['result']['data']["expiryYear"] ?? "",
+                ],
+                [
+                    "user_id"   => $customer->id,
+                    "card_name" => "{$customer->first_name} {$customer->last_name}",
+                    "card_number"    => $cardResponse['result']['data']["maskedPan"],
+                    "masked_pan"     => $cardResponse['result']['data']["maskedPan"],
+                    "card_reference" => $cardResponse['result']['data']["_id"],
+                    "currency_id"    => $companySettings->preferred_virtual_card_currency,
+                    "cvv"            => "",
+                    "created_by"     => $auth->id,
+
+                ]);
+
             // Save card details
-            UserCard::create([
+            /*   UserCard::create([
                 "user_id"   => $customer->id,
                 "card_name" => "{$customer->first_name} {$customer->last_name}",
                 "card_type_id"     => $cardTypeCode,
@@ -769,7 +788,8 @@ class CustomerController extends Controller
                 "exp_date"         => $cardResponse['result']['data']["expiryYear"] ?? "",
                 "cvv"              => "",
                 "created_by"       => $auth->id,
-            ]);
+                "sudo_customer_id" => $cardResponse['sudo_customer_id'],
+            ]);*/
 
             CardRequestLog::create([
                 "user_id"    => $customer->id,

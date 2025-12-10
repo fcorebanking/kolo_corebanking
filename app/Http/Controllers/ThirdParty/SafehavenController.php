@@ -1311,7 +1311,7 @@ class SafehavenController extends WebhookController
         logInfo("$initialBalance", "Initial Card wallet balance for company {$companyId}");
 
         // Validate transaction
-        if ($formattedAmount <= 0 || $formattedAmount > $initialBalance) {
+        if ($formattedAmount > $initialBalance) {
             return [
                 "status"  => false,
                 "message" => "Invalid Transaction Amount",

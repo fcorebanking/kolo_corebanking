@@ -730,6 +730,7 @@ class SafehavenController extends WebhookController
                     "card_category_id" => 2,
                     "card_number"      => "0000000000000000",
                     "masked_pan"       => "0000********0000",
+                    "card_reference"   => "TEMP",
                     "currency_id"      => 1,
                     "exp_date"         => "00/0000",
                     "cvv"              => "000",

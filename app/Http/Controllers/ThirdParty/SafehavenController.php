@@ -722,19 +722,23 @@ class SafehavenController extends WebhookController
 
             logInfo(json_encode($user_id), "user_id");
 
-            $usercardsudo = UserCard::create([
-                "user_id"          => $user_id,
-                "card_name"        => "Pending",
-                "card_type_id"     => 2,
-                "card_category_id" => 2,
-                "card_number"      => "0000000000000000",
-                "masked_pan"       => "0000********0000",
-                "currency_id"      => 1,
-                "exp_date"         => "00/0000",
-                "cvv"              => "000",
-                "created_by"       => $user_id,
-                "sudo_customer_id" => $sudoCustomer['data']['_id'],
-            ]);
+            try {
+                $usercardsudo = UserCard::create([
+                    "user_id"          => $user_id,
+                    "card_name"        => "Pending",
+                    "card_type_id"     => 2,
+                    "card_category_id" => 2,
+                    "card_number"      => "0000000000000000",
+                    "masked_pan"       => "0000********0000",
+                    "currency_id"      => 1,
+                    "exp_date"         => "00/0000",
+                    "cvv"              => "000",
+                    "created_by"       => $user_id,
+                    "sudo_customer_id" => $sudoCustomer['data']['_id'],
+                ]);
+            } catch (\Exception $e) {
+                dd($e->getMessage());
+            }
 
             logInfo(json_encode($usercardsudo), "usercardsudo");
 

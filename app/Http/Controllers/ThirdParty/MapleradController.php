@@ -50,9 +50,6 @@ class MapleradController extends WebhookController
 
     }
 
-   
-
-    
     public function getExchangeRate($exchangeAmount, $sourceCurrency, $destinationCurrency)
     {
         $body = ["amount" => $exchangeAmount, "destination_currency" => $sourceCurrency, "source_currency" => $destinationCurrency];
@@ -89,29 +86,27 @@ class MapleradController extends WebhookController
         }
     }
 
-    
-    
     public function safehavenHeader()
     {
         $header = [
             'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer ' . $this->token,
-           
+
         ];
 
         return $header;
     }
     public function mapleradPostRequest($endpoint, $body)
     {
-        logInfo("$endpoint", "Complete Sudo url");
-        logInfo($this->sudoHeader(), "Sudo header");
-        $response = Http::withHeaders($this->sudoHeader())->post("$endpoint", $body);
+        logInfo("$endpoint", "Complete Maplerad url");
+        logInfo($this->mapleradHeader(), "Maplerad header");
+        $response = Http::withHeaders($this->mapleradHeader())->post("$endpoint", $body);
         return $response->json();
     }
 
     public function mapleradGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->sudoHeader())->get("$endpoint");
+        $response = Http::withHeaders($this->mapleradHeader())->get("$endpoint");
         return $response->json();
     }
 
@@ -120,11 +115,11 @@ class MapleradController extends WebhookController
         try {
             if (! empty($body)) {
                 // PUT with body
-                $response = Http::withHeaders($this->sudoHeader())
+                $response = Http::withHeaders($this->mapleradHeader())
                     ->put($endpoint, $body);
             } else {
                 // PUT without body
-                $response = Http::withHeaders($this->sudoHeader())
+                $response = Http::withHeaders($this->mapleradHeader())
                     ->put($endpoint);
             }
 
@@ -140,7 +135,7 @@ class MapleradController extends WebhookController
         }
     }
 
-    public function sudoHeader()
+    public function mapleradHeader()
     {
         $header = [
             'Content-Type'  => 'application/json',
@@ -150,8 +145,6 @@ class MapleradController extends WebhookController
 
         return $header;
     }
-
-    
 
     public function createVirtualCard($request, $customer, $customer_sudo_account_id)
     {
@@ -194,7 +187,7 @@ class MapleradController extends WebhookController
          * 3. Execute request
          */
         try {
-            $result = $this->sudoPostRequest($endpoint, $body);
+            $result = $this->mapleradPostRequest($endpoint, $body);
 
             logInfo(json_encode($result), "Sudo Customer Register Virtual Card Result");
 
@@ -223,25 +216,21 @@ class MapleradController extends WebhookController
         $address40 = str_pad(Str::limit($address, 40, ''), 40, ' ');
 
         $body = [
-            "type"         => "individual",
-            "emailAddress" => $email,
-            "name"         => "{$firstName} {$lastName}",
-            "status" => "active",
-            "phoneNumber" => $phone,
-            "individual" => [
-                "firstName" => $firstName,
-                "lastName"  => $lastName,
-                "dob"       => $customer->dob,
-
+            "first_name" => $firstName,
+            "last_name"  => $lastName,
+            "email"      => $email,
+            "country"    => "NG",
+            "dob"        => $customer->dob,
+            "phone"      => [
+                "phone_country_code" => "+234",
+                "phone_number"       => $phone,
             ],
-            "billingAddress" => [
-                "line1"      => $address40 ?? "",
-                "line2"      => "",
-                "city"       => $customer->state_of_origin ?? "LA",
-                "state"      => $customer->state_of_origin ?? "Lagos",
-                "postalCode" => "23401",
-                "country"    => "Nigeria",
-
+            "address"    => [
+                "street"      => $address,
+                "city"        => $customer->state_of_origin ?? "Ikeja",
+                "state"       => $customer->state_of_origin ?? "Lagos",
+                "country"     => "NG",
+                "postal_code" => "23401",
             ],
 
         ];
@@ -251,7 +240,7 @@ class MapleradController extends WebhookController
         $endpoint = "$this->baseSudoUrl/customers";
 
         try {
-            $result = $this->sudoPostRequest($endpoint, $body);
+            $result = $this->mapleradPostRequest($endpoint, $body);
 
             logInfo(json_encode($result), "Sudo Customer Register Result");
 
@@ -273,7 +262,7 @@ class MapleradController extends WebhookController
         $endpoint = "$this->baseSudoUrl/customers/$customer";
 
         try {
-            $result = $this->sudoGetRequest($endpoint);
+            $result = $this->mapleradGetRequest($endpoint);
 
             logInfo(json_encode($result), "Sudo Customer Get Result");
 
@@ -295,7 +284,7 @@ class MapleradController extends WebhookController
         $endpoint = "$this->baseSudoUrl/cards/$cardReference/token";
 
         try {
-            $result = $this->sudoGetRequest($endpoint);
+            $result = $this->mapleradGetRequest($endpoint);
 
             logInfo(json_encode($result), "Sudo Customer Get Token");
 
@@ -311,7 +300,6 @@ class MapleradController extends WebhookController
         }
     }
 
-    
     public function getCustomerMapleradID($user)
     {
         $existingCard = UserCard::where('user_id', $user->id)->first();
@@ -335,7 +323,7 @@ class MapleradController extends WebhookController
         $endpoint = "$this->baseSudoUrl/cards/$cardReference";
 
         try {
-            $result = $this->sudoGetRequest($endpoint);
+            $result = $this->mapleradGetRequest($endpoint);
 
             logInfo(json_encode($result), "Sudo Customer Get Card Customer info");
 
@@ -356,7 +344,7 @@ class MapleradController extends WebhookController
         $endpoint = "$this->baseSudoUrl/cards/$cardReference/enroll2fa";
 
         try {
-            $result = $this->sudoPutRequest($endpoint);
+            $result = $this->mapleradPutRequest($endpoint);
 
             logInfo(json_encode($result), "Sudo Customer Put Card Result");
 
@@ -384,7 +372,7 @@ class MapleradController extends WebhookController
         ];
 
         try {
-            $result = $this->sudoPutRequest($endpoint, $body);
+            $result = $this->mapleradPutRequest($endpoint, $body);
 
             logInfo(json_encode($result), "Sudo Customer Get Card Result");
 
@@ -400,7 +388,7 @@ class MapleradController extends WebhookController
         }
     }
 
-    public function getSudoUserCardBalance($user_wallet)
+    public function getMapleradUserCardBalance($user_wallet)
     {
 
         logInfo($user_wallet->balance, "Sudo Virtual Account Amount");
@@ -416,7 +404,7 @@ class MapleradController extends WebhookController
 
     }
 
-    public function getSudoUserTransaction($request, $user_wallet, $companyId, $branchId, $user, $transactionReference)
+    public function getMapleradUserTransaction($request, $user_wallet, $companyId, $branchId, $user, $transactionReference)
     {
 
         $amount      = $request->input('data.object.amount');
@@ -447,7 +435,7 @@ class MapleradController extends WebhookController
 
     }
 
-    public function getSudoUserAuthorization($request, $user_wallet, $companyId, $branchId, $user)
+    public function getMapleradUserAuthorization($request, $user_wallet, $companyId, $branchId, $user)
     {
 
         $amount      = $request->input('data.object.amount');
@@ -496,7 +484,7 @@ class MapleradController extends WebhookController
         }
     }
 
-    public function getSudoUserRefund($request, $user_wallet, $companyId, $branchId)
+    public function getMapleradUserRefund($request, $user_wallet, $companyId, $branchId)
     {
         $amount = $request->input('data.object.amount');
         logInfo($amount, "Amount");
@@ -530,7 +518,7 @@ class MapleradController extends WebhookController
 
     }
 
-    private function refundSudoTransaction($creditCustomer, $creditCompany, $amount, $companyId, $newdescription, $branchId, $customerAccountId, $user)
+    private function refundMapleradTransaction($creditCustomer, $creditCompany, $amount, $companyId, $newdescription, $branchId, $customerAccountId, $user)
     {
         $transaction = transactions::create([
             "balance_before"         => $creditCustomer['balance_before'],
@@ -552,7 +540,7 @@ class MapleradController extends WebhookController
         ]);
     }
 
-    private function debitSudoTransaction($debitCustomer, $debitCompany, $amount, $customerAccountId, $companyId, $description, $branchId, $user, $transactionReference)
+    private function debitMapleradTransaction($debitCustomer, $debitCompany, $amount, $customerAccountId, $companyId, $description, $branchId, $user, $transactionReference)
     {
         $ledger_cr       = null;
         $ledger_dr       = null;
@@ -616,7 +604,7 @@ class MapleradController extends WebhookController
         return $response;
     }
 
-    private function debitCustomerWithChargeSudo($originalAmount, $charge, $user, $userWallet)
+    private function debitCustomerWithChargeMaplerad($originalAmount, $charge, $user, $userWallet)
     {
         // Validate amount
         if ($originalAmount <= 0) {
@@ -694,7 +682,7 @@ class MapleradController extends WebhookController
         ];
     }
 
-    private function creditCustomerSudo($customerAccountId, $originalAmount, $charge = 0.0, $userWallet)
+    private function creditCustomerMaplerad($customerAccountId, $originalAmount, $charge = 0.0, $userWallet)
     {
         // Validate credit amount
         if ($originalAmount <= 0) {

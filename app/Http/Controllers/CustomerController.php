@@ -655,7 +655,7 @@ class CustomerController extends Controller
         }
 
         // Determine if customer already has a physical card
-        $customer_sudo_account_id =$this->checkExistingCard($customer);
+        $customer_sudo_account_id = $this->checkExistingCard($customer);
 
         DB::beginTransaction();
 
@@ -754,7 +754,7 @@ class CustomerController extends Controller
 
             UserCard::updateOrCreate(
                 [
-                    "sudo_customer_id" => $cardResponse['sudo_customer_id'],
+                    "sudo_customer_id" => $cardResponse['customer_sudo_account_id'],
                     "card_category_id" => 2,
                     "card_type_id"     => $cardTypeCode,
                     "exp_date"         => $cardResponse['result']['data']["expiryYear"] ?? "",
@@ -3878,8 +3878,9 @@ class CustomerController extends Controller
         return $response;
     }
 
-    private function checkExistingCard($customer){
-          $existingCard = UserCard::where('user_id', $customer->id)
+    private function checkExistingCard($customer)
+    {
+        $existingCard = UserCard::where('user_id', $customer->id)
             ->where('card_category_id', 2)
             ->first();
 

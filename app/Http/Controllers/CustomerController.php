@@ -728,7 +728,7 @@ class CustomerController extends Controller
             );
 
             if (! $cardResponse['status']) {
-                DB::rollback();
+              //  DB::rollback();
                 return response()->json(['status' => 0, 'message' => $cardResponse['message']]);
             } else {
 

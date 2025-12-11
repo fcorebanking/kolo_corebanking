@@ -804,14 +804,14 @@ class SafehavenController extends WebhookController
 
         if (is_null($customer_sudo_account_id)) {
             // No Sudo ID → create new Sudo customer now
-            $customer = $this->createSudoCustomer($request, $customer);
+            $sudoCustomer = $this->createSudoCustomer($request, $customer);
 
             // Ensure valid structure returned
-            if (! isset($customer['data']['_id'])) {
+            if (! isset($sudoCustomer['data']['_id'])) {
                 return ['status' => false, 'message' => "Failed to create Sudo customer"];
             }
 
-            $customer_sudo_account_id = $customer['data']['_id'];
+            $customer_sudo_account_id = $sudoCustomer['data']['_id'];
         }
 
         /**
@@ -842,9 +842,10 @@ class SafehavenController extends WebhookController
 
             if (isset($result['statusCode']) && $result['statusCode'] == 200) {
                 return [
-                    'status'  => true,
-                    'message' => $result['message'],
-                    'result'  => $result,
+                    'status'           => true,
+                    'message'          => $result['message'],
+                    'result'           => $result,
+                    "sudo_customer_id" => $sudoCustomer['data']['_id'],
                 ];
             }
 

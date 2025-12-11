@@ -168,6 +168,7 @@ class CardController extends Controller
             "exp_date"         => $cardData["expiryYear"],
             "cvv"              => $cardData["expiryYear"],
             "created_by"       => $user->id,
+            "sudo_customer_id" => $cardRes['sudo_customer_id'],
         ]);
 
         // Send SMS notification

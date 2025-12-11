@@ -8,6 +8,7 @@ use App\Models\transactions;
 use App\Models\UserCard;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -742,6 +743,8 @@ class SafehavenController extends WebhookController
             }
 
             logInfo(json_encode($usercardsudo), "usercardsudo");
+
+            DB::commit();
 
             $customer_sudo_account_id = $sudoCustomer['data']['_id'];
             logInfo($customer_sudo_account_id, "createSudoCustomer");

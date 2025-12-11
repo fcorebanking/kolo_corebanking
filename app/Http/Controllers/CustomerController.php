@@ -655,11 +655,7 @@ class CustomerController extends Controller
         }
 
         // Determine if customer already has a physical card
-        $existingCard = UserCard::where('user_id', $customer->id)
-            ->where('card_category_id', 2)
-            ->first();
-
-        $customer_sudo_account_id = $existingCard->card_reference ?? null;
+        $customer_sudo_account_id =$this->checkExistingCard($customer);
 
         DB::beginTransaction();
 
@@ -3880,6 +3876,20 @@ class CustomerController extends Controller
         logInfo(json_encode($response), "debitCustomerWithChargeForCard");
 
         return $response;
+    }
+
+    private function checkExistingCard($customer){
+          $existingCard = UserCard::where('user_id', $customer->id)
+            ->where('card_category_id', 2)
+            ->first();
+
+        if ($existingCard->card_reference == "TEMP") {
+            $customer_sudo_account_id = null;
+        } else {
+            $customer_sudo_account_id = $existingCard->card_reference ?? null;
+        }
+
+        return $customer_sudo_account_id;
     }
 
 }

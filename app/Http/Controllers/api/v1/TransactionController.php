@@ -1436,6 +1436,8 @@ class TransactionController extends Controller
         }
         $wbAccount = wb_account_details::where('virtual_accnum', $request->destination_account)->first();
         if (! $wbAccount) {
+            $companyAcc =  $this->walletTransferCompany($request, $description, $transactionId);
+            
             $ra = ["status" => false, "message" => "Beneficiary not found!"];
             return response()->json($ra, 406);
         }
@@ -1468,6 +1470,102 @@ class TransactionController extends Controller
                     if (\checkcustomerrestriction($wbAccount->user_id, 1)) {
                         return response()->json(["status" => false, 'message' => "Destinaion account is not allowed to recieve payment at the moment"], 400);
                     }
+                    $validateTransferAmount = $this->validateTransfer($request->final_amount);
+
+                    if (! $validateTransferAmount['status']) {
+                        return \response()->json($validateTransferAmount, 400);
+                    }
+                    if (\checkcustomerrestriction(\auth()->user()->id, '2')) {
+                        return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
+                    }
+                    $debitCustomer = \debitCustomerOnly($customerBalance['account_id'], $request->final_amount, \auth()->user());
+                    // $debitCustomer = $this->debitCustomer($request);
+                    if ($debitCustomer['status']) {
+                        $creditCustomer = user_wallet::where('wb_account_detail_id', $wbAccount->id)->first();
+                        // $creditCustomer = \creditCustomerOnly("1", "1000");
+                        $myDescription       = "You received payment from " . \auth()->user()->first_name . " - " . $request->description . $sourceWbAccount->virtual_accnum;
+                        $debitTransactionRef = \generate_txnID();
+                        $ledger_cr           = null;
+                        $ledger_dr           = null;
+                        $ledger_Settings     = get_CR_DR_TXN_Type_Ledger(32, \auth()->user()->company_id);
+                        if ($ledger_Settings) {
+                            $ledger_cr = $ledger_Settings->ledger_cr;
+                            $ledger_dr = $ledger_Settings->ledger_dr;
+                        }
+                        $creditTransaction = transactions::create([
+                            "balance_before"         => $creditCustomer->balance,
+                            "amount"                 => $request->final_amount,
+                            "balance_after"          => $creditCustomer->balance + $request->final_amount,
+                            "account_id"             => $wbAccount->id,
+                            "description"            => $myDescription,
+                            "branch_id"              => $wbAccount->user->branch_id,
+                            "transaction_reference"  => $debitTransactionRef,
+                            "parent_transaction_id"  => $transactionId,
+                            "transaction_remarks_id" => 2,
+                            "transaction_type_id"    => 32,
+                            "credit_debit_type_id"   => 1,
+                            "created_date"           => date('Y-m-d'),
+                            "created_by"             => auth()->user()->id,
+                            "ledger_cr"              => $ledger_cr,
+                            "ledger_dr"              => $ledger_dr,
+                        ]);
+                        $creditCustomer->balance += $request->final_amount;
+                        $creditCustomer->save();
+                        $descArray = explode("-", $myDescription);
+                        $this->updateTransactionAsSuccessful($request->transaction_reference, $debitCustomer['balance_after']);
+                        // sendSMS(['txnid' => $creditTransaction->id, 'userid' => $wbAccount->id], "Credit Amt:$request->final_amount Desc: " . $descArray[0] . " Avail Bal:$creditCustomer->balance Date:" . date('Y-m-d') . " Ref:$creditTransaction->transaction_reference", false, true, 'Credit Transaction');
+                        // sendSMS(['txnid' => $transaction->id, 'userid' => auth()->user()->id], "Debit Amt:$request->final_amount Desc: " . $descArray[0] . " Avail Bal:" . $debitCustomer["balance_after"] . " Date:" . date('Y-m-d') . " Ref:$transaction->transaction_reference", false, true, 'Debit Transaction');
+                        return response()->json(["status" => true, 'message' => "Wallet Transfer Successful", 'data' => ['balance' => $debitCustomer['balance_after']]]);
+                    } else {
+                        return response()->json(["status" => false, 'message' => "Wallet Transfer failed"], 400);
+                    }
+                } else {
+                    return response()->json(["status" => false, 'message' => "Invalid User Wallet Account"], 400);
+                }
+            }
+        } else {
+            return response()->json(["status" => false, 'message' => "Invalid Transaction Reference"], 400);
+        }
+    }
+
+    public function walletTransferCompany(Request $request, $description, $transactionId)
+    {
+
+        $wbAccount = company_wallet::where('vaccount', $request->destination_account)->first();
+        if (! $wbAccount) {
+            $ra = ["status" => false, "message" => "Beneficiary not found!"];
+            return response()->json($ra, 406);
+        }
+        $sourceWbAccount = wb_account_details::where(['user_id' => auth()->user()->id, 'currency_id' => 1])->first();
+
+        if (! $sourceWbAccount) {
+            $ra = ["status" => false, "message" => "Beneficiary currency doesn not match any of your wallet!"];
+            return response()->json($ra, 406);
+        }
+
+        $transactionPinValidation = validatePinCheckCustomerBalance($request->transaction_pin, $request->final_amount, $sourceWbAccount->id);
+
+        if (! $transactionPinValidation['status']) {
+            return response()->json($transactionPinValidation, 400);
+        }
+        $transaction = transactions::where(['transaction_reference' => $request->transaction_reference, 'amount' => $request->final_amount])->first();
+        if ($transaction) {
+            if ($transaction->transaction_remarks_id == 2) {
+                return response()->json(["status" => false, 'message' => "Transaction has already been completed"], 409);
+            } else {
+                $customerBalance = $this->checkCustomerBalance($request->final_amount, $sourceWbAccount->id);
+                if (! $customerBalance['status']) {
+                    return response()->json($customerBalance, 400);
+                }
+                if ($wbAccount) {
+
+                    if ($request->destination_account == \auth()->user()->virtual_account) {
+                        return response()->json(["status" => false, 'message' => "Cannot transfer to self"], 409);
+                    }
+                    if ($wbAccount->id != 14) {
+                        return response()->json(["status" => false, 'message' => "Invalid account number"], 409);
+                    }
+
                     $validateTransferAmount = $this->validateTransfer($request->final_amount);
 
                     if (! $validateTransferAmount['status']) {

@@ -78,7 +78,7 @@ class RegisterController extends Controller
             }
         }
 
-        if ($request->company != 37) {
+        if ($request->company != 37 || $request->company != 59) {
             $bvnCheck = $this->verifyBVN($request);
             if ($bvnCheck['status'] == false) {
                 return response()->json(["status" => false, "message" => "Failed to verify BVN!"], 400);

@@ -3884,7 +3884,7 @@ class CustomerController extends Controller
             ->where('card_category_id', 2)
             ->first();
 
-        if ($existingCard->card_reference == "TEMP") {
+        if (isset($existingCard->card_reference) && $existingCard->card_reference == "TEMP") {
             $customer_sudo_account_id = null;
         } else {
             $customer_sudo_account_id = $existingCard->card_reference ?? null;

@@ -2116,7 +2116,7 @@ class TransactionController extends Controller
                 return \response()->json(['status' => false, 'message' => 'Transaction Failed']);
             }
 
-              $handleWebhook = $providusController->handleWebhook();
+            $handleWebhook = $providusController->handleWebhook();
 
             return response()->json($handleWebhook);
         } catch (Exception $e) {

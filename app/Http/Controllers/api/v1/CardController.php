@@ -36,6 +36,7 @@ class CardController extends Controller
         $validator = Validator::make($request->all(), [
             "card_category" => 'nullable',
             "amount"        => 'nullable|numeric|gt:0',
+            "card_currency" => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -58,6 +59,9 @@ class CardController extends Controller
         // Fetch company settings
         $companySettings = company_settings::where('company_id', $user->company_id)->first();
         $cardCurrency    = $companySettings->preferred_virtual_card_currency == "1" ? "NGN" : "USD";
+        if (isset($request->card_currency) && $request->card_currency != null) {
+            $cardCurrency = "USD";
+        }
 
         // Check if card exists already
         $existingCard = UserCard::where('user_id', $user->id)
@@ -143,9 +147,15 @@ class CardController extends Controller
 
         // Call SafeHaven API to create card
         $safehaven = new SafehavenController();
-        $sudoRef   = $existingCard->card_reference ?? null;
+        $maplerad  = new MapleradController();
 
-        $cardRes = $safehaven->createVirtualCard($request, $user, $sudoRef);
+        $cardRef = $existingCard->card_reference ?? null;
+
+        if ($cardCurrency === "USD") {
+            $cardRes = $maplerad->createVirtualCard($request, $user, $cardRef);
+        } else {
+            $cardRes = $safehaven->createVirtualCard($request, $user, $cardRef);
+        }
 
         if (! $cardRes['status']) {
             return response()->json($cardRes['message'], 400);
@@ -168,7 +178,7 @@ class CardController extends Controller
             "exp_date"         => $cardData["expiryYear"],
             "cvv"              => $cardData["expiryYear"],
             "created_by"       => $user->id,
-            "sudo_customer_id" => $cardRes['sudo_customer_id'],
+            "sudo_customer_id" => $cardRes['customer_id'],
         ]);
 
         // Send SMS notification
@@ -465,11 +475,13 @@ class CardController extends Controller
             "ledger_cr"              => $ledger_cr,
         ]);
 
-        $bankAccount = $this->flutterwave->fundVirtualCard($request->card_reference, $request->amount, $validateCard['data']['currency_code']);
+        //$bankAccount = $this->flutterwave->fundCard($request->card_reference, $request->amount, $validateCard['data']['currency_code']);
+        $maplerad    = new MapleradController();
+        $bankAccount = $maplerad->fundCard($request->card_reference, $request->amount, $validateCard['data']['currency_code']);
 
         if ($bankAccount["status"]) {
 
-            $availableCardBalance = $this->flutterwave->getVirtualCardBalance($request->card_reference);
+            $availableCardBalance = $maplerad->getVirtualCardBalance($request->card_reference);
 
             \updateTransactionAsSuccessfulOnly($transactionId);
 

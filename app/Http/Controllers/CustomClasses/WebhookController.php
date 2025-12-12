@@ -651,6 +651,12 @@ class WebhookController extends Controller
 
     }
 
+    public function handleMapleradWebhook()
+    {
+        $requestResponse = $request->all();
+        logInfo(json_encode($requestResponse), "request Response");
+    }
+
     private function getVirtualAccountNumber($kudaVirtualNumber)
     {
         if (isset($kudaVirtualNumber->payingBank) && $kudaVirtualNumber->payingBank == "Paycom(OPay)") {

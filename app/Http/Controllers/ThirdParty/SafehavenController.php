@@ -845,7 +845,7 @@ class SafehavenController extends WebhookController
                     'status'           => true,
                     'message'          => $result['message'],
                     'result'           => $result,
-                    "sudo_customer_id" => $sudoCustomer['data']['_id'],
+                    "customer_id" => $sudoCustomer['data']['_id'],
                 ];
             }
 

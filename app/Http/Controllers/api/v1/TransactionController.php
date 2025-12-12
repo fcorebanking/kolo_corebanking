@@ -12,6 +12,7 @@ use App\Http\Controllers\ThirdParty\GTBController;
 use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Http\Controllers\ThirdParty\KudaBusinessController;
 use App\Http\Controllers\ThirdParty\KudaController;
+use App\Http\Controllers\ThirdParty\MapleradController;
 use App\Http\Controllers\ThirdParty\MonnifyController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Http\Controllers\ThirdParty\SafehavenController;
@@ -1436,8 +1437,8 @@ class TransactionController extends Controller
         }
         $wbAccount = wb_account_details::where('virtual_accnum', $request->destination_account)->first();
         if (! $wbAccount) {
-            $companyAcc =  $this->walletTransferCompany($request, $description, $transactionId);
-            
+            $companyAcc = $this->walletTransferCompany($request, $description, $transactionId);
+
             $ra = ["status" => false, "message" => "Beneficiary not found!"];
             return response()->json($ra, 406);
         }
@@ -2110,7 +2111,12 @@ class TransactionController extends Controller
             $providusController->request              = $request;
             $providusController->fromTempWebhook      = 'false';
 
-            $handleWebhook = $providusController->handleWebhook();
+            $status = $request->input('data.status');
+            if ($status == "failed") {
+                return \response()->json(['status' => false, 'message' => 'Transaction Failed']);
+            }
+
+              $handleWebhook = $providusController->handleWebhook();
 
             return response()->json($handleWebhook);
         } catch (Exception $e) {
@@ -2438,6 +2444,26 @@ class TransactionController extends Controller
         $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
 
         logInfo(json_encode($handleWebhook), "Handle web hook Sudo result");
+        logInfo("$httpCode", "httpCode");
+
+        return response()->json($handleWebhook, $httpCode);
+    }
+
+    public function mapleradWebhook(Request $request)
+    {
+
+        $mapleradController = new MapleradController();
+        // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
+
+        if (! $request['type'] != "transfer") {
+            response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
+        }
+
+        $handleWebhook = $mapleradController->handleMapleradWebhook($request);
+
+        $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
+
+        logInfo(json_encode($handleWebhook), "Handle web hook maplerad result");
         logInfo("$httpCode", "httpCode");
 
         return response()->json($handleWebhook, $httpCode);

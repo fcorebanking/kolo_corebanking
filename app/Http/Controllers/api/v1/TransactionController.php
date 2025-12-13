@@ -1139,7 +1139,7 @@ class TransactionController extends Controller
                         return response()->json($customerBalance, 400);
                     }
 
-                    $checkCompanyBalance = checkCompanyBalanceThresholdTransaction($amount);
+                    $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($amount);
 
                     if (! $checkCompanyBalance['status']) {
                         return response()->json($customerBalance, 400);

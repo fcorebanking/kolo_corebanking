@@ -2191,6 +2191,9 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
                     'company_charge_balance_before' => $companyBalanceAfter,
                     'company_charge_balance_after'  => $companyFinalBalance,
                 ];
+
+                logInfo(json_encode($response), "debitCustomerAndCompanyWithCharge");
+
             } else {
                 $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
             }

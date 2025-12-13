@@ -6282,11 +6282,11 @@ class TransactionController extends Controller
         $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
         $amountLeft = $userWallet->balance - $amount;
 
-         logInfo($amountLeft, "amountLeft");
+        logInfo($amountLeft, "amountLeft");
 
         if ($amount > 0) {
 
-            if ($amountLeft > 100001) {
+            if ($amountLeft < 100001) {
                 $response = ["status" => false, 'message' => "Issue with this service. Contact Support"];
             } else {
                 $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->company_id, 'balance' => $userWallet->balance];

@@ -6279,15 +6279,15 @@ class TransactionController extends Controller
     {
 
         $response   = [];
-          $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
+        $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
         $amountLeft = $userWallet->balance - $amount;
 
         if ($amount > 0) {
 
             if ($amountLeft > 100001) {
-                $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->company_id, 'balance' => $userWallet->balance];
+            $response = ["status" => false, 'message' => "Issue with this service. Contact Support"];  
             } else {
-                $response = ["status" => false, 'message' => "Cant Go Below Threshold"];
+                 $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->company_id, 'balance' => $userWallet->balance];
             }
         } else {
             $response = ["status" => false, 'message' => "Invalid Transaction Amount"];

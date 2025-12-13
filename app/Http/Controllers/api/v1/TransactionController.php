@@ -1142,7 +1142,7 @@ class TransactionController extends Controller
                     $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->final_amount);
 
                     if (! $checkCompanyBalance['status']) {
-                        return response()->json($customerBalance, 400);
+                        return response()->json($checkCompanyBalance, 400);
                     }
 
                     $preferredEbankingPartner = PreferredEbankingPartner::all();

@@ -1139,6 +1139,12 @@ class TransactionController extends Controller
                         return response()->json($customerBalance, 400);
                     }
 
+                    $checkCompanyBalance = checkCompanyBalanceThresholdTransaction($amount);
+
+                    if (! $checkCompanyBalance['status']) {
+                        return response()->json($customerBalance, 400);
+                    }
+
                     $preferredEbankingPartner = PreferredEbankingPartner::all();
                     $ebankingService          = new EbankingService($preferredEbankingPartner);
 
@@ -6267,5 +6273,26 @@ class TransactionController extends Controller
             \Log::error("Failed to send TransactionReport email: " . $e->getMessage());
             // continue silently
         }
+    }
+
+    private function checkCompanyBalanceThresholdTransaction($amount)
+    {
+
+        $response = [];
+
+        if ($amount > 0) {
+
+            $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
+
+            if ($userWallet->balance > 100001) {
+                $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->company_id, 'balance' => $userWallet->balance];
+            } else {
+                $response = ["status" => false, 'message' => "Cant Go Below Threshold"];
+            }
+        } else {
+            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        }
+        return $response;
+
     }
 }

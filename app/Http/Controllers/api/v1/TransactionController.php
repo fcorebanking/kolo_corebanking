@@ -6115,6 +6115,10 @@ class TransactionController extends Controller
             return response()->json(['status' => 0, 'message' => "Invalid Transaction reference"]);
         }
 
+        if (! $transaction->company_id == 61) {
+            return response()->json(['status' => 0, 'message' => "Blocked Reversal"]);
+        }
+
         if ($transaction->transaction_type_id != 8) {
             return response()->json(['status' => 0, 'message' => "This transaction is not a bank transfer"]);
         }

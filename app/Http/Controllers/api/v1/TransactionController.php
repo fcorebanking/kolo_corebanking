@@ -6279,12 +6279,13 @@ class TransactionController extends Controller
     {
 
         $response = [];
+        $amountLeft =$userWallet->balance -$amount;
 
         if ($amount > 0) {
 
             $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
 
-            if ($userWallet->balance > 100001) {
+            if ($amountLeft > 100001) {
                 $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->company_id, 'balance' => $userWallet->balance];
             } else {
                 $response = ["status" => false, 'message' => "Cant Go Below Threshold"];

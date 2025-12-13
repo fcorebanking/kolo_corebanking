@@ -6288,8 +6288,6 @@ class TransactionController extends Controller
 
             if ($amountLeft < 100001) {
                 $response = ["status" => false, 'message' => "Issue with this service. Contact Support"];
-            } else {
-                $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->company_id, 'balance' => $userWallet->balance];
             }
         } else {
             $response = ["status" => false, 'message' => "Invalid Transaction Amount"];

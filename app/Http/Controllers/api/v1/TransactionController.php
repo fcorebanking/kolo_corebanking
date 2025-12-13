@@ -6278,12 +6278,11 @@ class TransactionController extends Controller
     private function checkCompanyBalanceThresholdTransaction($amount)
     {
 
-        $response = [];
-        $amountLeft =$userWallet->balance -$amount;
+        $response   = [];
+          $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
+        $amountLeft = $userWallet->balance - $amount;
 
         if ($amount > 0) {
-
-            $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
 
             if ($amountLeft > 100001) {
                 $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->company_id, 'balance' => $userWallet->balance];

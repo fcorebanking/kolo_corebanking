@@ -1539,6 +1539,7 @@ class TransactionController extends Controller
     {
 
         $wbAccount = company_wallet::where('vaccount', $request->destination_account)->first();
+         logInfo(json_encode($wbAccount), "walletTransferCompany");
         if (! $wbAccount) {
             $ra = ["status" => false, "message" => "Beneficiary not found!"];
             return response()->json($ra, 406);

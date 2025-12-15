@@ -1539,7 +1539,7 @@ class TransactionController extends Controller
     {
 
         $wbAccount = company_wallet::where('vaccount', $request->destination_account)->first();
-         logInfo(json_encode($wbAccount), "walletTransferCompany");
+        logInfo(json_encode($wbAccount), "walletTransferCompany");
         if (! $wbAccount) {
             $ra = ["status" => false, "message" => "Beneficiary not found!"];
             return response()->json($ra, 406);
@@ -5482,6 +5482,17 @@ class TransactionController extends Controller
             return ['status' => true, 'message' => 'Data Bundles fetched successfully', 'data' => $dataBundles['data']];
         } else {
             return ['status' => false, 'message' => 'Failed to fetch Data bundles', 'data' => []];
+        }
+    }
+
+    public function getSavingsProducts()
+    {
+        $savingsProduct=  savings_product::where('id', auth()->user()->company_id)->get();
+       
+        if ($savingsProduct) {
+            return ['status' => true, 'message' => 'Savings Products fetched successfully', 'data' => $savingsProduct];
+        } else {
+            return ['status' => false, 'message' => 'Failed to fetch Savings', 'data' => []];
         }
     }
 

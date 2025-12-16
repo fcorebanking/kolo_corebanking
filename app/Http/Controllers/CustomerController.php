@@ -666,7 +666,7 @@ class CustomerController extends Controller
 
             // Debit company
             //    $companyDebit = debitCompanyWithCharge($auth->company_id, $wbaSettings->charge, 0);
-        
+
             /*  $companyDebit = $this->debitCompanyCardWallet($auth->company_id, $companySettings->new_physical_card_charge);
             if (! $companyDebit['status']) {
                 DB::rollback();
@@ -756,19 +756,20 @@ class CustomerController extends Controller
             UserCard::updateOrCreate(
                 [
                     "sudo_customer_id" => $cardResponse['customer_sudo_account_id'],
-                    "card_category_id" => 2,
-                    "card_type_id"     => $cardTypeCode,
+
                     "exp_date"         => $cardResponse['result']['data']["expiryYear"] ?? "",
                 ],
                 [
                     "user_id"   => $customer->id,
                     "card_name" => "{$customer->first_name} {$customer->last_name}",
-                    "card_number"    => $cardResponse['result']['data']["maskedPan"],
-                    "masked_pan"     => $cardResponse['result']['data']["maskedPan"],
-                    "card_reference" => $cardResponse['result']['data']["_id"],
-                    "currency_id"    => $companySettings->preferred_virtual_card_currency,
-                    "cvv"            => "",
-                    "created_by"     => $auth->id,
+                    "card_number"      => $cardResponse['result']['data']["maskedPan"],
+                    "masked_pan"       => $cardResponse['result']['data']["maskedPan"],
+                    "card_category_id" => 2,
+                    "card_type_id"     => $cardTypeCode,
+                    "card_reference"   => $cardResponse['result']['data']["_id"],
+                    "currency_id"      => $companySettings->preferred_virtual_card_currency,
+                    "cvv"              => "",
+                    "created_by"       => $auth->id,
 
                 ]);
 

@@ -666,11 +666,12 @@ class CustomerController extends Controller
 
             // Debit company
             //    $companyDebit = debitCompanyWithCharge($auth->company_id, $wbaSettings->charge, 0);
-            $companyDebit = $this->debitCompanyCardWallet($auth->company_id, $companySettings->new_physical_card_charge);
+        
+            /*  $companyDebit = $this->debitCompanyCardWallet($auth->company_id, $companySettings->new_physical_card_charge);
             if (! $companyDebit['status']) {
                 DB::rollback();
                 return response()->json(['status' => 0, 'message' => $companyDebit['message']]);
-            }
+            }*/
             $userWallet = user_wallet::where('wb_account_detail_id', $customer->accounts->first()->id)->lockForUpdate()->first();
             // Debit customer wallet
             $customerDebit = $this->debitCustomerWithChargeforCard($customer->accounts->first()->id, $companySettings->new_physical_card_charge, 0, $customer, $userWallet);
@@ -688,13 +689,13 @@ class CustomerController extends Controller
             // Create transaction record
             $transaction = transactions::create([
                 "balance_before"         => $customerDebit['balance_before'],
-                "company_balance_before" => $companyDebit['balance_before'],
+                "company_balance_before" => 0,
                 "account_id"             => $customerDebit['account_id'],
                 "branch_id"              => $auth->branch->id,
                 "amount"                 => $companySettings->new_physical_card_charge,
                 "company_amount"         => $wbaSettings->charge,
                 "balance_after"          => $customerDebit['balance_after'],
-                "company_balance_after"  => $companyDebit['balance_after'],
+                "company_balance_after"  => 0,
                 "company_id"             => $auth->company_id,
                 "description"            => "Purchase of Physical Card",
                 "transaction_reference"  => $transactionId,

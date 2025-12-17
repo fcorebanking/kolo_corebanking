@@ -1,7 +1,7 @@
 <?php
-
 namespace App\Console\Commands;
 
+use App\Jobs\DailyHybridSummaryJob;
 use Illuminate\Console\Command;
 
 class BackfillDailySummary extends Command
@@ -11,14 +11,14 @@ class BackfillDailySummary extends Command
      *
      * @var string
      */
-    protected $signature = 'command:name';
+    protected $signature = 'summary:backfill {from} {to}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Backfill summaries between dates';
 
     /**
      * Execute the console command.
@@ -27,6 +27,12 @@ class BackfillDailySummary extends Command
      */
     public function handle()
     {
+        $from = $this->argument('from');
+        $to   = $this->argument('to');
+
+        DailyHybridSummaryJob::dispatch($from, $to);
+
+        Log::info("Profit backfill queued from {$from} to {$to}");
         return Command::SUCCESS;
     }
 }

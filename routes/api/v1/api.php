@@ -257,7 +257,7 @@ Route::prefix('/transactions')->group(function () {
         Route::get('/get-subscriptions', [TransactionController::class, 'getSubscriptions']);
         Route::post('/verify-smart-card', [TransactionController::class, 'verifySmartCard'])->middleware('log.route');
         Route::get('/get-data-bundles/{networkProvider}', [TransactionController::class, 'getDataBundles']);
-        Route::get('/get-saving-products', [TransactionController::class, 'getSavingsProducts']);
+        Route::get('/get-saving-products/{id}', [TransactionController::class, 'getSavingsProducts']);
         Route::middleware('checkAccountStatus')->post('/bank-transfer', [TransactionController::class, 'transferToBankAccount'])->middleware('log.route');
         Route::middleware('checkAccountStatus')->post('/bank-transfer-test', [TransactionController::class, 'transferToBankAccountTest'])->middleware('log.route');
         Route::middleware('checkAccountStatus')->post('/process-verify-reverse-transactions', [TransactionController::class, 'processVerifyAndReverseTransaction'])->middleware('log.route');

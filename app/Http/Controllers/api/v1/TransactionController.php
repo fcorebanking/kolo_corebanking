@@ -5485,10 +5485,10 @@ class TransactionController extends Controller
         }
     }
 
-    public function getSavingsProducts(Request $request)
+    public function getSavingsProducts($company_id)
     {
-        $savingsProduct=  savings_product::where('id', $request->company_id)->get();
-       
+        $savingsProduct = savings_product::where('id', $company_id)->get();
+
         if ($savingsProduct) {
             return ['status' => true, 'message' => 'Savings Products fetched successfully', 'data' => $savingsProduct];
         } else {

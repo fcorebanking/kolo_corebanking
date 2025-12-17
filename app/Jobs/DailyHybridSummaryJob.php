@@ -51,8 +51,8 @@ class DailyHybridSummaryJob implements ShouldQueue
 
             DailySummary::updateOrCreate(
                 [
-                    'company_id'          => $row->company_id,
-                    'branch_id'           => $row->branch_id,
+                    'company_id'          => $row->company_id ?? 0,
+                    'branch_id'           => $row->branch_id ?? 0,
                     'account_id'          => $row->officer_id,
                     'transaction_type_id' => $row->transaction_type_id,
                     'summary_date'        => $row->summary_date,

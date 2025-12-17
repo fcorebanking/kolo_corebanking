@@ -61,6 +61,7 @@ Route::prefix('/users')->group(function () {
     Route::post('/forgot-password-send-otp', [UserController::class, 'forgotPasswordSendOTP']);
     Route::post('/reset-password', [UserController::class, 'resetPassword']); //users/change-pin
     Route::post('/confirm-otp', [UserController::class, 'confirmOTP']);
+    Route::middleware('auth:api')->post('/add-account', [UserController::class, 'addAccount']);
 
     Route::middleware("checkApiKey")->get('/get-balance/{accountNumber}', [UserController::class, 'getAccountBalance']);
 
@@ -94,7 +95,6 @@ Route::prefix('/users')->group(function () {
     Route::middleware('auth:api')->get('/get-details', [UserController::class, 'getDetails'])->withoutMiddleware([LogRoute::class]);
     Route::middleware('auth:api')->put('/update-profile', [UserController::class, 'updateProfile']);
     Route::middleware('auth:api')->get('/all', [UserController::class, 'index']);
-    Route::middleware('auth:api')->get('/add-account', [UserController::class, 'addAccount']);
 
     //New API
     Route::middleware('checkApiKey')->get('/virtual-accounts', [UserController::class, 'getVirtualAccounts']);

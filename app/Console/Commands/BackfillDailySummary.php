@@ -3,6 +3,7 @@ namespace App\Console\Commands;
 
 use App\Jobs\DailyHybridSummaryJob;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class BackfillDailySummary extends Command
 {

@@ -14,15 +14,19 @@ use App\Models\Esusu;
 use App\Models\Esusulog;
 use App\Models\EsusuTXN;
 use App\Models\esusu_types;
+use App\Models\savings_product;
 use App\Models\transactions;
 use App\Models\User;
 use App\Models\UserCard;
 use App\Models\user_wallet;
 use App\Models\wb_account_details;
+use App\Services\AccountCreationService;
+use App\Services\VirtualAccountType;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -1716,6 +1720,120 @@ class UserController extends Controller
             return response()->json(["status" => true, "message" => "Account Deleted"], 200);
         } catch (Exception $e) {
             return response()->json(["status" => false, "message" => "Operation Failed" . $e->getMessage()], 400);
+        }
+    }
+
+    public function addAccount(Request $request)
+    {
+        try {
+            $user = User::where(['user_type_id' => '1', 'uuid' => $request->uuid, 'company_id' => auth()->user()->company_id]);
+
+          
+            $user   = $user->first();
+            $bankId = 231;
+            $saving = savings_product::where(['company_id' => auth()->user()->company_id, 'id' => $request->savings_product_type])->first();
+
+            if ($request->saving_type != 'virtual') {
+                $virtual_acccount_number = rand(1000000000, 9999999999);
+                $customer_reference      = rand(1000000000, 9999999999);
+                if (isset($saving->code)) {
+                    if ($saving->code != null) {
+                        $length                  = strlen($saving->code);
+                        $virtual_acccount_number = substr_replace($virtual_acccount_number, $saving->code, 0, $length);
+                    }
+                }
+                $branchdata = branch::where(['company_id' => auth()->user()->company_id, 'currency_id' => $request->currency_id])->first();
+                if (isset($branchdata->code)) {
+                    if ($branchdata->code != null) {
+                        $branchCodeLength = strlen($branchdata->code);
+                        $branchCodeLength -= 1;
+                        $virtual_acccount_number = substr_replace($virtual_acccount_number, $branchdata->code, -$branchCodeLength);
+                    }
+                }
+            } else {
+                $bank = banks::where('bank_code', $request->bankcode)->first();
+                if (! $bank) {
+                    $response['status'] = 0;
+                    return ['status' => false, 'message' => "Account Bank Code does not exist"];
+                }
+
+                $bankId = $bank->id;
+
+                $virtualAccount = new VirtualAccountType();
+
+                $virtualAccount->bankCode                     = $request->bankcode;
+                $virtualAccount->currencyCode                 = \auth()->user()->company->currency->code;
+                $virtualAccount->firstName                    = $user->first_name;
+                $virtualAccount->companyShortName             = auth()->user()->company->short_name;
+                $virtualAccount->lastName                     = $user->last_name;
+                $virtualAccount->email                        = $user->email;
+                $virtualAccount->accountType                  = 'personal';
+                $virtualAccount->phone                        = $user->phone;
+                $virtualAccount->dob                          = $user->dob;
+                $virtualAccount->gender                       = $request->gender;
+                $virtualAccount->bvn                          = $user->bvn;
+                $virtualAccount->address                      = $user->address;
+                $virtualAccount->companyAccountCreationStatus = auth()->user()->company->setting->can_create_virtual_account;
+
+                $createAccountService = new AccountCreationService();
+
+                $response = $createAccountService->createVirtualAccount($virtualAccount);
+
+                if (! $response['status']) {
+                    $response['status'] = 0;
+                    return response()->json($response);
+                }
+                logInfo($response, "Create Account service response");
+                $customer_reference      = $response['data']['account_reference'] ?? $customer_reference;
+                $virtual_acccount_number = $response['data']['virtual_account'] ?? $response['data']['account_number'];
+
+                $user->virtual_account   = $virtual_acccount_number;
+                $user->account_reference = $customer_reference;
+                $user->save();
+
+            }
+
+            if ($saving) {
+                if ($user) {
+                    $wb = wb_account_details::where(['account_product_id' => $saving->id, 'user_id' => $user->id])->first();
+                    if ($wb && ($request->replace_account != "yes")) {
+                        return response()->json(['status' => 0, 'message' => 'Error! Account Type Already Exist']);
+                    }
+
+                    if ($request->replace_account == "yes") {
+                        $wb_account_details = wb_account_details::where('user_id', $user->id)->first();
+                        $wb_account_details->update([
+                            'virtual_accnum' => $virtual_acccount_number,
+                            'acc_reference'  => $customer_reference,
+                            'bankid'         => $bankId,
+                            "currency_id"    => $request->currency_id,
+                        ]);
+                    } else {
+
+                        $wb_account_details = wb_account_details::create([
+                            'user_id'            => $user->id,
+                            'account_product_id' => $saving->id,
+                            'bankid'             => $bankId,
+                            'virtual_accnum'     => $virtual_acccount_number,
+                            'acc_reference'      => $customer_reference,
+                            'has_atm_card'       => 0,
+                            "currency_id"        => $request->currency_id,
+                        ]);
+                        user_wallet::create([
+                            'wb_account_detail_id' => $wb_account_details->id,
+                            'balance'              => 0,
+                        ]);
+                    }
+
+                    return response()->json(['status' => 1, 'message' => 'Account Added!']);
+                } else {
+                    return response()->json(['status' => 0, 'message' => 'Account Registration Failed!']);
+                }
+            } else {
+                return response()->json(['status' => 0, 'message' => 'Account Registration Failed!']);
+            }
+        } catch (Exception $e) {
+            return response()->json(['status' => 0, 'message' => "An error occured!"]);
         }
     }
 }

@@ -94,6 +94,7 @@ Route::prefix('/users')->group(function () {
     Route::middleware('auth:api')->get('/get-details', [UserController::class, 'getDetails'])->withoutMiddleware([LogRoute::class]);
     Route::middleware('auth:api')->put('/update-profile', [UserController::class, 'updateProfile']);
     Route::middleware('auth:api')->get('/all', [UserController::class, 'index']);
+    Route::middleware('auth:api')->get('/add-account', [UserController::class, 'addAccount']);
 
     //New API
     Route::middleware('checkApiKey')->get('/virtual-accounts', [UserController::class, 'getVirtualAccounts']);

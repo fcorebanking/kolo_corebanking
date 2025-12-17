@@ -4078,7 +4078,7 @@ function Allprofit($from = null, $to = null, $branchID = null, $officer = null)
 
     $results = $query->get();
 
-   // dd($results);
+    // dd($results);
 
     return $results;
 }

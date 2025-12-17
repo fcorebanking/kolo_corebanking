@@ -1735,65 +1735,43 @@ class UserController extends Controller
             $bankId = 231;
             $saving = savings_product::where(['company_id' => auth()->user()->company_id, 'id' => $request->savings_product_type])->first();
             \logInfo(json_encode($saving), "api saving account ");
-            if ($request->saving_type != 'virtual') {
-                $virtual_acccount_number = rand(1000000000, 9999999999);
-                $customer_reference      = rand(1000000000, 9999999999);
-                if (isset($saving->code)) {
-                    if ($saving->code != null) {
-                        $length                  = strlen($saving->code);
-                        $virtual_acccount_number = substr_replace($virtual_acccount_number, $saving->code, 0, $length);
-                    }
-                }
-                $branchdata = branch::where(['company_id' => auth()->user()->company_id, 'currency_id' => $request->currency_id])->first();
-                if (isset($branchdata->code)) {
-                    if ($branchdata->code != null) {
-                        $branchCodeLength = strlen($branchdata->code);
-                        $branchCodeLength -= 1;
-                        $virtual_acccount_number = substr_replace($virtual_acccount_number, $branchdata->code, -$branchCodeLength);
-                    }
-                }
-            } else {
-                $bank = banks::where('bank_code', $request->bankcode)->first();
-                if (! $bank) {
-                    $response['status'] = 0;
-                    return ['status' => false, 'message' => "Account Bank Code does not exist"];
-                }
 
-                $bankId = $bank->id;
+            $companyRecord = Company::where(['id' => auth()->user()->company_id])->first();
 
-                $virtualAccount = new VirtualAccountType();
+            $bank_id      = $companyRecord->setting->preferred_bank_id ?? 126;
+            $selectedBank = banks::where('id', $bank_id)->first();
 
-                $virtualAccount->bankCode                     = $request->bankcode;
-                $virtualAccount->currencyCode                 = \auth()->user()->company->currency->code;
-                $virtualAccount->firstName                    = $user->first_name;
-                $virtualAccount->companyShortName             = auth()->user()->company->short_name;
-                $virtualAccount->lastName                     = $user->last_name;
-                $virtualAccount->email                        = $user->email;
-                $virtualAccount->accountType                  = 'personal';
-                $virtualAccount->phone                        = $user->phone;
-                $virtualAccount->dob                          = $user->dob;
-                $virtualAccount->gender                       = $request->gender;
-                $virtualAccount->bvn                          = $user->bvn;
-                $virtualAccount->address                      = $user->address;
-                $virtualAccount->companyAccountCreationStatus = auth()->user()->company->setting->can_create_virtual_account;
+            $virtualAccount = new VirtualAccountType();
 
-                $createAccountService = new AccountCreationService();
+            $virtualAccount->bankCode                     = $selectedBank->bank_code;
+            $virtualAccount->currencyCode                 = \auth()->user()->company->currency->code;
+            $virtualAccount->firstName                    = $user->first_name;
+            $virtualAccount->companyShortName             = auth()->user()->company->short_name;
+            $virtualAccount->lastName                     = $user->last_name;
+            $virtualAccount->email                        = $user->email;
+            $virtualAccount->accountType                  = 'personal';
+            $virtualAccount->phone                        = $user->phone;
+            $virtualAccount->dob                          = $user->dob;
+            $virtualAccount->gender                       = $user->gender;
+            $virtualAccount->bvn                          = $user->bvn;
+            $virtualAccount->address                      = $user->address;
+            $virtualAccount->companyAccountCreationStatus = auth()->user()->company->setting->can_create_virtual_account;
 
-                $response = $createAccountService->createVirtualAccount($virtualAccount);
+            $createAccountService = new AccountCreationService();
 
-                if (! $response['status']) {
-                    $response['status'] = 0;
-                    return response()->json($response);
-                }
-                logInfo($response, "Create Account service response");
-                $customer_reference      = $response['data']['account_reference'] ?? $customer_reference;
-                $virtual_acccount_number = $response['data']['virtual_account'] ?? $response['data']['account_number'];
+            $response = $createAccountService->createVirtualAccount($virtualAccount);
 
-                $user->virtual_account   = $virtual_acccount_number;
-                $user->account_reference = $customer_reference;
-                $user->save();
-
+            if (! $response['status']) {
+                $response['status'] = 0;
+                return response()->json($response);
             }
+            logInfo($response, "Create Account service response");
+            $customer_reference      = $response['data']['account_reference'] ?? $customer_reference;
+            $virtual_acccount_number = $response['data']['virtual_account'] ?? $response['data']['account_number'];
+
+            $user->virtual_account   = $virtual_acccount_number;
+            $user->account_reference = $customer_reference;
+            $user->save();
 
             if ($saving) {
                 if ($user) {

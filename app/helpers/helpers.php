@@ -4015,74 +4015,56 @@ function transactionReportTypes($cr_dr = null, $from = null, $to = null, $branch
 }
 function Allprofit($from = null, $to = null, $branchID = null, $officer = null)
 {
-    //7 withdrawal charge profit-
-    //8 transfer charge profit-
-    //27 bank transfer CHARGES,(company/wba) -profit -
-    // 30 customer registration, -profit -
-    // 33 sms charge - profit -
-    // 38 overdraft charge - profit -
-    // 39 esusu acumulated charge - profit -
-    // 54 loan fee charge-profile -
-    // 55 loan management fee -profile -
-    // 56 loan repayment -profile -
-    // 57 setup fee -profile -
-    // 58 Savings Maintenance Charge -profit -
-    // 62 loan penalty -profit -
-    // 76 POS Credit Charge - profit(company/wba)
-    // 91 Company Whatsapp Charge - profit(company/wba)
-    // 92 Customer Whatsapp Charge - profit(company/wba)
-    // 95 Driver License Verification fee - profit(company/wba)
-    // 100 virtual card charge - profit(company/wba)
-    // 41(whatsapp charges) - profit(company/wba)
-    // 42(USSD CHARGE) - profit(company/wba)
-    // 51 bill payment charge- profit(company/wba)
-    // 93 local bank transfer
-    $auth               = auth()->user();
-    $transactionTypeIDs = [7, 8, 27, 30, 33, 38, 39, 54, 55, 57, 58, 62, 76, 91, 95, 100, 41, 42, 51, 93];
+    $auth = auth()->user();
+
+    $transactionTypeIDs = [
+        7, 8, 27, 30, 33, 38, 39, 54, 55, 57,
+        58, 62, 76, 91, 95, 100, 41, 42, 51, 93
+    ];
 
     $query = transactions::select([
         'transactions.transaction_type_id',
-        'transactions.credit_debit_type_id',
-        'credit_debit_types.type',
         'transaction_types.transaction_type',
-        DB::raw('CASE WHEN transactions.transaction_type_id IN (7,8,93) THEN SUM(transactions.withdrawal_charge) ELSE SUM(transactions.amount) END AS total'),
+        DB::raw("
+            SUM(
+                CASE 
+                    WHEN transactions.transaction_type_id IN (7,8,93)
+                    THEN transactions.withdrawal_charge
+                    ELSE transactions.amount
+                END
+            ) AS total
+        ")
     ])
-        ->join('wb_account_details', 'wb_account_details.id', '=', 'transactions.account_id')
-        ->join('users', 'users.id', '=', 'wb_account_details.user_id')
-        ->join('transaction_types', 'transactions.transaction_type_id', '=', 'transaction_types.id')
-        ->join('credit_debit_types', 'transactions.credit_debit_type_id', '=', 'credit_debit_types.id')
-        ->where(function ($query) use ($auth) {
-            $query->where('users.company_id', $auth->company_id)
-                ->orWhere('transactions.company_id', $auth->company_id);
-        })
-        ->where('transactions.transaction_status_id', 1)
-        ->where('users.status_id', 1)
-        ->whereIn('transactions.transaction_type_id', $transactionTypeIDs);
+    ->join('transaction_types', 'transactions.transaction_type_id', '=', 'transaction_types.id')
+    ->where('transactions.company_id', $auth->company_id)
+    ->where('transactions.transaction_status_id', 1)
+    ->whereIn('transactions.transaction_type_id', $transactionTypeIDs);
 
     if ($from) {
-        $query->where('transactions.created_at', '>=', $from);
+        $query->whereDate('transactions.created_at', '>=', $from);
     }
 
     if ($to) {
-        $query->where('transactions.created_at', '<=', $to);
+        $query->whereDate('transactions.created_at', '<=', $to);
     }
 
     if ($branchID) {
         $query->where('transactions.branch_id', $branchID);
     }
+
     if ($officer) {
-        $query->where('users.account_officer_id', $officer);
+        $query->join('wb_account_details', 'wb_account_details.id', '=', 'transactions.account_id')
+              ->join('users', 'users.id', '=', 'wb_account_details.user_id')
+              ->where('users.account_officer_id', $officer)
+              ->where('users.status_id', 1);
     }
 
-    $query->groupBy('transactions.transaction_type_id');
-
-    $results = $query->get();
-
-    dd($results);
-    
-
-    return $results;
+    return $query->groupBy(
+        'transactions.transaction_type_id',
+        'transaction_types.transaction_type'
+    )->get();
 }
+
 
 function AllLoss($from = null, $to = null, $branchID = null, $officer = null)
 {

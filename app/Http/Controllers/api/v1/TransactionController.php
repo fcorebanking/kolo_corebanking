@@ -5485,9 +5485,9 @@ class TransactionController extends Controller
         }
     }
 
-    public function getSavingsProducts()
+    public function getSavingsProducts(Request $request)
     {
-        $savingsProduct=  savings_product::where('id', auth()->user()->company_id)->get();
+        $savingsProduct=  savings_product::where('id', $request->company_id)->get();
        
         if ($savingsProduct) {
             return ['status' => true, 'message' => 'Savings Products fetched successfully', 'data' => $savingsProduct];

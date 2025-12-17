@@ -1728,11 +1728,10 @@ class UserController extends Controller
         try {
             $user = User::where(['user_type_id' => '1', 'uuid' => $request->uuid, 'company_id' => auth()->user()->company_id]);
 
-          
             $user   = $user->first();
             $bankId = 231;
             $saving = savings_product::where(['company_id' => auth()->user()->company_id, 'id' => $request->savings_product_type])->first();
-
+            \logInfo(json_encode($saving), "api saving ");
             if ($request->saving_type != 'virtual') {
                 $virtual_acccount_number = rand(1000000000, 9999999999);
                 $customer_reference      = rand(1000000000, 9999999999);

@@ -143,7 +143,7 @@
                             <th class="text-center"></th>
                             <th><b>{{$currentDate}}</b></th>
                             <tr class="">
-                                <th class="text-center text-success">Revenu</th>
+                                <th class="text-center text-success">Revenue</th>
                                 <th></th>
                             </tr>
                         </tr>

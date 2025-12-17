@@ -1738,7 +1738,8 @@ class UserController extends Controller
 
             $companyRecord = Company::where(['id' => auth()->user()->company_id])->first();
 
-            $bank_id      = $companyRecord->setting->preferred_bank_id ?? 126;
+            //   $bank_id      = $companyRecord->setting->preferred_bank_id ?? 126;
+            $bank_id      = 126;
             $selectedBank = banks::where('id', $bank_id)->first();
 
             $virtualAccount = new VirtualAccountType();

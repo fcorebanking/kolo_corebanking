@@ -45,6 +45,9 @@ class DailyHybridSummaryJob implements ShouldQueue
             // Example: Add any custom PHP adjustments per row
             $adjustedProfit = $row->profit;
             // $adjustedProfit += customLogic($row);
+            \logInfo(json_encode($row->officer_id), "row->officer_id ");
+            \logInfo(json_encode($row->company_id), "row->company_id ");
+            \logInfo(json_encode($row->branch_id), "row->branch_id ");
 
             if ($row->officer_id == null) {
                 $officer_id = 0;
@@ -64,11 +67,15 @@ class DailyHybridSummaryJob implements ShouldQueue
                 $branch_id = $row->branch_id;
             }
 
+            \logInfo(json_encode($officer_id), "fficer_id ");
+            \logInfo(json_encode($company_id), "company_id ");
+            \logInfo(json_encode($branch_id), "branch_id ");
+
             DailyProfitSummary::updateOrCreate(
                 [
                     'company_id'          => $company_id,
                     'branch_id'           => $branch_id,
-                    'officer_id'          => $row->officer_id ?: 0,
+                    'officer_id'          => $officer_id,
                     'transaction_type_id' => $row->transaction_type_id,
                     'summary_date'        => $row->summary_date,
                 ],

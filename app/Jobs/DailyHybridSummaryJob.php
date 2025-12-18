@@ -32,26 +32,13 @@ class DailyHybridSummaryJob implements ShouldQueue
                 DB::raw('u.account_officer_id as officer_id'),
                 't.transaction_type_id',
                 DB::raw('DATE(t.created_at) as summary_date'),
-                DB::raw('SUM(
-            CASE
-                WHEN t.transaction_type_id IN (7,8,93)
-                THEN t.withdrawal_charge
-                ELSE t.amount
-            END
-        ) as profit')
+                DB::raw('SUM(CASE WHEN t.transaction_type_id IN (7,8,93) THEN t.withdrawal_charge ELSE t.amount END) as profit')
             )
             ->leftJoin('wb_account_details as w', 'w.id', '=', 't.account_id')
             ->leftJoin('users as u', 'u.id', '=', 'w.user_id')
             ->where('t.transaction_status_id', 1)
-            ->whereNotNull('t.company_id') // ✅ IMPORTANT
             ->whereBetween('t.created_at', [$this->fromDate, $this->toDate])
-            ->groupBy(
-                't.company_id',
-                't.branch_id',
-                'u.account_officer_id',
-                't.transaction_type_id',
-                DB::raw('DATE(t.created_at)')
-            )
+            ->groupBy('t.company_id', 't.branch_id', 'u.account_officer_id', 't.transaction_type_id', DB::raw('DATE(t.created_at)'))
             ->get();
 
         \logInfo(json_encode($aggregatedRows), "aggregatedRows ");
@@ -64,9 +51,9 @@ class DailyHybridSummaryJob implements ShouldQueue
 
             DailySummary::updateOrCreate(
                 [
-                    'company_id'          => $row->company_id,
-                    'branch_id'           => $row->branch_id,
-                    'account_id'          => $row->officer_id,
+                    'company_id'          => $row->company_id ?? 0,
+                    'branch_id'           => $row->branch_id ?? 0,
+                    'account_id'          => $row->officer_id ?? 0,
                     'transaction_type_id' => $row->transaction_type_id,
                     'summary_date'        => $row->summary_date,
                 ],

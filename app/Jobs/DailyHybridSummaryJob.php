@@ -58,7 +58,7 @@ class DailyHybridSummaryJob implements ShouldQueue
                     'summary_date'        => $row->summary_date,
                 ],
                 [
-                    'profit_amount' => $adjustedProfit,
+                    'amount' => $adjustedProfit,
                 ]
             );
         }

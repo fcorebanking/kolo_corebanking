@@ -46,10 +46,28 @@ class DailyHybridSummaryJob implements ShouldQueue
             $adjustedProfit = $row->profit;
             // $adjustedProfit += customLogic($row);
 
+            if ($row->officer_id == null) {
+                $officer_id = 0;
+            } else {
+                $officer_id = $row->officer_id;
+            }
+
+            if ($row->company_id == null) {
+                $company_id = 0;
+            } else {
+                $company_id = $row->company_id;
+            }
+
+            if ($row->branch_id == null) {
+                $branch_id = 0;
+            } else {
+                $branch_id = $row->branch_id;
+            }
+
             DailyProfitSummary::updateOrCreate(
                 [
-                    'company_id'          => $row->company_id ?: 0,
-                    'branch_id'           => $row->branch_id ?: 0,
+                    'company_id'          => $company_id,
+                    'branch_id'           => $branch_id,
                     'officer_id'          => $row->officer_id ?: 0,
                     'transaction_type_id' => $row->transaction_type_id,
                     'summary_date'        => $row->summary_date,

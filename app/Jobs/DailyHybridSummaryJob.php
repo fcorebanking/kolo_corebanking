@@ -53,7 +53,7 @@ class DailyHybridSummaryJob implements ShouldQueue
                 [
                     'company_id'          => $row->company_id ?? 0,
                     'branch_id'           => $row->branch_id ?? 0,
-                    'account_id'          => $row->officer_id,
+                    'account_id'          => $row->officer_id ?? 0,
                     'transaction_type_id' => $row->transaction_type_id,
                     'summary_date'        => $row->summary_date,
                 ],

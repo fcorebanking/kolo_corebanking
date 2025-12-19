@@ -143,7 +143,7 @@ class VTPassController extends Controller
                 "serviceID"         => $cableTVType,
                 "variation_code"    => $subscriptionPlan,
                 "billersCode"       => $smartCardNumber,
-                "subscription_type" => "change",
+                "subscription_type" => "renew",
                 "amount"            => $amount,
                 "phone"             => $phone,
             ];

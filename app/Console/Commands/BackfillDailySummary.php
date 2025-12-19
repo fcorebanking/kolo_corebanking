@@ -31,11 +31,11 @@ class BackfillDailySummary extends Command
         $from = $this->argument('from');
         $to   = $this->argument('to');
 
-         Log::info("Profit backfill queued from {$from} to {$to}");
+        Log::info("Profit backfill queued from {$from} to {$to}");
 
         DailyHybridSummaryJob::dispatch($from, $to);
 
-        Log::info("Profit backfill queued from {$from} to {$to}");
+        Log::info("Profit backfill success from {$from} to {$to}");
         return Command::SUCCESS;
     }
 }

@@ -1732,7 +1732,7 @@ class UserController extends Controller
             \logInfo(json_encode($user), "api saving account user");
             \logInfo(json_encode(auth()->user()->company_id), "api saving account company");
             \logInfo(json_encode($request->savings_product_type), "api saving account saving type");
-            $bankId = 231;
+            $bankId = 126;
             $saving = savings_product::where(['company_id' => auth()->user()->company_id, 'id' => $request->savings_product_type])->first();
             \logInfo(json_encode($saving), "api saving account ");
 

@@ -842,9 +842,9 @@ class SafehavenController extends WebhookController
 
             if (isset($result['statusCode']) && $result['statusCode'] == 200) {
                 return [
-                    'status'           => true,
-                    'message'          => $result['message'],
-                    'result'           => $result,
+                    'status'      => true,
+                    'message'     => $result['message'],
+                    'result'      => $result,
                     "customer_id" => $sudoCustomer['data']['_id'],
                 ];
             }

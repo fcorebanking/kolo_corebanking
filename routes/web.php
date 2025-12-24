@@ -699,8 +699,8 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         Route::get('/reverse-statement/{id}', [App\Http\Controllers\UserReportController::class, 'reverseTXN']);
 
                         Route::get('/{company_name}/transaction/list', [App\Http\Controllers\TransactionController::class, 'transactionList'])->name('transaction-list');
-                        //     Route::get('/{company_name}/transaction/verify-and-reverse-transaction', [App\Http\Controllers\TransactionController::class, 'verifyAndReverseTransaction'])->name('verify-and-reverse-transaction');
-                        //  Route::post('/{company_name}/transaction/process-verify-and-reverse-transaction', [App\Http\Controllers\TransactionController::class, 'processVerifyAndReverseTransaction'])->name('process-verify-and-reverse-transaction');
+                        Route::get('/{company_name}/transaction/verify-and-reverse-transaction', [App\Http\Controllers\TransactionController::class, 'verifyAndReverseTransaction'])->name('verify-and-reverse-transaction');
+                        Route::post('/{company_name}/transaction/process-verify-and-reverse-transaction', [App\Http\Controllers\TransactionController::class, 'processVerifyAndReverseTransaction'])->name('process-verify-and-reverse-transaction');
                         Route::get('/{company_name}/transaction/other-list', [App\Http\Controllers\TransactionController::class, 'otherTransactionList'])->name('other-transaction-list');
                         Route::get('/{company_name}/transaction/tier-settlement', [App\Http\Controllers\TransactionController::class, 'tierSettlement'])->name('tier-settlement');
                         Route::get('/transaction/list', [App\Http\Controllers\TransactionController::class, 'companyTransactionList'])->name('company-transaction-list');

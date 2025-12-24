@@ -1180,6 +1180,14 @@ class TransactionController extends Controller
                     //     "ledger_dr" => $ledger_dr
                     // ]);
 
+                    $checkDebitCustomer = checkCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
+                    logInfo(json_encode($checkDebitCustomer), "checkDebitCustomer");
+                    if (! $checkDebitCustomer['status']) {
+
+                        $checkDebitCustomer['status'] = false;
+                        return response()->json($checkDebitCustomer);
+                    }
+
                     $myDescription = auth()->user()->first_name . " " . auth()->user()->last_name . " / " . \auth()->user()->company->company_name;
                     // $myDescription .= $request->description == "" ? "" : $request->description;
                     DB::commit();
@@ -6294,7 +6302,7 @@ class TransactionController extends Controller
         $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
         $amountLeft = $userWallet->balance - $amount;
 
-        logInfo($amountLeft, "amountLeft");
+        logInfo($amountLeft, "amountLeft for company");
 
         if ($amount > 0) {
 

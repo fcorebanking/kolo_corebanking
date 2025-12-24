@@ -303,9 +303,15 @@ class TransactionController extends Controller
             return response()->json(['status' => 0, 'message' => "Transaction has already been reversed"]);
         }
 
+        if ($transaction->transaction_remarks_id == 1 || $transaction->transaction_remarks_id == 6 ) {
+            return response()->json(['status' => 0, 'message' => "Transaction cannot be reversed"]);
+        }
+
         if ($transaction->created_at > Carbon::now()->subMinutes(30)) {
             return response()->json(['status' => 0, 'message' => "Transaction must be at least 30 minutes before the transaction status can be confirmed"]);
         }
+
+       
 
         $affliateCustomerCharge = 0;
         $affliateCompanyCharge  = 0;

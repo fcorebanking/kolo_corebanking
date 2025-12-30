@@ -303,7 +303,7 @@ class TransactionController extends Controller
             return response()->json(['status' => 0, 'message' => "Transaction has already been reversed"]);
         }
 
-       $reverseTransactionsMessages = reverseTransactionsMessages($request->transaction_reference);
+       $reverseTransactionsMessages = $this->reverseTransactionsMessages($request->transaction_reference);
 
         if ($transaction->transaction_remarks_id == 1 || $transaction->transaction_remarks_id == 6) {
             return response()->json(['status' => 0, 'message' => "Transaction cannot be reversed"]);
@@ -3439,4 +3439,21 @@ class TransactionController extends Controller
         ];
         return view('company.invoice.company_transaction_invoice')->with($data);
     }
+
+   public function reverseTransactionsMessages($ref)
+{
+    $transactions = ['BM2025122821591234654808724CITYAFRICA', 'BM2025123012292382492184995', 'BM2025123012375424851763987', 'BM2025123012394923398215462'];
+    if ($ref == "BM2025123012292382492184995") {
+        return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251229130015117248061405)"]);
+    }
+     if ($ref == "BM2025123012375424851763987") {
+        return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251228202452778927148405)"]);
+    }
+     if ($ref == "BM2025123012394923398215462") {
+        return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251228202224822735315405)"]);
+    }
+
+    
+
+}
 }

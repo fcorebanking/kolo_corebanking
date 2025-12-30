@@ -303,6 +303,8 @@ class TransactionController extends Controller
             return response()->json(['status' => 0, 'message' => "Transaction has already been reversed"]);
         }
 
+       $reverseTransactionsMessages = reverseTransactionsMessages($request->transaction_reference);
+
         if ($transaction->transaction_remarks_id == 1 || $transaction->transaction_remarks_id == 6) {
             return response()->json(['status' => 0, 'message' => "Transaction cannot be reversed"]);
         }

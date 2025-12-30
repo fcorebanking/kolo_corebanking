@@ -2215,7 +2215,6 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
     return $response;
 }
 
-
 function checkCustomerAndCompanyWithCharge($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
 {
     logInfo($customerAccountId, "customerAccountId");
@@ -2276,16 +2275,16 @@ function checkCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
                 if ($userWallet) {
                     $BranchWallet = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
                     $BranchWallet->balance -= $paymentcash;
-              //      $BranchWallet->save();
+                    //      $BranchWallet->save();
                 }
                 $companyInitialBalance = $companyWallet->balance;
                 $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 
                 $companyFinalBalance = $companyWallet->balance -= ($originalAmount + $companyCharge);
-           //     $companyWallet->save();
+                //     $companyWallet->save();
 
                 $currentUser->balance_fails = 0;
-            //    $currentUser->save();
+                //    $currentUser->save();
 
                 $response = [
                     "status"                        => true,
@@ -4798,4 +4797,19 @@ function goldencreditHeader()
     ];
 
     return $header;
+}
+
+function reverseTransactionsMessages($ref)
+{
+    $transactions = ['BM2025122821591234654808724CITYAFRICA', 'BM2025123012292382492184995', 'BM2025123012375424851763987', 'BM2025123012394923398215462'];
+    if ($ref == "BM2025123012292382492184995") {
+        return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251229130015117248061405)"]);
+    }
+     if ($ref == "BM2025123012375424851763987") {
+        return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251228202452778927148405)"]);
+    }
+     if ($ref == "BM2025123012394923398215462") {
+        return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251228202224822735315405)"]);
+    }
+
 }

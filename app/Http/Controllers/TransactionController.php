@@ -304,6 +304,9 @@ class TransactionController extends Controller
         }
 
         $reverseTransactionsMessages = $this->reverseTransactionsMessages($request->transaction_reference);
+        if($reverseTransactionsMessages['status']){
+
+        }
 
         if ($transaction->transaction_remarks_id == 1 || $transaction->transaction_remarks_id == 6) {
             return response()->json(['status' => 0, 'message' => "Transaction cannot be reversed"]);
@@ -3445,6 +3448,7 @@ class TransactionController extends Controller
         logInfo($ref, "Transaction Ref");
         $transactions = ['BM2025122821591234654808724CITYAFRICA', 'BM2025123012292382492184995', 'BM2025123012375424851763987', 'BM2025123012394923398215462'];
         if ($ref == "BM2025123012292382492184995") {
+            
             return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251229130015117248061405)"]);
         }
         if ($ref == "BM2025123012375424851763987") {

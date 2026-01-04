@@ -1119,6 +1119,7 @@ class TransactionController extends Controller
                     $wbaCharge = getWbaTransferCharges(1, $request->final_amount);
 
                     $wbaCharge = $request->final_amount > 1000000 ? 100 : $wbaCharge;
+                    $wbaCharge = $request->final_amount > 9999 ? ($wbaCharge + 50) : 0;
 
                     // $charge =  $charge < $wbaCharge && $charge > 0 ?  ($wbaCharge + ($wbaCharge * 0.01)) : $charge;
 /*

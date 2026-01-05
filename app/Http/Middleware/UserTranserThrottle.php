@@ -29,7 +29,7 @@ class UserTranserThrottle
         if (Cache::has($key)) {
             $last = Cache::get($key);
 
-            if (($now - $last) < 2) {
+            if (($now - $last) < 1) {
                 return response()->json([
                     'status'  => false,
                     'message' => 'Please wait 10 seconds before trying again.',

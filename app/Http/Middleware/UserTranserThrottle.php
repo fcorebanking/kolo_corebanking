@@ -16,11 +16,7 @@ class UserTranserThrottle
      */
     public function handle(Request $request, Closure $next)
     {
-        $userId = $request->user_id ?? optional(auth()->user())->id;
-
-        if (! $userId) {
-            return $next($request); // or handle differently
-        }
+        $userId = auth()->user()->id;
 
         $key = "user:last_request:{$userId}";
         $now = now()->timestamp;

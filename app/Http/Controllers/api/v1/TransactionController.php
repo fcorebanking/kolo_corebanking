@@ -1123,9 +1123,11 @@ class TransactionController extends Controller
                             }
 
                             $wbaCharge = getWbaTransferCharges(1, $request->final_amount);
-
+                            logInfo(json_encode($wbaCharge), "wbaCharge");
                             $wbaCharge = $request->final_amount > 1000000 ? 100 : $wbaCharge;
-                            $wbaCharge = $request->final_amount > 9999 ? ($wbaCharge + 50) : 0;
+                            logInfo(json_encode($wbaCharge), "wbaCharge > 1 million");
+                            $wbaCharge = $request->final_amount > 9999 ? ($wbaCharge + 50) : $wbaCharge + 0;
+                            logInfo(json_encode($wbaCharge), "wbaCharge stamp duty");
 
                             // $charge =  $charge < $wbaCharge && $charge > 0 ?  ($wbaCharge + ($wbaCharge * 0.01)) : $charge;
 /*

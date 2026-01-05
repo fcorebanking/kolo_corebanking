@@ -81,5 +81,6 @@ class Kernel extends HttpKernel
         'check_closing_time' => \App\Http\Middleware\CheckClosingTime::class,
         'auth_factor' => \App\Http\Middleware\authfactorOTP::class,
         '2fa' => \PragmaRX\Google2FALaravel\Middleware::class,
+        'usertransfer_throttle' => \App\Http\Middleware\UserTranserThrottle::class,
     ];
 }

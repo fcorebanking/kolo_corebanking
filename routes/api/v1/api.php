@@ -107,7 +107,7 @@ Route::get('/check_assigned_providus_accounts', [TransactionController::class, '
 Route::get('/matching_wb_account_details_with_user_table', [TransactionController::class, 'matchingWBAccountDetailsWithUserTable']);
 
 Route::prefix('/ussd-apis')->group(function () {
-    Route::post('/bank-transfer', [TransactionController::class, 'transferToBankAccountUSSD'])->middleware('log.route');
+    Route::post('/bank-transfer', [TransactionController::class, 'transferToBankAccountUSSD'])->middleware('usertransfer_throttle')->middleware('log.route');
     Route::post('/verify-bank-account', [TransactionController::class, 'verifyBankAccountFull'])->middleware('log.route');
 });
 

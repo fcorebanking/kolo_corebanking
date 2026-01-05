@@ -1036,7 +1036,7 @@ class TransactionController extends Controller
     {
         $userId  = auth()->user()->id;
         $lockKey = "user:last_request:{$userId}";
-        $lock    = Cache::lock($lockKey, 10); // 10-second lock
+        $lock    = Cache::lock($lockKey, 20); // 10-second lock
         if ($lock->get()) {
             try {
                 $description = $request->description;

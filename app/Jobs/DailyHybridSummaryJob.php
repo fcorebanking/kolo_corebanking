@@ -67,9 +67,11 @@ class DailyHybridSummaryJob implements ShouldQueue
                 $branch_id = $row->branch_id;
             }
 
-            \logInfo(json_encode($officer_id), "fficer_id ");
+            \logInfo(json_encode($officer_id), "officer_id ");
             \logInfo(json_encode($company_id), "company_id ");
             \logInfo(json_encode($branch_id), "branch_id ");
+            \logInfo(json_encode($row->summary_date), "summary_date");
+            \logInfo(json_encode($adjustedProfit), "amount ");
 
             DailyProfitSummary::updateOrCreate(
                 [

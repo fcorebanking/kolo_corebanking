@@ -47,15 +47,15 @@ class DailyHybridSummaryJob implements ShouldQueue
             // $adjustedProfit += customLogic($row);
 
             \logInfo("Start processing aggregation", "----> ");
-            \logInfo(json_encode($officer_id), "officer_id ");
-            \logInfo(json_encode($company_id), "company_id ");
-            \logInfo(json_encode($branch_id), "branch_id ");
+            \logInfo(json_encode($row->officer_id), "officer_id ");
+            \logInfo(json_encode($row->company_id), "company_id ");
+            \logInfo(json_encode($row->branch_id), "branch_id ");
             \logInfo(json_encode($row->summary_date), "summary_date");
             \logInfo(json_encode($adjustedProfit), "amount ");
             \logInfo("end processing aggregation", "----> ");
 
             if (is_null($row->company_id) || is_null($row->branch_id) || is_null($row->officer_id)) {
-                \logInfo(json_encode($row), "SKIPPED — company_id is null");
+                \logInfo(json_encode($row), "SKIPPED — company/branch/officer is null");
                 continue; // 🚀 Do not insert invalid row
             } else {
                 DailyProfitSummary::updateOrCreate(

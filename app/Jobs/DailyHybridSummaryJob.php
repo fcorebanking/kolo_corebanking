@@ -45,27 +45,6 @@ class DailyHybridSummaryJob implements ShouldQueue
             // Example: Add any custom PHP adjustments per row
             $adjustedProfit = $row->profit;
             // $adjustedProfit += customLogic($row);
-            \logInfo(json_encode($row->officer_id), "row->officer_id ");
-            \logInfo(json_encode($row->company_id), "row->company_id ");
-            \logInfo(json_encode($row->branch_id), "row->branch_id ");
-
-            if ($row->officer_id == null) {
-                $officer_id = 0;
-            } else {
-                $officer_id = $row->officer_id;
-            }
-
-            if ($row->company_id == null) {
-                $company_id = 0;
-            } else {
-                $company_id = $row->company_id;
-            }
-
-            if ($row->branch_id == null) {
-                $branch_id = 0;
-            } else {
-                $branch_id = $row->branch_id;
-            }
 
             \logInfo(json_encode($officer_id), "officer_id ");
             \logInfo(json_encode($company_id), "company_id ");
@@ -73,18 +52,24 @@ class DailyHybridSummaryJob implements ShouldQueue
             \logInfo(json_encode($row->summary_date), "summary_date");
             \logInfo(json_encode($adjustedProfit), "amount ");
 
-            DailyProfitSummary::updateOrCreate(
-                [
-                    'company_id'          => $company_id,
-                    'branch_id'           => $branch_id,
-                    'officer_id'          => $officer_id,
-                    'transaction_type_id' => $row->transaction_type_id,
-                    'summary_date'        => $row->summary_date,
-                ],
-                [
-                    'amount' => $adjustedProfit,
-                ]
-            );
+            if (is_null($row->company_id) || is_null($row->branch_id) || is_null($row->officer_id)) {
+                \logInfo(json_encode($row), "SKIPPED — company_id is null");
+                continue; // 🚀 Do not insert invalid row
+            } else {
+                DailyProfitSummary::updateOrCreate(
+                    [
+                        'company_id'          => $company_id,
+                        'branch_id'           => $branch_id,
+                        'officer_id'          => $officer_id,
+                        'transaction_type_id' => $row->transaction_type_id,
+                        'summary_date'        => $row->summary_date,
+                    ],
+                    [
+                        'amount' => $adjustedProfit,
+                    ]
+                );
+            }
+
         }
     }
 }

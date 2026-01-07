@@ -57,7 +57,7 @@ class DailyHybridSummaryJob implements ShouldQueue
             \Log::info('amount', [$adjustedProfit]);
             \Log::info('end processing  aggregation ----> ');
 
-            if (empty($row->company_id) || empty($row->branch_id) || empty($row->officer_id)) {
+            if (empty($row->company_id)) {
                 \logInfo(json_encode($row), "SKIPPED — company/branch/officer is null");
                 continue; // 🚀 Do not insert invalid row
             } else {
@@ -65,8 +65,8 @@ class DailyHybridSummaryJob implements ShouldQueue
                 DailySummary::updateOrCreate(
                     [
                         'company_id'          => $row->company_id,
-                        'branch_id'           => $row->branch_id,
-                        'account_id'          => $row->officer_id,
+                        'branch_id'           => $row->branch_id ?? 1,
+                        'account_id'          => $row->officer_id ?? 1,
                         'transaction_type_id' => $row->transaction_type_id,
                         'summary_date'        => $row->summary_date,
                     ],

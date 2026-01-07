@@ -16,4 +16,9 @@ class DailySummary extends Model
         'amount',
         'summary_date',
     ];
+
+    public function type()
+    {
+        return $this->belongsTo(transaction_types::class, 'transaction_type_id', 'id');
+    }
 }

@@ -10,6 +10,7 @@ use App\Models\ClosingBalance;
 use App\Models\Company;
 use App\Models\CompanyValut;
 use App\Models\company_settings;
+use App\Models\DailySummary;
 use App\Models\company_wallet;
 use App\Models\currencies;
 use App\Models\currencies as Currency;
@@ -4815,3 +4816,31 @@ function reverseTransactionsMessages($ref)
     
 
 }
+
+function loadProfit()
+{
+    $transactionTypeIDs = [
+        7, 8, 27, 30, 33, 38, 39, 54, 55, 57, 58, 62,
+        76, 91, 95, 100, 41, 42, 51, 93
+    ];
+
+  /*  $this->revenue =  DailySummary::where('company_id', auth()->user()->company_id)
+        ->whereBetween('summary_date', [$this->from, $this->to])
+        ->whereIn('transaction_type_id', $transactionTypeIDs)
+        ->groupBy('transaction_type_id')
+        ->selectRaw('transaction_type_id, SUM(amount) as total')
+        ->get();*/
+
+        $this->revenue = DailySummary::where('daily_summaries.company_id', auth()->user()->company_id)
+        ->whereBetween('summary_date', [$this->from, $this->to])
+        ->whereIn('transaction_type_id', $transactionTypeIDs)
+        ->join('transaction_types as tt', 'tt.id', '=', 'daily_summaries.transaction_type_id')
+        ->groupBy('daily_summaries.transaction_type_id')
+        ->selectRaw('
+            daily_summaries.transaction_type_id,
+            tt.transaction_type as transaction_type,
+            SUM(daily_summaries.amount) as total
+        ')
+        ->get();
+}
+

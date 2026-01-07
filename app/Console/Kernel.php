@@ -17,6 +17,7 @@ use App\Console\Commands\DomCron;
 use App\Jobs\BankTranserCron;
 use App\Jobs\BirthdayCron;
 use App\Jobs\CompanySettimentThreshold;
+use App\Jobs\DailyHybridSummaryJob;
 use App\Jobs\InvestmentCron;
 use App\Jobs\LoanCron;
 use App\Jobs\LoanExtend;
@@ -189,12 +190,13 @@ class Kernel extends ConsoleKernel
                 Log::error('Your SubscriptionCron Job failed');
             });
 
-        /*  $schedule->job(new SubscriptionCron)->everyTenMinutes()->onSuccess(function () {
-            Log::info('Your SubscriptionCron Job executed successfully.');
+        $schedule->job(new DailyHybridSummaryJob)->dailyAt('23:00')->onSuccess(function () {
+            Log::info('Your DailyHybridSummaryJob executed successfully.');
         })
             ->onFailure(function () {
-                Log::error('Your SubscriptionCron Job failed');
-            });*/
+                Log::error('Your DailyHybridSummaryJob failed');
+            });
+
     }
 
     /**

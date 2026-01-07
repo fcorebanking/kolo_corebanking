@@ -8,7 +8,6 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class LoanExtend
 {
@@ -25,7 +24,7 @@ class LoanExtend
     /**
      * Execute the job.
      */
-    public function handle()
+    /* public function handle()
     {
         try {
             $loanData = loan::where('loan_status_id', 1)
@@ -46,6 +45,36 @@ class LoanExtend
             throw $e;
         }
 
+    }*/
+
+    public function handle()
+    {
+        try {
+            foreach ($this->loanIdStream() as $loanId) {
+                $this->extendloan($loanId);
+            }
+
+        } catch (\Exception $e) {
+            \Log::error("LoanExtend Job has error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+/**
+ * Stream loan IDs using a generator (no large memory usage)
+ */
+    private function loanIdStream(): \Generator
+    {
+        $query = loan::where('loan_status_id', 1)
+            ->where(function ($query) {
+                $query->where('end_date', '<', now())
+                    ->orWhereNull('end_date');
+            })
+            ->select('id'); // only fetch what we need
+
+        foreach ($query->cursor() as $loan) {
+            yield $loan->id;
+        }
     }
 
     public function extendloan($id)

@@ -59,6 +59,7 @@ class DailyHybridSummaryJob implements ShouldQueue
                 \logInfo(json_encode($row), "SKIPPED — company/branch/officer is null");
                 continue; // 🚀 Do not insert invalid row
             } else {
+                \Log::info('row', [json_encode($row)]);
                 DailySummary::updateOrCreate(
                     [
                         'company_id'          => $row->company_id,

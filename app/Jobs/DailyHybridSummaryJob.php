@@ -1,7 +1,7 @@
 <?php
 namespace App\Jobs;
 
-use App\Models\DailySummary;
+//use App\Models\DailySummary;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -60,7 +60,7 @@ class DailyHybridSummaryJob implements ShouldQueue
                 continue; // 🚀 Do not insert invalid row
             } else {
                 \Log::info('row', [json_encode($row)]);
-                DailySummary::updateOrCreate(
+                /*   DailySummary::updateOrCreate(
                     [
                         'company_id'          => $row->company_id,
                         'branch_id'           => $row->branch_id,
@@ -71,7 +71,7 @@ class DailyHybridSummaryJob implements ShouldQueue
                     [
                         'amount' => $adjustedProfit,
                     ]
-                );
+                );*/
             }
 
         }

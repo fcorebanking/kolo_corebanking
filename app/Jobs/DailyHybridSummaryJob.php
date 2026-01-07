@@ -24,6 +24,8 @@ class DailyHybridSummaryJob implements ShouldQueue
 
     public function handle()
     {
+        \Log::info('RUNNING NEW VERSION OF JOB');
+
         // Step 1: Aggregate in SQL
         $aggregatedRows = DB::table('transactions as t')
             ->select(

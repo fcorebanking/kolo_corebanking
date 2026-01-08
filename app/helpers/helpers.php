@@ -4854,6 +4854,7 @@ function loadProfit($from = null, $to = null, $branchID = null, $officer = null)
         ->whereBetween(DB::raw('DATE(summary_date)'), [$from, $to])
         ->whereIn('transaction_type_id', $transactionTypeIDs)
         ->groupBy('transaction_type_id')
+         ->join('transaction_types as tt', 'tt.id', '=', 'daily_summaries.transaction_type_id')
         ->selectRaw('
             daily_summaries.transaction_type_id,
             tt.transaction_type as transaction_type,

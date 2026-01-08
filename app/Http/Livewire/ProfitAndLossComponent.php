@@ -71,7 +71,10 @@ class ProfitAndLossComponent extends Component
         $this->currentDate = ($this->from == null && $this->to == null) ? date('Y-m-d h:i:s') : '-';
         $this->otherIncome = OtherIncomeSum($this->from, $this->to, $this->branchID, null, $this->officer);
         $this->expenses    = ExpensesSum($this->from, $this->to, $this->branchID, null, $this->officer);
-        $this->loss        = AllLoss($this->from, $this->to, $this->branchID, $this->officer);
+        //  $this->loss        = AllLoss($this->from, $this->to, $this->branchID, $this->officer);
+
+        $this->loss = loadLoss($this->from, $this->to, $this->branchID, $this->officer);
+
         //  $this->revenue =Allprofit($this->from , $this->to , $this->branchID,$this->officer);
         $this->revenue                        = loadProfit($this->from, $this->to, $this->branchID, $this->officer);
         $this->totaldeposit                   = $this->otherIncome;

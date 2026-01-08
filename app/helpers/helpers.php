@@ -4831,7 +4831,7 @@ function loadProfit($from = null, $to = null, $branchID = null, $officer = null)
         ->get();*/
 
     $revenue = DailySummary::where('daily_summaries.company_id', auth()->user()->company_id)
-        ->whereBetween('summary_date', [$this->from, $this->to])
+        ->whereBetween('summary_date', [$from, $to])
         ->whereIn('transaction_type_id', $transactionTypeIDs)
         ->join('transaction_types as tt', 'tt.id', '=', 'daily_summaries.transaction_type_id')
         ->groupBy('daily_summaries.transaction_type_id')

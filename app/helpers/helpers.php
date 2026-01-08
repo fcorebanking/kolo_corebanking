@@ -4818,6 +4818,28 @@ function reverseTransactionsMessages($ref)
 
 function loadProfit($from = null, $to = null, $branchID = null, $officer = null)
 {
+     //7 withdrawal charge profit-
+    //8 transfer charge profit-
+    //27 bank transfer CHARGES,(company/wba) -profit -
+    // 30 customer registration, -profit -
+    // 33 sms charge - profit -
+    // 38 overdraft charge - profit -
+    // 39 esusu acumulated charge - profit -
+    // 54 loan fee charge-profile -
+    // 55 loan management fee -profile -
+    // 56 loan repayment -profile -
+    // 57 setup fee -profile -
+    // 58 Savings Maintenance Charge -profit -
+    // 62 loan penalty -profit -
+    // 76 POS Credit Charge - profit(company/wba)
+    // 91 Company Whatsapp Charge - profit(company/wba)
+    // 92 Customer Whatsapp Charge - profit(company/wba)
+    // 95 Driver License Verification fee - profit(company/wba)
+    // 100 virtual card charge - profit(company/wba)
+    // 41(whatsapp charges) - profit(company/wba)
+    // 42(USSD CHARGE) - profit(company/wba)
+    // 51 bill payment charge- profit(company/wba)
+    // 93 local bank transfer
     $transactionTypeIDs = [
         7, 8, 27, 30, 33, 38, 39, 54, 55, 57, 58, 62,
         76, 91, 95, 100, 41, 42, 51, 93,
@@ -4854,7 +4876,7 @@ function loadProfit($from = null, $to = null, $branchID = null, $officer = null)
         ->whereBetween(DB::raw('DATE(summary_date)'), [$from, $to])
         ->whereIn('transaction_type_id', $transactionTypeIDs)
         ->groupBy('transaction_type_id')
-         ->join('transaction_types as tt', 'tt.id', '=', 'daily_summaries.transaction_type_id')
+        ->join('transaction_types as tt', 'tt.id', '=', 'daily_summaries.transaction_type_id')
         ->selectRaw('
             daily_summaries.transaction_type_id,
             tt.transaction_type as transaction_type,
@@ -4862,7 +4884,7 @@ function loadProfit($from = null, $to = null, $branchID = null, $officer = null)
         ')
         ->get();
 
-    dd($revenue);
+   // dd($revenue);
 
     return $revenue;
 }

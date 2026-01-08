@@ -4830,7 +4830,7 @@ function loadProfit($from = null, $to = null, $branchID = null, $officer = null)
         ->selectRaw('transaction_type_id, SUM(amount) as total')
         ->get();*/
 
-    $revenue = DailySummary::where('company_id', auth()->user()->company_id)
+  /*  $revenue = DailySummary::where('company_id', auth()->user()->company_id)
         ->whereBetween('summary_date', [$from, $to])
         ->whereIn('transaction_type_id', $transactionTypeIDs)
         ->join('transaction_types as tt', 'tt.id', '=', 'daily_summaries.transaction_type_id')
@@ -4840,9 +4840,15 @@ function loadProfit($from = null, $to = null, $branchID = null, $officer = null)
             tt.transaction_type as transaction_type,
             SUM(daily_summaries.amount) as total
         ')
-        ->get();
+        ->get();*/
 
-        dd($revenue);
+        $revenue = DailySummary::where('company_id', auth()->user()->company_id)
+        ->whereBetween('summary_date', [$from, $to])
+        ->whereIn('transaction_type_id', $transactionTypeIDs)
+         ->groupBy('transaction_type_id')
+         ->get();
+
+    dd($revenue);
 
     return $revenue;
 }

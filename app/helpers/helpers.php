@@ -4846,12 +4846,12 @@ function loadProfit($from = null, $to = null, $branchID = null, $officer = null)
 
     \Log::info('company_id', [auth()->user()->company_id]);
 
-    \Log::info('company_id', [$from]);
+    \Log::info('from', [$from]);
 
-    \Log::info('company_id', [$to]);
+    \Log::info('to', [$to]);
 
     $revenue = DailySummary::where('company_id', auth()->user()->company_id)
-        ->whereBetween('summary_date', [$from, $to])
+        ->whereBetween(DB::raw('DATE(summary_date)'), [$from, $to])
         ->whereIn('transaction_type_id', $transactionTypeIDs)
         ->groupBy('transaction_type_id')
         ->get();

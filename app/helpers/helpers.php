@@ -10,11 +10,11 @@ use App\Models\ClosingBalance;
 use App\Models\Company;
 use App\Models\CompanyValut;
 use App\Models\company_settings;
-use App\Models\DailySummary;
 use App\Models\company_wallet;
 use App\Models\currencies;
 use App\Models\currencies as Currency;
 use App\Models\CustomerRestrictionLog;
+use App\Models\DailySummary;
 use App\Models\Expenses;
 use App\Models\LedgerAccountModel;
 use App\Models\LedgerSettings;
@@ -3579,7 +3579,7 @@ function convertLY($period)
     } else if ($period == 'Bi-Monthly') {
         return ['key' => 'months', 'value' => 2];
     } else if ($period == 'Quarterly') {
-        return ['key' => 'months', 'value' => 2];
+        return ['key' => 'months', 'value' => 3];
     } else if ($period == 'Every 4 Months') {
         return ['key' => 'months', 'value' => 4];
     } else if ($period == 'Semi-Annual') {
@@ -3589,7 +3589,8 @@ function convertLY($period)
     } else if ($period == 'Yearly') {
         return ['key' => 'months', 'value' => 12];
     } else {
-        return 0;
+        // return 0;
+        return ['key' => 'days', 'value' => 0];
     }
 }
 function calculatePeriodByPeriod($period, $Y)
@@ -4806,14 +4807,12 @@ function reverseTransactionsMessages($ref)
     if ($ref == "BM2025123012292382492184995") {
         return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251229130015117248061405)"]);
     }
-     if ($ref == "BM2025123012375424851763987") {
+    if ($ref == "BM2025123012375424851763987") {
         return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251228202452778927148405)"]);
     }
-     if ($ref == "BM2025123012394923398215462") {
+    if ($ref == "BM2025123012394923398215462") {
         return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251228202224822735315405)"]);
     }
-
-    
 
 }
 
@@ -4821,17 +4820,17 @@ function loadProfit()
 {
     $transactionTypeIDs = [
         7, 8, 27, 30, 33, 38, 39, 54, 55, 57, 58, 62,
-        76, 91, 95, 100, 41, 42, 51, 93
+        76, 91, 95, 100, 41, 42, 51, 93,
     ];
 
-  /*  $this->revenue =  DailySummary::where('company_id', auth()->user()->company_id)
+    /*  $this->revenue =  DailySummary::where('company_id', auth()->user()->company_id)
         ->whereBetween('summary_date', [$this->from, $this->to])
         ->whereIn('transaction_type_id', $transactionTypeIDs)
         ->groupBy('transaction_type_id')
         ->selectRaw('transaction_type_id, SUM(amount) as total')
         ->get();*/
 
-        $this->revenue = DailySummary::where('daily_summaries.company_id', auth()->user()->company_id)
+    $this->revenue = DailySummary::where('daily_summaries.company_id', auth()->user()->company_id)
         ->whereBetween('summary_date', [$this->from, $this->to])
         ->whereIn('transaction_type_id', $transactionTypeIDs)
         ->join('transaction_types as tt', 'tt.id', '=', 'daily_summaries.transaction_type_id')
@@ -4843,4 +4842,3 @@ function loadProfit()
         ')
         ->get();
 }
-

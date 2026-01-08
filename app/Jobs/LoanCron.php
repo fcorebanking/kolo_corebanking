@@ -32,7 +32,7 @@ class LoanCron
     /**
      * Execute the job.
      */
-  /*  public function handle()
+    /*  public function handle()
     {
         try {
             \logInfo("Loan Cron");
@@ -72,79 +72,83 @@ class LoanCron
 
     }*/
 
-        public function handle()
-{
-    try {
+    public function handle()
+    {
+        try {
 
-        \logInfo("Loan Cron");
+            \logInfo("Loan Cron");
 
-        foreach ($this->loanStream() as $loan) {
+            foreach ($this->loanStream() as $loan) {
 
-            $encLoanId = Crypt::encryptString($loan->id);
-            $repayment = json_decode(
-                app('App\Http\Controllers\LoanController')
-                    ->loanRepaymentBreakDown($encLoanId, new Request)
-            );
+                $encLoanId = Crypt::encryptString($loan->id);
+                $repayment = json_decode(
+                    app('App\Http\Controllers\LoanController')
+                        ->loanRepaymentBreakDown($encLoanId, new Request)
+                );
 
-            if (!$repayment) {
-                continue;
-            }
-
-            $today = date("Y-m-d");
-
-            // No missed repayment
-            if ($repayment->missed <= 0) {
-
-                foreach ($this->repaymentTableStream($repayment) as $row) {
-
-                    if (
-                        $row->currentRepayStatus == 2 &&
-                        $row->repaymentDateDueloan == $today &&
-                        $loan->auto_pay == 1
-                    ) {
-                        $this->loanpayer($loan, $row->EachRepayment);
-                    }
+                if (! $repayment) {
+                    continue;
                 }
 
-            } else {
-                // Missed repayment flow
-                $amtToPay = $repayment->missed;
-                $this->penaltyCharge($repayment, $loan, $amtToPay);
-                $this->loanpayer($loan, $amtToPay);
+                $today = date("Y-m-d");
+
+                // No missed repayment
+                if ($repayment->missed <= 0) {
+
+                    foreach ($this->repaymentTableStream($repayment) as $row) {
+                        if (isset($row->repaymentDateDueloan)) {
+                            if (
+                                $row->currentRepayStatus == 2 &&
+                                $row->repaymentDateDueloan == $today &&
+                                $loan->auto_pay == 1
+                            ) {
+                                $this->loanpayer($loan, $row->EachRepayment);
+                            }
+                        }
+
+                    }
+
+                } else {
+                    // Missed repayment flow
+                    $amtToPay = $repayment->missed;
+                    $this->penaltyCharge($repayment, $loan, $amtToPay);
+                    $this->loanpayer($loan, $amtToPay);
+                }
             }
+
+        } catch (\Throwable $e) {
+
+            Log::error("LoanCron Job error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    private function loanStream(): \Generator
+    {
+        foreach (
+            loan::where([
+                'loan_status_id' => 1,
+                'auto_pay'       => 1,
+            ])
+            ->where('user_id', '!=', 0)
+            ->cursor() as $loan
+        ) {
+            yield $loan;
+        }
+    }
+
+    private function repaymentTableStream($repayment): \Generator
+    {if ($repayment->missed <= 0) {
+
+    }
+
+        if (! isset($repayment->repaymentTable)) {
+            return;
         }
 
-    } catch (\Throwable $e) {
-
-        Log::error("LoanCron Job error: " . $e->getMessage());
-        throw $e;
-    }
-}
-
-private function loanStream(): \Generator
-{
-    foreach (
-        loan::where([
-            'loan_status_id' => 1,
-            'auto_pay'       => 1,
-        ])
-        ->where('user_id', '!=', 0)
-        ->cursor() as $loan
-    ) {
-        yield $loan;
-    }
-}
-
-private function repaymentTableStream($repayment): \Generator
-{
-    if (!isset($repayment->repaymentTable)) {
-        return;
-    }
-
-    foreach ($repayment->repaymentTable as $row) {
-        yield $row;
-    }
-}
+        foreach ($repayment->repaymentTable as $row) {
+            yield $row;
+        }}
 
     public function loanpayer($info, $amtToPay)
     {

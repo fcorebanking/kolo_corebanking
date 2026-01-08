@@ -4830,7 +4830,7 @@ function loadProfit()
         ->selectRaw('transaction_type_id, SUM(amount) as total')
         ->get();*/
 
-    $this->revenue = DailySummary::where('daily_summaries.company_id', auth()->user()->company_id)
+    $revenue = DailySummary::where('daily_summaries.company_id', auth()->user()->company_id)
         ->whereBetween('summary_date', [$this->from, $this->to])
         ->whereIn('transaction_type_id', $transactionTypeIDs)
         ->join('transaction_types as tt', 'tt.id', '=', 'daily_summaries.transaction_type_id')
@@ -4841,4 +4841,6 @@ function loadProfit()
             SUM(daily_summaries.amount) as total
         ')
         ->get();
+
+        return $revenue;
 }

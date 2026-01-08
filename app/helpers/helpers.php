@@ -4816,7 +4816,7 @@ function reverseTransactionsMessages($ref)
 
 }
 
-function loadProfit()
+function loadProfit($from = null, $to = null, $branchID = null, $officer = null)
 {
     $transactionTypeIDs = [
         7, 8, 27, 30, 33, 38, 39, 54, 55, 57, 58, 62,
@@ -4842,5 +4842,5 @@ function loadProfit()
         ')
         ->get();
 
-        return $revenue;
+    return $revenue;
 }

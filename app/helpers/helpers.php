@@ -4891,19 +4891,7 @@ function loadProfit($from = null, $to = null, $branchID = null, $officer = null)
 
 function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
 {
-    //7 withdrawal charge profit-
-    //8 transfer charge profit-
-    //27 bank transfer CHARGES,(company/wba) -profit -
-    // 30 customer registration, -profit -
-    // 33 sms charge - profit -
-    // 38 overdraft charge - profit -
-    // 39 esusu acumulated charge - profit -
-    // 54 loan fee charge-profile -
-    // 55 loan management fee -profile -
-    // 56 loan repayment -profile -
-    // 57 setup fee -profile -
-    // 58 Savings Maintenance Charge -profit -
-    // 62 loan penalty -profit -
+    //18 subscription
     // 76 POS Credit Charge - profit(company/wba)
     // 91 Company Whatsapp Charge - profit(company/wba)
     // 92 Customer Whatsapp Charge - profit(company/wba)
@@ -4912,30 +4900,10 @@ function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
     // 41(whatsapp charges) - profit(company/wba)
     // 42(USSD CHARGE) - profit(company/wba)
     // 51 bill payment charge- profit(company/wba)
-    // 93 local bank transfer
-     $transactionTypeIDs = [
-        18, 41, 42, 51, 59, 76, 91, 92, 95, 100, 
+    // 59 saving interest -loss
+    $transactionTypeIDs = [
+        18, 41, 42, 51, 59, 76, 91, 92, 95, 100,
     ];
-
-
-    /*  $this->revenue =  DailySummary::where('company_id', auth()->user()->company_id)
-        ->whereBetween('summary_date', [$this->from, $this->to])
-        ->whereIn('transaction_type_id', $transactionTypeIDs)
-        ->groupBy('transaction_type_id')
-        ->selectRaw('transaction_type_id, SUM(amount) as total')
-        ->get();*/
-
-    /*  $revenue = DailySummary::where('company_id', auth()->user()->company_id)
-        ->whereBetween('summary_date', [$from, $to])
-        ->whereIn('transaction_type_id', $transactionTypeIDs)
-        ->join('transaction_types as tt', 'tt.id', '=', 'daily_summaries.transaction_type_id')
-        ->groupBy('transaction_type_id')
-        ->selectRaw('
-            daily_summaries.transaction_type_id,
-            tt.transaction_type as transaction_type,
-            SUM(daily_summaries.amount) as total
-        ')
-        ->get();*/
 
     \Log::info('Start batch checking reports Loss----> ');
 

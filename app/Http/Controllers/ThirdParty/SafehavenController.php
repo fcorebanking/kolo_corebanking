@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\company_wallet;
 use App\Models\transactions;
 use App\Models\UserCard;
+use App\Models\company_settings;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -1116,10 +1117,16 @@ class SafehavenController extends WebhookController
 
         logInfo($formatedAmount, "formated Amount");
 
-        $debitCustomer = $this->debitCustomerWithChargeSudo($formatedAmount, 0, $user, $user_wallet);
+        $card_withdrawal_charge = $this->getCompanySettingsCardWithrawalFee($companyId);
+
+        $chargeAmount = $card_withdrawal_charge + $formatedAmount;
+
+        logInfo($chargeAmount, "full charge Amount");
+
+        $debitCustomer = $this->debitCustomerWithChargeSudo($chargeAmount, 0, $user, $user_wallet);
         logInfo(json_encode($debitCustomer), "debitCustomer Sudo");
 
-        $debitCompany = $this->debitCompanyCardWallet($companyId, $formatedAmount);
+        $debitCompany = $this->debitCompanyCardWallet($companyId, $chargeAmount);
         logInfo(json_encode($debitCompany), "debitCompany Card Wallet");
 
         $customerAccountId = $user->id;
@@ -1147,11 +1154,15 @@ class SafehavenController extends WebhookController
 
         logInfo($formatedAmount, "formated Amount");
 
-        if ($formatedAmount < $oldBalance) {
+         $card_withdrawal_charge = $this->getCompanySettingsCardWithrawalFee($companyId);
+
+        $chargeAmount = $card_withdrawal_charge + $formatedAmount;
+
+        if ($chargeAmount < $oldBalance) {
             logInfo("amount working", "formated Amount if less than");
             logInfo("ready to send response", "response");
 
-            $checkCompanyBalance = $this->checkCompanyBalance($user_wallet, $amount, $companyId, $user);
+            $checkCompanyBalance = $this->checkCompanyBalance($user_wallet, $chargeAmount, $companyId, $user);
             logInfo(json_encode($checkCompanyBalance), "checkCompanyBalance Sudo");
 
             if ($checkCompanyBalance['status']) {
@@ -1457,5 +1468,14 @@ class SafehavenController extends WebhookController
             "balance_before" => $initialBalance,
             "balance_after"  => $newBalance,
         ];
+    }
+
+    private function getCompanySettingsCardWithrawalFee($companyId){
+         $company_settings_data = company_settings::where('company_id', '=', $companyId)->get();
+            foreach ($company_settings_data as $company_settings_dataid);
+            $company_settings_id = $company_settings_dataid->id;
+            $company_settings = company_settings::findorfail($company_settings_id);
+
+            return $company_settings->physical_card_withdrawal_charge ?? 0;
     }
 }

@@ -4892,6 +4892,7 @@ function loadProfit($from = null, $to = null, $branchID = null, $officer = null)
 function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
 {
     //18 subscription
+    // 23 Card Processing fee
     // 76 POS Credit Charge - profit(company/wba)
     // 91 Company Whatsapp Charge - profit(company/wba)
     // 92 Customer Whatsapp Charge - profit(company/wba)
@@ -4902,7 +4903,7 @@ function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
     // 51 bill payment charge- profit(company/wba)
     // 59 saving interest -loss
     $transactionTypeIDs = [
-        18, 41, 42, 51, 59, 76, 91, 92, 95, 100,
+        18, 23, 41, 42, 51, 59, 76, 91, 92, 95, 100,
     ];
 
     \Log::info('Start batch checking reports Loss----> ');

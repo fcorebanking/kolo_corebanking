@@ -16,6 +16,8 @@ use App\Console\Commands\DomCron;
 //use App\Console\Commands\SalaryPaymentCron;
 use App\Jobs\BankTranserCron;
 use App\Jobs\BirthdayCron;
+use App\Jobs\CardMaintenanceCron;
+use App\Jobs\CardNairaPartnerMaintenanceCron;
 use App\Jobs\CompanySettimentThreshold;
 use App\Jobs\DailyHybridSummaryJob;
 use App\Jobs\InvestmentCron;
@@ -195,6 +197,20 @@ class Kernel extends ConsoleKernel
         })
             ->onFailure(function () {
                 Log::error('Your DailyHybridSummaryJob failed');
+            });
+
+        $schedule->job(new CardMaintenanceCron)->monthly()->onSuccess(function () {
+            Log::info('Your CardMaintenanceCron executed successfully.');
+        })
+            ->onFailure(function () {
+                Log::error('Your CardMaintenanceCron failed');
+            });
+
+        $schedule->job(new CardNairaPartnerMaintenanceCron)->quarterly()->onSuccess(function () {
+            Log::info('Your CardNairaPartnerMaintenanceCron executed successfully.');
+        })
+            ->onFailure(function () {
+                Log::error('Your CardNairaPartnerMaintenanceCron failed');
             });
 
     }

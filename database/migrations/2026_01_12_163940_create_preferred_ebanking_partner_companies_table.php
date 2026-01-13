@@ -15,6 +15,24 @@ return new class extends Migration
     {
         Schema::create('preferred_ebanking_partner_companies', function (Blueprint $table) {
             $table->id();
+
+            $table->unsignedBigInteger('bank_transfer_id')->nullable();
+            $table->unsignedBigInteger('bank_account_verification_id')->nullable();
+
+            $table->foreign('bank_transfer_id')
+                ->references('id')
+                ->on('ebanking_partners')
+                ->nullOnDelete();
+
+            $table->foreign('bank_account_verification_id')
+                ->references('id')
+                ->on('ebanking_partners')
+                ->nullOnDelete();
+
+            $table->unsignedBigInteger('company_id')->nullable();
+            $table->foreign('company_id')->references('id')->on('company')->nullOnDelete();
+
+            $table->index(['company_id']);
             $table->timestamps();
         });
     }

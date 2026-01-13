@@ -189,11 +189,11 @@ class WebhookController extends Controller
 
                 if ($companySettings->who_to_pay_incoming_transfer_charge == 1) {
                     if ($companySettings->incoming_transfer_charge_state == 0) {
-                        $customerCharge = $companySettings->incoming_transfer_charge_amount;
+                        $customerCharge  = $companySettings->incoming_transfer_charge_amount;
                         $customerAmount -= $customerCharge;
                     } else {
-                        $customerCharge = $companySettings->incoming_transfer_charge_percentage * 0.01 * $originalAmount;
-                        $customerCharge = $customerCharge > $companySettings->incoming_transfer_charge_capped_at ? $companySettings->incoming_transfer_charge_capped_at : $customerCharge;
+                        $customerCharge  = $companySettings->incoming_transfer_charge_percentage * 0.01 * $originalAmount;
+                        $customerCharge  = $customerCharge > $companySettings->incoming_transfer_charge_capped_at ? $companySettings->incoming_transfer_charge_capped_at : $customerCharge;
                         $customerAmount -= $customerCharge;
                     }
                 }
@@ -609,8 +609,8 @@ class WebhookController extends Controller
             $this->accountReference = $request->input('data.object.card');
         }
 
-        if ($requestResponse['type'] == "refund") {
-            return $safehaven->getSudoUserRefund($request, $user_wallet, $companyId, $branchId);
+        if ($requestResponse['type'] == "transaction.refund") {
+            $this->accountReference = $request->input('data.object.card');
         }
 
         logInfo($this->accountReference, "Card Reference");
@@ -645,7 +645,7 @@ class WebhookController extends Controller
             return $safehaven->getSudoUserTransaction($request, $user_wallet, $companyId, $branchId, $user, $this->transactionReference);
         }
 
-        if ($requestResponse['type'] == "refund") {
+        if ($requestResponse['type'] == "transaction.refund") {
             return $safehaven->getSudoUserRefund($request, $user_wallet, $companyId, $branchId);
         }
 

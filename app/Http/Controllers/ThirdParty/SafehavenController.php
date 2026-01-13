@@ -3,10 +3,10 @@ namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\CustomClasses\WebhookController;
 use App\Models\Company;
+use App\Models\company_settings;
 use App\Models\company_wallet;
 use App\Models\transactions;
 use App\Models\UserCard;
-use App\Models\company_settings;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -1154,7 +1154,7 @@ class SafehavenController extends WebhookController
 
         logInfo($formatedAmount, "formated Amount");
 
-         $card_withdrawal_charge = $this->getCompanySettingsCardWithrawalFee($companyId);
+        $card_withdrawal_charge = $this->getCompanySettingsCardWithrawalFee($companyId);
 
         $chargeAmount = $card_withdrawal_charge + $formatedAmount;
 
@@ -1206,7 +1206,8 @@ class SafehavenController extends WebhookController
         logInfo($user_wallet->balance, "Old Wallet Balance");
 
         $customerAccountId = $user_wallet->wb_account_detail_id;
-        $creditCustomer    = $this->creditCustomerSudo($customerAccountId, $formatedAmount, $charge = 0.0, $user_wallet);
+        $charge            = 0.0;
+        $creditCustomer    = $this->creditCustomerSudo($customerAccountId, $formatedAmount, $charge, $user_wallet);
         $creditCompany     = $this->creditCompanyCardWallet($companyId, $formatedAmount);
 
         if ($creditCustomer['status']) {
@@ -1394,7 +1395,7 @@ class SafehavenController extends WebhookController
         ];
     }
 
-    private function creditCustomerSudo($customerAccountId, $originalAmount, $charge = 0.0, $userWallet)
+    private function creditCustomerSudo($customerAccountId, $originalAmount, $charge, $userWallet)
     {
         // Validate credit amount
         if ($originalAmount <= 0) {
@@ -1470,12 +1471,13 @@ class SafehavenController extends WebhookController
         ];
     }
 
-    private function getCompanySettingsCardWithrawalFee($companyId){
-         $company_settings_data = company_settings::where('company_id', '=', $companyId)->get();
-            foreach ($company_settings_data as $company_settings_dataid);
-            $company_settings_id = $company_settings_dataid->id;
-            $company_settings = company_settings::findorfail($company_settings_id);
+    private function getCompanySettingsCardWithrawalFee($companyId)
+    {
+        $company_settings_data = company_settings::where('company_id', '=', $companyId)->get();
+        foreach ($company_settings_data as $company_settings_dataid);
+        $company_settings_id = $company_settings_dataid->id;
+        $company_settings    = company_settings::findorfail($company_settings_id);
 
-            return $company_settings->physical_card_withdrawal_charge ?? 0;
+        return $company_settings->physical_card_withdrawal_charge ?? 0;
     }
 }

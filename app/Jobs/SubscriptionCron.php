@@ -147,7 +147,7 @@ class SubscriptionCron
             "balance_before"         => $company->wallet->balance,
             "amount"                 => $amt_to_pay,
             'company_id'             => $company->id,
-            "description"            => "Finova Subsciption",
+            "description"            => "Finova Cloud Hosting Subsciption",
             "transaction_reference"  => $transactionId,
             "transaction_remarks_id" => 1,
             "transaction_type_id"    => 18,
@@ -166,9 +166,9 @@ class SubscriptionCron
         $oldCompanyBalance = $companywallet->balance;
         logInfo(json_encode($oldCompanyBalance), "OldCompanyBalance");
 
-        $companywallet->balance = $oldCompanyBalance - $amt_to_pay;
+        $companywallet->balance  = $oldCompanyBalance - $amt_to_pay;
         logInfo(json_encode($companywallet->balance), "CompanyBalance after subscrition deduction");
-        $balanceBefore = $companywallet->sms;
+        $balanceBefore       = $companywallet->sms;
         $companywallet->sms += 200;
 
         logInfo($companywallet->toJson(), "Company wallet before saving");

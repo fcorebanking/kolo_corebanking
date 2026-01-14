@@ -291,7 +291,7 @@ class VTPassController extends Controller
                     $returnTypeResponse = $meterType == 'prepaid' ? [
                         'balance'         => "0.0",
                         'token'           => $electricityToken,
-                        'purchased_units' => isset($buyElectricity['PurchasedUnits']) ? $buyElectricity['PurchasedUnits'] : $buyElectricity['Units'],
+                        'purchased_units' => $buyElectricity['PurchasedUnits'] ?? $buyElectricity['Units'] ?? $buyElectricity['units'] ?? null,
                     ] : [
                         'balance' => "0.0",
                     ];

@@ -1194,33 +1194,42 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function getSudoUserRefund($request, $user_wallet, $companyId, $branchId)
+    public function getSudoUserRefund($request, $user_wallet, $companyId, $branchId, $transactionReference)
     {
-        $amount = $request->input('data.object.amount');
-        logInfo($amount, "Amount");
-        $formatedAmount = abs($amount);
+        $transaction = transactions::where('transaction_reference', $transactionReference)->where('description', 'Card Refund')->first();
+        if ($transaction) {
+            return [
+                "status"  => false,
+                "message" => "Invalid Transaction Amount",
+            ];
+        } else {
+            $amount = $request->input('data.object.amount');
+            logInfo($amount, "Amount");
+            $formatedAmount = abs($amount);
 
-        logInfo($formatedAmount, "formated Amount");
+            logInfo($formatedAmount, "formated Amount");
 
-        $oldBalance = $user_wallet->balance;
-        logInfo($user_wallet->balance, "Old Wallet Balance");
+            $oldBalance = $user_wallet->balance;
+            logInfo($user_wallet->balance, "Old Wallet Balance");
 
-        $customerAccountId = $user_wallet->wb_account_detail_id;
-        $charge            = 0.0;
-        $creditCustomer    = $this->creditCustomerSudo($customerAccountId, $formatedAmount, $charge, $user_wallet);
-        $creditCompany     = $this->creditCompanyCardWallet($companyId, $formatedAmount);
+            $customerAccountId = $user_wallet->wb_account_detail_id;
+            $charge            = 0.0;
+            $creditCustomer    = $this->creditCustomerSudo($customerAccountId, $formatedAmount, $charge, $user_wallet);
+            $creditCompany     = $this->creditCompanyCardWallet($companyId, $formatedAmount);
 
-        if ($creditCustomer['status']) {
-            $newdescription = "Card Refund";
-            $this->refundSudoTransaction($creditCustomer, $creditCompany, $formatedAmount, $companyId, $newdescription, $branchId, $customerAccountId, $user);
-            logInfo($creditCompany['balance_before'], "New Wallet Balance");
+            if ($creditCustomer['status']) {
+                $newdescription = "Card Refund";
+                $this->refundSudoTransaction($creditCustomer, $creditCompany, $formatedAmount, $companyId, $newdescription, $branchId, $customerAccountId, $user, $transactionReference);
+                logInfo($creditCompany['balance_before'], "New Wallet Balance");
+            }
+
+            return [
+                'statusCode'   => 200,
+                'responseCode' => "00",
+                'httpCode'     => true,
+            ];
         }
 
-        return [
-            'statusCode'   => 200,
-            'responseCode' => "00",
-            'httpCode'     => true,
-        ];
     }
 
     public function getUserCard($accountReference)
@@ -1229,7 +1238,7 @@ class SafehavenController extends WebhookController
 
     }
 
-    private function refundSudoTransaction($creditCustomer, $creditCompany, $amount, $companyId, $newdescription, $branchId, $customerAccountId, $user)
+    private function refundSudoTransaction($creditCustomer, $creditCompany, $amount, $companyId, $newdescription, $branchId, $customerAccountId, $user, $transactionReference)
     {
         $transaction = transactions::create([
             "balance_before"         => $creditCustomer['balance_before'],
@@ -1242,12 +1251,13 @@ class SafehavenController extends WebhookController
             "company_id"             => $companyId,
             "branch_id"              => $branchId,
             "account_id"             => $customerAccountId,
-            "transaction_reference"  => $this->transactionReference,
+            "transaction_reference"  => $transactionReference,
             "transaction_remarks_id" => 2,
             "transaction_type_id"    => 23,
             "credit_debit_type_id"   => 1,
             "created_date"           => date('Y-m-d'),
             "created_by"             => $user->id,
+
         ]);
     }
 

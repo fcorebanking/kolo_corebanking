@@ -1434,7 +1434,7 @@ class TransactionController extends Controller
             $ra = ["status" => false, "message" => "Transfer to same accounts is not accepted!"];
             return response()->json($ra);
         }
-        $Wallet_to_Wallet_Debit = get_CR_DR_TXN_Type_Ledger(4, auth()->user()->company_id);
+        $Wallet_to_Wallet_Debit  = get_CR_DR_TXN_Type_Ledger(4, auth()->user()->company_id);
         if ($Wallet_to_Wallet_Debit) {
             $Wallet_Debit_ledger_cr = $Wallet_to_Wallet_Debit->ledger_cr;
             $Wallet_Debit_ledger_dr = $Wallet_to_Wallet_Debit->ledger_dr;
@@ -1465,8 +1465,8 @@ class TransactionController extends Controller
                     $maxwc = $companydata->setting->max_withdraw_charge;
                     $wcper = $companydata->setting->withdraw_charge_state ? '%' : $companydata->currency->symbol;
                     if ($wcharge >= $companydata->setting->min_withdraw_charge && $wcharge <= $companydata->setting->max_withdraw_charge) {
-                        $chargeamt = $companydata->setting->withdraw_charge_state ? (($wcharge / 100) * $amount) : $wcharge;
-                        $charge += $chargeamt;
+                        $chargeamt  = $companydata->setting->withdraw_charge_state ? (($wcharge / 100) * $amount) : $wcharge;
+                        $charge    += $chargeamt;
                     } else {
                         return ["status" => 0, "message" => "Withdrawal charge is between " . $wcper . $minwc . " and " . $wcper . $maxwc];
                     }
@@ -1513,14 +1513,14 @@ class TransactionController extends Controller
             $sender_wallet = $sender_account->user_wallet;
             $balanceBefore = $sender_wallet->balance;
             if ($sender_wallet->balance >= ($amount + $charge)) {
-                $ben_wallet_id        = $ben_account->user_wallet->id;
-                $ben_balanceBefore    = $ben_account->user_wallet->balance;
-                $credit_ben_wallet    = $ben_account->user_wallet->balance + $amount;
-                $debit_sender_balance = $sender_wallet->balance - ($amount + $charge);
-                $debitsend            = user_wallet::find($sender_wallet->id)->update(['balance' => $debit_sender_balance]);
-                $balanceAfter         = $debit_sender_balance;
-                $transactionId        = generate_txnID();
-                $BranchWallet         = BranchWallet::where('branch_id', $sender_account->user->branch_id)->first();
+                $ben_wallet_id          = $ben_account->user_wallet->id;
+                $ben_balanceBefore      = $ben_account->user_wallet->balance;
+                $credit_ben_wallet      = $ben_account->user_wallet->balance + $amount;
+                $debit_sender_balance   = $sender_wallet->balance - ($amount + $charge);
+                $debitsend              = user_wallet::find($sender_wallet->id)->update(['balance' => $debit_sender_balance]);
+                $balanceAfter           = $debit_sender_balance;
+                $transactionId          = generate_txnID();
+                $BranchWallet           = BranchWallet::where('branch_id', $sender_account->user->branch_id)->first();
                 $BranchWallet->balance -= ($amount + $charge);
                 $BranchWallet->save();
                 // $desc
@@ -1548,9 +1548,9 @@ class TransactionController extends Controller
                     //log txn for sender
                     $credit_user = user_wallet::find($ben_wallet_id)->update(['balance' => $credit_ben_wallet]);
                     if ($credit_user) {
-                        $ben_balanceAfter  = $credit_ben_wallet;
-                        $ben_transactionId = generate_txnID();
-                        $transaction       = transactions::create([
+                        $ben_balanceAfter   = $credit_ben_wallet;
+                        $ben_transactionId  = generate_txnID();
+                        $transaction        = transactions::create([
                             "balance_before"         => $ben_balanceBefore,
                             "amount"                 => $amount,
                             "description"            => $desc,
@@ -1569,12 +1569,12 @@ class TransactionController extends Controller
                             "ledger_cr"              => $Wallet_Credit_ledger_cr,
                             "ledger_dr"              => $Wallet_Credit_ledger_dr,
                         ]);
-                        $BranchWallet = BranchWallet::where('branch_id', $ben_account->user->branch_id)->first();
+                        $BranchWallet           = BranchWallet::where('branch_id', $ben_account->user->branch_id)->first();
                         $BranchWallet->balance += ($amount);
                         $BranchWallet->save();
                         sendSMS($ben_account->id, "Credit Amt:$amount TXNcharge:$charge Desc: $desc Avail Bal:$ben_balanceAfter Date:$backdate Ref:$ben_transactionId", false, true, 'Credit Transaction');
-                        $redirectlink = "transaction-receipt/$transactionId";
-                        $ra           = ["status" => true, "message" => "Transfer  was Successful!", "redirectlink" => $redirectlink];
+                        $redirectlink  = "transaction-receipt/$transactionId";
+                        $ra            = ["status" => true, "message" => "Transfer  was Successful!", "redirectlink" => $redirectlink];
                         return response()->json($ra);
                     } else {
                         $ra = ["status" => false, "message" => "A Fatal Error occured!"];
@@ -2099,6 +2099,11 @@ class TransactionController extends Controller
             return response()->json($validatePinCheckBalance, 200);
         }
 
+        $checkVTPASSBalance = $this->checkVTPASSBalance($request->amount);
+        if (! $checkVTPASSBalance) {
+            return response()->json("Service is not available at the moment . Please try again later", 400);
+        }
+
         if (auth()->user()->company->currency->code == "NGN") {
 
             $networkProvider = $request->networkProviderId == '9mobile' ? 'etisalat' : $request->networkProviderId;
@@ -2177,6 +2182,11 @@ class TransactionController extends Controller
 
         if ($validatePinCheckBalance["status"] != 1) {
             return response()->json($validatePinCheckBalance, 200);
+        }
+
+        $checkVTPASSBalance = $this->checkVTPASSBalance($request->amount);
+        if (! $checkVTPASSBalance) {
+            return response()->json("Service is not available at the moment . Please try again later", 400);
         }
 
         if (auth()->user()->company->currency->code == "NGN") {
@@ -2340,8 +2350,8 @@ class TransactionController extends Controller
 
             if ($request->user()->company->wallet->balance >= $amount) {
 
-                $request->user()->company->wallet->balance -= $amount;
-                $request->user()->company->wallet->updated_at = Carbon::now();
+                $request->user()->company->wallet->balance    -= $amount;
+                $request->user()->company->wallet->updated_at  = Carbon::now();
                 $request->user()->company->wallet->save();
 
                 $response = ["status" => 1, 'message' => "Company Debited", 'balance' => $request->user()->company->wallet->balance];
@@ -3381,18 +3391,18 @@ class TransactionController extends Controller
                 if ($transaction) {
                     $staff = User::where(['id' => $transaction->created_by, 'company_id' => auth()->user()->id])->first();
                     if ($staff) {
-                        $amount                      = $transaction->amount;
-                        $transactionId               = $transaction->transaction_reference;
-                        $destinationAccount          = $transaction->TXNBankDetails->accountNo;
-                        $bankCode                    = $transaction->TXNBankDetails->bank->bank_code;
-                        $request->amount             = $amount;
-                        $request->transactionId      = $transactionId;
-                        $request->destinationAccount = $destinationAccount;
-                        $request->bankCode           = $bankCode;
-                        $request->chargeAmount       = $transaction->withdrawal_charge ?? 0;
-                        $messageData                 = $this->bankTrS($request);
-                        $message .= $messageData['message'] . '<br>';
-                        $status += $messageData['status'];
+                        $amount                       = $transaction->amount;
+                        $transactionId                = $transaction->transaction_reference;
+                        $destinationAccount           = $transaction->TXNBankDetails->accountNo;
+                        $bankCode                     = $transaction->TXNBankDetails->bank->bank_code;
+                        $request->amount              = $amount;
+                        $request->transactionId       = $transactionId;
+                        $request->destinationAccount  = $destinationAccount;
+                        $request->bankCode            = $bankCode;
+                        $request->chargeAmount        = $transaction->withdrawal_charge ?? 0;
+                        $messageData                  = $this->bankTrS($request);
+                        $message                     .= $messageData['message'] . '<br>';
+                        $status                      += $messageData['status'];
                     }
                 }
             } else {
@@ -3443,7 +3453,7 @@ class TransactionController extends Controller
         logInfo($ref, "Transaction Ref");
         $transactions = ['BM2025122821591234654808724CITYAFRICA', 'BM2025123012292382492184995', 'BM2025123012375424851763987', 'BM2025123012394923398215462'];
         if ($ref == "BM2025123012292382492184995") {
-            
+
             return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251229130015117248061405)"]);
         }
         if ($ref == "BM2025123012375424851763987") {
@@ -3453,5 +3463,16 @@ class TransactionController extends Controller
             return response()->json(['status' => 0, "Transaction Verified Successfully (Session ID: 090267251228202224822735315405)"]);
         }
 
+    }
+
+    public function checkVTPASSBalance($originalAmount)
+    {
+        $vtPassController = new VTPassController();
+        $response         = $vtPassController->checkVTPASSBalance($originalAmount);
+        if ($originalAmount > $response['balance']) {
+            return false;
+        } else {
+            return true;
+        }
     }
 }

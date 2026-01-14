@@ -1429,7 +1429,7 @@ class SafehavenController extends WebhookController
         // Apply credit
         $newBalance          = $initialBalance + $creditAmount;
         $userWallet->balance = $newBalance;
-        $userWallet->save();
+        //  $userWallet->save();
 
         return [
             "status"         => true,
@@ -1468,7 +1468,7 @@ class SafehavenController extends WebhookController
         // Perform credit
         $newBalance                  = $initialBalance + $formattedAmount;
         $companyWallet->card_balance = $newBalance;
-        $companyWallet->save();
+        //    $companyWallet->save();
 
         logInfo($newBalance, "New Card Wallet Balance for {$companyWallet->company_id}");
 

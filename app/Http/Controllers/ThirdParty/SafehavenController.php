@@ -1194,7 +1194,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function getSudoUserRefund($request, $user_wallet, $companyId, $branchId, $transactionReference)
+    public function getSudoUserRefund($request, $user_wallet, $companyId, $branchId, $transactionReference, $user)
     {
         $transaction = transactions::where('transaction_reference', $transactionReference)->where('description', 'Card Refund')->first();
         if ($transaction) {

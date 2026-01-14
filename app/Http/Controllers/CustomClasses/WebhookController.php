@@ -646,7 +646,7 @@ class WebhookController extends Controller
         }
 
         if ($requestResponse['type'] == "transaction.refund") {
-            return $safehaven->getSudoUserRefund($request, $user_wallet, $companyId, $branchId, $this->transactionReference);
+            return $safehaven->getSudoUserRefund($request, $user_wallet, $companyId, $branchId, $this->transactionReference, $user);
         }
 
     }

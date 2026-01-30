@@ -17,23 +17,23 @@
             <div class="col-xl-12 col-lg-12 col-sm-12">
                 <!--  <div class="widget-content widget-content-area">
 
-                                        <h3 style="margin-bottom: 30px;"></h3>
+                                            <h3 style="margin-bottom: 30px;"></h3>
 
-                                        <div class="row" style="flex-direction: row; justify-content: center; align-items: center;">
-                                            <div class="col-md-6">
-                                                <div class="clipboard">
-                                                    <form class="form-horizontal">
-                                                        <label for="input-copy"><strong>Customer Registration Link</strong></label>
-                                                        <input type="text" class="form-control mb-4" readonly id="input-copy"
-                                                            value="{{ $registrationLink }}">
+                                            <div class="row" style="flex-direction: row; justify-content: center; align-items: center;">
+                                                <div class="col-md-6">
+                                                    <div class="clipboard">
+                                                        <form class="form-horizontal">
+                                                            <label for="input-copy"><strong>Customer Registration Link</strong></label>
+                                                            <input type="text" class="form-control mb-4" readonly id="input-copy"
+                                                                value="{{ $registrationLink }}">
 
-                                                        <a class="mb-1 btn btn-primary" href="javascript:;" data-clipboard-action="copy"
-                                                            data-clipboard-target="#input-copy"><i class="fa fa-clipboard"></i> Copy Link</a>
-                                                    </form>
+                                                            <a class="mb-1 btn btn-primary" href="javascript:;" data-clipboard-action="copy"
+                                                                data-clipboard-target="#input-copy"><i class="fa fa-clipboard"></i> Copy Link</a>
+                                                        </form>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div> -->
+                                        </div> -->
             </div>
 
         </div>
@@ -428,8 +428,7 @@
 
                                     <div class="balance-info">
                                         <h6>Ghana </h6>
-                                        <p class='card-balance-cstom'><i class="fa fa-spinner fa-spin"
-                                                style="font-size:20px"></i> GHS 0.00</p>
+                                        <p class='card-balance-cstom'> GHS 0.00</p>
                                     </div>
                                 </div>
                                 <div class="card-bottom-section">
@@ -465,8 +464,44 @@
 
                                     <div class="balance-info">
                                         <h6>UK </h6>
-                                        <p class='card-balance-cstom'><i class="fa fa-spinner fa-spin"
-                                                style="font-size:20px"></i>GBP 0.00</p>
+                                        <p class='card-balance-cstom'>GBP 0.00</p>
+                                    </div>
+                                </div>
+                                <div class="card-bottom-section">
+                                    <div><span class="badge badge-light-success"><svg xmlns="http://www.w3.org/2000/svg"
+                                                width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round" class="feather feather-trending-up">
+                                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                                                <polyline points="17 6 23 6 23 12"></polyline>
+                                            </svg></span></div>
+                                    <a href='#' class="" data-toggle="modal" data-target="#exampleModal"
+                                        data-whatever="@mdo"></a>
+                                </div>
+
+
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12 layout-spacing">
+                    <div class="widget widget-card-five">
+                        <div class="widget-content">
+                            <div class="account-box">
+
+                                <div class="info-box">
+                                    <div class="icon">
+                                        <span>
+                                            <img class='card-img' src="{{ asset('assets/dashboard/wallet.png') }}"
+                                                alt="money-bag">
+                                        </span>
+                                    </div>
+
+                                    <div class="balance-info">
+                                        <h6>CAPE VERDE </h6>
+                                        <p class='card-balance-cstom'>EUR 0.00</p>
                                     </div>
                                 </div>
                                 <div class="card-bottom-section">

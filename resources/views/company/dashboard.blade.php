@@ -426,10 +426,10 @@
                                         </span>
                                     </div>
 
-                                    <div class="balance-info">
-                                        <h6>Ghana (GHS)</h6>
+                                    <div class="balance-info-custom">
+                                        <h6>Ghana </h6>
                                         <p class='card-balance'><i class="fa fa-spinner fa-spin"
-                                                style="font-size:20px"></i></p>
+                                                style="font-size:20px"></i> GHS 0.00</p>
                                     </div>
                                 </div>
                                 <div class="card-bottom-section">

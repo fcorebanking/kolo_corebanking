@@ -1740,6 +1740,8 @@
             @if (isset($group))
                 <script>
                     viewdata("/company/loan/ongoing-data?group={{ $group }}&showTotal=true", "get");
+
+                    viewdata("/company/loan/pending-data?ongoing=true", "get");
                 </script>
             @else
                 <script>

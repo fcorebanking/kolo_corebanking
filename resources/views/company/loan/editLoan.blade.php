@@ -4,7 +4,6 @@
 
 <div class="widget-content widget-content-area br-6">
     <div class="table-responsive mb-4 mt-4">
-        <span id='infobait'></span>
         <table id="html5-extension" class="table table-hover non-hover" style="width:100%">
             <thead>
             <th>sn</th>

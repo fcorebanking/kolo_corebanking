@@ -591,16 +591,16 @@ class LoanController extends Controller
         $j        = 0;
         $princRet = $PItotal = $repayItotal = $Itotal = 0;
         for ($i = 0; $i < $duration; $i++) {
-            $due    = ($principal / $duration);
-            $IT     = $Principel_Interest - $principal;
-            $repayI = $IT / $duration;
-            $pI     = ($due + $repayI);
-            $j += 1;
-            $princRet += $due;
-            $PItotal += $pI;
+            $due          = ($principal / $duration);
+            $IT           = $Principel_Interest - $principal;
+            $repayI       = $IT / $duration;
+            $pI           = ($due + $repayI);
+            $j           += 1;
+            $princRet    += $due;
+            $PItotal     += $pI;
             $repayItotal += $repayI;
-            $Itotal += $IT;
-            $repay[] = ['principal' => $principal, 'principal_return' => round($due, $decimaPoint), 'PI' => round($pI, $decimaPoint), 'I' => round($IT, $decimaPoint), 'duration' => "$period->name-$j", 'repayI' => round($repayI, $decimaPoint) . " - ($loan_interest_type%)"];
+            $Itotal      += $IT;
+            $repay[]      = ['principal' => $principal, 'principal_return' => round($due, $decimaPoint), 'PI' => round($pI, $decimaPoint), 'I' => round($IT, $decimaPoint), 'duration' => "$period->name-$j", 'repayI' => round($repayI, $decimaPoint) . " - ($loan_interest_type%)"];
         }
         $repay[] = ['principal' => '<b>Summery</b>', 'principal_return' => "<b>" . $princRet . "</b>", 'PI' => "<b>" . $PItotal . "</b>", 'I' => '<b>' . round($IT, $decimaPoint) . '</b>', 'duration' => "<b>$totalDuration</b>", 'repayI' => "<b>$repayItotal - ($rate%)</b>"];
         return $repay;
@@ -621,14 +621,14 @@ class LoanController extends Controller
         $RepaymentAmt        = $emiInterest + $principal / $duration;
         $IX                  = $payment_amountX                  = $principal_reductionX                  = $principal_reduction                  = 0;
         for ($i = 0; $i < $duration; $i++) {
-            $j += 1;
-            $repay[]             = ['PI' => $RepaymentAmt, 'loan_balance' => round($loan_balance, $decimaPoint), 'principal_reduction' => round($principal_reduction, $decimaPoint), 'I' => round($IT, $decimaPoint), 'duration' => "$period->name-$j", 'rate' => "$loan_interest_type%", "payment_amount" => round($RepaymentAmt, $decimaPoint)];
-            $IT                  = $emiInterest; //$this->EMI($loan_balance,$Interest,$duration);
-            $principal_reduction = $RepaymentAmt - $IT;
-            $loan_balance -= $principal_reduction;
+            $j                    += 1;
+            $repay[]               = ['PI' => $RepaymentAmt, 'loan_balance' => round($loan_balance, $decimaPoint), 'principal_reduction' => round($principal_reduction, $decimaPoint), 'I' => round($IT, $decimaPoint), 'duration' => "$period->name-$j", 'rate' => "$loan_interest_type%", "payment_amount" => round($RepaymentAmt, $decimaPoint)];
+            $IT                    = $emiInterest; //$this->EMI($loan_balance,$Interest,$duration);
+            $principal_reduction   = $RepaymentAmt - $IT;
+            $loan_balance         -= $principal_reduction;
             $principal_reductionX += $principal_reduction;
-            $payment_amountX += $RepaymentAmt;
-            $IX += $IT;
+            $payment_amountX      += $RepaymentAmt;
+            $IX                   += $IT;
         }
         $repay[] = ['PI' => $RepaymentAmt, 'loan_balance' => '<b>Summery</b>', 'principal_reduction' => "<b>" . round($principal_reductionX, $decimaPoint) . "</b>", 'I' => "<b>" . round($IX, $decimaPoint) . "</b>", 'duration' => "<b>$totalDuration</b>", 'rate' => '<b>--</b>', 'payment_amount' => '<b>' . round($payment_amountX, $decimaPoint) . '</b>'];
         return $repay;
@@ -737,7 +737,7 @@ class LoanController extends Controller
                             $user                 = User::where('uuid', $borrowerData->uuid)->first();
                             $loan->user_id        = $user->id;
 
-                            $GrouploanUser = UserGroupLoan::where(['user_id' => $user->id])->first();
+                            $GrouploanUser  = UserGroupLoan::where(['user_id' => $user->id])->first();
                             if ($GrouploanUser) {
 
                                 $Grouploan = $GrouploanUser->Group;
@@ -774,8 +774,8 @@ class LoanController extends Controller
                                 $LoanRepayment = LoanRepayment::where(['loan_id' => $loan->id, 'status_id' => 1])->get();
                                 if ($LoanRepayment) {
                                     foreach ($LoanRepayment as $LoanRepaymentData) {
-                                        $p += $LoanRepaymentData->P;
-                                        $i += $LoanRepaymentData->I;
+                                        $p   += $LoanRepaymentData->P;
+                                        $i   += $LoanRepaymentData->I;
                                         $amt += $LoanRepaymentData->amount;
                                     }
                                 }
@@ -1333,6 +1333,7 @@ class LoanController extends Controller
         $totalLeft      = 0;
         $totalPrincipal = 0;
         $totalBalance   = 0;
+        dd($info);
         foreach ($info as $infoData) {
             $btnlink       = Crypt::encryptString($infoData->id);
             $btnlinkUserID = Crypt::encryptString($infoData->user_id);
@@ -1365,8 +1366,8 @@ class LoanController extends Controller
                 }
             }
             $liks = '<a class="dropdown-item" href="/company/' . auth()->user()->company->short_name . '/loan/offer/' . $btnlink . '">Loan Offer</a>';
-            $btn .= $liks;
-            $btn .= '<a class="dropdown-item" href="#" onclick=' . $view . '>Quick View</a>
+            $btn  .= $liks;
+            $btn  .= '<a class="dropdown-item" href="#" onclick=' . $view . '>Quick View</a>
                     <a class="dropdown-item" href="#" onclick=' . $delete . '>Delete Loan</a></div>
                 </div>';
             $loop++;
@@ -1384,10 +1385,10 @@ class LoanController extends Controller
             //     $status ='<span class="badge badge-success">Fully Paid</span>';
             // }
             $totalPrincipal += $infoData->principal;
-            $totalBalance += $infoData->loanBalance;
+            $totalBalance   += $infoData->loanBalance;
             if ($request->showTotal) {
 
-                $json['data'][] = [
+                $json['data'][]  = [
                     $loop,
                     $infoData->first_name . ' ' . $infoData->last_name,
                     $infoData->virtual_account,
@@ -1525,8 +1526,8 @@ class LoanController extends Controller
                 if ($destination) {
                     $destination->loanBalance += $source->loanBalance;
                     $destination->save();
-                    $source->loanBalance    = 0;
-                    $source->loan_status_id = 6; //roll over status code
+                    $source->loanBalance     = 0;
+                    $source->loan_status_id  = 6; //roll over status code
                     $source->save();
                     return json_encode(['status' => 1, 'message' => "Loan has been rolled over to $destination->ref!"]);
                 } else {
@@ -1584,7 +1585,7 @@ class LoanController extends Controller
                     if ($source->principalLeft < $pricipal) {
                         return json_encode(['status' => 0, 'message' => "$amount is greater than Principal!"]);
                     }
-                    $source->interestLeft -= $interest;
+                    $source->interestLeft  -= $interest;
                     $source->principalLeft -= $pricipal;
                 }
                 $source->EachRepayment = ($source->interestLeft + $source->principalLeft) / $source->duration;
@@ -1667,78 +1668,78 @@ class LoanController extends Controller
             }
             if ($repaymentOrder == 2) {
                 if ($principalLeft >= $AmountAbtToPay) {
-                    $paymentP = $AmountAbtToPay;
-                    $principalLeft -= $AmountAbtToPay;
-                    $AmountAbtToPay = 0;
+                    $paymentP        = $AmountAbtToPay;
+                    $principalLeft  -= $AmountAbtToPay;
+                    $AmountAbtToPay  = 0;
                 } else {
-                    $paymentP = $principalLeft;
+                    $paymentP        = $principalLeft;
                     $AmountAbtToPay -= $principalLeft;
-                    $principalLeft = 0;
+                    $principalLeft   = 0;
                 }
                 if ($AmountAbtToPay > 0) {
                     if ($interestLeft >= $AmountAbtToPay) {
-                        $paymentI = $AmountAbtToPay;
-                        $interestLeft -= $AmountAbtToPay;
-                        $AmountAbtToPay = 0;
+                        $paymentI        = $AmountAbtToPay;
+                        $interestLeft   -= $AmountAbtToPay;
+                        $AmountAbtToPay  = 0;
                     } else {
-                        $paymentI = $interestLeft;
+                        $paymentI        = $interestLeft;
                         $AmountAbtToPay -= $interestLeft;
-                        $interestLeft = 0;
+                        $interestLeft    = 0;
                     }
                 }
                 $log .= " I Paid =$paymentI  P paid=$paymentP<br> ";
                 return (['status' => 1, 'loanid' => $data->ref, 'Pleft' => $principalLeft, 'Ileft' => $interestLeft, 'paymentP' => $paymentP, 'paymentI' => $paymentI, 'message' => $log]);
             } else if ($repaymentOrder == 3) {
                 if ($interestLeft >= $AmountAbtToPay) {
-                    $paymentI = $AmountAbtToPay;
-                    $interestLeft -= $AmountAbtToPay;
-                    $AmountAbtToPay = 0;
+                    $paymentI        = $AmountAbtToPay;
+                    $interestLeft   -= $AmountAbtToPay;
+                    $AmountAbtToPay  = 0;
                 } else {
-                    $paymentI = $interestLeft; //$AmountAbtToPay - $interestLeft;
+                    $paymentI        = $interestLeft; //$AmountAbtToPay - $interestLeft;
                     $AmountAbtToPay -= $interestLeft;
-                    $interestLeft = 0;
+                    $interestLeft    = 0;
 
                 }
                 if ($AmountAbtToPay > 0) {
                     if ($principalLeft >= $AmountAbtToPay) {
-                        $paymentP = $AmountAbtToPay;
-                        $principalLeft -= $AmountAbtToPay;
-                        $AmountAbtToPay = 0;
+                        $paymentP        = $AmountAbtToPay;
+                        $principalLeft  -= $AmountAbtToPay;
+                        $AmountAbtToPay  = 0;
                     } else {
-                        $paymentP = $principalLeft;
+                        $paymentP        = $principalLeft;
                         $AmountAbtToPay -= $principalLeft;
-                        $principalLeft = 0;
+                        $principalLeft   = 0;
                     }
                 }
                 $log .= " I Paid =$paymentI  P paid=$paymentP<br> ";
                 return (['status' => 1, 'loanid' => $data->ref, 'Pleft' => $principalLeft, 'Ileft' => $interestLeft, 'paymentP' => $paymentP, 'paymentI' => $paymentI, 'message' => $log]);
             } else {
-                $paymentI = ($rate / 100) * $AmountAbtToPay;
-                $log .= "($rate / 100) * $AmountAbtToPay <br> ";
-                $log .= "amount I =$paymentI <br> ";
+                $paymentI  = ($rate / 100) * $AmountAbtToPay;
+                $log      .= "($rate / 100) * $AmountAbtToPay <br> ";
+                $log      .= "amount I =$paymentI <br> ";
                 if ($interestLeft < $paymentI) {
-                    $paymentI = $interestLeft;
-                    $log .= "swap interest to balance amount I =$paymentI <br> ";
+                    $paymentI  = $interestLeft;
+                    $log      .= "swap interest to balance amount I =$paymentI <br> ";
                 }
 
-                $paymentP = $AmountAbtToPay - $paymentI;
-                $log .= " $AmountAbtToPay - $paymentI<br> ";
-                $log .= " amount P =$paymentP <br> ";
+                $paymentP  = $AmountAbtToPay - $paymentI;
+                $log      .= " $AmountAbtToPay - $paymentI<br> ";
+                $log      .= " amount P =$paymentP <br> ";
                 if ($principalLeft < $paymentP) {
-                    $paymentP = $principalLeft;
-                    $log .= "swap Principal to balance amount P =$paymentP <br> ";
-                    $left = $AmountAbtToPay - $principalLeft;
+                    $paymentP  = $principalLeft;
+                    $log      .= "swap Principal to balance amount P =$paymentP <br> ";
+                    $left      = $AmountAbtToPay - $principalLeft;
                     if ($interestLeft >= $left) {
                         $paymentI = $left;
                     }
                 }
 
-                $log .= "P balance= $amountToPayP<br> ";
-                $log .= "I balance= $amountToPayI<br> ";
-                $amountToPayP = $paymentP;
-                $amountToPayI = $paymentI;
+                $log           .= "P balance= $amountToPayP<br> ";
+                $log           .= "I balance= $amountToPayI<br> ";
+                $amountToPayP  = $paymentP;
+                $amountToPayI  = $paymentI;
                 $principalLeft -= $amountToPayP;
-                $interestLeft -= $amountToPayI;
+                $interestLeft  -= $amountToPayI;
 
                 $log .= "Pleft = $principalLeft  Ileft = $interestLeft  <br> loanref = $data->ref ";
                 return (['status' => 1, 'loanid' => $data->ref, 'Pleft' => $principalLeft, 'Ileft' => $interestLeft, 'paymentP' => $amountToPayP, 'paymentI' => $amountToPayI, 'message' => $log]);
@@ -1846,10 +1847,10 @@ class LoanController extends Controller
             }
 
             if ($method == 'cash' || $method == 'remita') {
-                $AmtInterest       = ($infoData->rate / 100) * $amount;
-                $principal4rAmount = $amount - $AmtInterest;
-                $loancharges       = $this->LoanMethodPercentReturn($principal4rAmount, $AmtInterest, $infoData->LoanFee, $infoData->LoanFeeMethod, $infoData->mrgtFee, $infoData->mrgtFeeMethod);
-                $data              = [
+                $AmtInterest        = ($infoData->rate / 100) * $amount;
+                $principal4rAmount  = $amount - $AmtInterest;
+                $loancharges        = $this->LoanMethodPercentReturn($principal4rAmount, $AmtInterest, $infoData->LoanFee, $infoData->LoanFeeMethod, $infoData->mrgtFee, $infoData->mrgtFeeMethod);
+                $data               = [
                     'loandata'       => $infoData,
                     'loanid'         => $loanID,
                     'paymentDate'    => $payment,
@@ -1936,12 +1937,12 @@ class LoanController extends Controller
                     }
                     $infoData->save();
                     if (! $repaymentExist) { //if its not a resetting repayment call
-                        $user_wallet->balance = $balanceAfter;
+                        $user_wallet->balance  = $balanceAfter;
                         $user_wallet->save();
-                        $BranchWallet = BranchWallet::where('branch_id', $auth->branch_id)->first();
+                        $BranchWallet           = BranchWallet::where('branch_id', $auth->branch_id)->first();
                         $BranchWallet->balance -= $amount;
                         $BranchWallet->save();
-                        $appMSG = "Your repayment of loan of $amount via (Wallet is acknowledged and your current loan balance is $infoData->loanBalance";
+                        $appMSG  = "Your repayment of loan of $amount via (Wallet is acknowledged and your current loan balance is $infoData->loanBalance";
                         // sendSMS($infoData->user_id, "$appMSG", true, true, 'Loan Repayment');
                     }
                     DB::commit();
@@ -2125,17 +2126,17 @@ class LoanController extends Controller
                 $totalLoanBalance    = $EachRepayment;
                 $totalLoanDue        = 0;
                 for ($i = 0; $i < $looper; $i++) {
-                    $daysmissed   = 0;
-                    $due          = ($principal / $looper);
-                    $repayI       = $IT / $looper;
-                    $RepaymentAmt = $pI = ($due + $repayI);
-                    $payment_amountX += $repayI;
-                    $currentOutstanding = 0;
-                    $j += 1;
-                    $pendue += ($loanBalance / $looper);
-                    $newdate     = date("Y-m-d", strtotime($newdate . "$repayPeriod"));
-                    $statusTag   = '';
-                    $outstanding = $totalLoanBalance;
+                    $daysmissed          = 0;
+                    $due                 = ($principal / $looper);
+                    $repayI              = $IT / $looper;
+                    $RepaymentAmt        = $pI        = ($due + $repayI);
+                    $payment_amountX    += $repayI;
+                    $currentOutstanding  = 0;
+                    $j                  += 1;
+                    $pendue             += ($loanBalance / $looper);
+                    $newdate             = date("Y-m-d", strtotime($newdate . "$repayPeriod"));
+                    $statusTag           = '';
+                    $outstanding         = $totalLoanBalance;
                     if ($LoanRepaymentTotalPaid >= round($totalLoanBalance, $LoanProductDecima)) {
                         //success
                         $statusTag          = "<b><i class='fa fa-check-circle' style='color:green;'></i> $totalLoanBalance</b>";
@@ -2159,13 +2160,13 @@ class LoanController extends Controller
 
                         }
                     }
-                    $repay[] = ['totalLoanBalance' => $totalLoanBalance, 'outstandingpay' => $outstanding, 'EachRepayment' => $EachRepayment, 'currentRepayStatus' => $currentRepayStatus, 'loanBalanceRecurring' => $statusTag, 'currentOutstanding' => $currentOutstanding, 'daysmissed' => $daysmissed, 'loanBalance' => round($PIRate, $LoanProductDecima), 'tag' => 'class="table-success "', 'principalRepayment' => round($due, $LoanProductDecima), 'principal_reduction' => round($principal_reduction, $LoanProductDecima), 'loan_balance' => round($loan_balance, $LoanProductDecima), 'totalDue' => round($payment_amountX, $LoanProductDecima), 'sn' => $j, 'fee' => $infoData->LoanFee . '%', 'description' => 'Repayment', 'pendingDue' => $pendue, 'repaymentDateDueloan' => $newdate, 'repaymentDate' => $newdate, 'principal' => round($principal, $LoanProductDecima), 'principal_return' => round($due, $LoanProductDecima), 'PI' => round($pI, $LoanProductDecima), 'I' => round($IT, $LoanProductDecima), 'duration' => "$period->name-$j", 'payment_amount' => round($repayI, $LoanProductDecima) . " - ($rate%)"];
-                    $loanBalance += $loanba;
-                    $totalLoanBalance += $PIRate;
+                    $repay[]              = ['totalLoanBalance' => $totalLoanBalance, 'outstandingpay' => $outstanding, 'EachRepayment' => $EachRepayment, 'currentRepayStatus' => $currentRepayStatus, 'loanBalanceRecurring' => $statusTag, 'currentOutstanding' => $currentOutstanding, 'daysmissed' => $daysmissed, 'loanBalance' => round($PIRate, $LoanProductDecima), 'tag' => 'class="table-success "', 'principalRepayment' => round($due, $LoanProductDecima), 'principal_reduction' => round($principal_reduction, $LoanProductDecima), 'loan_balance' => round($loan_balance, $LoanProductDecima), 'totalDue' => round($payment_amountX, $LoanProductDecima), 'sn' => $j, 'fee' => $infoData->LoanFee . '%', 'description' => 'Repayment', 'pendingDue' => $pendue, 'repaymentDateDueloan' => $newdate, 'repaymentDate' => $newdate, 'principal' => round($principal, $LoanProductDecima), 'principal_return' => round($due, $LoanProductDecima), 'PI' => round($pI, $LoanProductDecima), 'I' => round($IT, $LoanProductDecima), 'duration' => "$period->name-$j", 'payment_amount' => round($repayI, $LoanProductDecima) . " - ($rate%)"];
+                    $loanBalance          += $loanba;
+                    $totalLoanBalance     += $PIRate;
                     $backTotalLoanBalance += $PIRate;
-                    $loan_balance -= $loanba;
-                    $principal_reduction -= $due;
-                    $IX += $IT;
+                    $loan_balance         -= $loanba;
+                    $principal_reduction  -= $due;
+                    $IX                   += $IT;
                 }
                 $totalLoanBalance = $infoData->loanBalance;
                 $repay[]          = ['maturity' => $newdate, 'loanBalanceRecurring' => ($totalLoanBalance), 'tag' => 'class="bg-warning"', 'principalRepayment' => '<b>' . round($due, $LoanProductDecima) . '<b>', 'sn' => '#', 'fee' => '-', 'description' => 'Flat Balance', 'loanBalance' => '<b>' . round($totalLoanBalance, $LoanProductDecima) . '</b>', 'totalDue' => '<b>' . round($payment_amountX, $LoanProductDecima) . '</b>', 'repaymentDate' => '<b>Summery</b>', 'loan_balance' => '<b>' . round($loan_balanceY, $LoanProductDecima) . '</b>', 'principal_reduction' => "<b>" . round($principal, $LoanProductDecima) . "</b>", 'I' => "<b>" . round($IT, $LoanProductDecima) . "</b>", 'duration' => '<b>--</b>', 'rate' => '<b>--</b>', 'payment_amount' => round($payment_amountX, $LoanProductDecima)];
@@ -2187,12 +2188,12 @@ class LoanController extends Controller
                 // $LoanInterestPrincipal = $emiInterest + $principal ;
                 $IX = $payment_amountX = $principal_reductionX = $principal_reduction = 0;
                 for ($i = 0; $i < $looper; $i++) {
-                    $newdate = date("Y-m-d", strtotime($newdate . "$repayPeriod"));
-                    $j += 1;
-                    $payment_amountX += $RepaymentAmt;
-                    $statusTag        = '';
-                    $totalLoanBalance = $payment_amountX;
-                    $outstanding      = $totalLoanBalance;
+                    $newdate           = date("Y-m-d", strtotime($newdate . "$repayPeriod"));
+                    $j                += 1;
+                    $payment_amountX  += $RepaymentAmt;
+                    $statusTag         = '';
+                    $totalLoanBalance  = $payment_amountX;
+                    $outstanding       = $totalLoanBalance;
 
                     if ($LoanRepaymentTotalPaid >= round($totalLoanBalance, $LoanProductDecima)) {
                         //success
@@ -2215,14 +2216,14 @@ class LoanController extends Controller
                             $outstanding        = $totalLoanBalance;
                         }
                     }
-                    $repay[]             = ['totalLoanBalance' => $totalLoanBalance, 'outstandingpay' => $outstanding, 'EachRepayment' => $EachRepayment, 'currentRepayStatus' => $currentRepayStatus, 'loanBalanceRecurring' => $statusTag, 'sn' => $j, 'IX' => round($IX, $LoanProductDecima), 'loanBalance' => round($loanBalance, $LoanProductDecima), 'fee' => (($loanFee) ? $loanFee : 0) . '%', 'EMI' => $emiInterestPER, 'description' => 'Repayment', 'repaymentDateDueloan' => $newdate, 'repaymentDate' => $newdate, 'loan_balance' => round($loan_balance, $LoanProductDecima), 'principal_reduction' => round($principal_reduction, $LoanProductDecima), 'I' => round($IT, $LoanProductDecima), 'duration' => "$period->name-$j", 'rate' => "$rate%", "payment_amount" => round($RepaymentAmt, $LoanProductDecima), 'principalRepayment' => round($due, $LoanProductDecima)];
-                    $IT                  = $emiInterest;
-                    $principal_reduction = $RepaymentAmt - $IT;
-                    $loan_balance -= $principal_reduction;
+                    $repay[]              = ['totalLoanBalance' => $totalLoanBalance, 'outstandingpay' => $outstanding, 'EachRepayment' => $EachRepayment, 'currentRepayStatus' => $currentRepayStatus, 'loanBalanceRecurring' => $statusTag, 'sn' => $j, 'IX' => round($IX, $LoanProductDecima), 'loanBalance' => round($loanBalance, $LoanProductDecima), 'fee' => (($loanFee) ? $loanFee : 0) . '%', 'EMI' => $emiInterestPER, 'description' => 'Repayment', 'repaymentDateDueloan' => $newdate, 'repaymentDate' => $newdate, 'loan_balance' => round($loan_balance, $LoanProductDecima), 'principal_reduction' => round($principal_reduction, $LoanProductDecima), 'I' => round($IT, $LoanProductDecima), 'duration' => "$period->name-$j", 'rate' => "$rate%", "payment_amount" => round($RepaymentAmt, $LoanProductDecima), 'principalRepayment' => round($due, $LoanProductDecima)];
+                    $IT                   = $emiInterest;
+                    $principal_reduction  = $RepaymentAmt - $IT;
+                    $loan_balance         -= $principal_reduction;
                     $principal_reductionX += $principal_reduction;
-                    $loanBalance += $loanba;
-                    $Ibal += $loanba;
-                    $IX += $IT;
+                    $loanBalance          += $loanba;
+                    $Ibal                 += $loanba;
+                    $IX                   += $IT;
                     $backTotalLoanBalance += $RepaymentAmt;
                 }
                 $loan_balance = $infoData->loanBalance;
@@ -2250,11 +2251,11 @@ class LoanController extends Controller
                     if ($LoanRepayment->method == 2) {
                         $transHistory = transactions::where(["loan_repayment_id" => $LoanRepayment->id])->first();
                         if ($transHistory) {
-                            $account_id  = $transHistory->account_id;
-                            $user_wallet = user_wallet::where('wb_account_detail_id', $account_id)->first();
+                            $account_id            = $transHistory->account_id;
+                            $user_wallet           = user_wallet::where('wb_account_detail_id', $account_id)->first();
                             $user_wallet->balance += $transHistory->amount;
                             $user_wallet->save();
-                            $BranchWallet = BranchWallet::where('branch_id', $transHistory->branch_id)->first();
+                            $BranchWallet           = BranchWallet::where('branch_id', $transHistory->branch_id)->first();
                             $BranchWallet->balance += $transHistory->amount;
                             $BranchWallet->save();
                             transactions::where(["loan_repayment_id" => $LoanRepayment->id])->delete();
@@ -2262,10 +2263,10 @@ class LoanController extends Controller
                             return redirect()->back()->with('fail', 'Repayment history Error!' . $LoanRepayment->id);
                         }
                     }
-                    $loan = loan::where('id', $LoanRepayment->loan_id)->first();
-                    $loan->loanBalance += $LoanRepayment->amount;
-                    $loan->principalLeft += $LoanRepayment->P;
-                    $loan->InterestLeft += $LoanRepayment->I;
+                    $loan                 = loan::where('id', $LoanRepayment->loan_id)->first();
+                    $loan->loanBalance    += $LoanRepayment->amount;
+                    $loan->principalLeft  += $LoanRepayment->P;
+                    $loan->InterestLeft   += $LoanRepayment->I;
                     $loan->loan_status_id = 1;
                     $loan->save();
                     $LoanRepayment->status_id = 0;
@@ -2298,8 +2299,8 @@ class LoanController extends Controller
                     if ($LoanRepayment->method == 2) {
                         $transHistory = transactions::where(["loan_repayment_id" => $LoanRepayment->id])->first();
                         if ($transHistory) {
-                            $account_id  = $transHistory->account_id;
-                            $user_wallet = user_wallet::where('wb_account_detail_id', $account_id)->first();
+                            $account_id            = $transHistory->account_id;
+                            $user_wallet           = user_wallet::where('wb_account_detail_id', $account_id)->first();
                             $user_wallet->balance += $transHistory->amount;
                             $user_wallet->save();
                             transactions::where(["loan_repayment_id" => $LoanRepayment->id])->delete();
@@ -2307,10 +2308,10 @@ class LoanController extends Controller
                             return ['status' => 0, 'message' => 'Error']; //('fail','Repayment history Error!'.$LoanRepayment->id);
                         }
                     }
-                    $loan = loan::where('id', $LoanRepayment->loan_id)->first();
-                    $loan->loanBalance += $LoanRepayment->amount;
-                    $loan->principalLeft += $LoanRepayment->P;
-                    $loan->InterestLeft += $LoanRepayment->I;
+                    $loan                 = loan::where('id', $LoanRepayment->loan_id)->first();
+                    $loan->loanBalance    += $LoanRepayment->amount;
+                    $loan->principalLeft  += $LoanRepayment->P;
+                    $loan->InterestLeft   += $LoanRepayment->I;
                     $loan->loan_status_id = 1;
                     $loan->save();
                     $LoanRepayment->status_id = 0;
@@ -2346,8 +2347,8 @@ class LoanController extends Controller
                         foreach ($Repay as $RepayData) {
                             if ($RepayData->company_id == auth()->user()->company_id) {
                                 // $msg .= '3';
-                                $roll = $this->rollbackRepayment($RepayData->payment_ref);
-                                $msg .= $roll['message'] . ' for ' . $RepayData->first_name . ' ' . $RepayData->last_name . '-' . $RepayData->ref . ' <br>';
+                                $roll  = $this->rollbackRepayment($RepayData->payment_ref);
+                                $msg  .= $roll['message'] . ' for ' . $RepayData->first_name . ' ' . $RepayData->last_name . '-' . $RepayData->ref . ' <br>';
                                 // return $msg;
                             }
                         }
@@ -2518,34 +2519,34 @@ class LoanController extends Controller
         }
         DB::beginTransaction();
         try {
-            $loanId       = Crypt::decryptString($request->loanid);
-            $loan         = loan::where('id', $loanId)->first();
-            $amount       = $request->amount;
-            $rate         = $loan->rate;
-            $AddedLoanLog = new AddedLoanLog;
+            $loanId             = Crypt::decryptString($request->loanid);
+            $loan               = loan::where('id', $loanId)->first();
+            $amount             = $request->amount;
+            $rate               = $loan->rate;
+            $AddedLoanLog       = new AddedLoanLog;
             $loan->loanBalance += $amount;
-            $frequency      = $loan->PeriodID->name;
-            $DurationPeriod = convertLY($frequency)['key'];
-            $loanDuration   = convertLY($frequency)['value'] * $loan->duration;
-            $loan->end_date = $loan->end_date ?? date("Y-m-d", strtotime($loan->grace_at . "+$loanDuration $DurationPeriod"));
+            $frequency          = $loan->PeriodID->name;
+            $DurationPeriod     = convertLY($frequency)['key'];
+            $loanDuration       = convertLY($frequency)['value'] * $loan->duration;
+            $loan->end_date     = $loan->end_date ?? date("Y-m-d", strtotime($loan->grace_at . "+$loanDuration $DurationPeriod"));
 
             if ($request->extendby == 'interest') {
                 $loan->InterestLeft += $amount;
             } else if ($request->extendby == 'principal') {
                 $loan->principalLeft += $amount;
             } else {
-                $rate     = $loan->rate;
-                $interest = (($rate / 100) * $amount);
+                $rate                 = $loan->rate;
+                $interest             = (($rate / 100) * $amount);
                 $loan->principalLeft += ($amount - $interest);
-                $loan->InterestLeft += $interest;
+                $loan->InterestLeft  += $interest;
             }
             $loan->EachRepayment += ($amount / $loan->duration);
             $loan->save();
-            $AddedLoanLog->end_date       = $loan->end_date;
-            $AddedLoanLog->loan_id        = $loan->id;
-            $AddedLoanLog->amount         = $amount;
-            $AddedLoanLog->balance_before = $loan->loanBalance - $amount;
-            $AddedLoanLog->balance_after  = $loan->loanBalance;
+            $AddedLoanLog->end_date        = $loan->end_date;
+            $AddedLoanLog->loan_id         = $loan->id;
+            $AddedLoanLog->amount          = $amount;
+            $AddedLoanLog->balance_before  = $loan->loanBalance - $amount;
+            $AddedLoanLog->balance_after   = $loan->loanBalance;
             $AddedLoanLog->save();
             DB::commit();
             return (['message' => 'Loan extended!', 'status' => 1]);

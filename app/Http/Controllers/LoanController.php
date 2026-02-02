@@ -1262,7 +1262,7 @@ class LoanController extends Controller
         $testcount = loan::count();
         $testarray = loan::get()->toArray();
         logInfo($testcount, "Loan query count:");
-        logInfo(json_encode($testarray), "Loan quer");
+        logInfo(json_encode($testarray), "Loan query");
 
         if ($request->all == null) {
             if ($request->complete == null) {

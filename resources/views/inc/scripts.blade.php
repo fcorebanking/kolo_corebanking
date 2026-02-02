@@ -1737,11 +1737,12 @@
         @endif
         @if ($page_menu == 'loan_ongoing')
             <script src="{{ asset('assets/js/company/loan/ongoingLoan.js') }}"></script>
-            @if (isset($group))
+            @php
+                $group = null;
+            @endphp
+            @if (isset($group) && $group != null)
                 <script>
-                    // viewdata("/company/loan/ongoing-data?group={{ $group }}&showTotal=true", "get");
-
-                    viewdata("/company/loan/pending-data?ongoing=true", "get");
+                    viewdata("/company/loan/ongoing-data?group={{ $group }}&showTotal=true", "get");
                 </script>
             @else
                 <script>

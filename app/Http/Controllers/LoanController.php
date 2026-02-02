@@ -1258,7 +1258,9 @@ class LoanController extends Controller
             ->join('loan_status', 'loans.loan_status_id', 'loan_status.statusID')
             ->where(['users.company_id' => auth()->user()->company_id, 'users.status_id' => 1])
             ->select('loans.*', 'loan_products.product_name', 'users.virtual_account', 'users.first_name', 'users.last_name', 'loan_status.name', 'loan_status.tag');
-        if ($request->all == null) {
+        dd($query);
+        
+            if ($request->all == null) {
             if ($request->complete == null) {
                 $query = $query->where(['loans.loan_status_id' => 1]);
             } else {
@@ -1333,7 +1335,7 @@ class LoanController extends Controller
         $totalLeft      = 0;
         $totalPrincipal = 0;
         $totalBalance   = 0;
-        dd($info);
+        
         foreach ($info as $infoData) {
             $btnlink       = Crypt::encryptString($infoData->id);
             $btnlinkUserID = Crypt::encryptString($infoData->user_id);

@@ -1259,8 +1259,8 @@ class LoanController extends Controller
             ->where(['users.company_id' => auth()->user()->company_id, 'users.status_id' => 1])
             ->select('loans.*', 'loan_products.product_name', 'users.virtual_account', 'users.first_name', 'users.last_name', 'loan_status.name', 'loan_status.tag');
 
-        $testcount = loan::count();
-        $testarray = loan::get()->toArray();
+        $testcount = loan::join('users', 'loans.user_id', 'users.id')->where(['users.company_id' => auth()->user()->company_id, 'users.status_id' => 1])->count();
+        $testarray = loan::join('users', 'loans.user_id', 'users.id')->where(['users.company_id' => auth()->user()->company_id, 'users.status_id' => 1])->get()->toArray();
         logInfo($testcount, "Loan query count:");
         logInfo(json_encode($testarray), "Loan query");
 

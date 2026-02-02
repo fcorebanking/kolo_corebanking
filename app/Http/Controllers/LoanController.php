@@ -1255,13 +1255,13 @@ class LoanController extends Controller
         }
         $query = loan::join('users', 'loans.user_id', 'users.id')
             ->join('loan_products', 'loans.loan_product_id', 'loan_products.id')
-         //   ->join('loan_status', 'loans.loan_status_id', 'loan_status.statusID')
+        //   ->join('loan_status', 'loans.loan_status_id', 'loan_status.statusID')
             ->where(['users.company_id' => auth()->user()->company_id, 'users.status_id' => 1])
             ->select('loans.*', 'loan_products.product_name', 'users.virtual_account', 'users.first_name', 'users.last_name', 'loan_status.name', 'loan_status.tag');
 
         $testcount = loan::join('users', 'loans.user_id', 'users.id')
             ->join('loan_products', 'loans.loan_product_id', 'loan_products.id')
-        //    ->join('loan_status', 'loans.loan_status_id', 'loan_status.statusID')
+           ->join('loan_status', 'loans.loan_status_id', 'loan_status.statusID')
             ->where(['users.company_id' => auth()->user()->company_id, 'users.status_id' => 1])
             ->count();
 

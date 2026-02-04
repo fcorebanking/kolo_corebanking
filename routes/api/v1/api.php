@@ -40,6 +40,8 @@ Route::get('/webhook-international', [InternationalTransaction::class, 'webhook'
 Route::post('/twilio-webhook', [TransactionController::class, 'twilioWebhook']);
 Route::post('/test-finova-webhook', [TransactionController::class, 'finovaWebhook']);
 Route::post('/4ts-finova-webhook', [TransactionController::class, 'finova4tsWebhook']);
+Route::post('/create-physical-card', [TransactionController::class, 'createPhysicalCard']);
+Route::get('/get-4t5-session', [TransactionController::class, 'get4T5SessionToken']);
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();

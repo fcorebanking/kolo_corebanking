@@ -28,6 +28,7 @@ use App\Models\AgentTerminal;
 use App\Models\ApiKey;
 use App\Models\banks;
 use App\Models\Beneficiary;
+use App\Models\CardRequestLog;
 use App\Models\Company;
 use App\Models\company_settings;
 use App\Models\company_wallet;
@@ -1531,7 +1532,7 @@ class TransactionController extends Controller
                             $ledger_cr = $ledger_Settings->ledger_cr;
                             $ledger_dr = $ledger_Settings->ledger_dr;
                         }
-                        $creditTransaction = transactions::create([
+                        $creditTransaction  = transactions::create([
                             "balance_before"         => $creditCustomer->balance,
                             "amount"                 => $request->final_amount,
                             "balance_after"          => $creditCustomer->balance + $request->final_amount,
@@ -1550,7 +1551,7 @@ class TransactionController extends Controller
                         ]);
                         $creditCustomer->balance += $request->final_amount;
                         $creditCustomer->save();
-                        $descArray = explode("-", $myDescription);
+                        $descArray  = explode("-", $myDescription);
                         $this->updateTransactionAsSuccessful($request->transaction_reference, $debitCustomer['balance_after']);
                         // sendSMS(['txnid' => $creditTransaction->id, 'userid' => $wbAccount->id], "Credit Amt:$request->final_amount Desc: " . $descArray[0] . " Avail Bal:$creditCustomer->balance Date:" . date('Y-m-d') . " Ref:$creditTransaction->transaction_reference", false, true, 'Credit Transaction');
                         // sendSMS(['txnid' => $transaction->id, 'userid' => auth()->user()->id], "Debit Amt:$request->final_amount Desc: " . $descArray[0] . " Avail Bal:" . $debitCustomer["balance_after"] . " Date:" . date('Y-m-d') . " Ref:$transaction->transaction_reference", false, true, 'Debit Transaction');
@@ -1628,7 +1629,7 @@ class TransactionController extends Controller
                             $ledger_cr = $ledger_Settings->ledger_cr;
                             $ledger_dr = $ledger_Settings->ledger_dr;
                         }
-                        $creditTransaction = transactions::create([
+                        $creditTransaction  = transactions::create([
                             "balance_before"         => $creditCustomer->balance,
                             "amount"                 => $request->final_amount,
                             "balance_after"          => $creditCustomer->balance + $request->final_amount,
@@ -1647,7 +1648,7 @@ class TransactionController extends Controller
                         ]);
                         $creditCustomer->balance += $request->final_amount;
                         $creditCustomer->save();
-                        $descArray = explode("-", $myDescription);
+                        $descArray  = explode("-", $myDescription);
                         $this->updateTransactionAsSuccessful($request->transaction_reference, $debitCustomer['balance_after']);
                         // sendSMS(['txnid' => $creditTransaction->id, 'userid' => $wbAccount->id], "Credit Amt:$request->final_amount Desc: " . $descArray[0] . " Avail Bal:$creditCustomer->balance Date:" . date('Y-m-d') . " Ref:$creditTransaction->transaction_reference", false, true, 'Credit Transaction');
                         // sendSMS(['txnid' => $transaction->id, 'userid' => auth()->user()->id], "Debit Amt:$request->final_amount Desc: " . $descArray[0] . " Avail Bal:" . $debitCustomer["balance_after"] . " Date:" . date('Y-m-d') . " Ref:$transaction->transaction_reference", false, true, 'Debit Transaction');
@@ -2800,8 +2801,8 @@ class TransactionController extends Controller
 
                 $companySettings = company_settings::where('company_id', $companyId)->first();
 
-                $customerCharge = $companySettings->additional_pos_charge_percent * $request->Amount;
-                $customerCharge = $initialCustomerCharge = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
+                $customerCharge  = $companySettings->additional_pos_charge_percent * $request->Amount;
+                $customerCharge  = $initialCustomerCharge  = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
                 $customerCharge += $companyCharge;
                 $customerAmount -= $customerCharge;
             }
@@ -2823,14 +2824,14 @@ class TransactionController extends Controller
                 $companyDescription = "You recieved commission from POS Terminal - $terminal->terminal_code payment received";
                 $systemDescription  = "Payment received from POS Terminal: $terminal->terminal_code, Amount: $originalAmount";
 
-                $systemDescription = "Card Details Masked PAN: " . $currentRequest["AdditionalDetails"]["MaskedPAN"] . " Exp Date: " . $currentRequest["AdditionalDetails"]["CardExpiry"];
+                $systemDescription  = "Card Details Masked PAN: " . $currentRequest["AdditionalDetails"]["MaskedPAN"] . " Exp Date: " . $currentRequest["AdditionalDetails"]["CardExpiry"];
                 $systemDescription .= " TerminalID " . $currentRequest["AdditionalDetails"]["TerminalID"];
             } else if ($request->TransactionType == "FundTransfer") {
                 $description        = "Funds transfer via termial: $terminal->terminal_code";
                 $companyDescription = "Funds transfer commission via terminal - $terminal->terminal_code";
                 $systemDescription  = "Funds Transferred via POS Terminal: $terminal->terminal_code, Amount: $originalAmount";
 
-                $systemDescription = "Terminal ID: $terminal->terminal_code, Card Details Destination Acc. Name: " . $currentRequest["AdditionalDetails"]["DestinationAccountName"] . " Destination Account Number: " . $currentRequest["AdditionalDetails"]["DestinationAccountNumber"];
+                $systemDescription  = "Terminal ID: $terminal->terminal_code, Card Details Destination Acc. Name: " . $currentRequest["AdditionalDetails"]["DestinationAccountName"] . " Destination Account Number: " . $currentRequest["AdditionalDetails"]["DestinationAccountNumber"];
                 $systemDescription .= " Destination Bank Name " . $currentRequest["AdditionalDetails"]["DestinationBankName"];
             } else if ($request->TransactionType == "BillsPayment") {
                 $customerCharge        = 0;
@@ -2838,7 +2839,7 @@ class TransactionController extends Controller
                 $description           = "You paid bills via termial: $terminal->terminal_code";
                 $companyCommission     = 0;
 
-                $systemDescription = "You purchased " . $currentRequest["AdditionalDetails"]["BillCategory"] . " from " . $currentRequest["AdditionalDetails"]["BillService"];
+                $systemDescription  = "You purchased " . $currentRequest["AdditionalDetails"]["BillCategory"] . " from " . $currentRequest["AdditionalDetails"]["BillService"];
                 $systemDescription .= " for " . $currentRequest["AdditionalDetails"]["Beneficiary"];
             }
 
@@ -3012,8 +3013,8 @@ class TransactionController extends Controller
 
             $companySettings = company_settings::where('company_id', $companyId)->first();
 
-            $customerCharge = $companySettings->additional_pos_charge_percent * 0.01 * $request->Amount;
-            $customerCharge = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
+            $customerCharge  = $companySettings->additional_pos_charge_percent * 0.01 * $request->Amount;
+            $customerCharge  = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
             $customerAmount -= $customerCharge;
 
             $creditCustomer  = \creditCustomerAndCompanyPOSAmountWithCharge($accountId, $terminal->terminal_code, $companyId, $originalAmount, $customerCharge, $companyCharge);
@@ -3148,24 +3149,24 @@ class TransactionController extends Controller
 
             if ($companySettings->who_to_pay_incoming_transfer_charge == 1) {
                 if ($companySettings->incoming_transfer_charge_state == 0) {
-                    $customerCharge = $companySettings->incoming_transfer_charge_amount;
+                    $customerCharge  = $companySettings->incoming_transfer_charge_amount;
                     $customerAmount -= $customerCharge;
                 } else {
-                    $customerCharge = $companySettings->incoming_transfer_charge_percentage * 0.01 * $request->Amount;
-                    $customerCharge = $customerCharge > $companySettings->incoming_transfer_charge_capped_at ? $companySettings->incoming_transfer_charge_capped_at : $customerCharge;
+                    $customerCharge  = $companySettings->incoming_transfer_charge_percentage * 0.01 * $request->Amount;
+                    $customerCharge  = $customerCharge > $companySettings->incoming_transfer_charge_capped_at ? $companySettings->incoming_transfer_charge_capped_at : $customerCharge;
                     $customerAmount -= $customerCharge;
                 }
             }
 
-            $creditCustomer  = \debitCustomerAndCompanyWithCharge($accountId, $companyId, $originalAmount, $customerCharge, $companyCharge);
-            $ledger_cr       = null;
-            $ledger_dr       = null;
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(6, $companyId);
+            $creditCustomer   = \debitCustomerAndCompanyWithCharge($accountId, $companyId, $originalAmount, $customerCharge, $companyCharge);
+            $ledger_cr        = null;
+            $ledger_dr        = null;
+            $ledger_Settings  = get_CR_DR_TXN_Type_Ledger(6, $companyId);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
             }
-            $transaction = transactions::create([
+            $transaction  = transactions::create([
                 "balance_before"         => $creditCustomer['balance_before'],
                 "amount"                 => $originalAmount,
                 "company_amount"         => $originalAmount,
@@ -3784,8 +3785,8 @@ class TransactionController extends Controller
 
                             $theCharge = $companySettings->additional_pos_charge_percent;
 
-                            $customerCharge = ($companySettings->additional_pos_charge_percent / 100) * $customerAmount;
-                            $customerCharge = $initialCustomerCharge = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
+                            $customerCharge  = ($companySettings->additional_pos_charge_percent / 100) * $customerAmount;
+                            $customerCharge  = $initialCustomerCharge  = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
                             $customerCharge += $charge;
                             $customerAmount -= $customerCharge;
 
@@ -3820,8 +3821,8 @@ class TransactionController extends Controller
                             $charge         = $currentRequest['data']['transaction']["type"] == "transfer" ? 0 : 0;
                             $customerAmount = $currentRequest['data']['transaction']['transactionAmount'];
 
-                            $customerCharge = ($companySettings->additional_pos_charge_percent / 100) * $customerAmount;
-                            $customerCharge = $initialCustomerCharge = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
+                            $customerCharge  = ($companySettings->additional_pos_charge_percent / 100) * $customerAmount;
+                            $customerCharge  = $initialCustomerCharge  = $customerCharge > $companySettings->pos_charge_capped_at ? $companySettings->pos_charge_capped_at : $customerCharge;
                             $customerCharge += $charge;
                             $customerAmount -= $customerCharge;
 
@@ -4176,12 +4177,12 @@ class TransactionController extends Controller
 
                 if ($request->user()->company->wallet->balance >= $amount) {
 
-                    $userWallet->balance -= $amount;
-                    $userWallet->updated_at = Carbon::now();
+                    $userWallet->balance    -= $amount;
+                    $userWallet->updated_at  = Carbon::now();
                     $userWallet->save();
 
-                    $request->user()->company->wallet->balance -= $amount;
-                    $request->user()->company->wallet->updated_at = Carbon::now();
+                    $request->user()->company->wallet->balance    -= $amount;
+                    $request->user()->company->wallet->updated_at  = Carbon::now();
                     $request->user()->company->wallet->save();
 
                     $response = ["status" => true, 'message' => "Customer Debited", 'balance' => $userWallet->balance];
@@ -6264,6 +6265,114 @@ class TransactionController extends Controller
             logInfo($verifyTransaction, "Verify Transaction Res");
             return response()->json($verifyTransaction);
         }
+    }
+
+    public function createPhysicalCard(Request $request)
+    {
+        // Disable service (optional)
+        // return response()->json(['status' => 0, 'message' => 'This service has been disabled']);
+
+        $transactionId                   = generateTransactionReference();
+        $customer                        = null;
+        $userID                          = $request->user_id;
+        $first_name                      = $request->first_name;
+        $last_name                       = $request->last_name;
+        $customer_sudo_account_id        = $request->customerId;
+        $preferred_virtual_card_currency = 1;
+
+        try {
+            // Call Safehaven API for physical card creation
+            $safehaven    = new SafehavenController();
+            $cardResponse = $safehaven->createPhysicalCard(
+                $request,
+                $transactionId,
+                $customer,
+                $customer_sudo_account_id
+            );
+
+            if (! $cardResponse['status']) {
+                //  DB::rollback();
+                return response()->json(['status' => 0, 'message' => $cardResponse['message']]);
+            } else {
+
+                $card2FAResponse = $safehaven->enrollcard2fa($cardResponse['result']['data']["_id"]);
+                if ($card2FAResponse) {
+                    $cardDetailsResponse = $safehaven->getPhysicalCardDetials($cardResponse['result']['data']["_id"]);
+                }
+
+            }
+
+            // Mark transaction as confirmed debit
+            $transaction->transaction_remarks_id = 2;
+            $transaction->save();
+
+            $cardTypeMap = [
+                'visa'       => 1,
+                'verve'      => 2,
+                'mastercard' => 3,
+                'afrigo'     => 4,
+            ];
+
+// Normalize input to lowercase (to avoid case issues)
+            $inputCardType = strtolower($request->card_type);
+
+// Get matching code (or null if not found)
+            $cardTypeCode = $cardTypeMap[$inputCardType] ?? null;
+
+            UserCard::updateOrCreate(
+                [
+                    "sudo_customer_id" => $cardResponse['customer_sudo_account_id'],
+
+                    "exp_date"         => $cardResponse['result']['data']["expiryYear"] ?? "",
+                ],
+                [
+                    "user_id"   => $userID,
+                    "card_name" => "{$first_name} {$last_name}",
+                    "card_number"      => $cardResponse['result']['data']["maskedPan"],
+                    "masked_pan"       => $cardResponse['result']['data']["maskedPan"],
+                    "card_category_id" => 2,
+                    "card_type_id"     => $cardTypeCode,
+                    "card_reference"   => $cardResponse['result']['data']["_id"],
+                    "currency_id"      => $preferred_virtual_card_currency,
+                    "cvv"              => "",
+                    "created_by"       => $userID,
+
+                ]);
+
+            // Save card details
+            /*   UserCard::create([
+                "user_id"   => $customer->id,
+                "card_name" => "{$customer->first_name} {$customer->last_name}",
+                "card_type_id"     => $cardTypeCode,
+                "card_category_id" => 2,
+                "card_number"      => $cardResponse['result']['data']["maskedPan"],
+                "masked_pan"       => $cardResponse['result']['data']["maskedPan"],
+                "card_reference"   => $cardResponse['result']['data']["_id"],
+                "currency_id"      => $companySettings->preferred_virtual_card_currency,
+                "exp_date"         => $cardResponse['result']['data']["expiryYear"] ?? "",
+                "cvv"              => "",
+                "created_by"       => $auth->id,
+                "sudo_customer_id" => $cardResponse['sudo_customer_id'],
+            ]);*/
+
+            CardRequestLog::create([
+                "user_id"    => $customer->id,
+                "company_id" => $auth->company_id,
+            ]);
+
+            $pin = $cardDetailsResponse['data']['defaultPin'];
+            return response()->json(['status' => 1, 'message' => "Card mapped successfully Deafult Pin is {$pin} ", 'data' => $cardResponse]);
+
+        } catch (\Exception $e) {
+            // DB::rollback();
+            return response()->json(['status' => 0, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function get4T5SessionToken()
+    {
+        $neonDataApi = NeonDataApi();
+        return $$neonDataApi->login();
     }
 
     private function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)

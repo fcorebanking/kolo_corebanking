@@ -6302,10 +6302,6 @@ class TransactionController extends Controller
 
             }
 
-            // Mark transaction as confirmed debit
-            $transaction->transaction_remarks_id = 2;
-            $transaction->save();
-
             $cardTypeMap = [
                 'visa'       => 1,
                 'verve'      => 2,

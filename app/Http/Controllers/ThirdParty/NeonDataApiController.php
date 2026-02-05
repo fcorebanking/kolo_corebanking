@@ -55,7 +55,7 @@ class NeonDataApiController extends WebhookController
     {
         $header = [
             'Content-Type'  => 'application/json',
-            //  'Origin'        => "https://finova.ng",
+            'Origin'        => "https://finova.ng",
             'Authorization' => 'Bearer ' . $this->token,
         ];
 

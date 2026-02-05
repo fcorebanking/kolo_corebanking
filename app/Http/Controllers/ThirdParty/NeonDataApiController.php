@@ -21,7 +21,7 @@ class NeonDataApiController extends WebhookController
 
     public function login()
     {
-
+        return $this->loginToNeon();
         $getToken = $this->loginUser();
         return $this->getToken($getToken);
     }

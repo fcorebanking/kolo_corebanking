@@ -6279,6 +6279,7 @@ class TransactionController extends Controller
         $last_name                       = $request->last_name;
         $customer_sudo_account_id        = $request->customerId;
         $preferred_virtual_card_currency = 1;
+       $auth =  User::where('id',  $userID)->first();
 
         try {
             // Call Safehaven API for physical card creation
@@ -6352,7 +6353,7 @@ class TransactionController extends Controller
             ]);*/
 
             CardRequestLog::create([
-                "user_id"    => $customer->id,
+                "user_id"    => $userID,
                 "company_id" => $auth->company_id,
             ]);
 

@@ -6370,7 +6370,7 @@ class TransactionController extends Controller
     public function get4T5SessionToken()
     {
         $neonDataApi = NeonDataApi();
-        return $$neonDataApi->login();
+        return $neonDataApi->login();
     }
 
     private function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)

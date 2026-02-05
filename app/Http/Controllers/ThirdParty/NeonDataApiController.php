@@ -78,7 +78,7 @@ class NeonDataApiController extends WebhookController
             CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST  => 'GET',
             CURLOPT_HTTPHEADER     => [
-                "Authorization: Bearer {$token}",
+                "Authorization: Bearer {$this->token}",
                 'Content-Type: application/json',
             ],
         ]);

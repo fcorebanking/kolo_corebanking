@@ -5,21 +5,19 @@ use App\Http\Controllers\CustomClasses\WebhookController;
 use Exception;
 use Illuminate\Support\Facades\Http;
 
-
 class NeonDataApiController extends WebhookController
 {
+    private $token;
 
     public function __construct()
     {
-
+        $this->token = "napi_qbrepzlp5sfd78skgber5qh395leeu1c9mcp0lvcj9swb4174wjf6tg71jx99klv";
     }
 
     public function login()
     {
 
-        $response = Http::withHeaders([
-            'Origin' => "finova.ng",
-        ])->get(
+        $response = Http::withHeaders($this->NeonDataApiHeader())->get(
             'https://ep-green-mountain-ad9fuebm.neonauth.c-2.us-east-1.aws.neon.tech/api/auth/get-session'
         );
         return $response->json();
@@ -51,6 +49,17 @@ class NeonDataApiController extends WebhookController
 
             return ['status' => false, 'message' => 'Server Error...'];
         }
+    }
+
+    private function NeonDataApiHeader()
+    {
+        $header = [
+            'Content-Type'  => 'application/json',
+            'Origin'        => "https://finova.ng",
+            'Authorization' => 'Bearer ' . $this->token,
+        ];
+
+        return $header;
     }
 
 }

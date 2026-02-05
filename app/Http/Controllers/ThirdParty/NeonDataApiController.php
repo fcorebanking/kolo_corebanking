@@ -28,7 +28,7 @@ class NeonDataApiController extends WebhookController
 
     public function loginToNeon()
     {
-        $response = Http::post("https://ep-green-mountain-ad9fuebm.neonauth.c-2.us-east-1.aws.neon.tech/neondb/auth/sign-in/email", [
+        $response = Http::withHeaders($this->NeonDataApiHeader())->post("https://ep-green-mountain-ad9fuebm.neonauth.c-2.us-east-1.aws.neon.tech/neondb/auth/sign-in/email", [
             'email'    => $this->email,
             'password' => $this->password,
         ]);

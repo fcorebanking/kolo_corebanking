@@ -6369,7 +6369,7 @@ class TransactionController extends Controller
 
     public function get4T5SessionToken()
     {
-        $neonDataApi = NeonDataApiController();
+        $neonDataApi = new NeonDataApiController();
         return $neonDataApi->login();
     }
 

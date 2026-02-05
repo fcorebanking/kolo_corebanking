@@ -71,6 +71,7 @@ class NeonDataApiController extends WebhookController
         curl_setopt_array($curl, [
             CURLOPT_URL            => "https://ep-green-mountain-ad9fuebm.neonauth.c-2.us-east-1.aws.neon.tech/neondb/auth/get-session",
             CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HEADER         => true,
             CURLOPT_ENCODING       => '',
             CURLOPT_MAXREDIRS      => 10,
             CURLOPT_TIMEOUT        => 0,
@@ -78,16 +79,32 @@ class NeonDataApiController extends WebhookController
             CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST  => 'GET',
             CURLOPT_HTTPHEADER     => [
-                "Authorization: Bearer {$this->token}",
-                'Content-Type: application/json',
+                'Origin: https://finova.ng',
             ],
         ]);
 
         $response = curl_exec($curl);
 
+        $headerSize = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
+        $rawHeaders = substr($response, 0, $headerSize);
+        $body       = substr($response, $headerSize);
+
         curl_close($curl);
 
-        return $response;
+        // Parse headers
+        $headers = [];
+        foreach (explode("\r\n", $rawHeaders) as $line) {
+            if (strpos($line, ':') !== false) {
+                [$key, $value]       = explode(':', $line, 2);
+                $headers[trim($key)] = trim($value);
+            }
+        }
+
+        $jwt = $headers['Set-Auth-Jwt'] ?? null;
+
+        \logInfo($jwt, "Set-Auth-Jwt");
+
+        return $jwt;
 
     }
 

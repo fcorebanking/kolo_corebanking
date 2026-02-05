@@ -63,7 +63,10 @@ class NeonDataApiController extends WebhookController
     public function getToken($getToken)
     {
         $token = $getToken['token'];
-        $curl  = curl_init();
+
+        \logInfo($token, "Neon Login token");
+
+        $curl = curl_init();
 
         curl_setopt_array($curl, [
             CURLOPT_URL            => "https://ep-green-mountain-ad9fuebm.neonauth.c-2.us-east-1.aws.neon.tech/neondb/auth/get-session",

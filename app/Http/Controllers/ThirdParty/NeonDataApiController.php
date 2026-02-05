@@ -21,8 +21,8 @@ class NeonDataApiController extends WebhookController
     public function login()
     {
 
-        $this->loginUser();
-        return $this->getToken();
+        $getToken = $this->loginUser();
+        return $this->getToken($getToken);
     }
 
     public function loginUser()
@@ -56,11 +56,14 @@ class NeonDataApiController extends WebhookController
         $response = curl_exec($ch);
 
         \logInfo($response, "Neon Login Response");
+
+        return \json_decode($response, true);
     }
 
-    public function getToken()
+    public function getToken($getToken)
     {
-        $curl = curl_init();
+        $token = $getToken['token'];
+        $curl  = curl_init();
 
         curl_setopt_array($curl, [
             CURLOPT_URL            => "https://ep-green-mountain-ad9fuebm.neonauth.c-2.us-east-1.aws.neon.tech/neondb/auth/get-session",
@@ -72,7 +75,7 @@ class NeonDataApiController extends WebhookController
             CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST  => 'GET',
             CURLOPT_HTTPHEADER     => [
-                "Authorization: Bearer {$this->token}",
+                "Authorization: Bearer {$token}",
                 'Content-Type: application/json',
             ],
         ]);
@@ -80,6 +83,7 @@ class NeonDataApiController extends WebhookController
         $response = curl_exec($curl);
 
         curl_close($curl);
+
         return $response;
 
     }

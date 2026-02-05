@@ -3,7 +3,6 @@ namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\CustomClasses\WebhookController;
 use Exception;
-use Illuminate\Support\Facades\Http;
 
 class NeonDataApiController extends WebhookController
 {
@@ -22,6 +21,12 @@ class NeonDataApiController extends WebhookController
     public function login()
     {
 
+        $this->loginUser();
+        return $this->getToken();
+    }
+
+    public function loginUser()
+    {
         $data = [
             "email"    => $this->email,
             "password" => $this->password,
@@ -49,13 +54,8 @@ class NeonDataApiController extends WebhookController
         );
 
         $response = curl_exec($ch);
-        return $response;
-        $account = \json_decode($response, true);
 
-        logInfo(json_encode($account), "Neon Data Api Account Response");
-
-        return $this->NeonDataApiHeader();
-
+        \logInfo($response, "Neon Login Response");
     }
 
     public function getToken()
@@ -63,7 +63,7 @@ class NeonDataApiController extends WebhookController
         $curl = curl_init();
 
         curl_setopt_array($curl, [
-            CURLOPT_URL            => $this->VIDEOSDK_API_ENDPOINT . '/rooms/validate/' . $meetingId,
+            CURLOPT_URL            => "https://ep-green-mountain-ad9fuebm.neonauth.c-2.us-east-1.aws.neon.tech/neondb/auth/get-session",
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING       => '',
             CURLOPT_MAXREDIRS      => 10,
@@ -72,7 +72,7 @@ class NeonDataApiController extends WebhookController
             CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST  => 'GET',
             CURLOPT_HTTPHEADER     => [
-                'Authorization: ' . $token,
+                "Authorization: Bearer {$this->token}",
                 'Content-Type: application/json',
             ],
         ]);
@@ -82,11 +82,6 @@ class NeonDataApiController extends WebhookController
         curl_close($curl);
         return $response;
 
-        return $this->NeonDataApiHeader();
-        $response = Http::withHeaders($this->NeonDataApiHeader())->get(
-            'https://ep-green-mountain-ad9fuebm.neonauth.c-2.us-east-1.aws.neon.tech/neondb/auth/get-session'
-        );
-        return $response->json();
     }
 
     public function addCluster($businessname, $email, $phone, $contactfirstname, $contactlastname, $bvn)

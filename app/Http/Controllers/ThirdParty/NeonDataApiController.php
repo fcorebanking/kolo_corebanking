@@ -16,7 +16,7 @@ class NeonDataApiController extends WebhookController
 
     public function login()
     {
-
+        return $this->NeonDataApiHeader();
         $response = Http::withHeaders($this->NeonDataApiHeader())->get(
             'https://ep-green-mountain-ad9fuebm.neonauth.c-2.us-east-1.aws.neon.tech/neondb/auth/get-session'
         );

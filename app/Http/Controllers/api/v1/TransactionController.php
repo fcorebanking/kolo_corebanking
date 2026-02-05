@@ -14,7 +14,7 @@ use App\Http\Controllers\ThirdParty\KudaBusinessController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\MapleradController;
 use App\Http\Controllers\ThirdParty\MonnifyController;
-use App\Http\Controllers\ThirdParty\NeonDataApi;
+use App\Http\Controllers\ThirdParty\NeonDataApiController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Http\Controllers\ThirdParty\TryluxController;
@@ -6369,7 +6369,7 @@ class TransactionController extends Controller
 
     public function get4T5SessionToken()
     {
-        $neonDataApi = NeonDataApi();
+        $neonDataApi = NeonDataApiController();
         return $neonDataApi->login();
     }
 

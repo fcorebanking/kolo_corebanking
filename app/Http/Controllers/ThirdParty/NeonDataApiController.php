@@ -5,7 +5,8 @@ use App\Http\Controllers\CustomClasses\WebhookController;
 use Exception;
 use Illuminate\Support\Facades\Http;
 
-class NeonDataApi extends WebhookController
+
+class NeonDataApiController extends WebhookController
 {
 
     public function __construct()

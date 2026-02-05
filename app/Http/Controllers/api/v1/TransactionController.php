@@ -22,6 +22,7 @@ use App\Http\Controllers\ThirdParty\TwilioWhatsapp;
 use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Http\Controllers\ThirdParty\WovenController;
+use App\Http\Controllers\ThirdParty\NeonDataApi;
 use App\Http\Resources\BenefeciariesResource;
 use App\Mail\TransactionReport;
 use App\Models\AgentTerminal;
@@ -6279,7 +6280,7 @@ class TransactionController extends Controller
         $last_name                       = $request->last_name;
         $customer_sudo_account_id        = $request->customerId;
         $preferred_virtual_card_currency = 1;
-       $auth =  User::where('id',  $userID)->first();
+        $auth                            = User::where('id', $userID)->first();
 
         try {
             // Call Safehaven API for physical card creation

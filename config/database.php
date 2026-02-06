@@ -79,10 +79,8 @@ return [
         ],
 
         'neon'   => [
-            'driver'  => 'pgsql',
-            'url'     => env('DB1_URL'),
-            'port'    => env('DB1_PORT', '5432'),
-            'sslmode' => env('DB_SSLMODE', 'require'),
+            'driver' => 'pgsql',
+            'url'    => env('DB1_URL'),
 
         ],
 

@@ -3,7 +3,7 @@ namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\CustomClasses\WebhookController;
 use Exception;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 
 class NeonDataApiController extends WebhookController
 {
@@ -28,23 +28,9 @@ class NeonDataApiController extends WebhookController
 
     public function loginToNeon()
     {
-        $response = Http::withHeaders($this->NeonDataApiHeader())->post("https://ep-green-mountain-ad9fuebm.neonauth.c-2.us-east-1.aws.neon.tech/neondb/auth/sign-in/email", [
-            'email'    => $this->email,
-            'password' => $this->password,
-        ]);
+        $response = DB::connection('neon')->table('gift_card_sub_categories')->select('id', 'label', 'rate', 'minValue', 'maxValue', 'giftCardId')->get();
 
-        if ($response->successful()) {
-            // Look for the specific header Neon sends back
-            $jwt = $response->header('Set-Auth-Jwt');
-
-            if ($jwt) {
-                // Store it in the session or return it to your frontend
-                session(['neon_token' => $jwt]);
-                return response()->json(['message' => 'Authenticated', 'token' => $jwt]);
-            }
-        }
-
-        return response()->json(['error' => 'Failed to retrieve token'], 401);
+        return response()->json($response, 200);
     }
 
     public function loginUser()

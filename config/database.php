@@ -80,20 +80,18 @@ return [
 
         '4t5'    => [
             'driver'         => 'pgsql',
-            'url'            => env('DATABASE_URL_1'),
-            'host'           => env('DB_HOST_1', '127.0.0.1'),
-            'port'           => env('DB_PORT_1', '5432'),
-            'database'       => env('DB_DATABASE_1', 'forge'),
-            'username'       => env('DB_USERNAME_1', 'forge'),
-            'password'       => env('DB_PASSWORD_1', ''),
+            'url'            => env('DATABASE1_URL'),
+            'host'           => env('DB1_HOST', '127.0.0.1'),
+            'port'           => env('DB1_PORT', '5432'),
+            'database'       => env('DB1_DATABASE', 'forge'),
+            'username'       => env('DB1_USERNAME', 'forge'),
+            'password'       => env('DB1_PASSWORD', ''),
             'charset'        => 'utf8',
             'prefix'         => '',
             'prefix_indexes' => true,
             'schema'         => 'public',
             'sslmode'        => env('DB_SSLMODE', 'require'),
-            'options'        => [
-                'endpoint' => env('DB_ENDPOINT_ID'),
-            ],
+
         ],
 
         'sqlsrv' => [

@@ -78,7 +78,7 @@ return [
             'sslmode'        => 'prefer',
         ],
 
-        '4t5'    => [
+        'neon'   => [
             'driver'  => 'pgsql',
             'url'     => env('DB1_URL'),
             'port'    => env('DB1_PORT', '5432'),

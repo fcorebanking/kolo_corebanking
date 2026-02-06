@@ -89,14 +89,8 @@ return [
             'prefix'   => '',
             'schema'   => 'public',
             'sslmode'  => env('DB1_SSLMODE', 'require'),
-
-            'options'  => env('DB1_OPTIONS')
-                ? array_filter([
-                PDO::PGSQL_ATTR_DISABLE_PREPARES => true,
-                PDO::ATTR_EMULATE_PREPARES       => true,
-                PDO::ATTR_TIMEOUT                => 10,
-
-            ])
+            'options'  => env('DB1_PG_OPTIONS')
+                ? ['options' => env('DB1_PG_OPTIONS')]
                 : [],
 
         ],

@@ -80,18 +80,12 @@ return [
 
         'neon'   => [
             'driver'   => 'pgsql',
-            'host'     => env('DB1_HOST'),
-            'port'     => env('DB1_PORT', 5432),
-            'database' => env('DB1_DATABASE'),
+            'url'      => env('DB1_URL'),
             'username' => env('DB1_USERNAME'),
             'password' => env('DB1_PASSWORD'),
             'charset'  => 'utf8',
             'prefix'   => '',
             'schema'   => 'public',
-            'sslmode'  => env('DB1_SSLMODE', 'require'),
-            'options'  => env('DB1_PG_OPTIONS')
-                ? ['options' => env('DB1_PG_OPTIONS')]
-                : [],
 
         ],
 

@@ -91,7 +91,9 @@ return [
             'prefix_indexes' => true,
             'schema'         => 'public',
             'sslmode'        => env('DB_SSLMODE', 'require'),
-            'options'        => env('DB_OPTIONS'),
+            'options'        => [
+                'endpoint' => env('DB_ENDPOINT_ID'),
+            ],
         ],
 
         'sqlsrv' => [

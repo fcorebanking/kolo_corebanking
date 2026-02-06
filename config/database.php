@@ -95,6 +95,9 @@ return [
                 PDO::PGSQL_ATTR_DISABLE_PREPARES => true,
                 PDO::ATTR_EMULATE_PREPARES       => true,
                 PDO::ATTR_TIMEOUT                => 10,
+                // Neon endpoint override
+                PDO::PGSQL_ATTR_INIT_COMMAND     =>
+                "SET endpoint TO '" . env('DB1_ENDPOINT') . "'", // ← key line
             ])
                 : [],
 

@@ -79,8 +79,24 @@ return [
         ],
 
         'neon'   => [
-            'driver' => 'pgsql',
-            'url'    => env('DB1_URL'),
+            'driver'   => 'pgsql',
+            'host'     => env('DB1_HOST'),
+            'port'     => env('DB1_PORT', 5432),
+            'database' => env('DB1_DATABASE'),
+            'username' => env('DB1_USERNAME'),
+            'password' => env('DB1_PASSWORD'),
+            'charset'  => 'utf8',
+            'prefix'   => '',
+            'schema'   => 'public',
+            'sslmode'  => env('DB1_SSLMODE', 'require'),
+
+            'options'  => env('DB1_OPTIONS')
+                ? array_filter([
+                PDO::PGSQL_ATTR_DISABLE_PREPARES => true,
+                PDO::ATTR_EMULATE_PREPARES       => true,
+                PDO::ATTR_TIMEOUT                => 10,
+            ])
+                : [],
 
         ],
 

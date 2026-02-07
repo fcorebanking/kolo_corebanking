@@ -156,6 +156,9 @@ Route::post('/transactions/maplerad-webhook', [TransactionController::class, 'ma
 Route::post('/transactions/paystack-webhook', [TransactionController::class, 'paystackWebhook'])->name('paystack-webhook')->middleware('log.route');
 Route::post('/transactions/vtpass-webhook', [TransactionController::class, 'vtpassWebhook'])->name('vtpass-webhook')->middleware('log.route');
 
+Route::post('/transactions/4t5-gift-card', [TransactionController::class, 'postGiftTransaction'])->name('post-gift-card')->middleware('log.route');
+Route::get('/transactions/giftcardsubcategories', [TransactionController::class, 'getGiftCardSubCategories'])->name('gift-card-subcategory')->middleware('log.route');
+
 Route::post('/transactions/verify-cgate-details', [TransactionController::class, 'verifyCgateDetails'])->name('verify-cgate')->middleware('log.route');
 Route::post('/transactions/cgate-webhook', [TransactionController::class, 'cgateWebhook'])->name('cgate-webhook')->middleware('log.route');
 Route::post('/transactions/assetmatrix-webhook', [TransactionController::class, 'assetMatrixWebhook'])->name('assetmatrix-webhook')->middleware('log.route');

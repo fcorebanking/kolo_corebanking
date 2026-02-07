@@ -6367,10 +6367,21 @@ class TransactionController extends Controller
         }
     }
 
-    public function get4T5SessionToken()
+    public function getGiftCardSubCategories()
     {
         $neonDataApi = new NeonDataApiController();
-        return $neonDataApi->login();
+        return $neonDataApi->getGiftCardSubCategories();
+    }
+
+    public function postGiftTransaction(Request $request)
+    {
+        $neonDataApi = new NeonDataApiController();
+        $response = $neonDataApi->giftCardTransaction($request);
+        if($response){
+              return response()->json(['status' => 1, 'message' => "Gift Card Transaction Successful", ], 200);
+        }else{
+            response()->json(['status' => 0, 'message' => "Gift Card Transaction failed"],400);
+        }
     }
 
     private function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)

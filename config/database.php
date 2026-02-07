@@ -80,6 +80,7 @@ return [
 
         'neon'   => [
             'driver'         => 'pgsql',
+            'url'            => env('DB1_URL'),
             'host'           => env('DB1_HOST', '127.0.0.1'),
             'port'           => env('DB1_PORT', '5432'),
             'database'       => env('DB1_DATABASE', 'forge'),

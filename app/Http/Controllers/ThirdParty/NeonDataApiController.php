@@ -6,6 +6,8 @@ use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Image;
 
 class NeonDataApiController extends WebhookController
 {
@@ -34,9 +36,10 @@ class NeonDataApiController extends WebhookController
 
     public function giftCardTransaction(Request $request)
     {
-        $userNeonID  = $this->getUserInfo($request);
-        $user        = $this->getFinova4T5UserInfo($request->user_id);
-        $bankDetails = [
+        $userNeonID      = $this->getUserInfo($request);
+        $user            = $this->getFinova4T5UserInfo($request->user_id);
+        $gift_card_image = $this->uploadGiftCard($request);
+        $bankDetails     = [
             "account_name" => "{$user->first_name} {$user->last_name}",
             "account_number" => $user->accounts->first()->virtual_accnum,
 
@@ -44,7 +47,7 @@ class NeonDataApiController extends WebhookController
         $response = DB::table('gift_card_transactions')->insert([
             'userId'                => $userID,
             'AdminTransactionTypes' => 'GIFT_CARD_SALE',
-            'giftCardImages'        => "",
+            'giftCardImages'        => $gift_card_image,
             'amount'                => (float) $request->amount, // Manual timestamps required
             'bankDetails'           => json_encode($bankDetails),
             'giftCardType'          => "",
@@ -101,6 +104,39 @@ class NeonDataApiController extends WebhookController
             ]// Data to update/create
         );
 
+    }
+
+    private function uploadGiftCard(Request $request)
+    {
+        try {
+
+            $image = $request->file('giftCardImage');
+            if ($image) {
+                // create a new filename for the resized image
+                $filename   = time() . str_replace(' ', '_', $image->getClientOriginalExtension());
+                $uploadPath = "public/company/customer/gift_card/$user->uuid";
+
+                // resize the image
+                $resizedImage = Image::make($image)
+                    ->resize(200, 200, function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize();
+                    })
+                    ->encode();
+
+                // upload the resized image to storage
+                $upload = Storage::put($uploadPath . $filename, $resizedImage);
+                // $file1 = $doc->storeAs("$uploadPath/$user->id/$filename", $resizedImage);
+
+                $gift_card = $uploadPath . $filename;
+
+                logInfo(json_encode($gift_card), "User Finova Gift Card");
+
+                return $gift_card;
+            }
+        } catch (Exception $e) {
+            //die($e);
+        }
     }
 
     private function NeonDataApiHeader()

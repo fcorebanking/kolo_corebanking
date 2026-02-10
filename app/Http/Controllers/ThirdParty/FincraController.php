@@ -2,30 +2,32 @@
 namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\CustomClasses\WebhookController;
-use Exception;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Image;
 
 class FincraController extends WebhookController
 {
 
-     private $username;
+    private $username;
     private $apiKey;
     private $baseUrl;
     private $token;
 
     public function __construct()
-   
     {
         $this->token = "";
         if (env('APP_MODE') == 'test') {
 
             $this->username = config('fincra.email_test');
-            $this->apiKey   = config('kuda.api_key_test');
-            $this->baseUrl  = config('kuda.base_url_test');
+            $this->apiKey   = config('fincra.api_key_test');
+            $this->baseUrl  = config('fincra.base_url_test');
         } else {
-            $this->username = config('kuda.email_live');
-            $this->apiKey   = config('kuda.api_key_live');
-            $this->baseUrl  = config('kuda.base_url_live');
+            $this->username = config('fincra.email_live');
+            $this->apiKey   = config('fincra.api_key_live');
+            $this->baseUrl  = config('fincra.base_url_live');
         }
     }
 
@@ -40,78 +42,62 @@ class FincraController extends WebhookController
         return $response->json();
     }
 
-    public function addCluster($businessname, $email, $phone, $contactfirstname, $contactlastname, $bvn)
+    public function createAccount($requestReference, $virtualAccount)
     {
-        $body = [
-            'businessname'     => $businessname,
-            'email'            => $email,
-            'phone'            => $phone,
-            'contactfirstname' => $contactfirstname,
-            'contactlastname'  => $contactlastname,
-            'bvn'              => $bvn,
-        ];
+        $currency      = $this->getCurrency($virtualAccount->currencyCode);
+        $utilityBill   = "";
+        $bankStatement = "";
 
-        logInfo($body, "Add cluster request");
-
-        try {
-            $response = $this->vPayPostRequest("query/merchant/cluster/add", $body);
-
-            if (isset($response['id'])) {
-                return ['status' => true, 'message' => 'Cluster Added', 'data' => ['cluster_id' => $response['id']]];
-            } else {
-                return ['status' => false, 'message' => 'Failed to get Cluster id'];
-            }
-        } catch (Exception $e) {
-            \logInfo($e->getMessage(), "VPay Login serror log");
-
-            return ['status' => false, 'message' => 'Server Error...'];
+        if ($request->hasFile('bankstatement')) {
+            $type        = "bankstatement";
+            $utilityBill = $this->upload($request, $type);
         }
-    }
 
-    public function createAccount($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference)
-    {
-        /*  $body = [
-            "servicetype" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
-            "requestref"  => $requestReference,
-            "data"        => [
-                "email"             => $email,
-                "phoneNumber"       => $phoneNumber,
-                "lastName"          => $lastName,
-                "firstName"         => $firstName,
-                "trackingReference" => $trackingReference,
-            ],
-        ];*/
-        $body = [
-            "serviceType" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
-            "requestRef"  => $requestReference,
-            "data"        => [
-                "Amount"        => 0,
-                "AccountName"   => "$firstName $lastName",
-                "IsPassThrough" => true,
+        if ($request->hasFile('utilitybill')) {
+            $type          = "utilitybill";
+            $bankStatement = $this->upload($request, $type);
+        }
 
-            ],
-        ];
+        if ("currency" == "USD") {
+            $body = [
+                "currency"       => $currency,
+                "utilityBill"    => $utilityBill,
+                "bankStatement"  => $bankStatement,
+                "KYCInformation" => [
+
+                    "sourceOfIncome"   => "salary",
+                    "employmentStatus" => "employed",
+
+                ],
+            ];
+        } else {
+            $body = [
+                "currency"       => $currency,
+                "utilityBill"    => $utilityBill,
+                "bankStatement"  => $bankStatement,
+                "KYCInformation" => [
+                    "firstName"        => $virtualAccount->firstName,
+                    "lastName"         => $virtualAccount->lastName,
+                    "email"            => $virtualAccount->email,
+                    "phone"            => $virtualAccount->phone,
+                    "birthDate"        => Carbon::parse($virtualAccount->dob)->format('d M Y'),
+                    "nationality"      => $currency,
+                    "sourceOfIncome"   => "salary",
+                    "employmentStatus" => "employed",
+
+                ],
+            ];
+        }
 
         $jsonBody = json_encode($body);
 
-        $requestBody = [
-            'data' => $jsonBody,
-        ];
-
-        //  $url = "v2.1/";
-        $url = "https://kuda-openapi.kuda.com/v2.1";
+        $url = "{$this->baseUrl}/profile/virtual-accounts/requests ";
 
         try {
 
-            $login = $this->login();
+            \logInfo($jsonBody, "Fincra Request body");
 
-            if (! $login['status']) {
-                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
-            }
-
-            \logInfo($requestBody, "Kuda Request body");
-
-            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
+            $createAccountResponse = $this->fincraPostRequest($url, $body);
 
             logInfo($createAccountResponse, "Kuda Create Account Response");
 
@@ -135,12 +121,100 @@ class FincraController extends WebhookController
                     ];
                 }
             } else {
-                return ['status' => false, 'message' => 'Account Creation Failed. Kindly contact support for assistance'];
+                return ['status' => false, 'message' => 'Account CreationFailed . Kindly contactsupportfor assistance'];
             }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Laravel Kuda Error");
 
-            return ['status' => false, 'message' => 'Error Creating Account. Kindly contact support for assistance'];
+            return ['status' => false, 'message' => 'Error CreatingAccount . Kindly contactsupportfor assistance'];
+        }
+    }
+
+    public function addAccount($requestReference, $virtualAccount)
+    {
+        $currency      = $this->getCurrency($virtualAccount->currencyCode);
+        $utilityBill   = "";
+        $bankStatement = "";
+
+        if ($request->hasFile('bankstatement')) {
+            $type        = "bankstatement";
+            $utilityBill = $this->upload($request, $type);
+        }
+
+        if ($request->hasFile('utilitybill')) {
+            $type          = "utilitybill";
+            $bankStatement = $this->upload($request, $type);
+        }
+
+        if ("currency" == "USD") {
+            $body = [
+                "currency"       => $currency,
+                "utilityBill"    => $utilityBill,
+                "bankStatement"  => $bankStatement,
+                "KYCInformation" => [
+
+                    "sourceOfIncome"   => "salary",
+                    "employmentStatus" => "employed",
+
+                ],
+            ];
+        } else {
+            $body = [
+                "currency"       => $currency,
+                "utilityBill"    => $utilityBill,
+                "bankStatement"  => $bankStatement,
+                "KYCInformation" => [
+                    "firstName"        => $virtualAccount->firstName,
+                    "lastName"         => $virtualAccount->lastName,
+                    "email"            => $virtualAccount->email,
+                    "phone"            => $virtualAccount->phone,
+                    "birthDate"        => Carbon::parse($virtualAccount->dob)->format('d M Y'),
+                    "nationality"      => $currency,
+                    "sourceOfIncome"   => "salary",
+                    "employmentStatus" => "employed",
+
+                ],
+            ];
+        }
+
+        $jsonBody = json_encode($body);
+
+        $url = "https://kuda-openapi.kuda.com/v2.1";
+
+        try {
+
+            \logInfo($jsonBody, "Fincra Request body");
+
+            $createAccountResponse = $this->fincraPostRequest($url, $body);
+
+            logInfo($createAccountResponse, "Kuda Create Account Response");
+
+            if ($createAccountResponse->successful()) {
+
+                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
+
+                if (! $createAccountResponse["status"]) {
+                    return [
+                        'status'  => false,
+                        'message' => $createAccountResponse["message"],
+                    ];
+                } else {
+                    return [
+                        'status'  => true,
+                        'message' => "Account Created Successfully",
+                        'data'    => [
+                            'account_number'         => $createAccountResponse['data']['accountNumber'],
+                            'virtual_account_number' => $createAccountResponse['data']['accountNumber'],
+                        ],
+                    ];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Account CreationFailed . Kindly contactsupportfor assistance'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Laravel Kuda Error");
+
+            return ['status' => false, 'message' => 'Error CreatingAccount . Kindly contactsupportfor assistance'];
         }
     }
 
@@ -171,7 +245,7 @@ class FincraController extends WebhookController
             $login = $this->login();
 
             if (! $login['status']) {
-                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
+                return ['status' => false, 'message' => 'Bank Unavailable . try again later'];
             }
 
             \logInfo($requestBody, "Kuda Request body");
@@ -202,12 +276,12 @@ class FincraController extends WebhookController
                     ];
                 }
             } else {
-                return ['status' => false, 'message' => 'Webhook withdrawal failed. Kindly contact support for assistance'];
+                return ['status' => false, 'message' => 'Webhook withdrawalfailed . Kindly contactsupportfor assistance'];
             }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Kuda Error");
 
-            return ['status' => false, 'message' => 'Error completing withdrawal. Kindly contact support for assistance'];
+            return ['status' => false, 'message' => 'Error completingwithdrawal . Kindly contactsupportfor assistance'];
         }
     }
 
@@ -237,7 +311,7 @@ class FincraController extends WebhookController
             $login = $this->login();
 
             if (! $login['status']) {
-                return ['status' => "03", 'message' => 'Bank Unavailable. Try again later'];
+                return ['status' => "03", 'message' => 'Bank Unavailable . try again later'];
             }
 
             \logInfo($requestBody, "Kuda Request body");
@@ -275,12 +349,12 @@ class FincraController extends WebhookController
                     ];
                 }
             } else {
-                return ['status' => "05", 'message' => 'Verify transaction failed. Kindly contact support for assistance'];
+                return ['status' => "05", 'message' => 'Verify transactionfailed . Kindly contactsupportfor assistance'];
             }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Kuda Error");
 
-            return ['status' => "06", 'message' => 'Error verifying transaction. Kindly contact support for assistance'];
+            return ['status' => "06", 'message' => 'Error verifyingtransaction . Kindly contactsupportfor assistance'];
         }
     }
 
@@ -350,7 +424,7 @@ class FincraController extends WebhookController
             $login = $this->login();
 
             if (! $login['status']) {
-                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
+                return ['status' => false, 'message' => 'Bank Unavailable . try again later'];
             }
 
             \logInfo($requestBody, "Kuda Request body");
@@ -381,13 +455,78 @@ class FincraController extends WebhookController
                     ];
                 }
             } else {
-                return ['status' => false, 'message' => 'Bank Transfer failed. If you have been debited kindly contact support for reversal'];
+                return ['status' => false, 'message' => 'Bank Transferfailed . if you havebeendebitedkindlycontactsupportfor reversal'];
             }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Kuda Error");
 
-            return ['status' => false, 'message' => 'Error with Bank Transfer. If you have been debited kindly contact support for reversal'];
+            return ['status' => false, 'message' => 'Error withBankTransfer . if you havebeendebitedkindlycontactsupportfor reversal'];
         }
+    }
+
+    private function getCurrency($currency_id)
+    {
+        $type = match ($currency_id) {
+            4       => 'GBP',
+            7       => 'EUR',
+
+            default => 'USD', // fallback
+        };
+    }
+
+    private function fincraHeader()
+    {
+        $header = [
+            'Content - Type' => 'application / json',
+            'api - key'      => '' . $this->apiKey,
+        ];
+
+        return $header;
+    }
+
+    private function upload(Request $request, $type)
+    {
+        try {
+
+            if ($type == 'bankstatement') {
+                $image = $request->file('bankstatement');
+            } else {
+                $image = $request->file('utilitybill');
+            }
+
+            if ($image) {
+                // create a new filename for the resized image
+                $filename   = time() . str_replace('', '_', $image->getClientOriginalExtension());
+                $uploadPath = "public/company/customer/$type/$user->uuid";
+
+                // resize the image
+                $resizedImage = Image::make($image)
+                    ->resize(200, 200, function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize();
+                    })
+                    ->encode();
+
+                // upload the resized image to storage
+                $upload = Storage::put($uploadPath . $filename, $resizedImage);
+                // $file1 = $doc->storeAs("$uploadPath/$user->id/$filename", $resizedImage);
+
+                $uploadInfo = $uploadPath . $filename;
+
+                logInfo(json_encode($uploadInfo), "User $type Upload");
+
+                return $uploadInfo;
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Fincra Error");
+        }
+    }
+
+    private function fincraPostRequest($endpoint, $body)
+    {
+        logInfo(json_encode($body), "Fincra Process Endpoint Body");
+        $response = Http::withHeaders($this->fincraHeader())->post($endpoint, $body);
+        return $response;
     }
 
 }

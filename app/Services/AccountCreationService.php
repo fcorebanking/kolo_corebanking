@@ -5,6 +5,7 @@ use App\Http\Controllers\ThirdParty\AmuchaController;
 use App\Http\Controllers\ThirdParty\AssetMatrixController;
 use App\Http\Controllers\ThirdParty\BaniController;
 use App\Http\Controllers\ThirdParty\FairMoneyController;
+use App\Http\Controllers\ThirdParty\FincraController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\ParkwayController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
@@ -22,6 +23,10 @@ class AccountCreationService
         $createAccountResponse = "";
 
         $allBanks = ["000023", "090267", "090287", "060001", "090286", "000017", "100003", "120001", "090325", "000013", "090110", '090551', '000003', '000001', '000012', '090645', "000003"];
+
+        if ($virtualAccount->currencyCode != 1) {
+            return $this->createForeignAccount($virtualAccount);
+        }
 
         if (! in_array($virtualAccount->bankCode, $allBanks)) {
             return [
@@ -293,5 +298,24 @@ class AccountCreationService
 
     public function createCompanyVirtualAccount()
     {
+    }
+
+    public function createForeignAccount($virtualAccount)
+    {
+
+        $fincraController = new FincraController();
+
+        $requestReference  = generateTransactionReference();
+        $trackingReference = generateTransactionReference();
+
+        logInfo($virtualAccount->accountType, "Virtual Account Type");
+
+        $createAccountResponse = $fincraController->createAccount($requestReference, $virtualAccount);
+
+        $accountReference = $trackingReference;
+
+        if ($createAccountResponse['status']) {
+            $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['virtual_account_number']);
+        }
     }
 }

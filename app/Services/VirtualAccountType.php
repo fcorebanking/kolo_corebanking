@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Services;
 
 class VirtualAccountType
@@ -22,4 +21,5 @@ class VirtualAccountType
     public $address;
     public $otp;
     public $bvnId;
+    public $country;
 }

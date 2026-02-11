@@ -227,6 +227,7 @@ class RegisterController extends Controller
             $virtualAccount->gender                       = $request->gender;
             $virtualAccount->bvn                          = $request->bvn;
             $virtualAccount->address                      = $request->address;
+            $virtualAccount->country                     =  $request->country ?? "";  
             $virtualAccount->companyAccountCreationStatus = $companyRecord->setting->can_create_virtual_account;
 
             $createAccountService = new AccountCreationService();

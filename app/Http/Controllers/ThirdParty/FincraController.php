@@ -474,6 +474,16 @@ class FincraController extends WebhookController
         };
     }
 
+    private function getNationality($request)
+    {
+        $type = match ($currency_id) {
+            4       => 'GBP',
+            7       => 'EUR',
+
+            default => 'USD', // fallback
+        };
+    }
+
     private function fincraHeader()
     {
         $header = [

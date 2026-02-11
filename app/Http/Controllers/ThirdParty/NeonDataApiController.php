@@ -97,7 +97,7 @@ class NeonDataApiController extends WebhookController
             ['email' => $user->email],
             // Unique check
             [
-
+                'id'           => (string) Str::uuid(),
                 'firstName'    => $user->first_name,
                 'lastName'     => $user->last_name,
                 'mobileNumber' => $user->phone,

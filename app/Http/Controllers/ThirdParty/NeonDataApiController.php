@@ -43,7 +43,7 @@ class NeonDataApiController extends WebhookController
 
         ];
         $response = DB::table('gift_card_transactions')->insert([
-            'userId'                => $userID,
+            'userId'                => $userNeonID,
             'AdminTransactionTypes' => 'GIFT_CARD_SALE',
             'giftCardImages'        => $gift_card_image,
             'amount'                => (float) $request->amount, // Manual timestamps required

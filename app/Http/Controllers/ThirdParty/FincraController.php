@@ -44,7 +44,7 @@ class FincraController extends WebhookController
 
     public function createAccount($requestReference, $virtualAccount)
     {
-        $currency      = $this->getCurrency($virtualAccount->currencyCode);
+        $currency      = $this->getCurrency($virtualAccount->country) ?? "";
         $utilityBill   = "";
         $bankStatement = "";
 
@@ -64,9 +64,8 @@ class FincraController extends WebhookController
                 "utilityBill"    => $utilityBill,
                 "bankStatement"  => $bankStatement,
                 "KYCInformation" => [
-
-                    "sourceOfIncome"   => "salary",
-                    "employmentStatus" => "employed",
+                    "sourceOfIncome"   => $request->sourceOfIncome,
+                    "employmentStatus" => $request->employmentStatus,
 
                 ],
             ];

@@ -91,7 +91,7 @@ class NeonDataApiController extends WebhookController
 
     private function updateUserInfo($user)
     {
-        DB::table('users')->updateOrInsert(
+        DB::connection('neon') - table('users')->updateOrInsert(
             ['email' => $user->email],
             // Unique check
             [

@@ -47,7 +47,7 @@ class NeonDataApiController extends WebhookController
         logInfo(json_encode($gift_card_image), "gift_card_image");
         logInfo(json_encode($user), "User Finova");
         $response = DB::connection('neon')->table('gift_card_transactions')->insert([
-            'id'                    => (string) Str::uuid(),
+            'id'                    => (string) Str::ulid(),
             'userId'                => $userNeonID,
             'AdminTransactionTypes' => 'GIFT_CARD_SALE',
             'giftCardImages'        => $gift_card_image,
@@ -97,7 +97,7 @@ class NeonDataApiController extends WebhookController
             ['email' => $user->email],
             // Unique check
             [
-                'id'           => (string) Str::uuid(),
+                'id'           => (string) Str::ulid(),
                 'firstName'    => $user->first_name,
                 'lastName'     => $user->last_name,
                 'mobileNumber' => $user->phone,

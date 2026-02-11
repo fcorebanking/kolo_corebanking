@@ -36,7 +36,7 @@ class NeonDataApiController extends WebhookController
     {
         $userNeonID      = $this->getUserInfo($request);
         $user            = $this->getFinova4T5UserInfo($request->user_id);
-        $gift_card_image = $request->giftCardImages;
+        $gift_card_image = $request->giftCardImage;
         $bankDetails     = [
             "account_name" => "{$user->first_name} {$user->last_name}",
             "account_number" => $user->accounts->first()->virtual_accnum,
@@ -45,7 +45,7 @@ class NeonDataApiController extends WebhookController
         logInfo(json_encode($userNeonID), "userNeonID");
         logInfo(json_encode($gift_card_image), "gift_card_image");
         logInfo(json_encode($user), "User Finova");
-        $response = DB::table('gift_card_transactions')->insert([
+        $response = DB::connection('neon')->table('gift_card_transactions')->insert([
             'userId'                => $userNeonID,
             'AdminTransactionTypes' => 'GIFT_CARD_SALE',
             'giftCardImages'        => $gift_card_image,
@@ -67,13 +67,13 @@ class NeonDataApiController extends WebhookController
 
             logInfo(json_encode($user), "User Finova");
 
-            $userNeonDB = DB::table('users')->where($attributes)->first();
+            $userNeonDB = DB::connection('neon')->table('users')->where($attributes)->first();
 
             logInfo(json_encode($userNeonDB), "User Neon DB");
 
             if ($userNeonDB == null) {
                 $this->updateUserInfo($user);
-                $userNeonDB = DB::table('users')->where($attributes)->first();
+                $userNeonDB = DB::connection('neon')->table('users')->where($attributes)->first();
                 logInfo(json_encode($userNeonDB), "User Neon DB");
             }
             return $userNeonDB;

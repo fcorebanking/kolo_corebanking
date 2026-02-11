@@ -37,7 +37,7 @@ class NeonDataApiController extends WebhookController
     {
         $userNeonID      = $this->getUserInfo($request);
         $user            = $this->getFinova4T5UserInfo($request->user_id);
-        $gift_card_image = ["https://core.finova.ng/storage/public/other_doc/BygVDCnpsIOVeHcSqHVFoQ4PuavLSEDyWb68xSER.png"];
+        $gift_card_image = ["$request->giftCardImage"];
         $bankDetails     = [
             "account_name" => "{$user->first_name} {$user->last_name}",
             "account_number" => $user->accounts->first()->virtual_accnum,
@@ -53,8 +53,8 @@ class NeonDataApiController extends WebhookController
             'type'           => 'GIFT_CARD_SALE',
             'giftCardImages' => $gift_card_image,
             'amount'         => (float) $request->amount, // Manual timestamps required
-                                                          //    'bankDetails'    => json_encode($bankDetails),
-            'giftCardType'   => " Gift card",
+            'bankDetails'    => json_encode($bankDetails),
+            'giftCardType'   => "",
         ]);
 
         return $response;

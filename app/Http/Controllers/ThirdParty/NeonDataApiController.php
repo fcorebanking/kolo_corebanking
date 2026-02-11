@@ -51,7 +51,7 @@ class NeonDataApiController extends WebhookController
             'id'             => (string) Str::ulid(),
             'userId'         => $userNeonID->id,
             'type'           => 'GIFT_CARD_SALE',
-            'giftCardImages' => $urls,
+            'giftCardImages' => $gift_card_image,
             'amount'         => (float) $request->amount, // Manual timestamps required
             'bankDetails'    => json_encode($bankDetails),
             'giftCardType'   => "",

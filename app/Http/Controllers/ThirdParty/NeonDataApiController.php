@@ -42,6 +42,9 @@ class NeonDataApiController extends WebhookController
             "account_number" => $user->accounts->first()->virtual_accnum,
 
         ];
+        logInfo(json_encode($userNeonID), "userNeonID");
+        logInfo(json_encode($gift_card_image), "gift_card_image");
+        logInfo(json_encode($user), "User Finova");
         $response = DB::table('gift_card_transactions')->insert([
             'userId'                => $userNeonID,
             'AdminTransactionTypes' => 'GIFT_CARD_SALE',

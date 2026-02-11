@@ -6,6 +6,7 @@ use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class NeonDataApiController extends WebhookController
 {
@@ -46,6 +47,7 @@ class NeonDataApiController extends WebhookController
         logInfo(json_encode($gift_card_image), "gift_card_image");
         logInfo(json_encode($user), "User Finova");
         $response = DB::connection('neon')->table('gift_card_transactions')->insert([
+            'id'                    => (string) Str::uuid(),
             'userId'                => $userNeonID,
             'AdminTransactionTypes' => 'GIFT_CARD_SALE',
             'giftCardImages'        => $gift_card_image,

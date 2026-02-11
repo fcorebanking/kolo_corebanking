@@ -46,15 +46,15 @@ class NeonDataApiController extends WebhookController
         logInfo(json_encode($userNeonID), "userNeonID");
         logInfo(json_encode($gift_card_image), "gift_card_image");
         logInfo(json_encode($user), "User Finova");
-        $urls     = [$gift_card_image];
+
         $response = DB::connection('neon')->table('gift_card_transactions')->insert([
             'id'             => (string) Str::ulid(),
             'userId'         => $userNeonID->id,
             'type'           => 'GIFT_CARD_SALE',
             'giftCardImages' => $gift_card_image,
             'amount'         => (float) $request->amount, // Manual timestamps required
-            'bankDetails'    => json_encode($bankDetails),
-            'giftCardType'   => "",
+                                                          //    'bankDetails'    => json_encode($bankDetails),
+            'giftCardType'   => " Gift card",
         ]);
 
         return $response;

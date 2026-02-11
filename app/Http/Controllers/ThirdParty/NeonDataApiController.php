@@ -37,7 +37,7 @@ class NeonDataApiController extends WebhookController
     {
         $userNeonID      = $this->getUserInfo($request);
         $user            = $this->getFinova4T5UserInfo($request->user_id);
-        $gift_card_image = $request->giftCardImage;
+        $gift_card_image = ["$request->giftCardImage"];
         $bankDetails     = [
             "account_name" => "{$user->first_name} {$user->last_name}",
             "account_number" => $user->accounts->first()->virtual_accnum,

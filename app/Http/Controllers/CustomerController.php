@@ -373,7 +373,7 @@ class CustomerController extends Controller
             $virtualAccount->gender                       = $request->gender;
             $virtualAccount->bvn                          = $request->bvn;
             $virtualAccount->address                      = $request->address;
-            $virtualAccount->country                     =  $request->country ?? "";  
+            $virtualAccount->country                     =  $company->countries_id ?? "";  
             $virtualAccount->companyAccountCreationStatus = $auth->company->setting->can_create_virtual_account;
 
             $createAccountService = new AccountCreationService();

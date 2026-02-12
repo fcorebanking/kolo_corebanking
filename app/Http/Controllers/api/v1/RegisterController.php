@@ -227,7 +227,7 @@ class RegisterController extends Controller
             $virtualAccount->gender                       = $request->gender;
             $virtualAccount->bvn                          = $request->bvn;
             $virtualAccount->address                      = $request->address;
-            $virtualAccount->country                     =  $request->country ?? "";  
+            $virtualAccount->country                      = $companyRecord->countries_id ?? "";
             $virtualAccount->companyAccountCreationStatus = $companyRecord->setting->can_create_virtual_account;
 
             $createAccountService = new AccountCreationService();
@@ -268,9 +268,9 @@ class RegisterController extends Controller
 
             if (isset($branchData->code)) {
                 if ($branchData->code != null) {
-                    $branchCodeLength = strlen($branchData->code);
-                    $branchCodeLength -= 1;
-                    $virtual_acccount_number = substr_replace($virtual_acccount_number, $branchData->code, -$branchCodeLength);
+                    $branchCodeLength         = strlen($branchData->code);
+                    $branchCodeLength        -= 1;
+                    $virtual_acccount_number  = substr_replace($virtual_acccount_number, $branchData->code, -$branchCodeLength);
                 }
             }
         }

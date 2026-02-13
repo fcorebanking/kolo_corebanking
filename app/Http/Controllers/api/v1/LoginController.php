@@ -139,6 +139,7 @@ class LoginController extends Controller
                 "phone_verification_status_id" => $request->user()->phone_verification_status_id,
                 "account_officer_id"           => $request->user()->account_officer_id,
                 "branch_id"                    => $request->user()->branch_id,
+                "tier"                         => $request->user()->kyc_level_id,
                 "balance"                      => $userWallet->balance,
                 "wallets"                      => $myUserWallets,
                 "cards"                        => $virtualCard,

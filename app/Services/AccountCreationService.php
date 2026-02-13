@@ -24,9 +24,11 @@ class AccountCreationService
 
         $allBanks = ["000023", "090267", "090287", "060001", "090286", "000017", "100003", "120001", "090325", "000013", "090110", '090551', '000003', '000001', '000012', '090645', "000003"];
 
-        if (isset($virtualAccount->country) && $virtualAccount->country != 1) {
+        /*  if (isset($virtualAccount->country) && $virtualAccount->country != 1) {
             return $this->createForeignAccount($virtualAccount);
-        }
+        }*/
+
+        logInfo($virtualAccount->country, "Virtual Code for country");
 
         if (! in_array($virtualAccount->bankCode, $allBanks)) {
             return [

@@ -318,9 +318,9 @@ class CustomerController extends Controller
 
         if (isset($branchdata->code)) {
             if ($branchdata->code != null) {
-                $branchCodeLength = strlen($branchdata->code);
-                $branchCodeLength -= 1;
-                $virtual_acccount_number = substr_replace($virtual_acccount_number, $branchdata->code, -$branchCodeLength);
+                $branchCodeLength         = strlen($branchdata->code);
+                $branchCodeLength        -= 1;
+                $virtual_acccount_number  = substr_replace($virtual_acccount_number, $branchdata->code, -$branchCodeLength);
             }
         }
 
@@ -373,7 +373,7 @@ class CustomerController extends Controller
             $virtualAccount->gender                       = $request->gender;
             $virtualAccount->bvn                          = $request->bvn;
             $virtualAccount->address                      = $request->address;
-            $virtualAccount->country                     =  $company->countries_id ?? "";  
+            $virtualAccount->country                      = $auth->company->currency_id ?? "";
             $virtualAccount->companyAccountCreationStatus = $auth->company->setting->can_create_virtual_account;
 
             $createAccountService = new AccountCreationService();
@@ -1370,15 +1370,15 @@ class CustomerController extends Controller
             $verifyBVN     = json_decode($jsonString);
             if ($verifyBVN->status == 1) {
                 // return $verifyBVN;
-                $GetUserByUUID->bvn_status_id     = 1;
-                $GetUserByUUID->BVN               = $request->bvn;
-                $GetUserByUUID->first_name        = $verifyBVN->data->data->firstName;
-                $GetUserByUUID->last_name         = $verifyBVN->data->data->lastName;
-                $GetUserByUUID->alternative_phone = $verifyBVN->data->data->phoneNumber1 ?? $GetUserByUUID->alternative_phone;
-                $GetUserByUUID->dob               = $verifyBVN->data->data->dateOfBirth ? date("Y-m-d", strtotime($verifyBVN->data->data->dateOfBirth)) : $GetUserByUUID->dob;
-                $GetUserByUUID->address .= ' BVN Address: ' . $verifyBVN->data->data->residentialAddress . ' Resident State: ' . $verifyBVN->data->data->stateOfResidence;
-                $GetUserByUUID->sex       = $verifyBVN->data->data->gender;
-                $GetUserByUUID->bvn_image = $verifyBVN->data->data->base64Image;
+                $GetUserByUUID->bvn_status_id      = 1;
+                $GetUserByUUID->BVN                = $request->bvn;
+                $GetUserByUUID->first_name         = $verifyBVN->data->data->firstName;
+                $GetUserByUUID->last_name          = $verifyBVN->data->data->lastName;
+                $GetUserByUUID->alternative_phone  = $verifyBVN->data->data->phoneNumber1 ?? $GetUserByUUID->alternative_phone;
+                $GetUserByUUID->dob                = $verifyBVN->data->data->dateOfBirth ? date("Y-m-d", strtotime($verifyBVN->data->data->dateOfBirth)) : $GetUserByUUID->dob;
+                $GetUserByUUID->address           .= ' BVN Address: ' . $verifyBVN->data->data->residentialAddress . ' Resident State: ' . $verifyBVN->data->data->stateOfResidence;
+                $GetUserByUUID->sex                = $verifyBVN->data->data->gender;
+                $GetUserByUUID->bvn_image          = $verifyBVN->data->data->base64Image;
 
                 $GetUserByUUID->state_of_origin = $verifyBVN->data->data->stateOfOrigin;
                 $GetUserByUUID->nike_name       = $GetUserByUUID->nike_name ?? $verifyBVN->data->data->middleName;
@@ -1726,21 +1726,21 @@ class CustomerController extends Controller
         $loop = 0;
         foreach ($info as $infoData) {
             // $loop++;
-            $btnlink   = $infoData->uuid;
-            $shortname = auth()->user()->company->short_name;
-            $btndom    = "<a href='/company/$shortname/customer/activate/$btnlink' target='_blank' class='btn btn-outline-success btn-sm' onclick=";
-            $btndom .= " >Activate</a>";
+            $btnlink    = $infoData->uuid;
+            $shortname  = auth()->user()->company->short_name;
+            $btndom     = "<a href='/company/$shortname/customer/activate/$btnlink' target='_blank' class='btn btn-outline-success btn-sm' onclick=";
+            $btndom    .= " >Activate</a>";
             if ($page == "debitcredit") {
                 $cooperateStatus   = "";
                 $CooperateCustomer = CooperateCustomer::where('user_id', $infoData->id)->first();
                 if ($CooperateCustomer) {
                     $cooperateStatus = "<span class='badge badge-success'>$CooperateCustomer->account_name</span>";
                 }
-                $btncredit = "<button class='btn btn-outline-primary btn-sm' onclick=";
-                $btncredit .= "credit('$btnlink') >Credit</button>";
-                $btndebit = "<button class='btn btn-outline-primary btn-sm' onclick=";
-                $btndebit .= "debit('$btnlink') >Debit</button>";
-                $savingdata = [
+                $btncredit   = "<button class='btn btn-outline-primary btn-sm' onclick=";
+                $btncredit  .= "credit('$btnlink') >Credit</button>";
+                $btndebit    = "<button class='btn btn-outline-primary btn-sm' onclick=";
+                $btndebit   .= "debit('$btnlink') >Debit</button>";
+                $savingdata  = [
                     $infoData->first_name,
                     $infoData->last_name,
                     $infoData->virtual_accnum . "<br>" . $cooperateStatus,
@@ -1756,9 +1756,9 @@ class CustomerController extends Controller
                 }
                 $json['data'][] = $savingdata;
             } else if ($page == "investment") {
-                $btn = "<button class='btn btn-outline-primary btn-sm' onclick=";
-                $btn .= "invest('$btnlink') >Invest</button>";
-                $json['data'][] = [
+                $btn             = "<button class='btn btn-outline-primary btn-sm' onclick=";
+                $btn            .= "invest('$btnlink') >Invest</button>";
+                $json['data'][]  = [
                     $infoData->first_name,
                     $infoData->last_name,
                     $infoData->virtual_accnum,
@@ -1769,7 +1769,7 @@ class CustomerController extends Controller
                 ];
             } else if ($page == "statement") {
 
-                $btn = "<a href='/company/$shortname/user-statement/$btnlink' target='_blank' class='btn btn-outline-primary btn-sm' onclick=";
+                $btn  = "<a href='/company/$shortname/user-statement/$btnlink' target='_blank' class='btn btn-outline-primary btn-sm' onclick=";
                 $btn .= " >Statement</a>";
 
                 $json['data'][] = [
@@ -1782,11 +1782,11 @@ class CustomerController extends Controller
                     $btn,
                 ];
             } else if ($page == "profile") {
-                $shortname = Auth()->user()->company->short_name;
-                $btn       = "<a href='/company/$shortname/customer/view-profile/$btnlink'  class='btn btn-outline-primary btn-sm' onclick=";
-                $btn .= " >View</a>";
+                $shortname  = Auth()->user()->company->short_name;
+                $btn        = "<a href='/company/$shortname/customer/view-profile/$btnlink'  class='btn btn-outline-primary btn-sm' onclick=";
+                $btn       .= " >View</a>";
                 $loop++;
-                $json['data'][] = [
+                $json['data'][]  = [
                     $loop,
                     $infoData->first_name,
                     $infoData->last_name,
@@ -1800,14 +1800,14 @@ class CustomerController extends Controller
                 $shortname = Auth()->user()->company->short_name;
                 if ($infoData->user_card_status_id == 1) {
 
-                    $btn = '<button class="btn btn-outline-primary btn-sm" onclick="show_customer_details(' . $infoData->id . ')"';
+                    $btn  = '<button class="btn btn-outline-primary btn-sm" onclick="show_customer_details(' . $infoData->id . ')"';
                     $btn .= " >Request Card</button>";
                 } else if ($infoData->user_card_status_id == 2) {
 
-                    $btn = '<button class="btn btn-outline-info btn-sm" id="addMyCard" data-id="' . $infoData->uuid . '" onclick="show_card_customer_name(' . $infoData->id . ')"';
+                    $btn  = '<button class="btn btn-outline-info btn-sm" id="addMyCard" data-id="' . $infoData->uuid . '" onclick="show_card_customer_name(' . $infoData->id . ')"';
                     $btn .= " >Add Card</button>";
                 } else if ($infoData->user_card_status_id == 3) {
-                    $btn = '<button class="btn btn-outline-success btn-sm" id="fundMyCard" onclick="showFundCardModal(\'' . $infoData->uuid . '\')"';
+                    $btn  = '<button class="btn btn-outline-success btn-sm" id="fundMyCard" onclick="showFundCardModal(\'' . $infoData->uuid . '\')"';
                     $btn .= ">Fund Card</button>";
                     $btn .= '<button class="btn btn-outline-warning btn-sm" id="getMyCardBalance-' . $infoData->id . '" onclick="getPhysicalCardBalance(' . $infoData->id . ')" data-id="' . $infoData->uuid . '"';
                     $btn .= " >Get Balance</button>";
@@ -1839,7 +1839,7 @@ class CustomerController extends Controller
                 if (! $is_root) {
                     $btndom = "<button class='btn btn-outline-warning btn-sm' disabled>Waiting...</button>";
                 } else { //activate_account
-                    $btndom = "<button class='btn btn-outline-success btn-sm' onclick=";
+                    $btndom  = "<button class='btn btn-outline-success btn-sm' onclick=";
                     $btndom .= "get_user_profile_details('$btnlink') >Activate</button>";
                 }
                 $json['data'][] = [
@@ -1887,7 +1887,7 @@ class CustomerController extends Controller
                     $btndom = "<button class='btn btn-outline-warning btn-sm' disabled>Waiting...</button>";
                 } else { //activate_account
                     if ($infoData->status_id == 7) {
-                        $btndom = "<button class='btn btn-outline-success btn-sm' onclick=";
+                        $btndom  = "<button class='btn btn-outline-success btn-sm' onclick=";
                         $btndom .= "get_user_profile_details('$btnlink') >Activate</button>";
                     } else {
                         $btndelete   = url('company/' . Auth()->user()->company->short_name . '/customer/customer-delete');
@@ -1928,7 +1928,7 @@ class CustomerController extends Controller
                     $btndom = "<button class='btn btn-outline-warning btn-sm' disabled>Waiting...</button>";
                 } else { //activate_account
                     if ($infoData->status_id == 7) {
-                        $btndom = "<button class='btn btn-outline-success btn-sm' onclick=";
+                        $btndom  = "<button class='btn btn-outline-success btn-sm' onclick=";
                         $btndom .= "get_user_profile_details('$btnlink') >Activate</button>";
                     } else {
                         $btndelete   = url('company/' . Auth()->user()->company->short_name . '/customer/customer-delete');
@@ -1948,7 +1948,7 @@ class CustomerController extends Controller
                     }
                 }
 
-                $repeatTxt = "";
+                $repeatTxt  = "";
 
                 if ($infoData->repeat == 'D') {
                     $repeatTxt = "Daily";
@@ -1994,7 +1994,7 @@ class CustomerController extends Controller
                     $btndom = "<button class='btn btn-outline-warning btn-sm' disabled>Waiting...</button>";
                 } else { //activate_account
                     if ($infoData->status_id == 7) {
-                        $btndom = "<button class='btn btn-outline-success btn-sm' onclick=";
+                        $btndom  = "<button class='btn btn-outline-success btn-sm' onclick=";
                         $btndom .= "get_user_profile_details('$btnlink') >Activate</button>";
                     } else {
                         $btndelete   = url('company/' . Auth()->user()->company->short_name . '/customer/customer-delete');
@@ -2015,7 +2015,7 @@ class CustomerController extends Controller
                 }
                 $loanbalance = loan::where(['user_id' => $infoData->id, 'loan_status_id' => 1])->sum('loanBalance');
 
-                $json['data'][] = [
+                $json['data'][]  = [
                     $loop,
                     $infoData->first_name . ' ' . $infoData->last_name,
                     $infoData->virtual_accnum,
@@ -2055,10 +2055,10 @@ class CustomerController extends Controller
                     </div>
                   </div>';
                 } else if ($infoData->is_agent == 2) {
-                    $btn = "<a   class='btn btn-outline-success btn-sm' onclick=";
+                    $btn  = "<a   class='btn btn-outline-success btn-sm' onclick=";
                     $btn .= " approved(" . $infoData->id . ") >Approve</a>";
                 } else if ($infoData->is_agent == 3) {
-                    $btn = "<a   class='btn btn-outline-success btn-sm' onclick=";
+                    $btn  = "<a   class='btn btn-outline-success btn-sm' onclick=";
                     $btn .= " approved(" . $infoData->id . ")>Enable</a>";
                 }
                 $loop++;
@@ -2409,9 +2409,9 @@ class CustomerController extends Controller
                 $branchdata = branch::where(['company_id' => auth()->user()->company_id, 'currency_id' => $request->currency_id])->first();
                 if (isset($branchdata->code)) {
                     if ($branchdata->code != null) {
-                        $branchCodeLength = strlen($branchdata->code);
-                        $branchCodeLength -= 1;
-                        $virtual_acccount_number = substr_replace($virtual_acccount_number, $branchdata->code, -$branchCodeLength);
+                        $branchCodeLength         = strlen($branchdata->code);
+                        $branchCodeLength        -= 1;
+                        $virtual_acccount_number  = substr_replace($virtual_acccount_number, $branchdata->code, -$branchCodeLength);
                     }
                 }
             } else {
@@ -2846,8 +2846,8 @@ class CustomerController extends Controller
                     $tempuserdata->company_name     = $auth->company->company_name;
                     if (User::where('virtual_account', $tempuserdata->ac_no)->count() == 0) {
                         if ((User::where(['first_name' => $tempuserdata->first_name, 'last_name' => $tempuserdata->last_name, 'company_id' => $auth])->count() == 0)) {
-                            $response = $this->import_customer_account($tempuserdata);
-                            $message .= $response['message'] . "<br>";
+                            $response  = $this->import_customer_account($tempuserdata);
+                            $message  .= $response['message'] . "<br>";
                             if ($response['status']) {
                                 $nosuccess += 1;
                             }
@@ -3167,7 +3167,7 @@ class CustomerController extends Controller
                 $success++;
             }
         }
-        $tag = 'user';
+        $tag  = 'user';
         if ($success > 1) {
             $tag = 'users';
         }
@@ -3612,10 +3612,10 @@ class CustomerController extends Controller
         foreach ($info as $infoData) {
 
             $sn++;
-            $btnlink = $infoData->id;
-            $total += $infoData->balance;
-            $created        = User::where('id', $infoData->created_by)->first();
-            $json['data'][] = [
+            $btnlink         = $infoData->id;
+            $total          += $infoData->balance;
+            $created         = User::where('id', $infoData->created_by)->first();
+            $json['data'][]  = [
                 $sn,
                 $infoData->first_name . ' ' . $infoData->last_name,
                 $infoData->virtual_accnum,
@@ -3713,9 +3713,9 @@ class CustomerController extends Controller
 
         $result = $identityPassController->verifyCAC($company_type, $company_no);
 
-        $transactionId = generateTransactionReference();
+        $transactionId  = generateTransactionReference();
 
-        $chargeAmount = 3000;
+        $chargeAmount  = 3000;
 
         $company = Company::where('id', $company_id)->first();
 

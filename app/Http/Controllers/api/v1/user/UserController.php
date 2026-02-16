@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
@@ -165,13 +166,17 @@ class UserController extends Controller
             $pathLocation = "other_doc";
         }
 
-        $result = $request->file("image_file")->store("public/$pathLocation");
+        // $result = $request->file("image_file")->store("public/$pathLocation");
+
+        $result = $request->file("image_file")->store($pathLocation, 'public');
 
         // $request->image->move(public_path("images") , $imageName) // Store file in public folder
         if ($result) {
 
             //   $imageUrl = \url("wba/storage/app/" . $result);
-            $imageUrl = \url("$result");
+
+            //  $imageUrl = \url("$result");
+            $imageUrl = asset(Storage::url($result));
 
             // return $result;
             // if ($request->type == "passport") {
@@ -713,7 +718,7 @@ class UserController extends Controller
             if ($request->type == "capture") {
 
                 if ($request->event == "card.authorization.closed" && $request->status == "approved") {
-                    $msg = "Debit Transaction Alert: Amount: " . ($request->amount / 100) . ",  Date: " . date("Y-m-d H:i:s") . " Avail Bal: " . $wbAccountDetails->user_wallet->balance . ".";
+                    $msg  = "Debit Transaction Alert: Amount: " . ($request->amount / 100) . ",  Date: " . date("Y-m-d H:i:s") . " Avail Bal: " . $wbAccountDetails->user_wallet->balance . ".";
                     $msg .= " Direct ATM Withdrawal";
 
                     // $sendSMS = \sendSMS($wbAccountDetails->user_id, $msg, \true, false, "ATM Withdrawal", '', 0, \false);
@@ -747,7 +752,7 @@ class UserController extends Controller
 
                     $debitReversal = debitReversal($request->transaction_reference, $wbAccountDetails->id, $wbAccountDetails->user->company_id, $checkTransaction->amount, 0, "both", "atm");
 
-                    $msg = "Credit Transaction Alert: Amount: $request->amount, Avail Bal: " . $debitReversal['data']['balance_after'] . "  Date: " . date("Y-m-d H:i:s") . ".";
+                    $msg  = "Credit Transaction Alert: Amount: $request->amount, Avail Bal: " . $debitReversal['data']['balance_after'] . "  Date: " . date("Y-m-d H:i:s") . ".";
                     $msg .= " ATM Debit Reversal";
 
                     // $sendSMS = \sendSMS($wbAccountDetails->user_id, $msg, true, true, "ATM Withdrawal", '', 0, false);
@@ -1281,7 +1286,7 @@ class UserController extends Controller
             if ($request->amount < 1) {
                 return response()->json(['status' => false, 'message' => "Amount should be greater than zero!"], 400);
             }
-            $agent_id = auth()->user()->id;
+            $agent_id  = auth()->user()->id;
             if (auth()->user()->is_agent != 1) {
                 return response()->json(["status" => false, "message" => "Only approve agent can perform such action"], 400);
             }
@@ -1398,15 +1403,15 @@ class UserController extends Controller
                 $Esusulog_circle_out = Esusulog::where(['esusu_id' => $esusuid])->count();
                 if (($count_num_sofar >= $duration)) {
                     // circle_out_charge
-                    $circle_charge_percentage = $esusu->esusu_type->circle_charge;
-                    $circle_charge            = ($circle_charge_percentage / 100) * $rate;
-                    $esusu_circleout          = Esusulog::where(['esusu_id' => $esusuid])->count();
-                    $today_card               = EsusuTXN::where(['esusu_id' => $esusuid])->whereDay('created_at', '=', date('d'))
+                    $circle_charge_percentage  = $esusu->esusu_type->circle_charge;
+                    $circle_charge             = ($circle_charge_percentage / 100) * $rate;
+                    $esusu_circleout           = Esusulog::where(['esusu_id' => $esusuid])->count();
+                    $today_card                = EsusuTXN::where(['esusu_id' => $esusuid])->whereDay('created_at', '=', date('d'))
                         ->sum('no_card');
-                    $prev_card = EsusuTXN::where(['esusu_id' => $esusuid])->whereDay('created_at', '<', date('d'))
+                    $prev_card  = EsusuTXN::where(['esusu_id' => $esusuid])->whereDay('created_at', '<', date('d'))
                         ->sum('no_card');
-                    $today_cash = $today_card * $rate;
-                    $logtxn     = Esusulog::create([
+                    $today_cash  = $today_card * $rate;
+                    $logtxn      = Esusulog::create([
                         'circle_out_charge' => $circle_charge,
                         'esusu_id'          => $esusuid,
                         'rate'              => $rate,
@@ -1421,10 +1426,10 @@ class UserController extends Controller
                         'missed_day'        => $esusu->missed_day,
                         'status_id'         => 1,
                     ]);
-                    $esusu->wallet = $wallet = ($esusu->wallet + ($esusu->withdrawable));
-                    $esusu->accum_charge += $circle_charge;
-                    $esusu->withdrawable  = 0;
-                    $esusu->commence_date = add_day_to_date(1, $start_date);
+                    $esusu->wallet         = $wallet         = ($esusu->wallet + ($esusu->withdrawable));
+                    $esusu->accum_charge  += $circle_charge;
+                    $esusu->withdrawable   = 0;
+                    $esusu->commence_date  = add_day_to_date(1, $start_date);
                     $esusu->save();
                 }
                 DB::commit();
@@ -1556,14 +1561,14 @@ class UserController extends Controller
             if ($request->amount < 1) {
                 return response()->json(['status' => false, 'message' => "Amount should be greater than zero!"], 400);
             }
-            $auth       = auth()->user();
-            $created_by = User::where('id', $auth->id)->first();
-            $esusu      = Esusu::where(['id' => $request->esusuid, 'hasAgent' => 1])->first();
+            $auth        = auth()->user();
+            $created_by  = User::where('id', $auth->id)->first();
+            $esusu       = Esusu::where(['id' => $request->esusuid, 'hasAgent' => 1])->first();
             //if(auth()->user()->is_agent != 1){ return response()->json(["status" => false, "message" => "Only approve agent can perform such action"], 400);}
-            $wb_id        = $esusu->wb_account_detail_id;
-            $cash         = $request->amount;
-            $number       = $cash / $esusu->rate;
-            $walletfinder = wb_account_details::where(['id' => $wb_id])->first();
+            $wb_id         = $esusu->wb_account_detail_id;
+            $cash          = $request->amount;
+            $number        = $cash / $esusu->rate;
+            $walletfinder  = wb_account_details::where(['id' => $wb_id])->first();
             if (! $walletfinder) {
                 return response()->json(['status' => 0, 'message' => 'Error Processing Account!'], 400);
             }
@@ -1597,9 +1602,9 @@ class UserController extends Controller
             ];
 
             $company_wallet->balance -= $cash;
-            $ledger_cr       = null;
-            $ledger_dr       = null;
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(7, $auth->company_id);
+            $ledger_cr               = null;
+            $ledger_dr               = null;
+            $ledger_Settings         = get_CR_DR_TXN_Type_Ledger(7, $auth->company_id);
             if ($ledger_Settings) {
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
@@ -1622,10 +1627,10 @@ class UserController extends Controller
                 "ledger_cr"              => $ledger_cr,
             ];
 
-            $balanceBefore = $esusu->wallet;
-            $balanceAfter  = $esusu->wallet  = $esusu->wallet - $cash;
+            $balanceBefore  = $esusu->wallet;
+            $balanceAfter   = $esusu->wallet   = $esusu->wallet - $cash;
             DB::beginTransaction();
-            $transactionId = generate_txnID();
+            $transactionId  = generate_txnID();
             //walletfinder
             if ($walletfinder->bank->bank_code == null) {
                 return response()->json(['status' => 0, 'message' => 'Error processing Bank Info!'], 400);
@@ -1756,6 +1761,7 @@ class UserController extends Controller
             $virtualAccount->gender                       = $user->gender;
             $virtualAccount->bvn                          = $user->bvn;
             $virtualAccount->address                      = $user->address;
+            $virtualAccount->country                      = auth()->user()->company->currency_id ?? "";
             $virtualAccount->companyAccountCreationStatus = auth()->user()->company->setting->can_create_virtual_account;
 
             $createAccountService = new AccountCreationService();

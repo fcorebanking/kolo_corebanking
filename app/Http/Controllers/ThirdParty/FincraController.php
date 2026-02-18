@@ -2,8 +2,14 @@
 namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\CustomClasses\WebhookController;
-use Carbon\Carbon;
+use App\Models\ApiKey;
+use App\Models\Company;
+use App\Models\savings_product;
+use App\Models\User;
+use App\Models\wb_account_details;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Image;
@@ -58,7 +64,36 @@ class FincraController extends WebhookController
             $bankStatement = $this->upload($request, $type);
         }
 
-        if ("currency" == "USD") {
+        if ($currency == "USD" || $currency == "GBP" || $currency == "EUR") {
+            $currency = "USD";
+            $body     = [
+                "currency"       => $currency,
+                "accountType"    => "individual",
+                "utilityBill"    => $utilityBill,
+                "bankStatement"  => $bankStatement,
+                "KYCInformation" => [
+                    "sourceOfIncome"   => $request->sourceOfIncome,
+                    "employmentStatus" => $request->employmentStatus,
+
+                ],
+            ];
+
+        } else {
+            $body = [
+                "currency"       => $currency,
+                "accountType"    => "individual",
+
+                "KYCInformation" => [
+                    "firstName" => $virtualAccount->firstName,
+                    "lastName"  => $virtualAccount->lastName,
+                    "email"     => $virtualAccount->email,
+                    "phone"     => $virtualAccount->phone,
+
+                ],
+            ];
+        }
+
+        /*  if ("currency" == "USD" ) {
             $body = [
                 "currency"       => $currency,
                 "utilityBill"    => $utilityBill,
@@ -86,7 +121,7 @@ class FincraController extends WebhookController
 
                 ],
             ];
-        }
+        }*/
 
         $jsonBody = json_encode($body);
 
@@ -98,7 +133,7 @@ class FincraController extends WebhookController
 
             $createAccountResponse = $this->fincraPostRequest($url, $body);
 
-            logInfo($createAccountResponse, "Kuda Create Account Response");
+            logInfo($createAccountResponse, "Fincra Create Account Response");
 
             if ($createAccountResponse->successful()) {
 
@@ -112,10 +147,10 @@ class FincraController extends WebhookController
                 } else {
                     return [
                         'status'  => true,
-                        'message' => "Account Created Successfully",
+                        'message' => "Account Pending",
                         'data'    => [
-                            'account_number'         => $createAccountResponse['data']['accountNumber'],
-                            'virtual_account_number' => $createAccountResponse['data']['accountNumber'],
+                            'account_number'         => $createAccountResponse['data']['_id'],
+                            'virtual_account_number' => $createAccountResponse['data']['_id'],
                         ],
                     ];
                 }
@@ -131,7 +166,6 @@ class FincraController extends WebhookController
 
     public function addAccount($requestReference, $virtualAccount)
     {
-        $currency      = $this->getCurrency($virtualAccount->currencyCode);
         $utilityBill   = "";
         $bankStatement = "";
 
@@ -145,15 +179,43 @@ class FincraController extends WebhookController
             $bankStatement = $this->upload($request, $type);
         }
 
-        if ("currency" == "USD") {
+        if ($currency == "USD" || $currency == "GBP" || $currency == "EUR") {
+            $currency = "USD";
+            $body     = [
+                "currency"       => $currency,
+                "accountType"    => "individual",
+                "utilityBill"    => $utilityBill,
+                "bankStatement"  => $bankStatement,
+                "KYCInformation" => [
+                    "sourceOfIncome"   => $request->sourceOfIncome,
+                    "employmentStatus" => $request->employmentStatus,
+
+                ],
+            ];
+
+        } else {
+            $body = [
+                "currency"       => $currency,
+                "accountType"    => "individual",
+
+                "KYCInformation" => [
+                    "firstName" => $virtualAccount->firstName,
+                    "lastName"  => $virtualAccount->lastName,
+                    "email"     => $virtualAccount->email,
+                    "phone"     => $virtualAccount->phone,
+
+                ],
+            ];
+        }
+
+        /*  if ("currency" == "USD" ) {
             $body = [
                 "currency"       => $currency,
                 "utilityBill"    => $utilityBill,
                 "bankStatement"  => $bankStatement,
                 "KYCInformation" => [
-
-                    "sourceOfIncome"   => "salary",
-                    "employmentStatus" => "employed",
+                    "sourceOfIncome"   => $request->sourceOfIncome,
+                    "employmentStatus" => $request->employmentStatus,
 
                 ],
             ];
@@ -174,11 +236,11 @@ class FincraController extends WebhookController
 
                 ],
             ];
-        }
+        }*/
 
         $jsonBody = json_encode($body);
 
-        $url = "https://kuda-openapi.kuda.com/v2.1";
+        $url = "{$this->baseUrl}/profile/virtual-accounts/requests ";
 
         try {
 
@@ -186,7 +248,7 @@ class FincraController extends WebhookController
 
             $createAccountResponse = $this->fincraPostRequest($url, $body);
 
-            logInfo($createAccountResponse, "Kuda Create Account Response");
+            logInfo($createAccountResponse, "Fincra Create Account Response");
 
             if ($createAccountResponse->successful()) {
 
@@ -200,10 +262,10 @@ class FincraController extends WebhookController
                 } else {
                     return [
                         'status'  => true,
-                        'message' => "Account Created Successfully",
+                        'message' => "Account Pending",
                         'data'    => [
-                            'account_number'         => $createAccountResponse['data']['accountNumber'],
-                            'virtual_account_number' => $createAccountResponse['data']['accountNumber'],
+                            'account_number'         => $createAccountResponse['data']['_id'],
+                            'virtual_account_number' => $createAccountResponse['data']['_id'],
                         ],
                     ];
                 }
@@ -211,7 +273,7 @@ class FincraController extends WebhookController
                 return ['status' => false, 'message' => 'Account CreationFailed . Kindly contactsupportfor assistance'];
             }
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Laravel Kuda Error");
+            logInfo($e->getMessage(), "Laravel Fincra Error");
 
             return ['status' => false, 'message' => 'Error CreatingAccount . Kindly contactsupportfor assistance'];
         }
@@ -468,6 +530,7 @@ class FincraController extends WebhookController
         $type = match ($currency_id) {
             4       => 'GBP',
             7       => 'EUR',
+            8       => 'GHS',
 
             default => 'USD', // fallback
         };
@@ -478,6 +541,7 @@ class FincraController extends WebhookController
         $type = match ($currency_id) {
             4       => 'GBP',
             7       => 'EUR',
+            8       => 'GHS',
 
             default => 'USD', // fallback
         };
@@ -536,6 +600,45 @@ class FincraController extends WebhookController
         logInfo(json_encode($body), "Fincra Process Endpoint Body");
         $response = Http::withHeaders($this->fincraHeader())->post($endpoint, $body);
         return $response;
+    }
+
+    public function updateForeignVirtualAccount($response)
+    {
+        try {
+            $user = User::where('virtual_account', $response['data']['id'])->first();
+
+            \logInfo(json_encode($user), "api saving account user");
+            \logInfo(json_encode(auth()->user()->company_id), "api saving account company");
+
+            $bank_id = 126;
+            $saving  = savings_product::where('company_id', $user->company_id)->first();
+
+            if ($saving) {
+                \logInfo(json_encode($saving), "api saving account ");
+
+                $companyRecord = Company::where(['id' => $user->company_id])->first();
+
+                $customer_reference      = $response['data']['accountInformation']['reference'];
+                $virtual_acccount_number = $response['data']['accountInformation']['accountNumber'];
+
+                $wb_account_details = wb_account_details::where('user_id', $user->id)->first();
+                $wb_account_details->update([
+                    'virtual_accnum' => $virtual_acccount_number,
+                    'acc_reference'  => $customer_reference,
+                    'bankid'         => $bankId,
+                    "currency_id"    => $user->company->currency_id,
+                ]);
+
+                $user->virtual_account   = $virtual_acccount_number;
+                $user->account_reference = $customer_reference;
+                $user->save();
+            } else {
+                return response()->json(['status' => 0, 'message' => 'Account Registration Failed!']);
+            }
+
+        } catch (Exception $e) {
+            return response()->json(['status' => 0, 'message' => "An error occured!"]);
+        }
     }
 
 }

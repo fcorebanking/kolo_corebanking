@@ -283,6 +283,10 @@ class RegisterController extends Controller
         // $otp = '7777';
         DB::beginTransaction();
 
+        if ($virtualAccount->country != 1) {
+            $virtual_acccount_number = $response['data']['account_number'];
+        }
+
         try {
             // referral_id
             $dataraw = [

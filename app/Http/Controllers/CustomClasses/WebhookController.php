@@ -3,6 +3,7 @@ namespace App\Http\Controllers\CustomClasses;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\ThirdParty\CgateController;
+use App\Http\Controllers\ThirdParty\FincraController;
 use App\Http\Controllers\ThirdParty\FlutterwaveController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
@@ -655,6 +656,19 @@ class WebhookController extends Controller
     {
         $requestResponse = $request->all();
         logInfo(json_encode($requestResponse), "request Response");
+    }
+
+    public function handleFincraWebhook($request)
+    {
+        $requestResponse = $request->all();
+        logInfo(json_encode($requestResponse), "request Response");
+
+        $fincraController = new FincraController();
+
+        if ($requestResponse['event'] == "virtualaccount.approved") {
+            return $fincraController->updateForeignVirtualAccount($requestResponset);
+        }
+
     }
 
     private function getVirtualAccountNumber($kudaVirtualNumber)

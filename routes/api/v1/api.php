@@ -42,6 +42,7 @@ Route::post('/test-finova-webhook', [TransactionController::class, 'finovaWebhoo
 Route::post('/4ts-finova-webhook', [TransactionController::class, 'finova4tsWebhook']);
 Route::post('/create-physical-card', [TransactionController::class, 'createPhysicalCard']);
 Route::get('/get-4t5-session', [TransactionController::class, 'get4T5SessionToken']);
+Route::post('/admin-process-verify-reverse-transactions', [TransactionController::class, 'verifyAndReverseTransactionAdmin']);
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();

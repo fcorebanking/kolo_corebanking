@@ -1823,4 +1823,7 @@ class UserController extends Controller
             return response()->json(['status' => 0, 'message' => "An error occured!"]);
         }
     }
+
+
+    
 }

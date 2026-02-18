@@ -8,6 +8,7 @@ use App\Http\Controllers\ThirdParty\BaniController;
 use App\Http\Controllers\ThirdParty\CgateController;
 use App\Http\Controllers\ThirdParty\CyberpayControllelr;
 use App\Http\Controllers\ThirdParty\FairMoneyController;
+use App\Http\Controllers\ThirdParty\FincraController;
 use App\Http\Controllers\ThirdParty\GTBController;
 use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Http\Controllers\ThirdParty\KudaBusinessController;
@@ -2505,6 +2506,25 @@ class TransactionController extends Controller
         $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
 
         logInfo(json_encode($handleWebhook), "Handle web hook maplerad result");
+        logInfo("$httpCode", "httpCode");
+
+        return response()->json($handleWebhook, $httpCode);
+    }
+
+    public function fincraWebhook(Request $request)
+    {
+        $fincraController = new FincraController();
+        // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
+
+        if (! $request['type'] != "transfer") {
+            response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
+        }
+
+        $handleWebhook = $fincraController->handleFincraWebhook($request);
+
+        $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
+
+        logInfo(json_encode($handleWebhook), "Handle web hook fincra result");
         logInfo("$httpCode", "httpCode");
 
         return response()->json($handleWebhook, $httpCode);
@@ -6268,6 +6288,23 @@ class TransactionController extends Controller
         }
     }
 
+    public function verifyAndReverseTransactionAdmin(Request $request)
+    {
+
+        $validation = Validator::make($request->all(), [
+            "transaction_reference" => "required|string",
+        ]);
+
+        $partnerType = "others";
+
+        if ($validation->fails()) {
+            return response()->json(['status' => 0, 'message' => $validation->errors()->all()[0]]);
+        }
+
+        return $this->processVerifyAndReverseTransaction($request);
+
+    }
+
     public function createPhysicalCard(Request $request)
     {
         // Disable service (optional)
@@ -6376,11 +6413,11 @@ class TransactionController extends Controller
     public function postGiftTransaction(Request $request)
     {
         $neonDataApi = new NeonDataApiController();
-        $response = $neonDataApi->giftCardTransaction($request);
-        if($response){
-              return response()->json(['status' => 1, 'message' => "Gift Card Transaction Successful", ], 200);
-        }else{
-            response()->json(['status' => 0, 'message' => "Gift Card Transaction failed"],400);
+        $response    = $neonDataApi->giftCardTransaction($request);
+        if ($response) {
+            return response()->json(['status' => 1, 'message' => "Gift Card Transaction Successful"], 200);
+        } else {
+            response()->json(['status' => 0, 'message' => "Gift Card Transaction failed"], 400);
         }
     }
 

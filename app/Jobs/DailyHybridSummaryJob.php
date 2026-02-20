@@ -26,6 +26,9 @@ class DailyHybridSummaryJob implements ShouldQueue
     {
         \Log::info('RUNNING NEW VERSION OF JOB');
 
+        \Log::info('fromDate : ', $this->fromDate);
+        \Log::info('toDate: ', $this->toDate);
+
         // Step 1: Aggregate in SQL
         $aggregatedRows = DB::table('transactions as t')
             ->select(
@@ -42,7 +45,7 @@ class DailyHybridSummaryJob implements ShouldQueue
             ->whereBetween('t.created_at', [$this->fromDate, $this->toDate])
             ->groupBy('t.company_id', 't.branch_id', 'u.account_officer_id', 't.transaction_type_id', DB::raw('DATE(t.created_at)'))
             ->get();
-
+        \Log::info('agregated rows : ', json_encode($aggregatedRows));
         // Step 2: Loop over aggregated rows for PHP-level logic / updateOrCreate
         foreach ($aggregatedRows as $row) {
             // Example: Add any custom PHP adjustments per row

@@ -192,7 +192,14 @@ class Kernel extends ConsoleKernel
                 Log::error('Your SubscriptionCron Job failed');
             });
 
-        $schedule->job(new DailyHybridSummaryJob)->dailyAt('23:00')->onSuccess(function () {
+        /*    $schedule->job(new DailyHybridSummaryJob)->dailyAt('23:00')->onSuccess(function () {
+            Log::info('Your DailyHybridSummaryJob executed successfully.');
+        })
+            ->onFailure(function () {
+                Log::error('Your DailyHybridSummaryJob failed');
+            });*/
+
+        $schedule->job(new DailyHybridSummaryJob)->everyTenMinutes()->onSuccess(function () {
             Log::info('Your DailyHybridSummaryJob executed successfully.');
         })
             ->onFailure(function () {

@@ -1006,11 +1006,11 @@ function whatsapp($phone, $msg, $type = 'transaction', $param = [])
             $balanceBefore = $company_wallet->whatsapp;
 
             $company_wallet->whatsapp -= $amount;
-            $whatsappcharge = $company->setting->whatsapp_charge;
-            $companyUpdate  = ['whatsapp' => $company_wallet->whatsapp];
-            $transactionId  = generate_txnID();
+            $whatsappcharge            = $company->setting->whatsapp_charge;
+            $companyUpdate             = ['whatsapp' => $company_wallet->whatsapp];
+            $transactionId             = generate_txnID();
             logInfo($transactionId, "Whatsapp API");
-            $data_company = [
+            $data_company  = [
                 "balance_before"         => $balanceBefore,
                 "amount"                 => $amount,
                 "withdrawal_charge"      => 0,
@@ -1215,7 +1215,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
             $num_page = 2;
         }
         $sms_charge *= $num_page;
-        $datax = [
+        $datax      = [
             'message'        => "Notification",
             'subtext'        => "$title",
             'desc'           => $msg,
@@ -1538,7 +1538,7 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                     logInfo("{$apicur}", "SMS 2FA Get api response");
 
                                     // $response = Http::get($apicur);
-                                    $response = smsCustomer($phone, $msg, $company->short_name, $title);
+                                    $response = smsCustomer($phone, $msg, $company->short_name, $title, $userinfo->company_id);
                                     //$response = smsCustomer($phone, $msg, $company->short_name);
 
                                 } else {
@@ -1785,12 +1785,12 @@ function creditCustomerAndCompany($customerAccountId, $companyId, $customerAmoun
         $userWallet->balance    = $customerFinalBalance;
         $userWallet->save();
         if (isset($userWallet->wb_account_details->user->branch_id)) {
-            $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
+            $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
             $BranchWallet->balance += $customerAmount;
             $BranchWallet->save();
         }
-        $company               = Company::find($companyId);
-        $companyInitialBalance = $company->wallet->balance;
+        $company                   = Company::find($companyId);
+        $companyInitialBalance     = $company->wallet->balance;
         $company->wallet->balance += $companyAmount;
         $company->wallet->save();
 
@@ -1821,19 +1821,19 @@ function creditCustomerAndCompanyWithCharge($customerAccountId, $companyId, $ori
         $customerBalanceAfter   = $customerInitialBalance + $originalAmount;
 
         // $customerChargeBalanceAfter = $customerBalanceAfter - $customerCharge;
-        $amountPay            = ($originalAmount - $customerCharge);
-        $customerFinalBalance = $userWallet->balance += $amountPay;
+        $amountPay             = ($originalAmount - $customerCharge);
+        $customerFinalBalance  = $userWallet->balance += $amountPay;
         $userWallet->save();
         if (isset($userWallet->wb_account_details->user->branch_id)) {
-            $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
+            $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
             $BranchWallet->balance += $amountPay;
             $BranchWallet->save();
         }
 
-        $company               = Company::find($companyId);
-        $companyCurrentBalance = $company->wallet->balance;
-        $companyBalanceAfter   = $company->wallet->balance + $originalAmount;
-        $companyFinalBalance   = $company->wallet->balance += ($originalAmount - $companyCharge);
+        $company                = Company::find($companyId);
+        $companyCurrentBalance  = $company->wallet->balance;
+        $companyBalanceAfter    = $company->wallet->balance + $originalAmount;
+        $companyFinalBalance    = $company->wallet->balance   += ($originalAmount - $companyCharge);
         $company->wallet->save();
 
         $response = [
@@ -1868,16 +1868,16 @@ function creditPOSTerminal($terminalCode, $originalAmount, $charge, $companyChar
             $response = ["status" => false, 'message' => "Invalid POS Terminal"];
         }
 
-        $currentAgentBalance = $agentTerminal->balance;
-        $agentBalanceAfter   = $currentAgentBalance + $originalAmount;
-        $customerCharge      = $charge + $companyCharge;
-        $amountToCredit      = $originalAmount - $customerCharge;
-        $finalAgentBalance   = $agentTerminal->balance += $amountToCredit;
+        $currentAgentBalance  = $agentTerminal->balance;
+        $agentBalanceAfter    = $currentAgentBalance + $originalAmount;
+        $customerCharge       = $charge + $companyCharge;
+        $amountToCredit       = $originalAmount - $customerCharge;
+        $finalAgentBalance    = $agentTerminal->balance   += $amountToCredit;
         $agentTerminal->save();
 
-        $company               = Company::find($companyId);
-        $companyCurrentBalance = $company->wallet->balance;
-        $companyFinalBalance   = $company->wallet->balance += ($charge);
+        $company                = Company::find($companyId);
+        $companyCurrentBalance  = $company->wallet->balance;
+        $companyFinalBalance    = $company->wallet->balance   += ($charge);
         $company->wallet->save();
 
         $response = [
@@ -1912,12 +1912,12 @@ function sweepCustomerAccountAndCreditCompanyWithCharge($customerAccountId, $com
 
         // $customerChargeBalanceAfter = $customerBalanceAfter - $customerCharge;
 
-        $customerFinalBalance = $userWallet->balance += ($originalAmount - $customerCharge);
+        $customerFinalBalance  = $userWallet->balance += ($originalAmount - $customerCharge);
 
-        $company               = Company::find($companyId);
-        $companyCurrentBalance = $company->wallet->balance;
-        $companyBalanceAfter   = $company->wallet->balance + $originalAmount;
-        $companyFinalBalance   = $company->wallet->balance += ($originalAmount - $companyCharge);
+        $company                = Company::find($companyId);
+        $companyCurrentBalance  = $company->wallet->balance;
+        $companyBalanceAfter    = $company->wallet->balance + $originalAmount;
+        $companyFinalBalance    = $company->wallet->balance   += ($originalAmount - $companyCharge);
         $company->wallet->save();
 
         $response = [
@@ -1953,10 +1953,10 @@ function creditCustomerOnly($customerAccountId, $originalAmount, $charge = 0.0)
 
         $creditAmount = $originalAmount - $charge;
 
-        $customerBalanceAfter = $userWallet->balance += $creditAmount;
+        $customerBalanceAfter  = $userWallet->balance += $creditAmount;
         $userWallet->save();
         if (isset($userWallet->wb_account_details->user->branch_id)) {
-            $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
+            $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
             $BranchWallet->balance += $creditAmount;
             $BranchWallet->save();
         }
@@ -1989,10 +1989,10 @@ function debitCustomerOnly($customerAccountId, $originalAmount, $user)
 
         if (($customerInitialBalance - $minBalance) > $originalAmount) {
 
-            $customerBalanceAfter = $userWallet->balance -= $originalAmount;
+            $customerBalanceAfter  = $userWallet->balance -= $originalAmount;
             $userWallet->save();
             if (isset($userWallet->wb_account_details->user->branch_id)) {
-                $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
+                $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
                 $BranchWallet->balance -= $originalAmount;
                 $BranchWallet->save();
             }
@@ -2028,11 +2028,11 @@ function debitCustomerWithCharge($customerAccountId, $originalAmount, $charge, $
 
         if (($customerInitialBalance - $minBalance) > $debitAmount) {
 
-            $customerBalanceAfter = $userWallet->balance -= $debitAmount;
+            $customerBalanceAfter  = $userWallet->balance -= $debitAmount;
             $userWallet->save();
 
             if (isset($userWallet->wb_account_details->user->branch_id)) {
-                $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
+                $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
                 $BranchWallet->balance -= $debitAmount;
                 $BranchWallet->save();
             }
@@ -2074,13 +2074,13 @@ function debitPOSTerminalWithCharge($terminalId, $originalAmount, $charge, $comp
 
             if (($customerInitialBalance - $minBalance) > $debitAmount) {
 
-                $customerBalanceAfter = $userPOS->balance -= $debitAmount;
+                $customerBalanceAfter  = $userPOS->balance -= $debitAmount;
                 $userPOS->save();
 
                 $companyWallet = company_wallet::where('company_id', $user->company_id)->lockForUpdate()->first();
 
-                $companyBalanceBefore = $companyWallet->balance;
-                $companyBalanceAfter  = $companyWallet->balance += $charge;
+                $companyBalanceBefore  = $companyWallet->balance;
+                $companyBalanceAfter   = $companyWallet->balance  += $charge;
                 $companyWallet->save();
 
                 $response = [
@@ -2160,19 +2160,19 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
             if (($companyWallet->balance > ($originalAmount + $customerCharge)) && ($companyIDsStatus)) {
 
-                $customerBalanceAfter = $customerInitialBalance - $originalAmount;
-                $paymentcash          = ($originalAmount + $customerCharge);
-                $customerFinalBalance = $userWallet->balance -= $paymentcash;
+                $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
+                $paymentcash           = ($originalAmount + $customerCharge);
+                $customerFinalBalance  = $userWallet->balance -= $paymentcash;
 
                 if ($userWallet->save()) {
-                    $BranchWallet = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
+                    $BranchWallet           = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
                     $BranchWallet->balance -= $paymentcash;
                     $BranchWallet->save();
                 }
                 $companyInitialBalance = $companyWallet->balance;
                 $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 
-                $companyFinalBalance = $companyWallet->balance -= ($originalAmount + $companyCharge);
+                $companyFinalBalance  = $companyWallet->balance -= ($originalAmount + $companyCharge);
                 $companyWallet->save();
 
                 $currentUser->balance_fails = 0;
@@ -2202,7 +2202,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
             if ($currentUser->balance_fails < 4) {
                 $currentUser->balance_fails += 1;
                 $currentUser->save();
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds Customer Funds"];
+                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds Customer Funds"];
             } else {
                 // auth()->user()->status_id = 5;
                 restrictUserAccount(2, "Multiple Insuficient balance trials");
@@ -2269,19 +2269,19 @@ function checkCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
             if (($companyWallet->balance > ($originalAmount + $customerCharge)) && ($companyIDsStatus)) {
 
-                $customerBalanceAfter = $customerInitialBalance - $originalAmount;
-                $paymentcash          = ($originalAmount + $customerCharge);
-                $customerFinalBalance = $userWallet->balance -= $paymentcash;
+                $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
+                $paymentcash           = ($originalAmount + $customerCharge);
+                $customerFinalBalance  = $userWallet->balance -= $paymentcash;
 
                 if ($userWallet) {
-                    $BranchWallet = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
+                    $BranchWallet           = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
                     $BranchWallet->balance -= $paymentcash;
                     //      $BranchWallet->save();
                 }
                 $companyInitialBalance = $companyWallet->balance;
                 $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 
-                $companyFinalBalance = $companyWallet->balance -= ($originalAmount + $companyCharge);
+                $companyFinalBalance  = $companyWallet->balance -= ($originalAmount + $companyCharge);
                 //     $companyWallet->save();
 
                 $currentUser->balance_fails = 0;
@@ -2311,7 +2311,7 @@ function checkCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
             if ($currentUser->balance_fails < 4) {
                 $currentUser->balance_fails += 1;
                 $currentUser->save();
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds Customer Funds"];
+                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds Customer Funds"];
             } else {
                 // auth()->user()->status_id = 5;
                 restrictUserAccount(2, "Multiple Insuficient balance trials");
@@ -2355,19 +2355,19 @@ function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, 
             $company = Company::find($companyId);
             if ($company->wallet->balance > ($originalAmount + $customerCharge)) {
 
-                $customerBalanceAfter = $customerInitialBalance - $originalAmount;
-                $paymentcash          = ($originalAmount + $customerCharge);
-                $customerFinalBalance = $userWallet->balance -= $paymentcash;
+                $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
+                $paymentcash           = ($originalAmount + $customerCharge);
+                $customerFinalBalance  = $userWallet->balance -= $paymentcash;
 
                 // if ($userWallet->save()) {
-                $BranchWallet = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
+                $BranchWallet           = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
                 $BranchWallet->balance -= $paymentcash;
                 // $BranchWallet->save();
                 // }
-                $companyInitialBalance = $company->wallet->balance;
-                $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
+                $companyInitialBalance  = $company->wallet->balance;
+                $companyBalanceAfter    = $companyInitialBalance - $originalAmount;
 
-                $companyFinalBalance = $company->wallet->balance -= ($originalAmount + $companyCharge);
+                $companyFinalBalance  = $company->wallet->balance -= ($originalAmount + $companyCharge);
                 // $company->wallet->save();
 
                 $currentUser->balance_fails = 0;
@@ -2394,7 +2394,7 @@ function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, 
             if ($currentUser->balance_fails < 4) {
                 $currentUser->balance_fails += 1;
                 $currentUser->save();
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds Customer Funds"];
+                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds Customer Funds"];
             } else {
                 // auth()->user()->status_id = 5;
                 restrictUserAccount(2, "Multiple Insuficient balance trials");
@@ -2434,13 +2434,13 @@ function debitCustomerAndCompanyPOSWithChargeAndCommission($customerAccountId, $
 
             $customerBalanceAfter = $customerInitialBalance - $originalAmount;
 
-            $customerFinalBalance = $userPOS->balance -= ($originalAmount + $customerCharge);
+            $customerFinalBalance  = $userPOS->balance -= ($originalAmount + $customerCharge);
             $userPOS->save();
 
             $companyInitialBalance = $company->wallet->balance;
             $companyBalanceAfter   = $companyInitialBalance;
 
-            $companyFinalBalance = $company->wallet->balance += ($companyCommission);
+            $companyFinalBalance  = $company->wallet->balance += ($companyCommission);
             $company->wallet->save();
 
             $currentUser->balance_fails = 0;
@@ -2465,7 +2465,7 @@ function debitCustomerAndCompanyPOSWithChargeAndCommission($customerAccountId, $
             if ($currentUser->balance_fails < 4) {
                 $currentUser->balance_fails += 1;
                 $currentUser->save();
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
+                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
             } else {
                 // auth()->user()->status_id = 5;
                 restrictUserAccount(2, "Multiple Insuficient balance trials", $currentUser);
@@ -2520,24 +2520,24 @@ function creditCustomerAndCompanyPOSAmountWithCharge($customerAccountId, $termin
         $posBalanceAfter = $posInitialBalance - $originalAmount;
 
         //Debit POS Terminal
-        $customerFinalBalance = $agentTerminal->balance -= ($originalAmount + $customerCharge);
+        $customerFinalBalance  = $agentTerminal->balance -= ($originalAmount + $customerCharge);
         $agentTerminal->save();
 
         $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
 
         //Credit Customer Account
-        $customerInitialBalance = $userWallet->balance;
-        $customerBalanceAfter   = $userWallet->balance += $originalAmount;
+        $customerInitialBalance  = $userWallet->balance;
+        $customerBalanceAfter    = $userWallet->balance   += $originalAmount;
         $userWallet->save();
         if (isset($userWallet->wb_account_details->user->branch_id)) {
-            $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
+            $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
             $BranchWallet->balance += $originalAmount;
             $BranchWallet->save();
         }
         $companyInitialBalance = $company->wallet->balance;
         $companyBalanceAfter   = $companyInitialBalance + $originalAmount;
 
-        $companyFinalBalance = $company->wallet->balance += $originalAmount;
+        $companyFinalBalance  = $company->wallet->balance += $originalAmount;
         $company->wallet->save();
 
         $response = [
@@ -2611,17 +2611,17 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
 
                 $customerBalanceAfter = $customerInitialBalance - $originalAmount;
 
-                $customerFinalBalance = $userWallet->balance -= ($originalAmount - $customerCashbackAmount);
+                $customerFinalBalance  = $userWallet->balance -= ($originalAmount - $customerCashbackAmount);
                 $userWallet->save();
                 if (isset($userWallet->wb_account_details->user->branch_id)) {
-                    $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
+                    $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
                     $BranchWallet->balance -= $originalAmount;
                     $BranchWallet->save();
                 }
                 $companyInitialBalance = $company->wallet->balance;
                 $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 
-                $companyFinalBalance = $company->wallet->balance -= ($originalAmount - $companyCashbackAmount);
+                $companyFinalBalance  = $company->wallet->balance -= ($originalAmount - $companyCashbackAmount);
                 $company->wallet->save();
 
                 $currentUser->balance_fails = 0;
@@ -2650,7 +2650,7 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
             if ($currentUser->balance_fails < 4) {
                 $currentUser->balance_fails += 1;
                 $currentUser->save();
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
+                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
             } else {
                 // auth()->user()->status_id = 5;
                 restrictUserAccount(2, "Multiple Insuficient balance trials");
@@ -2671,10 +2671,10 @@ function creditCompanyWithCharge($companyId, $originalAmount, $companyCharge)
 
     if ($originalAmount > 0) {
 
-        $company               = Company::find($companyId);
-        $companyInitialBalance = $company->wallet->balance;
-        $companyBalanceAfter   = $companyInitialBalance + $originalAmount;
-        $companyFinalBalance   = $company->wallet->balance += ($originalAmount - $companyCharge);
+        $company                = Company::find($companyId);
+        $companyInitialBalance  = $company->wallet->balance;
+        $companyBalanceAfter    = $companyInitialBalance + $originalAmount;
+        $companyFinalBalance    = $company->wallet->balance   += ($originalAmount - $companyCharge);
         $company->wallet->save();
 
         $response = [
@@ -2730,8 +2730,8 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
 
         if ($companyInitialBalance > $debitAmount && $companyIDsStatus) {
 
-            $companyBalanceAfter = $companyInitialBalance - $originalAmount;
-            $companyFinalBalance = $company_wallet->balance -= $debitAmount;
+            $companyBalanceAfter  = $companyInitialBalance - $originalAmount;
+            $companyFinalBalance  = $company_wallet->balance -= $debitAmount;
             $company_wallet->save();
 
             $currentUser->balance_fails = 0;
@@ -2750,7 +2750,7 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
             if ($currentUser->balance_fails < 4) {
                 $currentUser->balance_fails += 1;
                 $currentUser->save();
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
+                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
             } else if (! $companyIDsStatus) {
                 $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
             } else {
@@ -2783,8 +2783,8 @@ function tryToDebitCompanyWithCharge($companyId, $originalAmount, $companyCharge
 
         if ($companyInitialBalance > ($originalAmount + $companyCharge)) {
 
-            $companyBalanceAfter = $companyInitialBalance - $originalAmount;
-            $companyFinalBalance = $company->wallet->balance -= ($originalAmount + $companyCharge);
+            $companyBalanceAfter  = $companyInitialBalance - $originalAmount;
+            $companyFinalBalance  = $company->wallet->balance -= ($originalAmount + $companyCharge);
             // $company->wallet->save();
 
             $currentUser->balance_fails = 0;
@@ -2802,7 +2802,7 @@ function tryToDebitCompanyWithCharge($companyId, $originalAmount, $companyCharge
             if ($currentUser->balance_fails < 4) {
                 $currentUser->balance_fails += 1;
                 $currentUser->save();
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
+                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
             } else {
                 restrictUserAccount(2, "Multiple Insuficient balance trials", $currentUser);
 
@@ -2832,7 +2832,7 @@ function checkPinDebitCompanyWithCharge($transactionPin, $companyId, $originalAm
             if (auth()->user()->transaction_pin_fails < 4) {
                 auth()->user()->transaction_pin_fails += 1;
                 auth()->user()->save();
-                return $response = ["status" => false, "responseCode" => 2, 'message' => "Invalid Transaction pin. Your account will be restricted after " . (5 - auth()->user()->transaction_pin_fails) . " wrong attempts"];
+                return $response  = ["status" => false, "responseCode" => 2, 'message' => "Invalid Transaction pin. Your account will be restricted after " . (5 - auth()->user()->transaction_pin_fails) . " wrong attempts"];
             } else {
                 // auth()->user()->status_id = 5;
                 restrictUserAccount(2, "Multiple Transaction pin trials");
@@ -2844,11 +2844,11 @@ function checkPinDebitCompanyWithCharge($transactionPin, $companyId, $originalAm
 
     if ($companyInitialBalance > ($originalAmount + $companyCharge)) {
 
-        auth()->user()->balance_fails         = 0;
-        auth()->user()->transaction_pin_fails = 0;
+        auth()->user()->balance_fails          = 0;
+        auth()->user()->transaction_pin_fails  = 0;
         auth()->user()->save();
-        $companyBalanceAfter = $companyInitialBalance - $originalAmount;
-        $companyFinalBalance = $company->wallet->balance -= ($originalAmount + $companyCharge);
+        $companyBalanceAfter  = $companyInitialBalance - $originalAmount;
+        $companyFinalBalance  = $company->wallet->balance -= ($originalAmount + $companyCharge);
         $company->wallet->save();
 
         $response = [
@@ -2863,7 +2863,7 @@ function checkPinDebitCompanyWithCharge($transactionPin, $companyId, $originalAm
         if (auth()->user()->balance_fails < 4) {
             auth()->user()->balance_fails += 1;
             auth()->user()->save();
-            $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
+            $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
         } else {
             // auth()->user()->status_id = 5;
             restrictUserAccount(2, "Multiple Insuficient balance trials");
@@ -2885,11 +2885,11 @@ function checkCustomerBalanceAndDebit($accountId, $amount)
         $userWallet = user_wallet::where('wb_account_detail_id', $accountId)->first();
 
         if ($userWallet->balance >= $amount) {
-            $currentBalance = $userWallet->balance;
-            $newBalance     = $userWallet->balance -= $amount;
+            $currentBalance  = $userWallet->balance;
+            $newBalance      = $userWallet->balance     -= $amount;
             $userWallet->save();
             if (isset($userWallet->wb_account_details->user->branch_id)) {
-                $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
+                $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
                 $BranchWallet->balance += $amount;
                 $BranchWallet->save();
             }
@@ -2919,10 +2919,10 @@ function checkCompanyBalanceAndDebit($amount)
         $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
 
         if ($userWallet->balance >= $amount) {
-            $currentBalance = $userWallet->balance;
-            $newBalance     = $userWallet->balance -= $amount;
+            $currentBalance  = $userWallet->balance;
+            $newBalance      = $userWallet->balance     -= $amount;
             $userWallet->save();
-            $response = [
+            $response  = [
                 "status"         => true,
                 'message'        => "Amount Debited Successfully",
                 'balance_before' => $currentBalance,
@@ -2965,7 +2965,7 @@ function validatePinCheckCustomerBalance($transactionPin, $amount, $selectedwall
                     if ($user->balance_fails < 4) {
                         $user->balance_fails += 1;
                         $user->save();
-                        $response = ["status" => false, 'message' => "Insufficient Funds"];
+                        $response  = ["status" => false, 'message' => "Insufficient Funds"];
                     } else {
                         // $user->status_id = 5;
                         restrictUserAccount(2, "Multiple Insuficient balance trials");
@@ -2977,7 +2977,7 @@ function validatePinCheckCustomerBalance($transactionPin, $amount, $selectedwall
                 if ($user->transaction_pin_fails < 4) {
                     $user->transaction_pin_fails += 1;
                     $user->save();
-                    $response = ["status" => false, 'message' => "Invalid Transaction pin. Your account will be restricted after " . (5 - $user->transaction_pin_fails) . " wrong attempts"];
+                    $response  = ["status" => false, 'message' => "Invalid Transaction pin. Your account will be restricted after " . (5 - $user->transaction_pin_fails) . " wrong attempts"];
                 } else {
                     restrictUserAccount(2, "Multiple Invalid transaction pin");
                     $response = ["status" => false, 'message' => "Your account has been restricted. please contact support"];
@@ -3016,8 +3016,8 @@ function validatePinDebitCompanyBalance($transactionPin, $amount)
 
                     $companywallet = company_wallet::where('company_id', auth()->user()->company->id)->first();
 
-                    $balanceAfter              = $companywallet->balance -= $amount;
-                    $companywallet->updated_at = Carbon::now();
+                    $balanceAfter               = $companywallet->balance              -= $amount;
+                    $companywallet->updated_at  = Carbon::now();
                     $companywallet->save();
 
                     $response = ["status" => true, "responseCode" => 1, 'message' => "Amount and pin are Valid", 'balance_before' => $balanceBefore, 'balance_after' => $balanceAfter, 'balance' => $companywallet->balance];
@@ -3025,7 +3025,7 @@ function validatePinDebitCompanyBalance($transactionPin, $amount)
                     if (auth()->user()->balance_fails < 4) {
                         auth()->user()->balance_fails += 1;
                         auth()->user()->save();
-                        $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
+                        $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
                     } else {
                         // auth()->user()->status_id = 5;
                         restrictUserAccount(2, "Multiple Insuficient balance trials");
@@ -3037,7 +3037,7 @@ function validatePinDebitCompanyBalance($transactionPin, $amount)
                 if (auth()->user()->transaction_pin_fails < 4) {
                     auth()->user()->transaction_pin_fails += 1;
                     auth()->user()->save();
-                    $response = ["status" => false, "responseCode" => 2, 'message' => "Invalid Transaction pin. Your account will be restricted after " . (5 - auth()->user()->transaction_pin_fails) . " wrong attempts"];
+                    $response  = ["status" => false, "responseCode" => 2, 'message' => "Invalid Transaction pin. Your account will be restricted after " . (5 - auth()->user()->transaction_pin_fails) . " wrong attempts"];
                 } else {
                     restrictUserAccount(2, "Multiple Invalid transaction pin");
                     $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support"];
@@ -3442,11 +3442,11 @@ function checkCustomerBalanceCompanyBalanceAndDebit($accountId, $amount)
                 $company->wallet->balance -= $amount;
                 $company->wallet->save();
 
-                $currentBalance = $userWallet->balance;
-                $newBalance     = $userWallet->balance -= $amount;
+                $currentBalance  = $userWallet->balance;
+                $newBalance      = $userWallet->balance     -= $amount;
                 $userWallet->save();
                 if (isset($userWallet->wb_account_details->user->branch_id)) {
-                    $BranchWallet = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
+                    $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
                     $BranchWallet->balance += $amount;
                     $BranchWallet->save();
                 }
@@ -3663,7 +3663,7 @@ function Stringlimiter($string, $length)
         $endPoint  = strrpos($stringCut, ' ');
 
         //if the string doesn't contain any space then it will cut without word basis.
-        $string = $endPoint ? substr($stringCut, 0, $endPoint) : substr($stringCut, 0);
+        $string  = $endPoint ? substr($stringCut, 0, $endPoint) : substr($stringCut, 0);
         $string .= '...';
     }
     return $string;
@@ -3794,59 +3794,59 @@ function DebitCreditcustomer($data = [])
                         return ["status" => 0, "message" => "Open Till Balance before performing transaction, goto accounting report and then click on Close/Open Account and use the open button"];
                     }
                     if ($credit_debit_type_id == 2) {
-                        $closing->ten_thousand_quantity -= $request->ten_thousand_quantity;
-                        $closing->ten_thousand_amount -= $request->ten_thousand_quantity ?? 0 * 10000;
-                        $closing->five_thousand_quantity -= $request->five_thousand_quantity;
-                        $closing->five_thousand_amount -= $request->five_thousand_quantity ?? 0 * 5000;
-                        $closing->two_thousand_quantity -= $request->two_thousand_quantity;
-                        $closing->two_thousand_amount -= $request->two_thousand_quantity ?? 0 * 2000;
-                        $closing->one_thousand_quantity -= $request->one_thousand_quantity;
-                        $closing->one_thousand_amount -= $request->one_thousand_quantity ?? 0 * 1000;
+                        $closing->ten_thousand_quantity      -= $request->ten_thousand_quantity;
+                        $closing->ten_thousand_amount        -= $request->ten_thousand_quantity ?? 0 * 10000;
+                        $closing->five_thousand_quantity     -= $request->five_thousand_quantity;
+                        $closing->five_thousand_amount       -= $request->five_thousand_quantity ?? 0 * 5000;
+                        $closing->two_thousand_quantity      -= $request->two_thousand_quantity;
+                        $closing->two_thousand_amount        -= $request->two_thousand_quantity ?? 0 * 2000;
+                        $closing->one_thousand_quantity      -= $request->one_thousand_quantity;
+                        $closing->one_thousand_amount        -= $request->one_thousand_quantity ?? 0 * 1000;
                         $closing->five_hundred_note_quantity -= $request->five_hundred_note_quantity;
-                        $closing->five_hundred_note_amount -= $request->five_hundred_note_quantity ?? 0 * 500;
+                        $closing->five_hundred_note_amount   -= $request->five_hundred_note_quantity ?? 0 * 500;
                         $closing->five_hundred_coin_quantity -= $request->five_hundred_coin_quantity;
-                        $closing->five_hundred_coin_amount -= $request->five_hundred_coin_quantity ? ($request->five_hundred_coin_quantity / 100) : 0;
-                        $closing->one_hundred_quantity -= $request->one_hundred_quantity;
-                        $closing->one_hundred_amount -= $request->one_hundred_quantity ?? 0 * 100;
-                        $closing->fifthy_quantity -= $request->fifthy_quantity;
-                        $closing->fifthy_amount -= $request->fifthy_quantity ?? 0 * 50;
-                        $closing->twenty_five_amount -= $request->twenty_five_quantity ?? 0 * 25;
-                        $closing->twenty_five_quantity -= $request->twenty_five_quantity;
-                        $closing->ten_quantity -= $request->ten_quantity;
-                        $closing->ten_amount -= $request->ten_quantity ?? 0 * 10;
-                        $closing->five_quantity -= $request->five_quantity;
-                        $closing->five_amount -= $request->five_quantity ?? 0 * 5;
-                        $closing->two_quantity -= $request->two_quantity;
-                        $closing->two_amount -= $request->two_quantity ?? 0 * 2;
-                        $closing->one_quantity -= $request->one_quantity;
-                        $closing->one_amount -= $request->one_amount ?? 0 * 1;
+                        $closing->five_hundred_coin_amount   -= $request->five_hundred_coin_quantity ? ($request->five_hundred_coin_quantity / 100) : 0;
+                        $closing->one_hundred_quantity       -= $request->one_hundred_quantity;
+                        $closing->one_hundred_amount         -= $request->one_hundred_quantity ?? 0 * 100;
+                        $closing->fifthy_quantity            -= $request->fifthy_quantity;
+                        $closing->fifthy_amount              -= $request->fifthy_quantity ?? 0 * 50;
+                        $closing->twenty_five_amount         -= $request->twenty_five_quantity ?? 0 * 25;
+                        $closing->twenty_five_quantity       -= $request->twenty_five_quantity;
+                        $closing->ten_quantity               -= $request->ten_quantity;
+                        $closing->ten_amount                 -= $request->ten_quantity ?? 0 * 10;
+                        $closing->five_quantity              -= $request->five_quantity;
+                        $closing->five_amount                -= $request->five_quantity ?? 0 * 5;
+                        $closing->two_quantity               -= $request->two_quantity;
+                        $closing->two_amount                 -= $request->two_quantity ?? 0 * 2;
+                        $closing->one_quantity               -= $request->one_quantity;
+                        $closing->one_amount                 -= $request->one_amount ?? 0 * 1;
                     } else {
-                        $closing->ten_thousand_quantity += $request->ten_thousand_quantity;
-                        $closing->ten_thousand_amount += ($request->ten_thousand_quantity ?? 0) * 10000;
-                        $closing->five_thousand_quantity += $request->five_thousand_quantity;
-                        $closing->five_thousand_amount += ($request->five_thousand_quantity ?? 0) * 5000;
-                        $closing->two_thousand_quantity += $request->two_thousand_quantity;
-                        $closing->two_thousand_amount += ($request->two_thousand_quantity ?? 0) * 2000;
-                        $closing->one_thousand_quantity += $request->one_thousand_quantity;
-                        $closing->one_thousand_amount += ($request->one_thousand_quantity ?? 0) * 1000;
+                        $closing->ten_thousand_quantity      += $request->ten_thousand_quantity;
+                        $closing->ten_thousand_amount        += ($request->ten_thousand_quantity ?? 0) * 10000;
+                        $closing->five_thousand_quantity     += $request->five_thousand_quantity;
+                        $closing->five_thousand_amount       += ($request->five_thousand_quantity ?? 0) * 5000;
+                        $closing->two_thousand_quantity      += $request->two_thousand_quantity;
+                        $closing->two_thousand_amount        += ($request->two_thousand_quantity ?? 0) * 2000;
+                        $closing->one_thousand_quantity      += $request->one_thousand_quantity;
+                        $closing->one_thousand_amount        += ($request->one_thousand_quantity ?? 0) * 1000;
                         $closing->five_hundred_note_quantity += $request->five_hundred_note_quantity;
-                        $closing->five_hundred_note_amount += ($request->five_hundred_note_quantity ?? 0) * 500;
+                        $closing->five_hundred_note_amount   += ($request->five_hundred_note_quantity ?? 0) * 500;
                         $closing->five_hundred_coin_quantity += $request->five_hundred_coin_quantity;
-                        $closing->five_hundred_coin_amount += $request->five_hundred_coin_quantity ? ($request->five_hundred_coin_quantity / 100) : 0;
-                        $closing->one_hundred_quantity += $request->one_hundred_quantity;
-                        $closing->one_hundred_amount += ($request->one_hundred_quantity ?? 0) * 100;
-                        $closing->fifthy_quantity += $request->fifthy_quantity;
-                        $closing->fifthy_amount += ($request->fifthy_quantity ?? 0) * 50;
-                        $closing->twenty_five_amount += ($request->twenty_five_quantity ?? 0) * 25;
-                        $closing->twenty_five_quantity += $request->twenty_five_quantity;
-                        $closing->ten_quantity += $request->ten_quantity;
-                        $closing->ten_amount += ($request->ten_quantity ?? 0) * 10;
-                        $closing->five_quantity += $request->five_quantity;
-                        $closing->five_amount += ($request->five_quantity ?? 0) * 5;
-                        $closing->two_quantity += $request->two_quantity;
-                        $closing->two_amount += ($request->two_quantity ?? 0) * 2;
-                        $closing->one_quantity += $request->one_quantity;
-                        $closing->one_amount += ($request->one_amount ?? 0) * 1;
+                        $closing->five_hundred_coin_amount   += $request->five_hundred_coin_quantity ? ($request->five_hundred_coin_quantity / 100) : 0;
+                        $closing->one_hundred_quantity       += $request->one_hundred_quantity;
+                        $closing->one_hundred_amount         += ($request->one_hundred_quantity ?? 0) * 100;
+                        $closing->fifthy_quantity            += $request->fifthy_quantity;
+                        $closing->fifthy_amount              += ($request->fifthy_quantity ?? 0) * 50;
+                        $closing->twenty_five_amount         += ($request->twenty_five_quantity ?? 0) * 25;
+                        $closing->twenty_five_quantity       += $request->twenty_five_quantity;
+                        $closing->ten_quantity               += $request->ten_quantity;
+                        $closing->ten_amount                 += ($request->ten_quantity ?? 0) * 10;
+                        $closing->five_quantity              += $request->five_quantity;
+                        $closing->five_amount                += ($request->five_quantity ?? 0) * 5;
+                        $closing->two_quantity               += $request->two_quantity;
+                        $closing->two_amount                 += ($request->two_quantity ?? 0) * 2;
+                        $closing->one_quantity               += $request->one_quantity;
+                        $closing->one_amount                 += ($request->one_amount ?? 0) * 1;
                     }
                     $closing->total = ($closing->one_amount + $closing->two_amount + $closing->five_amount + $closing->ten_amount + $closing->twenty_five_amount + $closing->fifthy_amount + $closing->one_hundred_amount + $closing->five_hundred_coin_amount + $closing->five_hundred_note_amount + $closing->one_thousand_amount + $closing->two_thousand_amount + $closing->five_thousand_amount + $closing->ten_thousand_amount);
                 }
@@ -3894,7 +3894,7 @@ function DebitCreditcustomer($data = [])
         if ($transaction) {
             $user_wallet = user_wallet::where('id', $user_wallet->id)->update(['balance' => $balanceAfter]);
             if (isset($user_wallet->wb_account_details->user->branch_id)) {
-                $BranchWallet = BranchWallet::where('branch_id', $user_wallet->wb_account_details->user->branch_id)->first();
+                $BranchWallet           = BranchWallet::where('branch_id', $user_wallet->wb_account_details->user->branch_id)->first();
                 $BranchWallet->balance += $amount;
                 $BranchWallet->save();
             }
@@ -4679,9 +4679,17 @@ function debitCreditCompany($data)
     return $txn;
 }
 
-function smsCustomer($phone, $msg, $company_short, $title)
+function smsCustomer($phone, $msg, $company_short, $title, $company_id)
 {
-    $apikey = env('SMS_API_KEY');
+    //  $apikey = env('SMS_API_KEY');
+
+    $apikey = match ($company_id) {
+        87      => env('SMS_API_KEY_GOVAULT'),
+        88      => env('SMS_API_KEY_GOVAULT'),
+        89      => env('SMS_API_KEY_GOVAULT'),
+
+        default => env('SMS_API_KEY'),
+    };
 
     logInfo("{$apikey}", "SMS_API_KEY SMS Customer");
 

@@ -87,7 +87,7 @@ class RegisterController extends Controller
         }*/
 
         match ((int) $request->company) {
-            37, 49, 59 => true,
+            37, 49, 59, 87, 88, 89 => true,
             default => tap($this->verifyBVN($request), function ($bvnCheck) {
                 if ($bvnCheck['status'] === false) {
                     abort(response()->json([
@@ -176,7 +176,7 @@ class RegisterController extends Controller
         // echo \json_encode($createAdminAccount);
 
         $companyIDs            = [];
-        $companyIDsAddBankName = [22, 32, 47, 87, 88, 89];
+        $companyIDsAddBankName = [22, 32, 47];
 
         $companyIDsStatus            = false;
         $companyIDsAddBankNameStatus = false;

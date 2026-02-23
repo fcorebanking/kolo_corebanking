@@ -54,12 +54,12 @@ class FincraController extends WebhookController
         $utilityBill   = "";
         $bankStatement = "";
 
-        if ($request->hasFile('bankstatement')) {
+        if (request()->hasFile('bankstatement')) {
             $type        = "bankstatement";
             $utilityBill = $this->upload($request, $type);
         }
 
-        if ($request->hasFile('utilitybill')) {
+        if (request()->hasFile('utilitybill')) {
             $type          = "utilitybill";
             $bankStatement = $this->upload($request, $type);
         }
@@ -164,17 +164,17 @@ class FincraController extends WebhookController
         }
     }
 
-    public function addAccount($requestReference, $virtualAccount)
+    public function addAccount(Request $request, $requestReference, $virtualAccount)
     {
         $utilityBill   = "";
         $bankStatement = "";
 
-        if ($request->hasFile('bankstatement')) {
+        if (request()->hasFile('bankstatement')) {
             $type        = "bankstatement";
             $utilityBill = $this->upload($request, $type);
         }
 
-        if ($request->hasFile('utilitybill')) {
+        if (request()->hasFile('utilitybill')) {
             $type          = "utilitybill";
             $bankStatement = $this->upload($request, $type);
         }

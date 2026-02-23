@@ -176,7 +176,7 @@ class RegisterController extends Controller
         // echo \json_encode($createAdminAccount);
 
         $companyIDs            = [];
-        $companyIDsAddBankName = [22, 32, 47];
+        $companyIDsAddBankName = [22, 32, 47, 87, 88, 89];
 
         $companyIDsStatus            = false;
         $companyIDsAddBankNameStatus = false;

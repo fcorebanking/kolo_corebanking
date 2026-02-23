@@ -26,8 +26,8 @@ class DailyHybridSummaryJob implements ShouldQueue
     {
         \Log::info('RUNNING NEW VERSION OF JOB');
 
-        \Log::info('fromDate : ', $this->fromDate);
-        \Log::info('toDate: ', $this->toDate);
+        \Log::info('fromDate : ', [$this->fromDate]);
+        \Log::info('toDate: ', [$this->toDate]);
 
         // Step 1: Aggregate in SQL
         $aggregatedRows = DB::table('transactions as t')

@@ -608,7 +608,8 @@ class WebhookController extends Controller
             $originalAmount,
             $companyId,
             $branchId,
-            $accountId
+            $accountId,
+            $customer
         );
 
         $this->createChargeTransaction(
@@ -790,7 +791,7 @@ class WebhookController extends Controller
         return $creditCustomer;
     }
 
-    private function createMainTransaction($credit, $amount, $companyId, $branchId, $accountId)
+    private function createMainTransaction($credit, $amount, $companyId, $branchId, $accountId, $customer)
     {
         $newdescription = str_replace("| [$customer->account_reference] TO WOBILO AFRICA LIMITED", "", $this->description);
         return transactions::create([

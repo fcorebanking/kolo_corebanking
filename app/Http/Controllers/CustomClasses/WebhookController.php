@@ -486,7 +486,7 @@ class WebhookController extends Controller
 
             return $account
                 ? $this->processCustomerWebhook($account)
-                : $this->processCompanyWebhook($account);
+                : $this->processCompanyWebhook();
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -645,7 +645,17 @@ class WebhookController extends Controller
                 $companyWallet = $loanRecord->user->company->wallet;
             }
         } else {
-            $companyWallet = company_wallet::where('vaccount', $this->virtualAccount)->orWhere('vaccount', $account)->first();
+            if ($this->webhookType == 'kuda') {
+                $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
+            } else if ($this->webhookType == 'providus') {
+                $providusController = new ProvidusController();
+                //  $account            = $providusController->getVirtualAccount($this->virtualAccount);
+                //  $getVirtualAccount  = $account['wallet']['accountNumber'];
+                $getVirtualAccount = $this->virtualAccount;
+            } else {
+                $getVirtualAccount = null;
+            }
+            $companyWallet = company_wallet::where('vaccount', $this->virtualAccount)->orWhere('vaccount', $getVirtualAccount)->first();
         }
         logInfo("check company id");
 

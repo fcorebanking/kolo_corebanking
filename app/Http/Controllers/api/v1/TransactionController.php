@@ -4,6 +4,7 @@ namespace App\Http\Controllers\api\v1;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\ThirdParty\AmuchaController;
 use App\Http\Controllers\ThirdParty\AssetMatrixController;
+use App\Http\Controllers\ThirdParty\RemittaController;
 use App\Http\Controllers\ThirdParty\BaniController;
 use App\Http\Controllers\ThirdParty\CgateController;
 use App\Http\Controllers\ThirdParty\CyberpayControllelr;
@@ -4882,20 +4883,37 @@ class TransactionController extends Controller
             "phone"          => $request->phone_number,
         ];
 
-        $endpoint = "pay";
+        if (\auth()->user()->company_id == 80) {
+  $remitaController = new RemittaController();
 
-        $vtPassController = new VTPassController();
+            $buyElectricity = $remitaController->buyElectricity(
+                $transactionId,
+                $request->electricity_disco,
+                $request->meter_type,
+                $request->meter_number,
+                $request->final_amount,
+                $request->phone_number
+            );
 
-        $buyElectricity = $vtPassController->buyElectricity(
-            $transactionId,
-            $request->electricity_disco,
-            $request->meter_type,
-            $request->meter_number,
-            $request->final_amount,
-            $request->phone_number
-        );
+               logInfo($buyElectricity, "Remita Electricity Response");
 
-        logInfo($buyElectricity, "VTPass Electricity Response");
+               } else {
+            $endpoint = "pay";
+
+            $vtPassController = new VTPassController();
+
+            $buyElectricity = $vtPassController->buyElectricity(
+                $transactionId,
+                $request->electricity_disco,
+                $request->meter_type,
+                $request->meter_number,
+                $request->final_amount,
+                $request->phone_number
+            );
+           logInfo($buyElectricity, "VTPass Electricity Response");
+        }
+
+     
 
         if (! $buyElectricity['status']) {
             return response()->json($buyElectricity, 400);

@@ -63,56 +63,54 @@ class NinePSBController extends WebhookController
 
     public function createAccount($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference)
     {
-        /*  $body = [
-            "servicetype" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
-            "requestref"  => $requestReference,
-            "data"        => [
-                "email"             => $email,
-                "phoneNumber"       => $phoneNumber,
-                "lastName"          => $lastName,
-                "firstName"         => $firstName,
-                "trackingReference" => $trackingReference,
-            ],
-        ];*/
+
         $body = [
-            "serviceType" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
-            "requestRef"  => $requestReference,
-            "data"        => [
-                "Amount"        => 0,
-                "AccountName"   => "$firstName $lastName",
-                "IsPassThrough" => true,
+            "transaction" => [
+                "reference" => $requestReference,
+            ],
+
+            "order"       => [
+                "amount"      => 0,
+                "currency"    => "NGN",
+                "description" => "Create Account",
+                "country"     => "NGA",
+                "amounttype"  => "ANY",
+
+            ],
+            "customer"    => [
+                "account" => [
+                    "name" => "$firstName $lastName",
+                    "type" => "STATIC",
+
+                ],
 
             ],
         ];
 
         $jsonBody = json_encode($body);
 
-        $requestBody = [
-            'data' => $jsonBody,
-        ];
-
         //  $url = "v2.1/";
-        $url = "https://kuda-openapi.kuda.com/v2.1";
+        $url = $this->baseUrl . "/virtualaccount/create";
 
         try {
 
             $login = $this->login();
 
             if (! $login['status']) {
-                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
+                return ['status' => false, 'message' => 'Failed to login to 9PSB'];
             }
 
-            \logInfo($requestBody, "Kuda Request body");
+            \logInfo($jsonBody, "9PSB Request body");
 
-            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
+            $createAccountResponse = $this->kudaPostRequestUpdate($url, $jsonBody);
 
-            logInfo($createAccountResponse, "Kuda Create Account Response");
+            logInfo($createAccountResponse, "9PSB Create Account Response");
 
             if ($createAccountResponse->successful()) {
 
                 //    $response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if (! $createAccountResponse["status"]) {
+                if (! $createAccountResponse["code"] != "00") {
                     return [
                         'status'  => false,
                         'message' => $createAccountResponse["message"],
@@ -122,8 +120,8 @@ class NinePSBController extends WebhookController
                         'status'  => true,
                         'message' => "Account Created Successfully",
                         'data'    => [
-                            'account_number'         => $createAccountResponse['data']['accountNumber'],
-                            'virtual_account_number' => $createAccountResponse['data']['accountNumber'],
+                            'account_number'         => $createAccountResponse['customer']['number'],
+                            'virtual_account_number' => $createAccountResponse['customer']['number'],
                         ],
                     ];
                 }
@@ -137,9 +135,6 @@ class NinePSBController extends WebhookController
         }
     }
 
-    
-
-   
     public function verifyBankAccount($bankCode, $accountNumber)
     {
 

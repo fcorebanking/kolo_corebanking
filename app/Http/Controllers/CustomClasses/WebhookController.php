@@ -723,6 +723,7 @@ class WebhookController extends Controller
     {
         logInfo($amount, "The Amount Log Tier");
         logInfo($this->fromTempWebhook, "The from webhook tier");
+        $accountTier = $customer->tier;
         logInfo($accountTier->max_amount_received, "The Max Amount Log Tier");
 
         if ($amount > $accountTier->max_amount_received || (($amount) > $accountTier->max_amount_received && $this->webhookType == 'kuda')) {

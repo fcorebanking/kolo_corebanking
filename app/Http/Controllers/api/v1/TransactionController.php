@@ -4,7 +4,6 @@ namespace App\Http\Controllers\api\v1;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\ThirdParty\AmuchaController;
 use App\Http\Controllers\ThirdParty\AssetMatrixController;
-use App\Http\Controllers\ThirdParty\RemittaController;
 use App\Http\Controllers\ThirdParty\BaniController;
 use App\Http\Controllers\ThirdParty\CgateController;
 use App\Http\Controllers\ThirdParty\CyberpayControllelr;
@@ -55,6 +54,7 @@ use App\Services\ebanking\BankTransferType;
 use App\Services\ebanking\EbankingService;
 use App\Services\fortifyTransactionService;
 use App\Services\PaystackService;
+use App\Services\RemittaController;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -4884,7 +4884,7 @@ class TransactionController extends Controller
         ];
 
         if (\auth()->user()->company_id == 80) {
-  $remitaController = new RemittaController();
+            $remitaController = new RemittaController();
 
             $buyElectricity = $remitaController->buyElectricity(
                 $transactionId,
@@ -4895,9 +4895,9 @@ class TransactionController extends Controller
                 $request->phone_number
             );
 
-               logInfo($buyElectricity, "Remita Electricity Response");
+            logInfo($buyElectricity, "Remita Electricity Response");
 
-               } else {
+        } else {
             $endpoint = "pay";
 
             $vtPassController = new VTPassController();
@@ -4910,10 +4910,8 @@ class TransactionController extends Controller
                 $request->final_amount,
                 $request->phone_number
             );
-           logInfo($buyElectricity, "VTPass Electricity Response");
+            logInfo($buyElectricity, "VTPass Electricity Response");
         }
-
-     
 
         if (! $buyElectricity['status']) {
             return response()->json($buyElectricity, 400);

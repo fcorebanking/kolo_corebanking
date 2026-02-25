@@ -1,16 +1,18 @@
 <?php
 namespace App\Services;
-use App\Models\Remitasalaryhistory;
-use App\Models\RemitaMandate;
-use App\Models\User;
-use App\Models\RemitaCredential;
-use App\Models\WbaCharge;
-use App\Models\wb_account_details;
-use Illuminate\Support\Facades\Http;
-use App\Http\Controllers\ExpensesController;
-use Illuminate\Http\Request;
 
-class RemittaController {
+use App\Models\RemitaCredential;
+use App\Models\RemitaMandate;
+use App\Models\Remitasalaryhistory;
+use App\Models\User;
+use App\Models\WbaCharge;
+use Carbon\Carbon;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+
+class RemittaController
+{
     private $apiKey;
     private $apiURL;
     private $machant;
@@ -21,86 +23,206 @@ class RemittaController {
     private $header;
     private $authcode;
     private $iswbaAPI;
-    public function __construct() {
-        $RemitaCredential = RemitaCredential::where(['company_id'=>auth()->user()->company_id,'ownership'=>1])->first();
-        if(!$RemitaCredential){
-            $RemitaCredential = RemitaCredential::where(['iswba'=>1])->first();
+    public function __construct()
+    {
+        $RemitaCredential = RemitaCredential::where(['company_id' => auth()->user()->company_id, 'ownership' => 1])->first();
+        if (! $RemitaCredential) {
+            $RemitaCredential = RemitaCredential::where(['iswba' => 1])->first();
 
         }
-        if(!$RemitaCredential){ return null;}
-        $this->iswbaAPI = $RemitaCredential->iswba;
-        $this->apiURL = env('APP_ENV')?env('REMITTAL_LIVE_URL'):env('REMITTAL_TEST_URL');
-        $this->machant =$RemitaCredential->machant;
-        $this->apiToken = $RemitaCredential->apiToken;
-        $this->apiKey =$RemitaCredential->apiKey;
-        $this->requestID= utf8_encode(round(microtime(true) * 1000));
-        $this->apiHash= hash('sha512', $this->apiKey . $this->requestID . $this->apiToken);
+        if (! $RemitaCredential) {return null;}
+        $this->iswbaAPI      = $RemitaCredential->iswba;
+        $this->apiURL        = env('APP_ENV') ? env('REMITTAL_LIVE_URL') : env('REMITTAL_TEST_URL');
+        $this->machant       = $RemitaCredential->machant;
+        $this->apiToken      = $RemitaCredential->apiToken;
+        $this->apiKey        = $RemitaCredential->apiKey;
+        $this->requestID     = utf8_encode(round(microtime(true) * 1000));
+        $this->apiHash       = hash('sha512', $this->apiKey . $this->requestID . $this->apiToken);
         $this->authorization = "remitaConsumerKey=$this->apiKey, remitaConsumerToken=$this->apiHash";
-        $this->authcode= rand(0, 1101232);
-        $this->header =[
-            'Content-Type' => 'application/json',
-            'Api_Key' => $this->apiKey,
-            'Merchant_id' => $this->machant,
-            'Request_id' => $this->requestID,
-            'Authorization' => $this->authorization
+        $this->authcode      = rand(0, 1101232);
+        $this->header        = [
+            'Content-Type'  => 'application/json',
+            'Api_Key'       => $this->apiKey,
+            'Merchant_id'   => $this->machant,
+            'Request_id'    => $this->requestID,
+            'Authorization' => $this->authorization,
         ];
     }
-    public function getSalaryHistoryPhoneNumber($phone){
-        $fields = [
-            'authorisationCode' => $this->authcode,
-            'phoneNumber' => "$phone",
-            'authorisationChannel' => 'USSD'
+
+    public function buyElectricity($transactionId, $electrictyDisco, $meterType, $meterNumber, $amount, $phoneNumber)
+    {
+
+        $body = [
+            "request_id"     => $transactionId,
+            "serviceID"      => $electrictyDisco,
+            "variation_code" => $meterType,
+            "billersCode"    => $meterNumber,
+            "amount"         => $amount,
+            "phone"          => $phoneNumber,
         ];
-        $salary = Remitasalaryhistory::where(['phone'=>$phone])->first();
-        if($salary){
+
+        $endpoint = "pay";
+
+        $buyElectricity = $this->vtpassPostRequest($endpoint, $body);
+
+        logInfo($buyElectricity, "VTPass Buy Electricity Response Log");
+
+        try {
+
+            if (isset($buyElectricity)) {
+                if ($buyElectricity["code"] == "000") {
+
+                    if ($buyElectricity['content']['transactions']['status'] == 'pending') {
+                        return [
+                            "status"  => true,
+                            'message' => "Transaction is Processing. you will receive a token shortly",
+                        ];
+                    }
+
+                    $electricityToken = isset($buyElectricity['Token']) ? $buyElectricity['Token'] : $buyElectricity['token'];
+
+                    $returnTypeResponse = $meterType == 'prepaid' ? [
+                        'balance'         => "0.0",
+                        'token'           => $electricityToken,
+                        'purchased_units' => $buyElectricity['PurchasedUnits'] ?? $buyElectricity['Units'] ?? $buyElectricity['units'] ?? null,
+                    ] : [
+                        'balance' => "0.0",
+                    ];
+
+                    return [
+                        "status"  => true,
+                        'message' => "Electricity Unit Purchase Successful",
+                        'data'    => $returnTypeResponse,
+                    ];
+                } else {
+                    return ["status" => false, 'message' => $buyElectricity['response_description']];
+                }
+            } else {
+                return ["status" => false, 'message' => "Failed to Purchase Electricity"];
+            }
+        } catch (Exception $e) {
+            \logInfo(json_encode($e->getMessage()), "VTPass Buy Electricity Error Response Log");
+            return ["status" => false, 'message' => "Sorry, Unable to get token. Kindly contact support"];
+        }
+    }
+
+    public function handleWebhook(Request $request)
+    {
+        $payload = $request->all();
+        logInfo(json_encode($payload), "VTPASSWebHook");
+
+        try {
+            $this->processTransaction($payload);
+        } catch (\Exception $e) {
+            logError($e->getMessage(), "VTPASSWebHookError");
+        }
+
+        return response()->json(["response" => "success"], 200);
+    }
+
+    public function vtPassRequestId()
+    {
+        $result     = '';
+        $dateString = \str_replace("-", "", Carbon::now()->format('Y-m-d H:i:s'));
+        $dateString = \str_replace(" ", "", $dateString);
+        $dateString = \str_replace(":", "", $dateString);
+        // return $dateString . $this->randomNumber(8);
+        return $dateString;
+    }
+
+    public function vtPassBaseUrl($endpoint)
+    {
+        return env('APP_MODE') == 'test' ? config('vtpass.base_url_test') . $endpoint : config('vtpass.base_url_live') . $endpoint;
+    }
+
+    public function vtpassGetRequest($endpoint)
+    {
+        $response = Http::withHeaders($this->vtpassHeader())->get($this->vtPassBaseUrl($endpoint));
+        return $response->json();
+    }
+
+    public function vtpassPostRequest($endpoint, $body)
+    {
+        logInfo($this->vtPassBaseUrl($endpoint));
+        $response = Http::withHeaders($this->vtpassHeader())->post($this->vtPassBaseUrl($endpoint), $body);
+        return $response->json();
+    }
+
+    public function vtpassHeader()
+    {
+        $header         = [];
+        $basicAuthToken = '';
+
+        if (env('APP_MODE') == 'test') {
+            $basicAuthToken = base64_encode(config('vtpass.username_test') . ":" . config('vtpass.password_test'));
+        } else {
+            $basicAuthToken = base64_encode(config('vtpass.username_live') . ":" . config('vtpass.password_live'));
+        }
+        $header = ['Authorization' => 'Basic ' . $basicAuthToken];
+
+        return $header;
+    }
+
+    public function getSalaryHistoryPhoneNumber($phone)
+    {
+        $fields = [
+            'authorisationCode'    => $this->authcode,
+            'phoneNumber'          => "$phone",
+            'authorisationChannel' => 'USSD',
+        ];
+        $salary = Remitasalaryhistory::where(['phone' => $phone])->first();
+        if ($salary) {
             return $salary->data;
         }
-        $member = User::where(['phone'=>$phone])->first();
-        if(!$member) return '[]';
-        if($this->iswbaAPI){
-            $wbacharge = WbaCharge::where('title','Remitta Salary History Charge')->first();
-            if(!$wbacharge){
-                $wbacharge =new WbaCharge;
-                $wbacharge->title = 'Remitta Salary History Charge';
-                $wbacharge->charge_by = 0;
-                $wbacharge->charge =150;
+        $member = User::where(['phone' => $phone])->first();
+        if (! $member) {
+            return '[]';
+        }
+
+        if ($this->iswbaAPI) {
+            $wbacharge = WbaCharge::where('title', 'Remitta Salary History Charge')->first();
+            if (! $wbacharge) {
+                $wbacharge                        = new WbaCharge;
+                $wbacharge->title                 = 'Remitta Salary History Charge';
+                $wbacharge->charge_by             = 0;
+                $wbacharge->charge                = 150;
                 $wbacharge->minimum_charge_amount = 0;
-                $wbacharge->maximum_charge_amount=200;
-                $wbacharge->created_at=now();
-                $wbacharge->updated_at =now();
+                $wbacharge->maximum_charge_amount = 200;
+                $wbacharge->created_at            = now();
+                $wbacharge->updated_at            = now();
                 $wbacharge->save();
             }
-            $charge = $wbacharge->charge;
+            $charge   = $wbacharge->charge;
             $response = debitCompanyWithCharge($member->company_id, $charge, 0);
-            if($response['status']){
-                $auth = auth()->user();
+            if ($response['status']) {
+                $auth          = auth()->user();
                 $transactionId = generate_txnID();
-                $transaction = transactions::create([
-                    "balance_before" => $response['balance_before'],
-                    "amount" => $charge,
-                    "balance_after" => $response['balance_after'],
-                    "description" => "Remitta phone salary history debit",
-                    "transaction_reference" => $transactionId,
+                $transaction   = transactions::create([
+                    "balance_before"         => $response['balance_before'],
+                    "amount"                 => $charge,
+                    "balance_after"          => $response['balance_after'],
+                    "description"            => "Remitta phone salary history debit",
+                    "transaction_reference"  => $transactionId,
                     "transaction_remarks_id" => 2,
-                    "company_id" => $auth->company_id,
-                    "transaction_type_id" => 102,
-                    "credit_debit_type_id" => 2,
-                    "created_date"  => date('Y-m-d'),
-                    "created_by" => $auth->id
+                    "company_id"             => $auth->company_id,
+                    "transaction_type_id"    => 102,
+                    "credit_debit_type_id"   => 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => $auth->id,
                 ]);
             }
         }
         $response = Http::withHeaders($this->header)
-        ->post($this->apiURL.'remita/exapp/api/v1/send/api/loansvc/data/api/v2/payday/salary/history/ph', $fields);
-        $convert = json_decode($response->body());
-        $Remitasalaryhistory = new Remitasalaryhistory;
-        $Remitasalaryhistory->phone = $phone;
-        $Remitasalaryhistory->customerId = $convert->data->customerId??'nill';
-        $Remitasalaryhistory->user_id=$member->id;
-        $Remitasalaryhistory->type="phone";
-        $Remitasalaryhistory->name=($convert->data->customerName)??'nil';
-        $Remitasalaryhistory->data=$response->body();
-        $Remitasalaryhistory->authcode = $fields['authorisationCode'];
+            ->post($this->apiURL . 'remita/exapp/api/v1/send/api/loansvc/data/api/v2/payday/salary/history/ph', $fields);
+        $convert                         = json_decode($response->body());
+        $Remitasalaryhistory             = new Remitasalaryhistory;
+        $Remitasalaryhistory->phone      = $phone;
+        $Remitasalaryhistory->customerId = $convert->data->customerId ?? 'nill';
+        $Remitasalaryhistory->user_id    = $member->id;
+        $Remitasalaryhistory->type       = "phone";
+        $Remitasalaryhistory->name       = ($convert->data->customerName) ?? 'nil';
+        $Remitasalaryhistory->data       = $response->body();
+        $Remitasalaryhistory->authcode   = $fields['authorisationCode'];
         $Remitasalaryhistory->save();
         // $expenses = new Request;
         // $expenses->merge([
@@ -111,69 +233,73 @@ class RemittaController {
         // (new ExpenseController)->store($expenses);
 
         return $response->json();
-        if(isset($convert->data->customerId)){
-            User::where(['phone'=>$phone])->update(['remittar_customer_id'=>$convert->data->customerId]);
+        if (isset($convert->data->customerId)) {
+            User::where(['phone' => $phone])->update(['remittar_customer_id' => $convert->data->customerId]);
         }
         return $response->body();
     }
-    public function getSalaryHistoryAccountNumber($accountNumber,$bankCode){
+    public function getSalaryHistoryAccountNumber($accountNumber, $bankCode)
+    {
         $fields = [
-            'authorisationCode' => $this->authcode,
-            'accountNumber' => "$accountNumber",
-            'bankCode' => "$bankCode",
-            'authorisationChannel' => 'USSD'
+            'authorisationCode'    => $this->authcode,
+            'accountNumber'        => "$accountNumber",
+            'bankCode'             => "$bankCode",
+            'authorisationChannel' => 'USSD',
         ];
-        $salary = Remitasalaryhistory::where(['accountNumber'=>$accountNumber,'bankCode'=>$bankCode])->first();
-        if($salary){
+        $salary = Remitasalaryhistory::where(['accountNumber' => $accountNumber, 'bankCode' => $bankCode])->first();
+        if ($salary) {
             return $salary->data;
         }
-        $member = User::where(['remittar_bankCode'=>$bankCode,'remittar_accountNo'=>$accountNumber])->first();
-        if(!$member)return '[]';
-        if($this->iswbaAPI){
-            $wbacharge = WbaCharge::where('title','Remitta Salary History Charge')->first();
-            if(!$wbacharge){
-                $wbacharge =new WbaCharge;
-                $wbacharge->title = 'Remitta Salary History Charge';
-                $wbacharge->charge_by = 0;
-                $wbacharge->charge =150;
+        $member = User::where(['remittar_bankCode' => $bankCode, 'remittar_accountNo' => $accountNumber])->first();
+        if (! $member) {
+            return '[]';
+        }
+
+        if ($this->iswbaAPI) {
+            $wbacharge = WbaCharge::where('title', 'Remitta Salary History Charge')->first();
+            if (! $wbacharge) {
+                $wbacharge                        = new WbaCharge;
+                $wbacharge->title                 = 'Remitta Salary History Charge';
+                $wbacharge->charge_by             = 0;
+                $wbacharge->charge                = 150;
                 $wbacharge->minimum_charge_amount = 0;
-                $wbacharge->maximum_charge_amount=200;
-                $wbacharge->created_at=now();
-                $wbacharge->updated_at =now();
+                $wbacharge->maximum_charge_amount = 200;
+                $wbacharge->created_at            = now();
+                $wbacharge->updated_at            = now();
                 $wbacharge->save();
             }
             $charge = $wbacharge->charge;
 
             $response = debitCompanyWithCharge($member->company_id, $charge, 0);
-            if($response['status']){
-                $auth = auth()->user();
+            if ($response['status']) {
+                $auth          = auth()->user();
                 $transactionId = generate_txnID();
-                $transaction = transactions::create([
-                    "balance_before" => $response['balance_before'],
-                    "amount" => $charge,
-                    "balance_after" => $response['balance_after'],
-                    "description" => "Remitta phone salary history debit",
-                    "transaction_reference" => $transactionId,
+                $transaction   = transactions::create([
+                    "balance_before"         => $response['balance_before'],
+                    "amount"                 => $charge,
+                    "balance_after"          => $response['balance_after'],
+                    "description"            => "Remitta phone salary history debit",
+                    "transaction_reference"  => $transactionId,
                     "transaction_remarks_id" => 2,
-                    "company_id" => $auth->company_id,
-                    "transaction_type_id" => 102,
-                    "credit_debit_type_id" => 2,
-                    "created_date"  => date('Y-m-d'),
-                    "created_by" => $auth->id
+                    "company_id"             => $auth->company_id,
+                    "transaction_type_id"    => 102,
+                    "credit_debit_type_id"   => 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => $auth->id,
                 ]);
             }
         }
-        $response = Http::withHeaders($this->header)->post($this->apiURL.'remita/exapp/api/v1/send/api/loansvc/data/api/v2/payday/salary/history/ph',$fields);
-        $convert = json_decode($response->body());
-        $Remitasalaryhistory = new Remitasalaryhistory;
+        $response                           = Http::withHeaders($this->header)->post($this->apiURL . 'remita/exapp/api/v1/send/api/loansvc/data/api/v2/payday/salary/history/ph', $fields);
+        $convert                            = json_decode($response->body());
+        $Remitasalaryhistory                = new Remitasalaryhistory;
         $Remitasalaryhistory->accountNumber = $accountNumber;
-        $Remitasalaryhistory->bankCode = $bankCode;
-        $Remitasalaryhistory->type="bank";
-        $Remitasalaryhistory->user_id=$member->id;
-        $Remitasalaryhistory->customerId = $convert->data->customerId??'nill';
-        $Remitasalaryhistory->name=($convert->data->customerName)??'nil';
-        $Remitasalaryhistory->data=$response->body();
-        $Remitasalaryhistory->authcode = $fields['authorisationCode'];
+        $Remitasalaryhistory->bankCode      = $bankCode;
+        $Remitasalaryhistory->type          = "bank";
+        $Remitasalaryhistory->user_id       = $member->id;
+        $Remitasalaryhistory->customerId    = $convert->data->customerId ?? 'nill';
+        $Remitasalaryhistory->name          = ($convert->data->customerName) ?? 'nil';
+        $Remitasalaryhistory->data          = $response->body();
+        $Remitasalaryhistory->authcode      = $fields['authorisationCode'];
         $Remitasalaryhistory->save();
         // $expenses = new Request;
         // $expenses->merge([
@@ -182,94 +308,106 @@ class RemittaController {
         //     'amount'              => 25,
         // ]);
         // (new ExpenseController)->store($expenses);
-        if(isset($convert->data->customerId)){
-            User::where(['remittar_bankCode'=>$bankCode,'remittar_accountNo'=>$accountNumber])->update(['remittar_customer_id'=>$convert->data->customerId]);
+        if (isset($convert->data->customerId)) {
+            User::where(['remittar_bankCode' => $bankCode, 'remittar_accountNo' => $accountNumber])->update(['remittar_customer_id' => $convert->data->customerId]);
         }
         return $response->body();
     }
-    public function postMandate($request){
-        $acnumber = $request->input('acnumber');
-        $loanid = $request->input('loanid');//jump for now
-        $customerId =  $request->input('customerId');
-        $phoneNumber = $request->input('phoneNumber');
-        $accountNumber = $request->input('acnumber');
-        $loanAmount =  $request->input('loanAmount');
-        $collectionAmount = $request->input('collectionAmount');
-        $dateOfDisbursement = $request->input('dateOfDisbursement');
-        $dateOfCollection = $request->input('dateOfCollection');
-        $totalCollectionAmount =$request->input('totalCollectionAmount');
-        $numberOfRepayments =$request->input('numberOfRepayments');
-        $bankcode = $request->input('bankcode');
-        $Remitasalaryhistory = Remitasalaryhistory::where('customerId',$customerId)->first();
-        $authcode ;
-        if($Remitasalaryhistory) $authcode =$Remitasalaryhistory->authcode;
+    public function postMandate($request)
+    {
+        $acnumber              = $request->input('acnumber');
+        $loanid                = $request->input('loanid'); //jump for now
+        $customerId            = $request->input('customerId');
+        $phoneNumber           = $request->input('phoneNumber');
+        $accountNumber         = $request->input('acnumber');
+        $loanAmount            = $request->input('loanAmount');
+        $collectionAmount      = $request->input('collectionAmount');
+        $dateOfDisbursement    = $request->input('dateOfDisbursement');
+        $dateOfCollection      = $request->input('dateOfCollection');
+        $totalCollectionAmount = $request->input('totalCollectionAmount');
+        $numberOfRepayments    = $request->input('numberOfRepayments');
+        $bankcode              = $request->input('bankcode');
+        $Remitasalaryhistory   = Remitasalaryhistory::where('customerId', $customerId)->first();
+        $authcode;
+        if ($Remitasalaryhistory) {
+            $authcode = $Remitasalaryhistory->authcode;
+        }
+
         $noUpload = 0;
-            $fields = [
-                "authorisationChannel" => 'USSD',
-                "customerId"=> "$customerId",
-                "authorisationCode"=> "$authcode",
-                "authorisationChannel"=> "USSD",
-                "phoneNumber"=> "$phoneNumber",
-                "accountNumber"=> "$acnumber",
-                "currency"=> "NGN",
-                "loanAmount"=>$loanAmount,
-                "collectionAmount"=>$collectionAmount,
-                "dateOfDisbursement"=>$dateOfDisbursement.' 10:16:18+0000',
-                "dateOfCollection"=>$dateOfCollection.' 10:16:18+0000',
-                "totalCollectionAmount"=>$totalCollectionAmount,
-                "numberOfRepayments"=>$numberOfRepayments,
-                "bankCode"=>$bankcode
-            ];
-            $response = Http::withHeaders($this->header)->post($this->apiURL.'remita/exapp/api/v1/send/api/loansvc/data/api/v2/payday/post/loan',$fields);
-            $rec = json_decode($response);
-            if($rec->status == "success" && $rec->responseMsg == 'SUCCESS'){
-                $RemitaMandate = new RemitaMandate;
-                $RemitaMandate->mandateReference =$rec->data->mandateReference;
-                $RemitaMandate->customerId = $rec->data->customerId;
-                $RemitaMandate->data =$response;
-                $RemitaMandate->authorisationCode =$this->authcode;
-                $RemitaMandate->responseId =$rec->responseId;
-                $RemitaMandate->loan_id =$loanid;
-                $RemitaMandate->status ='Active';
-                $RemitaMandate->save();
-                $noUpload++;
-            }
-        if($noUpload > 0){
-            return ['status'=>true,'message'=>'Post Disbursment Successful!'];
-        }else{
-            return ['status'=>false,'message'=>$rec->responseMsg];
+        $fields   = [
+            "authorisationChannel"  => 'USSD',
+            "customerId"            => "$customerId",
+            "authorisationCode"     => "$authcode",
+            "authorisationChannel"  => "USSD",
+            "phoneNumber"           => "$phoneNumber",
+            "accountNumber"         => "$acnumber",
+            "currency"              => "NGN",
+            "loanAmount"            => $loanAmount,
+            "collectionAmount"      => $collectionAmount,
+            "dateOfDisbursement"    => $dateOfDisbursement . ' 10:16:18+0000',
+            "dateOfCollection"      => $dateOfCollection . ' 10:16:18+0000',
+            "totalCollectionAmount" => $totalCollectionAmount,
+            "numberOfRepayments"    => $numberOfRepayments,
+            "bankCode"              => $bankcode,
+        ];
+        $response = Http::withHeaders($this->header)->post($this->apiURL . 'remita/exapp/api/v1/send/api/loansvc/data/api/v2/payday/post/loan', $fields);
+        $rec      = json_decode($response);
+        if ($rec->status == "success" && $rec->responseMsg == 'SUCCESS') {
+            $RemitaMandate                    = new RemitaMandate;
+            $RemitaMandate->mandateReference  = $rec->data->mandateReference;
+            $RemitaMandate->customerId        = $rec->data->customerId;
+            $RemitaMandate->data              = $response;
+            $RemitaMandate->authorisationCode = $this->authcode;
+            $RemitaMandate->responseId        = $rec->responseId;
+            $RemitaMandate->loan_id           = $loanid;
+            $RemitaMandate->status            = 'Active';
+            $RemitaMandate->save();
+            $noUpload++;
+        }
+        if ($noUpload > 0) {
+            return ['status' => true, 'message' => 'Post Disbursment Successful!'];
+        } else {
+            return ['status' => false, 'message' => $rec->responseMsg];
         }
     }
 
-    public function viewMandate($request){
-        $customerId = $request->customerId;
-        $mandateRef= $request->mandateRef;
-        $RemitaMandate =  RemitaMandate::where(['customerId'=>$customerId,'mandateReference'=>$mandateRef])->first();
-        if(!$RemitaMandate)return ['status'=>false,'message'=>"Invalid Payload"];
-        $fields = [
-            'authorisationCode' =>  $RemitaMandate->authorisationCode,
-            'customerId' => "$customerId",
-            'mandateRef' => "$mandateRef",
-        ];
-        //LoanPaymentController
-        $response = Http::withHeaders($this->header)->post($this->apiURL.'remita/exapp/api/v1/send/api/loansvc/data/api/v2/payday/loan/payment/history',$fields);
-        return $response;
-    }
-    public function stopMandate($request){
-        $customerId = $request->customerId;
-        $mandateRef= $request->mandateRef;
-        $RemitaMandate =  RemitaMandate::where(['customerId'=>$customerId,'mandateReference'=>$mandateRef])->first();
-        if(!$RemitaMandate)return ['status'=>false,'message'=>"Invalid Payload"];
+    public function viewMandate($request)
+    {
+        $customerId    = $request->customerId;
+        $mandateRef    = $request->mandateRef;
+        $RemitaMandate = RemitaMandate::where(['customerId' => $customerId, 'mandateReference' => $mandateRef])->first();
+        if (! $RemitaMandate) {
+            return ['status' => false, 'message' => "Invalid Payload"];
+        }
+
         $fields = [
             'authorisationCode' => $RemitaMandate->authorisationCode,
-            'customerId' => "$customerId",
-            'mandateReference' => "$mandateRef",
+            'customerId'        => "$customerId",
+            'mandateRef'        => "$mandateRef",
         ];
-        $response = Http::withHeaders($this->header)->post($this->apiURL.'remita/exapp/api/v1/send/api/loansvc/data/api/v2/payday/stop/loan',$fields);
-        $rec = json_decode($response);
-        if($rec->status == "success" && $rec->responseMsg == 'SUCCESS'){
-            return ['status'=>true,'message'=>'Mandate Stopped Successful!'];
+        //LoanPaymentController
+        $response = Http::withHeaders($this->header)->post($this->apiURL . 'remita/exapp/api/v1/send/api/loansvc/data/api/v2/payday/loan/payment/history', $fields);
+        return $response;
+    }
+    public function stopMandate($request)
+    {
+        $customerId    = $request->customerId;
+        $mandateRef    = $request->mandateRef;
+        $RemitaMandate = RemitaMandate::where(['customerId' => $customerId, 'mandateReference' => $mandateRef])->first();
+        if (! $RemitaMandate) {
+            return ['status' => false, 'message' => "Invalid Payload"];
         }
-        return ['status'=>false,'message'=>$rec->responseMsg ];
+
+        $fields = [
+            'authorisationCode' => $RemitaMandate->authorisationCode,
+            'customerId'        => "$customerId",
+            'mandateReference'  => "$mandateRef",
+        ];
+        $response = Http::withHeaders($this->header)->post($this->apiURL . 'remita/exapp/api/v1/send/api/loansvc/data/api/v2/payday/stop/loan', $fields);
+        $rec      = json_decode($response);
+        if ($rec->status == "success" && $rec->responseMsg == 'SUCCESS') {
+            return ['status' => true, 'message' => 'Mandate Stopped Successful!'];
+        }
+        return ['status' => false, 'message' => $rec->responseMsg];
     }
 }

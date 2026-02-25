@@ -712,7 +712,7 @@ class WebhookController extends Controller
             ]);
         }
 
-        $balanceAfter = $creditCompany['charge_balance_after'];
+        $balanceAfter = $credit['charge_balance_after'];
         $desc         = $newdescription;
         $currentDate  = Carbon::now();
         $this->processCompanyInternational($companyId, $balanceAfter);

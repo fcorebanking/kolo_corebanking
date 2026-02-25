@@ -632,7 +632,7 @@ class WebhookController extends Controller
        COMPANY FLOW
     ============================================================ */
 
-    private function processCompanyWebhook($account)
+    private function processCompanyWebhook()
     {
         DB::beginTransaction();
 

@@ -27,7 +27,7 @@ class DailyHybridSummaryJob implements ShouldQueue
 
     public function handle()
     {
-        \Log::info('RUNNING NEW VERSION OF JOB');
+        //    \Log::info('RUNNING NEW VERSION OF JOB');
 
         // Step 1: Aggregate in SQL
         $aggregatedRows = DB::table('transactions as t')
@@ -54,17 +54,17 @@ class DailyHybridSummaryJob implements ShouldQueue
             $adjustedProfit = $row->profit;
             // $adjustedProfit += customLogic($row);
 
-            \Log::info('Start batch processing aggregation ----> ');
+            /*        \Log::info('Start batch processing aggregation ----> ');
             logInfo(json_encode($row->officer_id), "officer_id");
             logInfo(json_encode($row->company_id), "company_id");
             logInfo(json_encode($row->branch_id), "branch_id");
             logInfo(json_encode($row->summary_date), "summary_date");
             logInfo(json_encode($adjustedProfit), "amount");
 
-            \Log::info('end processing  aggregation ----> ');
+            \Log::info('end processing  aggregation ----> ');*/
 
             if (empty($row->company_id)) {
-                \logInfo(json_encode($row), "SKIPPED — company/branch/officer is null");
+                          //         \logInfo(json_encode($row), "SKIPPED — company/branch/officer is null");
                 continue; // 🚀 Do not insert invalid row
             } else {
 

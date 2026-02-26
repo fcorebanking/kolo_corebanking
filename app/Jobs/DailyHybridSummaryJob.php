@@ -46,7 +46,7 @@ class DailyHybridSummaryJob implements ShouldQueue
             ->groupBy('t.company_id', 't.branch_id', 'u.account_officer_id', 't.transaction_type_id', DB::raw('DATE(t.created_at)'))
             ->get();
 
-        //  logInfo(json_encode($aggregatedRows), "agregated rows :");
+        logInfo(json_encode($aggregatedRows), "agregated rows :");
 
         // Step 2: Loop over aggregated rows for PHP-level logic / updateOrCreate
         foreach ($aggregatedRows as $row) {

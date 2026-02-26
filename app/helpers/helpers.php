@@ -4911,7 +4911,7 @@ function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
     // 51 bill payment charge- profit(company/wba)
     // 59 saving interest -loss
     $transactionTypeIDs = [
-        18, 23, 41, 42, 51, 59, 76, 91, 92, 95, 100,
+        18, 23, 59, 95, 100,
     ];
 
     \Log::info('Start batch checking reports Loss----> ');

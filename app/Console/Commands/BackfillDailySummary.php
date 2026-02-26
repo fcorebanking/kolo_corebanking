@@ -3,7 +3,6 @@ namespace App\Console\Commands;
 
 use App\Jobs\DailyHybridSummaryJob;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class BackfillDailySummary extends Command
 {
@@ -31,7 +30,7 @@ class BackfillDailySummary extends Command
         $from = $this->argument('from');
         $to   = $this->argument('to');
 
-        Log::info("Profit backfill queued from {$from} to {$to}");
+        // Log::info("Profit backfill queued from {$from} to {$to}");
 
         DailyHybridSummaryJob::dispatch($from, $to);
 

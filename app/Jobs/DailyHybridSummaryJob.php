@@ -20,14 +20,14 @@ class DailyHybridSummaryJob implements ShouldQueue
     {
         $this->fromDate = $fromDate ?? now()->toDateString();
         $this->toDate   = $toDate ?? now()->toDateString();
+
+        logInfo($this->fromDate, "fromDate");
+        logInfo($this->toDate, "toDate");
     }
 
     public function handle()
     {
         \Log::info('RUNNING NEW VERSION OF JOB');
-
-        logInfo($this->fromDate, "fromDate");
-        logInfo($this->toDate, "toDate");
 
         // Step 1: Aggregate in SQL
         $aggregatedRows = DB::table('transactions as t')

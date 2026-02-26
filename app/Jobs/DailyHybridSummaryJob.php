@@ -55,11 +55,12 @@ class DailyHybridSummaryJob implements ShouldQueue
             // $adjustedProfit += customLogic($row);
 
             \Log::info('Start batch processing aggregation ----> ');
-            \Log::info('officer_id', [$row->officer_id]);
-            \Log::info('company_id', [$row->company_id]);
-            \Log::info('branch_id', [$row->branch_id]);
-            \Log::info('summary_date', [$row->summary_date]);
-            \Log::info('amount', [$adjustedProfit]);
+            logInfo(json_encode($row->officer_id), "officer_id");
+            logInfo(json_encode($row->company_id), "company_id");
+            logInfo(json_encode($row->branch_id), "branch_id");
+            logInfo(json_encode($row->summary_date), "summary_date");
+            logInfo(json_encode($adjustedProfit), "amount");
+
             \Log::info('end processing  aggregation ----> ');
 
             if (empty($row->company_id)) {

@@ -35,7 +35,7 @@ class BackfillDailySummary extends Command
 
         DailyHybridSummaryJob::dispatch($from, $to);
 
-        Log::info("Profit backfill success from {$from} to {$to}");
+        // Log::info("Profit backfill success from {$from} to {$to}");
         return Command::SUCCESS;
     }
 }

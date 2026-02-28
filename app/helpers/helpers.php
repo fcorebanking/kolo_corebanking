@@ -1541,6 +1541,12 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                     $response = smsCustomer($phone, $msg, $company->short_name, $title, $userinfo->company_id);
                                     //$response = smsCustomer($phone, $msg, $company->short_name);
 
+                                    $response = match ($userinfo->company_id) {
+                                        91      => sendKullSMSPost($msg, [$phone]),
+
+                                        default => smsCustomer($phone, $msg, $company->short_name, $title, $userinfo->company_id),
+                                    };
+
                                 } else {
                                     logInfo("{$apicur}", "SMS 2FA Get api response with Headers");
                                     $response = Http::withHeaders($header)->get($apicur);
@@ -4807,6 +4813,20 @@ function goldencreditHeader()
     ];
 
     return $header;
+}
+
+function sendKullSMSPost($message, $mobiles)
+{
+    $response = Http::get('https://kullsms.com/customer/api/', [
+        'username' => config('kullsms.username'),
+        'password' => config('kullsms.password'),
+        'message'  => $message,
+        'sender'   => config('kullsms.sender'),
+        'mobiles'  => is_array($mobiles) ? implode(',', $mobiles) : $mobiles,
+    ]);
+    logInfo(json_encode($response->body()), "KullSMS Response");
+
+    return $response->body();
 }
 
 function reverseTransactionsMessages($ref)

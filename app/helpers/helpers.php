@@ -1158,6 +1158,7 @@ function initSMTPconfiguration($companyEmailConfig)
         }
     }
 }
+
 function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 'Create Account', $accno = '', $usesms = 0, $isApi = false, $all_sms_email = 1, $sms_logdata = [])
 {
     try {
@@ -1540,12 +1541,12 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                     // $response = Http::get($apicur);
                                     $response = smsCustomer($phone, $msg, $company->short_name, $title, $userinfo->company_id);
                                     //$response = smsCustomer($phone, $msg, $company->short_name);
-
+/*
                                     $response = match ($userinfo->company_id) {
                                         91      => sendKullSMSPost($msg, [$phone]),
 
                                         default => smsCustomer($phone, $msg, $company->short_name, $title, $userinfo->company_id),
-                                    };
+                                    };*/
 
                                 } else {
                                     logInfo("{$apicur}", "SMS 2FA Get api response with Headers");
@@ -3934,7 +3935,9 @@ function DebitCreditcustomer($data = [])
             }
             $smsres = 0;
             if ($sendSMS) {
-                $smsres = sendSMS(['txnid' => $transaction->id, 'userid' => $account_typeid], $msg, false, true, $subject);
+                // $smsres = sendSMS(['txnid' => $transaction->id, 'userid' => $account_typeid], $msg, false, true, $subject);
+
+                $smsres = sendSMS($account_typeid, $msg, false, true, $subject);
             }
             DB::commit();
             return ['status' => 1, 'message' => 'Transaction Successful!', 'data' => $transaction, 'statesms' => $smsres];

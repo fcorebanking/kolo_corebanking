@@ -1288,7 +1288,7 @@ class SafehavenController extends WebhookController
             "description"            => "Card {$description} {$amount}",
             "transaction_reference"  => $transactionReference,
             "transaction_remarks_id" => 2,
-            "transaction_type_id"    => 23,
+            "transaction_type_id"    => 10,
             "credit_debit_type_id"   => 2,
             "created_date"           => date('Y-m-d'),
             "created_by"             => $user->id,

@@ -3,6 +3,7 @@ namespace App\Http\Controllers\api\v1\user;
 
 use App\Http\Controllers\Controller;
 use App\Mail\ResetAccountMail;
+use App\Mail\SendTierMail;
 use App\Models\AgentRequest;
 use App\Models\ApiKey;
 use App\Models\banks;
@@ -198,6 +199,24 @@ class UserController extends Controller
 
     }
 
+    public function sendTierNotice(Request $request)
+    {
+        \logInfo($request->all(), "veSend Tier request log");
+        $user       = auth()->user();
+        $username   = $user->username;
+        $userid     = $user->user_id;
+        $valid_id   = $request->valid_id;
+        $nepa_bill  = $request->nepa_bill;
+        $tier       = $request->tier;
+        $subtext    = "Tier Upgrade Request";
+        $reason     = "";
+        $msg       .= "$username has requested for a tier upgrade to $tier <br>";
+        $msg       .= "Find the resources below from user id  $userid <br>";
+        $msg       .= "Nepa bill :   $nepa_bill <br>";
+        $msg       .= "Valid id :  $valid_id <br>";
+
+        $this->sendTierReportEmail($subtext, $msg, $reason, $user);
+    }
     public function verifyOTP(Request $request)
     {
         \logInfo($request->all(), "verifyOTP request log");
@@ -1824,6 +1843,23 @@ class UserController extends Controller
         }
     }
 
+    private function sendTierReportEmail($subtext, $msg, $reason, $user)
+    {
 
-    
+        $data = [
+            'subtext'      => $subtext,
+            'reason'       => $reason,
+            'desc'         => $msg,
+            'company_name' => auth()->user()->company->company_name,
+            'user'         => auth()->user()->company->company_name,
+        ];
+
+        try {
+            Mail::to($user->email)->send(new SendTierMail($data));
+        } catch (\Throwable $e) {
+            \Log::error("Failed to send TransactionReport email: " . $e->getMessage());
+            // continue silently
+        }
+    }
+
 }

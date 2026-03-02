@@ -95,6 +95,7 @@ Route::prefix('/users')->group(function () {
     });
     //resetPin
     Route::post('/upload-file', [UserController::class, 'uploadFile']);
+    Route::post('/send-tier-notice', [UserController::class, 'sendTierNotice']);
     Route::middleware('auth:api')->get('/get-details', [UserController::class, 'getDetails'])->withoutMiddleware([LogRoute::class]);
     Route::middleware('auth:api')->put('/update-profile', [UserController::class, 'updateProfile']);
     Route::middleware('auth:api')->get('/all', [UserController::class, 'index']);

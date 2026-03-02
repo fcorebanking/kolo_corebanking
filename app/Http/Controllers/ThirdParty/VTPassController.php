@@ -111,11 +111,11 @@ class VTPassController extends Controller
                         'status'  => true,
                         'message' => "Cable TV Verified Successfully",
                         'data'    => [
-                            'customer_name'        => trim($verifyCableResponse['content']['Customer_Name']),
-                            'cable_tv'             => trim($verifyCableResponse['content']['Customer_Type']),
-                            'current_bouquet'      => trim($verifyCableResponse['content']['Current_Bouquet']) ?? "",
-                         //   'current_bouquet_code' => trim($verifyCableResponse['content']['Current_Bouquet_Code']) ?? "",
-                            'renewal_amount'       => trim($verifyCableResponse['content']['Renewal_Amount']) ?? "",
+                            'customer_name'   => trim($verifyCableResponse['content']['Customer_Name']),
+                            'cable_tv'        => trim($verifyCableResponse['content']['Customer_Type']),
+                            'current_bouquet' => trim($verifyCableResponse['content']['Current_Bouquet']) ?? "",
+                            //   'current_bouquet_code' => trim($verifyCableResponse['content']['Current_Bouquet_Code']) ?? "",
+                            'renewal_amount'  => trim($verifyCableResponse['content']['Renewal_Amount']) ?? "",
                         ],
                     ];
                 } else {

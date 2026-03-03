@@ -211,7 +211,7 @@ class UserController extends Controller
         $tier       = $request->tier;
         $subtext    = "Tier Upgrade Request";
         $reason     = "";
-        $msg = '';
+        $msg        = '';
         $msg       .= "$username has requested for a tier upgrade to $tier <br>";
         $msg       .= "Find the resources below from user id  $userid <br>";
         $msg       .= "Nepa bill :   $nepa_bill <br>";
@@ -1852,8 +1852,8 @@ class UserController extends Controller
             'subtext'      => $subtext,
             'reason'       => $reason,
             'desc'         => $msg,
-            'company_name' => auth()->user()->company->company_name,
-            'user'         => auth()->user()->company->company_name,
+            'company_name' => auth('api')->user()->company->company_name,
+            'user'         => auth('api')->user()->company->company_name,
         ];
 
         try {

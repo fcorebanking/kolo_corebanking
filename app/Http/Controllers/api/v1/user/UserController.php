@@ -202,7 +202,7 @@ class UserController extends Controller
     public function sendTierNotice(Request $request)
     {
         \logInfo($request->all(), "veSend Tier request log");
-        $user  = auth()->user();
+        $user  = auth('api')->user();
         \logInfo(json_encode($user), "user send tier");
         $username   = $user->username;
         $userid     = $user->user_id;

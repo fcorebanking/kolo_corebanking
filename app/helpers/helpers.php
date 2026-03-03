@@ -1539,14 +1539,14 @@ function sendSMS($userid, $msg, $type = true, $charge_customer = true, $title = 
                                     logInfo("{$apicur}", "SMS 2FA Get api response");
 
                                     // $response = Http::get($apicur);
-                                    $response = smsCustomer($phone, $msg, $company->short_name, $title, $userinfo->company_id);
+                                    // $response = smsCustomer($phone, $msg, $company->short_name, $title, $userinfo->company_id);
                                     //$response = smsCustomer($phone, $msg, $company->short_name);
-/*
+
                                     $response = match ($userinfo->company_id) {
                                         91      => sendKullSMSPost($msg, [$phone]),
 
                                         default => smsCustomer($phone, $msg, $company->short_name, $title, $userinfo->company_id),
-                                    };*/
+                                    };
 
                                 } else {
                                     logInfo("{$apicur}", "SMS 2FA Get api response with Headers");

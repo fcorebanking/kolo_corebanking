@@ -218,6 +218,9 @@ class UserController extends Controller
         $msg       .= "Valid id :  $valid_id <br>";
 
         $this->sendTierReportEmail($subtext, $msg, $reason, $user);
+
+         return response()->json(["status" => true, "message" => "Mail Sent successful", ], 200);
+        
     }
     public function verifyOTP(Request $request)
     {
@@ -1859,7 +1862,7 @@ class UserController extends Controller
         try {
             Mail::to($user->email)->send(new SendTierMail($data));
         } catch (\Throwable $e) {
-            \Log::error("Failed to send TransactionReport email: " . $e->getMessage());
+            \Log::error("Failed to send TierReport email: " . $e->getMessage());
             // continue silently
         }
     }

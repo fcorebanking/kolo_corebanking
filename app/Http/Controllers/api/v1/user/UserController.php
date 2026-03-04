@@ -1776,7 +1776,7 @@ class UserController extends Controller
                 $selectedBank = banks::where('id', $bank_id)->first();
 
                 if ($user->bvn == null){
-                    $user->bvn == $request->bvn
+                    $user->bvn = $request->bvn;
                     $user->save();
                 }
                 

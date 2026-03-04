@@ -212,8 +212,8 @@ class UserController extends Controller
         $subtext    = "Tier Upgrade Request";
         $reason     = "";
         $msg        = '';
-        $msg       .= "$username has requested for a tier upgrade to $tier <br>";
-        $msg       .= "Find the resources below from user id  $userid <br>";
+        $msg       .= "$username has requested for a tier upgrade to $tier <br><br>";
+        $msg       .= "Find the resources below from user id  $userid <br><br>";
         $msg       .= "Nepa bill :   $nepa_bill <br><br>";
         $msg       .= "Valid id :  $valid_id <br>";
 

@@ -1792,7 +1792,7 @@ class UserController extends Controller
 
             $virtualAccount->bankCode                     = $selectedBank->bank_code;
             $virtualAccount->currencyCode                 = \auth()->user()->company->currency->code;
-            $virtualAccount->firstName                    = $user->first_name;
+            $virtualAccount->firstName                    = auth()->user()->company->short_name . "/" . $user->first_name;
             $virtualAccount->companyShortName             = auth()->user()->company->short_name;
             $virtualAccount->lastName                     = $user->last_name;
             $virtualAccount->email                        = $user->email;

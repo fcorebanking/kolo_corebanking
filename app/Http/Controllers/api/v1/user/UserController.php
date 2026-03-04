@@ -1754,6 +1754,8 @@ class UserController extends Controller
 
     public function addAccount(Request $request)
     {
+           \logInfo(json_encode(auth('api')->user()->company_id), "api scompany idr");
+           
         try {
             $user = User::where(['user_type_id' => '1', 'uuid' => $request->uuid, 'company_id' => auth('api')->user()->company_id]);
 

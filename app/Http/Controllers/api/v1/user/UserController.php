@@ -1855,7 +1855,8 @@ class UserController extends Controller
                 return response()->json(['status' => 0, 'message' => 'Account Registration Failed!']);
             }
         } catch (Exception $e) {
-            return response()->json(['status' => 0, 'message' => "An error occured!"]);
+            logInfo($e->getMessage(), "Laravel Kuda Error");
+            return response()->json(['status' => 0, 'message' => "An error occured!"], 400);
         }
     }
 

@@ -1757,17 +1757,18 @@ class UserController extends Controller
            \logInfo(json_encode(auth('api')->user()->company_id), "api scompany idr");
            
         try {
+            $selectedBank = "";
             $user = User::where(['user_type_id' => '1', 'uuid' => $request->uuid, 'company_id' => auth('api')->user()->company_id]);
 
             $user = $user->first();
             \logInfo(json_encode($user), "api saving account user");
-            \logInfo(json_encode(auth('api')->user()->company_id), "api saving account company");
+            \logInfo(json_encode($user->company_id), "api saving account company");
             \logInfo(json_encode($request->savings_product_type), "api saving account saving type");
             $bankId = 126;
-            $saving = savings_product::where(['company_id' => auth('api')->user()->company_id, 'id' => $request->savings_product_type])->first();
+            $saving = savings_product::where(['company_id' => $user->company_id, 'id' => $request->savings_product_type])->first();
             \logInfo(json_encode($saving), "api saving account ");
 
-            $companyRecord = Company::where(['id' => auth('api')->user()->company_id])->first();
+            $companyRecord = Company::where(['id' => $user->company_id])->first();
 
             //   $bank_id      = $companyRecord->setting->preferred_bank_id ?? 126;
 

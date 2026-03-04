@@ -1853,7 +1853,7 @@ class UserController extends Controller
                         ]);
                     }
 
-                    return response()->json(['status' => 1, 'message' => 'Account Added!', 'virtual_accnum' => $virtual_acccount_numbe]);
+                    return response()->json(['status' => 1, 'message' => 'Account Added!', 'virtual_accnum' => $virtual_acccount_number]);
                 } else {
                     return response()->json(['status' => 0, 'message' => 'Account Registration Failed!']);
                 }

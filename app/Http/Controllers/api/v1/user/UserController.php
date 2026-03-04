@@ -1774,9 +1774,8 @@ class UserController extends Controller
 
              \logInfo(json_encode(auth('api')->user()->company->currency_id), "api crrency id ");
 
-            if (auth('api')->user()->company->currency_id != 1) {
-                $this->addForeignAccount($request);
-            } else {
+            if ($request->has('bvn')) {
+               
                 $bank_id      = 126;
                 $selectedBank = banks::where('id', $bank_id)->first();
 
@@ -1784,6 +1783,8 @@ class UserController extends Controller
                     $user->bvn = $request->bvn;
                     $user->save();
                 }
+            } else {
+                 $this->addForeignAccount($request);
                 
             }
 

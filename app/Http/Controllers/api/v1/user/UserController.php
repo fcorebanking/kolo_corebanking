@@ -1772,6 +1772,8 @@ class UserController extends Controller
 
             //   $bank_id      = $companyRecord->setting->preferred_bank_id ?? 126;
 
+             \logInfo(json_encode(auth('api')->user()->company->currency_id), "api crrency id ");
+
             if (auth('api')->user()->company->currency_id != 1) {
                 $this->addForeignAccount($request);
             } else {

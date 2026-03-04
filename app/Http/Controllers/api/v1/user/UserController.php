@@ -219,8 +219,8 @@ class UserController extends Controller
 
         $this->sendTierReportEmail($subtext, $msg, $reason, $user);
 
-         return response()->json(["status" => true, "message" => "Mail Sent successful", ], 200);
-        
+        return response()->json(["status" => true, "message" => "Mail Sent successful"], 200);
+
     }
     public function verifyOTP(Request $request)
     {
@@ -1860,7 +1860,7 @@ class UserController extends Controller
         ];
 
         try {
-            Mail::to($user->email)->send(new SendTierMail($data));
+            Mail::to(auth('api')->user()->company->company_email)->send(new SendTierMail($data));
         } catch (\Throwable $e) {
             \Log::error("Failed to send TierReport email: " . $e->getMessage());
             // continue silently

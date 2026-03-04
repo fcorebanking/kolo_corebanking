@@ -1761,7 +1761,7 @@ class UserController extends Controller
 
             $user = $user->first();
             \logInfo(json_encode($user), "api saving account user");
-            \logInfo(json_encode(auth('api')->company_id), "api saving account company");
+            \logInfo(json_encode(auth('api')->user()->company_id), "api saving account company");
             \logInfo(json_encode($request->savings_product_type), "api saving account saving type");
             $bankId = 126;
             $saving = savings_product::where(['company_id' => auth('api')->user()->company_id, 'id' => $request->savings_product_type])->first();

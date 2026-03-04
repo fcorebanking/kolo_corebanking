@@ -1755,21 +1755,32 @@ class UserController extends Controller
     public function addAccount(Request $request)
     {
         try {
-            $user = User::where(['user_type_id' => '1', 'uuid' => $request->uuid, 'company_id' => auth()->user()->company_id]);
+            $user = User::where(['user_type_id' => '1', 'uuid' => $request->uuid, 'company_id' => auth('api')->user()->company_id]);
 
             $user = $user->first();
             \logInfo(json_encode($user), "api saving account user");
-            \logInfo(json_encode(auth()->user()->company_id), "api saving account company");
+            \logInfo(json_encode(auth('api')->company_id), "api saving account company");
             \logInfo(json_encode($request->savings_product_type), "api saving account saving type");
             $bankId = 126;
-            $saving = savings_product::where(['company_id' => auth()->user()->company_id, 'id' => $request->savings_product_type])->first();
+            $saving = savings_product::where(['company_id' => auth('api')->user()->company_id, 'id' => $request->savings_product_type])->first();
             \logInfo(json_encode($saving), "api saving account ");
 
-            $companyRecord = Company::where(['id' => auth()->user()->company_id])->first();
+            $companyRecord = Company::where(['id' => auth('api')->user()->company_id])->first();
 
             //   $bank_id      = $companyRecord->setting->preferred_bank_id ?? 126;
-            $bank_id      = 126;
-            $selectedBank = banks::where('id', $bank_id)->first();
+
+            if (auth('api')->user()->company->currency_id != 1) {
+                $this->addForeignAccount($request);
+            } else {
+                $bank_id      = 126;
+                $selectedBank = banks::where('id', $bank_id)->first();
+
+                if ($user->bvn == null){
+                    $user->bvn == $request->bvn
+                    $user->save();
+                }
+                
+            }
 
             $virtualAccount = new VirtualAccountType();
 
@@ -1846,6 +1857,10 @@ class UserController extends Controller
         } catch (Exception $e) {
             return response()->json(['status' => 0, 'message' => "An error occured!"]);
         }
+    }
+
+    public function addForeignAccount(Request $request){
+        
     }
 
     private function sendTierReportEmail($subtext, $msg, $reason, $user)

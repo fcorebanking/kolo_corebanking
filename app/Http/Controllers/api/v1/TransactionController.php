@@ -1484,11 +1484,24 @@ class TransactionController extends Controller
             $ra = ["status" => false, "message" => "Beneficiary not found!"];
             return response()->json($ra, 406);
         }
-        $sourceWbAccount = wb_account_details::where(['user_id' => auth()->user()->id, 'currency_id' => $wbAccount->currency_id])->first();
-        if (! $sourceWbAccount) {
-            $ra = ["status" => false, "message" => "Beneficiary currency doesn not match any of your wallet!"];
-            return response()->json($ra, 406);
+
+        if (
+            in_array(auth()->user()->company_id, [87, 88, 89])
+
+        ) {
+            $sourceWbAccount = wb_account_details::where('user_id', auth()->user()->id)->first();
+            if (! $sourceWbAccount) {
+                $ra = ["status" => false, "message" => "Beneficiary currency doesn not match any of your wallet!"];
+                return response()->json($ra, 406);
+            }
+        } else {
+            $sourceWbAccount = wb_account_details::where(['user_id' => auth()->user()->id, 'currency_id' => $wbAccount->currency_id])->first();
+            if (! $sourceWbAccount) {
+                $ra = ["status" => false, "message" => "Beneficiary currency doesn not match any of your wallet!"];
+                return response()->json($ra, 406);
+            }
         }
+
         $transactionPinValidation = validatePinCheckCustomerBalance($request->transaction_pin, $request->final_amount, $sourceWbAccount->id);
         if (! $transactionPinValidation['status']) {
             return response()->json($transactionPinValidation, 400);
@@ -1521,6 +1534,16 @@ class TransactionController extends Controller
                     if (\checkcustomerrestriction(\auth()->user()->id, '2')) {
                         return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
                     }
+
+                    if (
+                        in_array(auth()->user()->company_id, [87, 88, 89] && ($wbAccount->currency_id != $sourceWbAccount->currency_id))
+
+                    ) {
+                        $final_amount = $this->getExchangeRates($request, $wbAccount->currency_id, $sourceWbAccount->currency_id);
+                    } else {
+                        $final_amount = $request->final_amount;
+                    }
+
                     $debitCustomer = \debitCustomerOnly($customerBalance['account_id'], $request->final_amount, \auth()->user());
                     // $debitCustomer = $this->debitCustomer($request);
                     if ($debitCustomer['status']) {
@@ -1537,8 +1560,8 @@ class TransactionController extends Controller
                         }
                         $creditTransaction  = transactions::create([
                             "balance_before"         => $creditCustomer->balance,
-                            "amount"                 => $request->final_amount,
-                            "balance_after"          => $creditCustomer->balance + $request->final_amount,
+                            "amount"                 => $final_amount,
+                            "balance_after"          => $creditCustomer->balance + $final_amount,
                             "account_id"             => $wbAccount->id,
                             "description"            => $myDescription,
                             "branch_id"              => $wbAccount->user->branch_id,
@@ -1552,7 +1575,7 @@ class TransactionController extends Controller
                             "ledger_cr"              => $ledger_cr,
                             "ledger_dr"              => $ledger_dr,
                         ]);
-                        $creditCustomer->balance += $request->final_amount;
+                        $creditCustomer->balance += $final_amount;
                         $creditCustomer->save();
                         $descArray  = explode("-", $myDescription);
                         $this->updateTransactionAsSuccessful($request->transaction_reference, $debitCustomer['balance_after']);
@@ -3521,78 +3544,39 @@ class TransactionController extends Controller
         }
     }
 
-    public function getExchangeRates(Request $request)
+    public function getExchangeRates(Request $request, $destinationCurrencyID, $sourceCurrencyID)
     {
-        $validation = Validator::make($request->all(), [
-            "countryCurrency" => 'required',
-            "exchangeAmount"  => 'required|gt:0',
-        ]);
-        if ($validation->fails()) {
-            $ra = ["status" => false, "message" => "Currency Code and Exchange amount is required"];
-            return response()->json($ra, 406);
+
+        try {
+            $destinationCurrency = $this->matchCurrency($destinationCurrencyID);
+            $sourceCurrency      = $this->matchCurrency($sourceCurrencyID);
+            $amount              = $request->final_amount;
+            \logInfo("https://v6.exchangerate-api.com/v6/8ad2a80d79f07a6f69fe4ead/pair/$destinationCurrency/$sourceCurrency/$amount", "Get Exhange URL");
+            $response = Http::get("https://v6.exchangerate-api.com/v6/8ad2a80d79f07a6f69fe4ead/pair/$destinationCurrency/$sourceCurrency/$amount");
+            \logInfo(json_encode($response), "Get Exhange Response");
+
+            return $response['conversion_result'];
+
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), "Get Exhange Error");
+            return response()->json(["status" => 0, 'message' => "Failed to Verify Account"], 400);
         }
 
-        // try {
-        //     $destinationCurrency = $request->countryCurrency;
-        //     // $sourceCurrency = $request->sourceCurrency;
-        //     $sourceCurrency = $request->user()->company->currency->code;
-        //     $exchangeAmount = $request->exchangeAmount;
+    }
 
-        //     $flutterwaveController = new FlutterwaveController();
+    private function matchCurrency($currency_id)
+    {
+        return match ($currency_id) {
+            2       => "USD",
+            3       => "CAD",
+            4       => "GBP",
+            5       => "ZAR",
+            6       => "CNY",
+            7       => "EUR",
+            8       => "GHS",
 
-        //     $charges = 0;
-
-        //     if (isset($request->isInverted)) {
-        //         $exhangeRate = $flutterwaveController->getExchangeRater($exchangeAmount, $sourceCurrency, $destinationCurrency);
-
-        //         if ($exhangeRate['data']['charge_by'] == "percentage") {
-        //             $charges = $exhangeRate['data']['fee'] + 0.01;
-        //             $charges *= $exchangeAmount;
-        //         } else {
-        //             $charges = $exhangeRate['data']['fee']  + ($exhangeRate['data']['fee'] / 2);
-        //         }
-        //     } else {
-        //         $exhangeRate = $flutterwaveController->getExchangeRater($exchangeAmount, $destinationCurrency, $sourceCurrency);
-
-        //         if ($exhangeRate['data']['charge_by'] == "percentage") {
-        //             $charge = $exhangeRate['data']['fee'] + 0.01;
-
-        //             $charges = $charge * $exchangeAmount;
-
-        //             if ($request->user()->company->currency->code == "NGN") {
-        //                 $charges = $exhangeRate["data"]["final_amount"] * $charge;
-
-        //                 $charges /= $exhangeRate["data"]["rate"];
-        //             }
-        //         } else {
-        //             $charges = $exhangeRate['data']['fee']  + ($exhangeRate['data']['fee'] / 2);
-        //         }
-        //     }
-        //     $rate = $exhangeRate["data"]["rate"];
-        //     $amount = $exhangeRate["data"]["final_amount"];
-
-        //     $finalAmount = $exchangeAmount + $charges;
-
-        //     if (!$exhangeRate['status']) {
-        //         return response()->json(["status" => 0, 'message' => "Failed to Exchange rate"], 400);
-        //     }
-        return response()->json(
-            [
-                'status'  => 1,
-                'message' => "Exchange rate received",
-                'data'    => [
-                    'rate'              => 1600,
-                    'amount'            => 1600,
-                    'charge'            => 0,
-                    'final_amount'      => 1600,
-                    'available_balance' => auth()->user()->company->wallet->balance,
-                ],
-            ]
-        );
-        // } catch (Exception $e) {
-
-        //     return response()->json(["status" => 0, 'message' => "Failed to Verify Account"], 400);
-        // }
+            default => "NGN",
+        };
     }
     public function getTerminalBalance(Request $request)
     {

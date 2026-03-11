@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\api\v1\user;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ThirdParty\BridgeController;
 use App\Mail\ResetAccountMail;
 use App\Mail\SendTierMail;
 use App\Models\AgentRequest;
@@ -1754,11 +1755,11 @@ class UserController extends Controller
 
     public function addAccount(Request $request)
     {
-           \logInfo(json_encode(auth('api')->user()->company_id), "api scompany idr");
-           
+        \logInfo(json_encode(auth('api')->user()->company_id), "api scompany idr");
+
         try {
             $selectedBank = "";
-            $user = User::where(['user_type_id' => '1', 'uuid' => $request->uuid, 'company_id' => auth('api')->user()->company_id]);
+            $user         = User::where(['user_type_id' => '1', 'uuid' => $request->uuid, 'company_id' => auth('api')->user()->company_id]);
 
             $user = $user->first();
             \logInfo(json_encode($user), "api saving account user");
@@ -1772,42 +1773,42 @@ class UserController extends Controller
 
             //   $bank_id      = $companyRecord->setting->preferred_bank_id ?? 126;
 
-             \logInfo(json_encode(auth('api')->user()->company->currency_id), "api crrency id ");
+            \logInfo(json_encode(auth('api')->user()->company->currency_id), "api crrency id ");
 
             if ($request->has('bvn')) {
-               
+
                 $bank_id      = 126;
                 $selectedBank = banks::where('id', $bank_id)->first();
 
-                if ($user->bvn == null){
+                if ($user->bvn == null) {
                     $user->bvn = $request->bvn;
                     $user->save();
                 }
+
+                $virtualAccount = new VirtualAccountType();
+
+                $virtualAccount->bankCode                     = $selectedBank->bank_code;
+                $virtualAccount->currencyCode                 = \auth()->user()->company->currency->code;
+                $virtualAccount->firstName                    = auth()->user()->company->short_name . "/" . $user->first_name;
+                $virtualAccount->companyShortName             = auth()->user()->company->short_name;
+                $virtualAccount->lastName                     = $user->last_name;
+                $virtualAccount->email                        = $user->email;
+                $virtualAccount->accountType                  = 'personal';
+                $virtualAccount->phone                        = $user->phone;
+                $virtualAccount->dob                          = $user->dob;
+                $virtualAccount->gender                       = $user->gender;
+                $virtualAccount->bvn                          = $user->bvn;
+                $virtualAccount->address                      = $user->address;
+                $virtualAccount->country                      = auth()->user()->company->currency_id ?? "";
+                $virtualAccount->companyAccountCreationStatus = auth()->user()->company->setting->can_create_virtual_account;
+
+                $createAccountService = new AccountCreationService();
+
+                $response = $createAccountService->createVirtualAccount($virtualAccount);
+
             } else {
-                 $this->addForeignAccount($request);
-                
+                $response = $this->addForeignAccount();
             }
-
-            $virtualAccount = new VirtualAccountType();
-
-            $virtualAccount->bankCode                     = $selectedBank->bank_code;
-            $virtualAccount->currencyCode                 = \auth()->user()->company->currency->code;
-            $virtualAccount->firstName                    = auth()->user()->company->short_name . "/" . $user->first_name;
-            $virtualAccount->companyShortName             = auth()->user()->company->short_name;
-            $virtualAccount->lastName                     = $user->last_name;
-            $virtualAccount->email                        = $user->email;
-            $virtualAccount->accountType                  = 'personal';
-            $virtualAccount->phone                        = $user->phone;
-            $virtualAccount->dob                          = $user->dob;
-            $virtualAccount->gender                       = $user->gender;
-            $virtualAccount->bvn                          = $user->bvn;
-            $virtualAccount->address                      = $user->address;
-            $virtualAccount->country                      = auth()->user()->company->currency_id ?? "";
-            $virtualAccount->companyAccountCreationStatus = auth()->user()->company->setting->can_create_virtual_account;
-
-            $createAccountService = new AccountCreationService();
-
-            $response = $createAccountService->createVirtualAccount($virtualAccount);
 
             if (! $response['status']) {
                 $response['status'] = 0;
@@ -1816,6 +1817,7 @@ class UserController extends Controller
             logInfo($response, "Create Account service response");
             $customer_reference      = $response['data']['account_reference'] ?? $customer_reference;
             $virtual_acccount_number = $response['data']['virtual_account'] ?? $response['data']['account_number'];
+            $currency_id             = $response['data']['currency_id'] ?? null;
 
             $user->virtual_account   = $virtual_acccount_number;
             $user->account_reference = $customer_reference;
@@ -1834,7 +1836,7 @@ class UserController extends Controller
                             'virtual_accnum' => $virtual_acccount_number,
                             'acc_reference'  => $customer_reference,
                             'bankid'         => $bankId,
-                            "currency_id"    => $request->currency_id,
+                            "currency_id"    => $request->currency_id ?? $currency_id,
                         ]);
                     } else {
 
@@ -1845,7 +1847,7 @@ class UserController extends Controller
                             'virtual_accnum'     => $virtual_acccount_number,
                             'acc_reference'      => $customer_reference,
                             'has_atm_card'       => 0,
-                            "currency_id"        => $request->currency_id,
+                            "currency_id"        => $request->currency_id ?? $currency_id,
                         ]);
                         user_wallet::create([
                             'wb_account_detail_id' => $wb_account_details->id,
@@ -1866,8 +1868,18 @@ class UserController extends Controller
         }
     }
 
-    public function addForeignAccount(Request $request){
-        
+    public function addForeignAccount(Request $request)
+    {
+        $bridgeController = new BridgeController();
+        return $bridgeController->createAccount($request);
+
+    }
+
+    public function getTOSLink(Request $request)
+    {
+        $bridgeController = new BridgeController();
+        return $bridgeController->getTOSLink();
+
     }
 
     private function sendTierReportEmail($subtext, $msg, $reason, $user)

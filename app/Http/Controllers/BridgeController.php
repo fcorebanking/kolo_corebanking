@@ -1,0 +1,494 @@
+<?php
+namespace App\Http\Controllers\ThirdParty;
+
+use App\Http\Controllers\CustomClasses\WebhookController;
+use App\Models\ApiKey;
+use App\Models\Company;
+use App\Models\savings_product;
+use App\Models\User;
+use App\Models\wb_account_details;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Image;
+
+class BridgeController extends WebhookController
+{
+
+    private $username;
+    private $apiKey;
+    private $baseUrl;
+    private $token;
+
+    public function __construct()
+    {
+        $this->token = "";
+        if (env('APP_MODE') == 'test') {
+
+            $this->apiKey  = config('bridge.api_key_test');
+            $this->baseUrl = config('bridge.base_url_test');
+        } else {
+
+            $this->apiKey  = config('bridge.api_key_live');
+            $this->baseUrl = config('bridge.base_url_live');
+        }
+    }
+
+    private function getCurrencyBode($currency)
+    {
+
+    }
+
+    public function createAccount(Request $request)
+    {
+        $customer    = auth('api')->user();
+        $customerID  = $this->createBridgeCustomer($request, $customer);
+        $currency_id = $customer->company->currency_id;
+        /* match ($currency_id) {
+            4       => 'GBP',
+            7       => 'EUR',
+            8       => 'GHS',
+
+            default => 'USD', // fallback
+        };*/
+
+        $body = [
+            "developer_fee_percent" => "0.1",
+            "source"                => [
+                "currency" => match ($currency_id) {
+                    4       => 'gbp',
+                    7       => 'eu',
+                    default => 'usd', // fallback
+                },
+            ],
+            "destination"           => [
+                "currency"     => match ($currency_id) {
+                    7       => 'eurc',
+                    default => 'usdc', // fallback
+                },
+                "payment_rail" => match ($currency_id) {
+                    7       => 'solana',
+                    default => 'base', // fallback
+                },
+                "address"      => match ($currency_id) {
+                    7       => 'DeAdBeEf',
+                    default => "0xdeadbeef", // fallback
+                },
+            ],
+        ];
+
+        $jsonBody = json_encode($body);
+
+        $url = "{$this->baseUrl}/{customerID}/virtual_accounts ";
+
+        try {
+
+            \logInfo($jsonBody, "Bridge Request body");
+
+            $createAccountResponse = $this->bridgePostRequest($url, $body);
+
+            logInfo($createAccountResponse, "bridge Create Account Response");
+
+            if ($createAccountResponse->successful()) {
+
+                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
+
+                if (! $createAccountResponse["status"] != "activated") {
+                    return [
+                        'status'  => false,
+                        'message' => $createAccountResponse["message"],
+                    ];
+                } else {
+                    return [
+                        'status'  => true,
+                        'message' => "Account Pending",
+                        'data'    => [
+
+                            'account_number'         => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
+                            'virtual_account_number' => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
+                            'account_reference'      => $customerID,
+                            'currency_id'            => match ($currency_id) {
+                                'GBP'   => 4,
+                                'EUR'   => 7,
+                                'GHS'   => 8,
+
+                                default => 2, // fallback
+                            },
+                        ],
+                    ];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Account CreationFailed . Kindly contactsupportfor assistance'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Laravel Kuda Error");
+
+            return ['status' => false, 'message' => 'Error CreatingAccount . Kindly contactsupportfor assistance'];
+        }
+    }
+
+    public function createBridgeCustomer($request, $customer)
+    {
+        $firstName = $request->first_name ?? $customer->first_name;
+        $lastName  = $request->last_name ?? $customer->last_name;
+        $email     = $request->email ?? $customer->email;
+        $phone     = $request->phone ?? $customer->phone;
+        $address   = $request->address ?? $customer->address;
+
+        $body = [
+            "type"                    => "individual",
+            "first_name"              => $firstName,
+            "last_name"               => $lastName,
+            "phone"                   => $phone,
+            "email"                   => $email,
+
+            "residential_address"     => [
+                "street_line_1" => $address ?? "",
+                "city"          => $request->city ?? "",
+                "country"       => $request->country ?? "",
+                "street_line_2" => "",
+                "postalCode"    => $request->postal_code,
+
+            ],
+
+            "birth_date"              => $customer->dob,
+            "signed_agreement_id"     => $request->signed_agreement_id,
+            "endorsements"            => [
+                "base", "sepa",
+            ],
+
+            "identifying_information" => [
+
+                "type"            => $request->type,
+                "issuing_country" => $request->issuing_country,
+                "number"          => $request->number,
+                "description"     => $request->description,
+                "expiration"      => $request->expiration,
+                "image_front"     => $request->image_front,
+                "image_back"      => $request->image_back,
+
+            ],
+        ];
+
+        logInfo($body, "Bridge Customer Register request body");
+
+        $endpoint = "$this->baseUrl/customers";
+
+        try {
+            $result = $this->bridgePostRequest($endpoint, $body);
+
+            logInfo(json_encode($result), "Bridge Customer Register Result");
+
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return $result;
+            } else {
+                return ['status' => false, 'message' => "Failed to create customer... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Bridge Customer Register Error");
+
+            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
+        }
+    }
+
+    public function getBridgeCustomerInfo()
+    {
+        $customer   = auth('api')->user();
+        $customerID = $customer->accounts()->where('currency_id', $customer->company->currency_id)->first()->acc_reference;
+        $endpoint   = "$this->baseUrl/customers/$customer";
+
+        try {
+            $result = $this->bridgeGetRequest($endpoint);
+
+            logInfo(json_encode($result), "Bride Customer Get Result");
+
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return $result;
+            } else {
+                return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Sudo Customer Get Result Error");
+
+            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
+        }
+    }
+
+    public function getTOSLink()
+    {
+        $endpoint = "https://api.bridge.xyz/v0/customers/cust_123/tos_acceptance_link";
+
+        try {
+            $result = $this->bridgeGetRequest($endpoint);
+
+            logInfo(json_encode($result), "Bride Customer Get Result");
+
+            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+                return $result;
+            } else {
+                return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Sudo Customer Get Result Error");
+
+            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
+        }
+    }
+
+    public function verifyBankAccount($bankCode, $accountNumber)
+    {
+
+        $requestReference = \generate_txnID();
+
+        $body = [
+            "servicetype" => "NAME_ENQUIRY",
+            "requestRef"  => $requestReference,
+            "Data"        => [
+                "BeneficiaryAccountNumber" => $accountNumber,
+                "BeneficiaryBankCode"      => $bankCode,
+
+            ],
+        ];
+        $jsonBody = \json_encode($body);
+
+        $requestBody = [
+            'data' => $jsonBody,
+        ];
+
+        $url = "https://kuda-openapi.kuda.com/v2.1";
+
+        try {
+
+            $login = $this->login();
+
+            if (! $login['status']) {
+                return ['status' => false, 'message' => 'Bank Unavailable . try again later'];
+            }
+
+            \logInfo($requestBody, "Kuda Request body");
+
+            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
+
+            logInfo($createAccountResponse, "Kuda Verify Account Response");
+
+            if ($createAccountResponse->successful()) {
+
+                //$response = $this->sanitizeResponse($createAccountResponse['data']);
+
+                if (! $createAccountResponse["status"]) {
+                    return [
+                        'status'  => false,
+                        'message' => $createAccountResponse["message"],
+                    ];
+                } else {
+                    return [
+                        'status'  => true,
+                        'message' => "Account Verified Successfully",
+                        'data'    => [
+                            'account_name'      => $createAccountResponse["data"]["beneficiaryName"],
+                            'bank_code'         => $createAccountResponse["data"]["beneficiaryBankCode"],
+                            'request_reference' => $requestReference,
+                            //  'sessionID'         => $createAccountResponse["data"]["SessionID"],
+                        ],
+                    ];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Webhook withdrawalfailed . Kindly contactsupportfor assistance'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Kuda Error");
+
+            return ['status' => false, 'message' => 'Error completingwithdrawal . Kindly contactsupportfor assistance'];
+        }
+    }
+
+    public function verifyTransaction($transactionReference)
+    {
+
+        $requestReference = \generate_txnID();
+
+        $body = [
+            "servicetype" => "TRANSACTION_STATUS_QUERY",
+            "requestref"  => $requestReference,
+            "data"        => [
+                "isThirdPartyBankTransfer"    => false,
+                "transactionRequestReference" => $transactionReference,
+            ],
+        ];
+        $jsonBody = \json_encode($body);
+
+        $requestBody = [
+            'data' => $jsonBody,
+        ];
+
+        $url = "https://kuda-openapi.kuda.com/v2.1";
+
+        try {
+
+            $login = $this->login();
+
+            if (! $login['status']) {
+                return ['status' => "03", 'message' => 'Bank Unavailable . try again later'];
+            }
+
+            \logInfo($requestBody, "Kuda Request body");
+
+            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
+
+            logInfo($createAccountResponse, "Kuda Verify Transaction Response");
+
+            if ($createAccountResponse->successful()) {
+
+                //$response = $this->sanitizeResponse($createAccountResponse['data']);
+
+                if (! $createAccountResponse["status"]) {
+                    if ($createAccountResponse["responseCode"] == "-4" || $createAccountResponse["responseCode"] == "-2" || $createAccountResponse["responseCode"] == "-1") {
+                        return [
+                            'status'  => "02",
+                            'message' => "Your transaction has been found and as well reversed successfully",
+                        ];
+                    } else if ($createAccountResponse["responseCode"] == "k25") {
+                        return [
+                            'status'  => "03",
+                            'message' => $createAccountResponse["message"],
+                        ];
+                    } else {
+                        return [
+                            'status'  => "04",
+                            'message' => $createAccountResponse["message"],
+                        ];
+                    }
+                } else {
+                    return [
+                        'status'  => "00",
+                        'message' => "Transaction Verified Successfully (Session ID: " . $createAccountResponse["sessionID"] . ")",
+                        'data'    => $createAccountResponse["data"],
+                    ];
+                }
+            } else {
+                return ['status' => "05", 'message' => 'Verify transactionfailed . Kindly contactsupportfor assistance'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Kuda Error");
+
+            return ['status' => "06", 'message' => 'Error verifyingtransaction . Kindly contactsupportfor assistance'];
+        }
+    }
+
+    private function getCurrency($currency_id)
+    {
+        $type = match ($currency_id) {
+            4       => 'GBP',
+            7       => 'EUR',
+            8       => 'GHS',
+
+            default => 'USD', // fallback
+        };
+    }
+
+    private function bridgeHeader()
+    {
+        $header = [
+            'Api-Key:'        => $this->apiKey,
+            'Content - Type'  => 'application / json',
+            'Idempotency-Key' => Str::uuid()
+            ,
+        ];
+
+        return $header;
+    }
+
+    private function upload(Request $request, $type)
+    {
+        try {
+
+            if ($type == 'bankstatement') {
+                $image = $request->file('bankstatement');
+            } else {
+                $image = $request->file('utilitybill');
+            }
+
+            if ($image) {
+                // create a new filename for the resized image
+                $filename   = time() . str_replace('', '_', $image->getClientOriginalExtension());
+                $uploadPath = "public/company/customer/$type/$user->uuid";
+
+                // resize the image
+                $resizedImage = Image::make($image)
+                    ->resize(200, 200, function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize();
+                    })
+                    ->encode();
+
+                // upload the resized image to storage
+                $upload = Storage::put($uploadPath . $filename, $resizedImage);
+                // $file1 = $doc->storeAs("$uploadPath/$user->id/$filename", $resizedImage);
+
+                $uploadInfo = $uploadPath . $filename;
+
+                logInfo(json_encode($uploadInfo), "User $type Upload");
+
+                return $uploadInfo;
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Fincra Error");
+        }
+    }
+
+    private function bridgePostRequest($endpoint, $body)
+    {
+        logInfo(json_encode($body), "Fincra Process Endpoint Body");
+        $response = Http::withHeaders($this->bridgeHeader())->post($endpoint, $body);
+        return $response;
+    }
+
+    public function bridgeGetRequest($endpoint)
+    {
+        $response = Http::withHeaders($this->bridgeHeader())->get("$endpoint");
+        return $response->json();
+    }
+
+    public function updateForeignVirtualAccount($response)
+    {
+        try {
+            $user = User::where('virtual_account', $response['data']['id'])->first();
+
+            \logInfo(json_encode($user), "api saving account user");
+            \logInfo(json_encode(auth()->user()->company_id), "api saving account company");
+
+            $bank_id = 126;
+            $saving  = savings_product::where('company_id', $user->company_id)->first();
+
+            if ($saving) {
+                \logInfo(json_encode($saving), "api saving account ");
+
+                $companyRecord = Company::where(['id' => $user->company_id])->first();
+
+                $customer_reference      = $response['data']['accountInformation']['reference'];
+                $virtual_acccount_number = $response['data']['accountInformation']['accountNumber'];
+
+                $wb_account_details = wb_account_details::where('user_id', $user->id)->first();
+                $wb_account_details->update([
+                    'virtual_accnum' => $virtual_acccount_number,
+                    'acc_reference'  => $customer_reference,
+                    'bankid'         => $bankId,
+                    "currency_id"    => $user->company->currency_id,
+                ]);
+
+                $user->virtual_account   = $virtual_acccount_number;
+                $user->account_reference = $customer_reference;
+                $user->save();
+            } else {
+                return response()->json(['status' => 0, 'message' => 'Account Registration Failed!']);
+            }
+
+        } catch (Exception $e) {
+            return response()->json(['status' => 0, 'message' => "An error occured!"]);
+        }
+    }
+
+}

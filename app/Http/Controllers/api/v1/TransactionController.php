@@ -1169,9 +1169,9 @@ class TransactionController extends Controller
                                 return response()->json($checkCompanyBalance, 400);
                             }
 
-                            if (in_array(auth('api')->user()->company->id, ['14','79'])) {
+                            if (in_array(auth('api')->user()->company->id, ['14', '79'])) {
 
-                                $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('', auth('api')->user()->company->id)->first();
+                                $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', auth('api')->user()->company->id)->first();
                                 $ebankingService          = new EbankingCompanyService($preferredEbankingPartner);
 
                             } else {

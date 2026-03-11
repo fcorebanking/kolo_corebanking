@@ -2914,7 +2914,7 @@ class TransactionController extends Controller
                     //9 safe heaven
                     if (in_array(auth()->user()->company_id, ['14','79'])) {
 
-                                $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('', auth()->user()->company_id)->first();
+                                $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', auth()->user()->company_id)->first();
                                 $ebankingService          = new EbankingCompanyService($preferredEbankingPartner);
 
                             } else {

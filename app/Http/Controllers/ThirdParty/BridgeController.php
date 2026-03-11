@@ -220,7 +220,7 @@ class BridgeController extends WebhookController
     public function getTOSLink()
     {
         $customer   = auth('api')->user();
-        $customerID = $customer->accounts()->where('currency_id', $customer->company->currency_id)->first()->acc_reference;
+        $customerID = $customer->accounts()->where('currency_id', $customer->company->currency_id)->first()->acc_reference ?? null;
 
         try {
             if ($customerID = ! null) {

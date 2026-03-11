@@ -344,28 +344,23 @@ class CustomerController extends Controller
             $bankId           = $bank->id;
             $account_type_msg = 'Virtual';
 
-            $companyIDs = [33];
-
-            $companyIDsStatus = false;
-
-            if (in_array($auth->company_id, $companyIDs)) {
-                $companyIDsStatus = true;
-            }
-
-            if ($companyIDsStatus) {
-                $customSelectedBank = "090645";
-            } else {
-                $customSelectedBank = $request->account_bank;
-            }
+            $customSelectedBank = $request->account_bank;
 
             $virtualAccount = new VirtualAccountType();
 
-            $virtualAccount->bankCode                     = $customSelectedBank;
-            $virtualAccount->currencyCode                 = $auth->company->currency->code;
-            $virtualAccount->firstName                    = $request->first_name;
+            $virtualAccount->bankCode     = $customSelectedBank;
+            $virtualAccount->currencyCode = $auth->company->currency->code;
+        //    $virtualAccount->firstName    = $request->first_name;
+           
+            if ($companyRecord->id == 47) {
+                $virtualAccount->firstName = "$request->first_name " . "{$request->last_name}" . "/{$companyRecord->short_name}";
+            } else {
+                $virtualAccount->firstName = "{$companyRecord->short_name}/" . $request->first_name . " {$request->last_name}";
+            }
+
             $virtualAccount->companyShortName             = $auth->company->short_name;
             $virtualAccount->companyName                  = $request->company_name;
-            $virtualAccount->lastName                     = $request->last_name;
+            $virtualAccount->lastName                     = "";
             $virtualAccount->accountType                  = $request->account_category;
             $virtualAccount->email                        = $request->email;
             $virtualAccount->phone                        = $request->phone;

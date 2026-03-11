@@ -350,8 +350,8 @@ class CustomerController extends Controller
 
             $virtualAccount->bankCode     = $customSelectedBank;
             $virtualAccount->currencyCode = $auth->company->currency->code;
-        //    $virtualAccount->firstName    = $request->first_name;
-           
+            //    $virtualAccount->firstName    = $request->first_name;
+
             if ($companyRecord->id == 47) {
                 $virtualAccount->firstName = "$request->first_name " . "{$request->last_name}" . "/{$companyRecord->short_name}";
             } else {

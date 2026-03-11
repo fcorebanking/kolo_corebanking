@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use App\Mail\TransactionReport;
 
 class RegisterController extends Controller
 {
@@ -363,6 +364,13 @@ class RegisterController extends Controller
                     $smsstate = sendSMS($user->id, "Welcome to " . $companyRecord->company_name . ". Your OTP is $otp. ", true, false, 'Verify OTP', '');
                     $smsstate = sendSMS($user->id, $welcomeMessage, true, false, 'Welcome Message', '', 0, false);
                     \logInfo(json_encode($smsstate), "SMS response");
+                }
+
+                if(){
+                    $subtext = "Debit Transaction";
+                            $reason  = "";
+                            $msg     = "Debit Amt:$request->final_amount,<br><br> Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . "<br><br> Avail Bal:" . $debitCustomer['charge_balance_after'] . "<br><br>Date:" . date('Y-m-d') . " <br><br>Ref: " . $request->transaction_reference;
+                            $this->sendTransactionReportEmail($subtext, $msg, $reason, $currentUser);
                 }
 
             }
@@ -830,5 +838,24 @@ class RegisterController extends Controller
         $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
 
         return $bvnResponse;
+    }
+
+    private function sendTransactionReportEmail($subtext, $msg, $reason, $user)
+    {
+
+        $data = [
+            'subtext'      => $subtext,
+            'reason'       => $reason,
+            'desc'         => $msg,
+            'company_name' => $user->company->company_name,
+            'user'         => $user->company->company_name,
+        ];
+
+        try {
+            Mail::to($user->email)->send(new TransactionReport($data));
+        } catch (\Throwable $e) {
+            \Log::error("Failed to send TransactionReport email: " . $e->getMessage());
+            // continue silently
+        }
     }
 }

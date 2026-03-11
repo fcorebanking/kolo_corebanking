@@ -14,6 +14,7 @@ use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Http\Controllers\ThirdParty\KudaBusinessController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\MapleradController;
+use App\Http\Controllers\ThirdParty\BridgeController;
 use App\Http\Controllers\ThirdParty\MonnifyController;
 use App\Http\Controllers\ThirdParty\NeonDataApiController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
@@ -5902,6 +5903,26 @@ class TransactionController extends Controller
             }
 
         }
+
+    }
+
+    public function bridgeWebhook(Request $request){
+
+    $bridgeController = new BridgeController();
+        // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
+
+        if (! $request['type'] != "transfer") {
+            response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
+        }
+
+        $handleWebhook = $bridgeController->handleBridgeWebhook($request);
+
+        $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
+
+        logInfo(json_encode($handleWebhook), "Handle web hook Sudo result");
+        logInfo("$httpCode", "httpCode");
+
+        return response()->json($handleWebhook, $httpCode);
 
     }
 

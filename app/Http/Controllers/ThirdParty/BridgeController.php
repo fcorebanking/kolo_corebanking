@@ -238,6 +238,65 @@ class BridgeController extends WebhookController
         }
     }
 
+     public function createVirtualCard($request, $customer, $customer_account_id)
+    {
+        /**
+         * 1. Resolve or create Sudo Customer
+         */
+        $customer_account_id = $customer_account_id ?? $this->getCustomerMapleradID($customer);
+
+        if (is_null($customer_account_id)) {
+            // No Sudo ID → create new Sudo customer now
+            $mapleradCustomer = $this->createMapleradCustomer($request, $customer);
+
+            // Ensure valid structure returned
+            if (! isset($mapleradCustomer['data']['reference'])) {
+                return ['status' => false, 'message' => "Failed to create Sudo customer"];
+            }
+
+            $customer_account_id = $mapleradCustomer['data']['reference'];
+        }
+
+        /**
+         * 2. Build request body
+         */
+        $body = [
+            "customer_id"  => $customer_account_id,
+            "type"         => "VIRTUAL",
+            "currency"     => "USD",
+            "auto_approve" => true,
+            "brand"        => "MASTERCARD",
+
+        ];
+
+        logInfo(json_encode($body), "Maplerad Customer Register Virtual Card body");
+
+        $endpoint = "{$this->baseUrl}/issuing";
+
+        /**
+         * 3. Execute request
+         */
+        try {
+            $result = $this->mapleradPostRequest($endpoint, $body);
+
+            logInfo(json_encode($result), "Maplerad Customer Register Virtual Card Result");
+
+            if (isset($result['status'])) {
+                return [
+                    'status'      => true,
+                    'message'     => $result['message'],
+                    'result'      => $result,
+                    "customer_id" => $mapleradCustomer['data']['reference'],
+                ];
+            }
+
+            return ['status' => false, 'message' => $result['message'] ?? "Failed to create card"];
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Maplerad Customer Register Virtual Card Error");
+            return ['status' => false, 'message' => "Failed to create card... Please contact support"];
+        }
+    }
+
     public function verifyBankAccount($bankCode, $accountNumber)
     {
 

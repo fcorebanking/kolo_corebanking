@@ -175,20 +175,6 @@ class RegisterController extends Controller
         // $response = $assetMatrix->createAccount($customerReference, $request->email, $request->phone, $request->first_name, $request->last_name, "");
         // echo \json_encode($createAdminAccount);
 
-        $companyIDs            = [];
-        $companyIDsAddBankName = [22, 32, 47];
-
-        $companyIDsStatus            = false;
-        $companyIDsAddBankNameStatus = false;
-
-        if (in_array($companyRecord->id, $companyIDs)) {
-            $companyIDsStatus = true;
-        }
-
-        if (in_array($companyRecord->id, $companyIDsAddBankName)) {
-            $companyIDsAddBankNameStatus = true;
-        }
-
         $bank_id      = $companyRecord->setting->preferred_bank_id ?? 126;
         $selectedBank = banks::where('id', $bank_id)->first();
         if (! isset($request->account_type) || $request->account_type != 'regular') {
@@ -197,29 +183,18 @@ class RegisterController extends Controller
             \logInfo($bank_id, "Register Bank Id ");
             \logInfo($selectedBank->bank_code, "Register Bank code ");
 
-            if ($companyIDsStatus) {
-                $customSelectedBank = "090645";
-            } else {
-                $customSelectedBank = $selectedBank->bank_code;
-            }
-
             $customSelectedBank = $selectedBank->bank_code;
 
             $virtualAccount->bankCode     = $customSelectedBank;
             $virtualAccount->currencyCode = $companyRecord->currency->code;
-            if ($companyIDsAddBankNameStatus) {
-                if ($companyRecord->id == 47) {
-                    $virtualAccount->firstName = "$request->first_name " . "{$request->last_name}" . "/{$companyRecord->short_name}";
-                } else {
-                    $virtualAccount->firstName = "{$companyRecord->short_name}/" . $request->first_name;
-                }
-
+            if ($companyRecord->id == 47) {
+                $virtualAccount->firstName = "$request->first_name " . "{$request->last_name}" . "/{$companyRecord->short_name}";
             } else {
-                $virtualAccount->firstName = $request->first_name;
+                $virtualAccount->firstName = "{$companyRecord->short_name}/" . $request->first_name . " {$request->last_name}";
             }
-            $virtualAccount->firstName                    = $request->first_name;
+            //   $virtualAccount->firstName                    = $request->first_name;
             $virtualAccount->companyShortName             = $companyRecord->short_name;
-            $virtualAccount->lastName                     = $request->last_name;
+            $virtualAccount->lastName                     = "";
             $virtualAccount->email                        = $request->email;
             $virtualAccount->accountType                  = 'personal';
             $virtualAccount->phone                        = $request->phone;

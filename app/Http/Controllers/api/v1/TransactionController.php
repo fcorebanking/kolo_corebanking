@@ -1169,8 +1169,10 @@ class TransactionController extends Controller
                                 return response()->json($checkCompanyBalance, 400);
                             }
 
+                             logInfo(json_encode($currentUser->company->id), "PreferredEbankingPartnerCompany");
+
                             if (in_array($currentUser->company->id, ['14', '79'])) {
-                                logInfo(json_encode($currentUser->company->id), "PreferredEbankingPartnerCompany");
+                                //logInfo(json_encode($currentUser->company->id), "PreferredEbankingPartnerCompany");
                                 $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', $currentUser->company->id)->first();
                                 logInfo(json_encode($preferredEbankingPartner), "PreferredEbankingPartnerCompany");
                                 $ebankingService = new EbankingCompanyService($preferredEbankingPartner);

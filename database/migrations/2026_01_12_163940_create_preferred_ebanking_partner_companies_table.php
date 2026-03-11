@@ -16,22 +16,28 @@ return new class extends Migration
         Schema::create('preferred_ebanking_partner_companies', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('bank_transfer_id')
-                ->nullable()
-                ->constrained('ebanking_partners')
+            $table->unsignedBigInteger('bank_transfer_id')->nullable();
+            $table->unsignedBigInteger('bank_account_verification_id')->nullable();
+
+            $table->foreign('bank_transfer_id', 'pepc_bank_transfer_fk')
+                ->references('id')
+                ->on('ebanking_partners')
                 ->nullOnDelete();
 
-            $table->foreignId('bank_account_verification_id')
-                ->nullable()
-                ->constrained('ebanking_partners')
+            $table->foreign('bank_account_verification_id', 'pepc_bank_verify_fk')
+                ->references('id')
+                ->on('ebanking_partners')
                 ->nullOnDelete();
 
-            $table->foreignId('company_id')
-                ->nullable()
-                ->constrained('id')
+            $table->unsignedBigInteger('company_id')->nullable();
+
+            $table->foreign('company_id', 'pepc_company_fk')
+                ->references('id')
+                ->on('company')
                 ->nullOnDelete();
 
             $table->index(['company_id']);
+
             $table->timestamps();
         });
     }

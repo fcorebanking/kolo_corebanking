@@ -219,12 +219,20 @@ class BridgeController extends WebhookController
 
     public function getTOSLink()
     {
-        $endpoint = "https://api.bridge.xyz/v0/customers/cust_123/tos_acceptance_link";
+        $customer   = auth('api')->user();
+        $customerID = $customer->accounts()->where('currency_id', $customer->company->currency_id)->first()->acc_reference;
 
         try {
-            $result = $this->bridgeGetRequest($endpoint);
+            if ($customerID = ! null) {
+                $endpoint = "https://api.bridge.xyz/v0/customers/$customerID/tos_acceptance_link";
+                $result   = $this->bridgeGetRequest($endpoint);
+            } else {
+                $endpoint = "https://api.bridge.xyz/v0/customers/tos_links";
+                $body     = [];
+                $result   = $this->bridgePostRequest($endpoint, $body);
+            }
 
-            logInfo(json_encode($result), "Bride Customer Get Result");
+            logInfo(json_encode($result), "Bride Customer Result");
 
             if (isset($result['statusCode']) && $result['statusCode'] == 200) {
                 return $result;
@@ -238,7 +246,7 @@ class BridgeController extends WebhookController
         }
     }
 
-     public function createVirtualCard($request, $customer, $customer_account_id)
+    public function createVirtualCard($request, $customer, $customer_account_id)
     {
         /**
          * 1. Resolve or create Sudo Customer

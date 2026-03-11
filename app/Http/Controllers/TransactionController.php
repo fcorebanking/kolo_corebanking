@@ -18,13 +18,13 @@ use App\Models\Beneficiary;
 use App\Models\branch;
 use App\Models\BranchWallet;
 use App\Models\Company;
-use App\Models\PreferredEbankingPartnerCompany;
 use App\Models\company_wallet;
 use App\Models\CustomerRestrictionLog;
 use App\Models\frequency;
 use App\Models\MainCustomerRestriction;
 use App\Models\Mandate;
 use App\Models\PreferredEbankingPartner;
+use App\Models\PreferredEbankingPartnerCompany;
 use App\Models\savings_product;
 use App\Models\TempWebhook;
 use App\Models\transactions;
@@ -34,8 +34,8 @@ use App\Models\user_wallet;
 use App\Models\WbaCharge;
 use App\Models\wb_account_details;
 use App\Services\ebanking\BankTransferType;
-use App\Services\ebanking\EbankingService;
 use App\Services\ebanking\EbankingCompanyService;
+use App\Services\ebanking\EbankingService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -2912,15 +2912,15 @@ class TransactionController extends Controller
                     $bank = banks::where('bank_code', $request->bankCode)->orwhere('short_code', $request->bankCode)->first();
 
                     //9 safe heaven
-                    if (in_array(auth()->user()->company_id, ['14','79'])) {
+                    if (in_array(auth()->user()->company_id, ['14', '79'])) {
 
-                                $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', auth()->user()->company_id)->first();
-                                $ebankingService          = new EbankingCompanyService($preferredEbankingPartner);
+                        $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', auth()->user()->company_id)->first();
+                        $ebankingService          = new EbankingCompanyService($preferredEbankingPartner);
 
-                            } else {
-                                $preferredEbankingPartner = PreferredEbankingPartner::all();
-                                $ebankingService          = new EbankingService($preferredEbankingPartner);
-                            }
+                    } else {
+                        $preferredEbankingPartner = PreferredEbankingPartner::all();
+                        $ebankingService          = new EbankingService($preferredEbankingPartner);
+                    }
 
                     $bankAccount = $ebankingService->verifyAccountNumberFull($request->bankCode, $request->destinationAccount);
 

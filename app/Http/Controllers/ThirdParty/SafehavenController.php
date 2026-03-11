@@ -67,7 +67,7 @@ class SafehavenController extends WebhookController
         try {
             $response = $this->safehavenPostRequest("oauth2/token", $body);
 
-                  logInfo(json_encode($response), "Safe Haven Access Token Response");
+            logInfo(json_encode($response), "Safe Haven Access Token Response");
 
             if (isset($response["access_token"])) {
                 $this->token = $response["access_token"];

@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\ThirdParty\AmuchaController;
 use App\Http\Controllers\ThirdParty\AssetMatrixController;
 use App\Http\Controllers\ThirdParty\BaniController;
+use App\Http\Controllers\ThirdParty\BridgeController;
 use App\Http\Controllers\ThirdParty\CgateController;
 use App\Http\Controllers\ThirdParty\CyberpayControllelr;
 use App\Http\Controllers\ThirdParty\FairMoneyController;
@@ -14,7 +15,6 @@ use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Http\Controllers\ThirdParty\KudaBusinessController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\MapleradController;
-use App\Http\Controllers\ThirdParty\BridgeController;
 use App\Http\Controllers\ThirdParty\MonnifyController;
 use App\Http\Controllers\ThirdParty\NeonDataApiController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
@@ -40,6 +40,7 @@ use App\Models\loan;
 use App\Models\Mandate;
 use App\Models\MandateLog;
 use App\Models\PreferredEbankingPartner;
+use App\Models\PreferredEbankingPartnerCompany;
 use App\Models\savings_product;
 use App\Models\transactions;
 use App\Models\transaction_remarks;
@@ -52,6 +53,7 @@ use App\Models\wb_account_details;
 use App\Models\WebhookLog;
 use App\Models\WovenWebhook;
 use App\Services\ebanking\BankTransferType;
+use App\Services\ebanking\EbankingCompanyService;
 use App\Services\ebanking\EbankingService;
 use App\Services\fortifyTransactionService;
 use App\Services\PaystackService;
@@ -1167,8 +1169,15 @@ class TransactionController extends Controller
                                 return response()->json($checkCompanyBalance, 400);
                             }
 
-                            $preferredEbankingPartner = PreferredEbankingPartner::all();
-                            $ebankingService          = new EbankingService($preferredEbankingPartner);
+                            if (in_array(auth('api')->user()->company->id, ['79'])) {
+
+                                $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('', auth('api')->user()->company->id)->first();
+                                $ebankingService          = new EbankingCompanyService($preferredEbankingPartner);
+
+                            } else {
+                                $preferredEbankingPartner = PreferredEbankingPartner::all();
+                                $ebankingService          = new EbankingService($preferredEbankingPartner);
+                            }
 
                             $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
 
@@ -5906,9 +5915,10 @@ class TransactionController extends Controller
 
     }
 
-    public function bridgeWebhook(Request $request){
+    public function bridgeWebhook(Request $request)
+    {
 
-    $bridgeController = new BridgeController();
+        $bridgeController = new BridgeController();
         // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
 
         if (! $request['type'] != "transfer") {

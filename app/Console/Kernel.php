@@ -162,7 +162,7 @@ class Kernel extends ConsoleKernel
         // $schedule->command('savingpack:cron')->everyMinute();
 
         //  $schedule->command('maintenance:cron')->daily();
-        $schedule->job(new Maintenance)->daily()->onSuccess(function () {
+        $schedule->job(new Maintenance)->everyThirtyMinutes()->onSuccess(function () {
             Log::info('Your Maintenance Job executed successfully.');
         })
             ->onFailure(function () {

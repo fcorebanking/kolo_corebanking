@@ -203,7 +203,7 @@ class maintenance extends Command
 
                     }
 
-                    \logInfo('Message: Success maintenance', 'Line: Success');
+                    \logInfo('Message: Success maintenance', 'Line: Success for ' . $userData->id);
 
                 } catch (\Throwable $e) {
 

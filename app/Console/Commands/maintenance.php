@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 use App\Models\pendingCustomerSavingMaintenance;
 use App\Models\transactions;
 use App\Models\User;
-use App\Models\user_wallet;
 use App\Models\wb_account_details;
 use Illuminate\Console\Command;
 
@@ -41,7 +40,7 @@ class maintenance extends Command
      *
      * @return int
      */
-    public function handle()
+    /* public function handle()
     {
         \logInfo('Maintenance cron job', 'Maintenance');
 
@@ -141,5 +140,81 @@ class maintenance extends Command
         }
         return 0;
 
+    }
+}*/
+
+    public function handle()
+    {
+        \logInfo('Maintenance cron job', 'Maintenance');
+
+        $today = now()->toDateString();
+
+        User::where([
+            'user_type_id' => 1,
+            'status_id'    => 1,
+        ])->cursor() // generator
+            ->each(function ($userData) use ($today) {
+
+                try {
+
+                    $account = wb_account_details::where('virtual_accnum', $userData->virtual_account)
+                        ->where(function ($query) use ($today) {
+                            $query->where('next_maintenance_date', '<', $today)
+                                ->orWhereNull('next_maintenance_date');
+                        })->first();
+
+                    if (! $account || ! $account->accountType) {
+                        return;
+                    }
+
+                    $type = $account->accountType;
+
+                    $charges  = $type->maintenance_charges;
+                    $duration = $type->maintenace_duration;
+
+                    if ($charges <= 0 || $duration <= 0) {
+                        return;
+                    }
+
+                    $lastTxn = transactions::where([
+                        'account_id'          => $account->id,
+                        'transaction_type_id' => 58,
+                    ])->latest()->first();
+
+                    $baseDate = $lastTxn
+                        ? $lastTxn->created_at
+                        : $userData->created_at;
+
+                    $nextDue = \Carbon\Carbon::parse($baseDate)
+                        ->addDays($duration);
+
+                    if ($nextDue->isPast()) {
+
+                        pendingCustomerSavingMaintenance::firstOrCreate(
+                            [
+                                'wb_account_id' => $account->id,
+                                'status'        => 'pending',
+                            ],
+                            [
+                                'amount'    => $charges,
+                                'mark_date' => now()->toDateString(),
+                            ]
+                        );
+
+                    }
+
+                    \logInfo('Message: Success maintenance', 'Line: Success');
+
+                } catch (\Throwable $e) {
+
+                    \Log::error('Maintenance cron failed for user ' . $userData->id, [
+                        'error' => $e->getMessage(),
+                    ]);
+
+                }
+
+            });
+
+        return 0;
     }
 }

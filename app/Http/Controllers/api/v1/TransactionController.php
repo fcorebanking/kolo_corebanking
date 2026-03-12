@@ -25,6 +25,7 @@ use App\Http\Controllers\ThirdParty\TwilioWhatsapp;
 use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Http\Controllers\ThirdParty\WovenController;
+use App\Http\Controllers\ThirdParty\NinePSBController;
 use App\Http\Resources\BenefeciariesResource;
 use App\Mail\TransactionReport;
 use App\Models\AgentTerminal;

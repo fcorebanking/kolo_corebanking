@@ -44,6 +44,7 @@ Route::post('/create-physical-card', [TransactionController::class, 'createPhysi
 Route::get('/get-4t5-session', [TransactionController::class, 'get4T5SessionToken']);
 Route::post('/admin-process-verify-reverse-transactions', [TransactionController::class, 'verifyAndReverseTransactionAdmin']);
 Route::post('/bridge-webhook', [TransactionController::class, 'bridgeWebhook']);
+Route::post('/9psb-test-hash', [TransactionController::class, 'ninetyPSBTestHash']);
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();

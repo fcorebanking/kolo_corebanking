@@ -3,6 +3,7 @@ namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\CustomClasses\WebhookController;
 use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 class NinePSBController extends WebhookController
@@ -30,7 +31,7 @@ class NinePSBController extends WebhookController
         }
     }
 
-    public function login()
+    public function login($action)
     {
 
         $body = [
@@ -41,6 +42,13 @@ class NinePSBController extends WebhookController
         logInfo($body, "9PSB Request in controller body");
 
         $header = ['Content-Type' => 'application/json'];
+        if ($action == "virtualaccont"){
+             $url    = $this->baseUrl . "/virtualaccount/authenticate";
+        }
+
+        if ($action == "fundtransfer"){
+             $url    = $this->baseUrl . "/authenticate";
+        }
         $url    = $this->baseUrl . "/authenticate";
         try {
             $response = Http::post($url, $body);
@@ -93,8 +101,8 @@ class NinePSBController extends WebhookController
         $url = $this->baseUrl . "/virtualaccount/create";
 
         try {
-
-            $login = $this->login();
+$action = "virtualaccount"
+            $login = $this->login($action );
 
             if (! $login['status']) {
                 return ['status' => false, 'message' => 'Failed to login to 9PSB'];
@@ -154,8 +162,8 @@ class NinePSBController extends WebhookController
         $url = $this->baseUrl . "/account/enquiry";
 
         try {
-
-            $login = $this->login();
+$action = "fundtransfer"
+            $login = $this->login($action);
 
             if (! $login['status']) {
                 return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
@@ -209,8 +217,8 @@ class NinePSBController extends WebhookController
         $url = $this->baseUrl . "/account/transfer/status?reference=$transactionReference";
 
         try {
-
-            $login = $this->login();
+$action = "fundtransfer"
+            $login = $this->login($action);
 
             if (! $login['status']) {
                 return ['status' => "03", 'message' => 'Bank Unavailable. Try again later'];
@@ -272,8 +280,8 @@ class NinePSBController extends WebhookController
         $url = $this->baseUrl . "/account/transfer/reversalstatus";
 
         try {
-
-            $login = $this->login();
+$action = "fundtransfer"
+            $login = $this->login($action);
 
             if (! $login['status']) {
                 return ['status' => "03", 'message' => 'Bank Unavailable. Try again later'];
@@ -314,7 +322,7 @@ class NinePSBController extends WebhookController
     public function bankTransfer($requestReference, $accountNumber, $bankCode, $sessionId, $amount, $accountName, $description, $type)
     {
 
-        $privateKey         = $this->privateKe;
+        $privateKey         = $this->privateKey;
         $senderAccount      = "1100076684";
         $beneficiaryAccount = $accountNumber;
         $bankCode           = $bankCode;
@@ -350,8 +358,8 @@ class NinePSBController extends WebhookController
         $url = $this->baseUrl . "/account/transfers";
 
         try {
-
-            $login = $this->login();
+$action = "fundtransfer"
+            $login = $this->login($action );
 
             if (! $login['status']) {
                 return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
@@ -397,6 +405,30 @@ class NinePSBController extends WebhookController
             } else {
                 return ['status' => false, 'message' => 'Bank Transfer failed. If you have been debited kindly contact support for reversal'];
             }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "9PSB Error");
+
+            return ['status' => false, 'message' => 'Error with Bank Transfer. If you have been debited kindly contact support for reversal'];
+        }
+    }
+
+    public function getHashed(Request $request)
+    {
+
+        try {
+            $privateKey         = $request->privateKey;
+            $senderAccount      = $request->input('customer.account.senderaccountnumber');
+            $beneficiaryAccount = $request->input('customer.account.number');
+            $bankCode           = "120001";
+            $amount             = $request->amount; // ensure two decimal places
+            $reference          = generateTransactionReference();
+
+            $hashed = $this->hash($privateKey, $senderAccount, $beneficiaryAccount, $bankCode, $amount, $reference);
+            return [
+                'status'  => true,
+                'message' => $hashed,
+            ];
+
         } catch (Exception $e) {
             logInfo($e->getMessage(), "9PSB Error");
 

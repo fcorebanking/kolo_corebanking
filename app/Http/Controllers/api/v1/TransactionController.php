@@ -17,6 +17,7 @@ use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\MapleradController;
 use App\Http\Controllers\ThirdParty\MonnifyController;
 use App\Http\Controllers\ThirdParty\NeonDataApiController;
+use App\Http\Controllers\ThirdParty\NinePSBController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Http\Controllers\ThirdParty\TryluxController;
@@ -25,7 +26,6 @@ use App\Http\Controllers\ThirdParty\TwilioWhatsapp;
 use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Http\Controllers\ThirdParty\WovenController;
-use App\Http\Controllers\ThirdParty\NinePSBController;
 use App\Http\Resources\BenefeciariesResource;
 use App\Mail\TransactionReport;
 use App\Models\AgentTerminal;
@@ -5987,9 +5987,10 @@ class TransactionController extends Controller
         }
     }
 
-    public function ninetyPSBTestHash(Request $request){
-  $ninePSBController = new NinePSBController();
-  return $ninePSBController->getHashed();
+    public function ninetyPSBTestHash(Request $request)
+    {
+        $ninePSBController = new NinePSBController();
+        return $ninePSBController->getHashed();
     }
 
     public function checkCustomerAndCompanyBalanceBeforeBuyAirtime(

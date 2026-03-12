@@ -42,14 +42,14 @@ class NinePSBController extends WebhookController
         logInfo($body, "9PSB Request in controller body");
 
         $header = ['Content-Type' => 'application/json'];
-        if ($action == "virtualaccont"){
-             $url    = $this->baseUrl . "/virtualaccount/authenticate";
+        if ($action == "virtualaccont") {
+            $url = $this->baseUrl . "/virtualaccount/authenticate";
         }
 
-        if ($action == "fundtransfer"){
-             $url    = $this->baseUrl . "/authenticate";
+        if ($action == "fundtransfer") {
+            $url = $this->baseUrl . "/authenticate";
         }
-        $url    = $this->baseUrl . "/authenticate";
+        $url = $this->baseUrl . "/authenticate";
         try {
             $response = Http::post($url, $body);
 
@@ -101,8 +101,8 @@ class NinePSBController extends WebhookController
         $url = $this->baseUrl . "/virtualaccount/create";
 
         try {
-$action = "virtualaccount"
-            $login = $this->login($action );
+            $action = "virtualaccount";
+            $login  = $this->login($action);
 
             if (! $login['status']) {
                 return ['status' => false, 'message' => 'Failed to login to 9PSB'];
@@ -162,8 +162,8 @@ $action = "virtualaccount"
         $url = $this->baseUrl . "/account/enquiry";
 
         try {
-$action = "fundtransfer"
-            $login = $this->login($action);
+            $action = "fundtransfer";
+            $login  = $this->login($action);
 
             if (! $login['status']) {
                 return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
@@ -217,8 +217,8 @@ $action = "fundtransfer"
         $url = $this->baseUrl . "/account/transfer/status?reference=$transactionReference";
 
         try {
-$action = "fundtransfer"
-            $login = $this->login($action);
+            $action = "fundtransfer";
+            $login  = $this->login($action);
 
             if (! $login['status']) {
                 return ['status' => "03", 'message' => 'Bank Unavailable. Try again later'];
@@ -280,8 +280,8 @@ $action = "fundtransfer"
         $url = $this->baseUrl . "/account/transfer/reversalstatus";
 
         try {
-$action = "fundtransfer"
-            $login = $this->login($action);
+            $action = "fundtransfer";
+            $login  = $this->login($action);
 
             if (! $login['status']) {
                 return ['status' => "03", 'message' => 'Bank Unavailable. Try again later'];
@@ -358,8 +358,8 @@ $action = "fundtransfer"
         $url = $this->baseUrl . "/account/transfers";
 
         try {
-$action = "fundtransfer"
-            $login = $this->login($action );
+            $action = "fundtransfer";
+            $login  = $this->login($action);
 
             if (! $login['status']) {
                 return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];

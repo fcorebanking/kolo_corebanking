@@ -3,6 +3,7 @@ namespace App\Http\Controllers\api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\ThirdParty\IdentityPassController;
+use App\Mail\TransactionReport;
 use App\Models\banks;
 use App\Models\branch;
 use App\Models\Company;
@@ -16,8 +17,8 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use App\Mail\TransactionReport;
 
 class RegisterController extends Controller
 {
@@ -366,11 +367,11 @@ class RegisterController extends Controller
                     \logInfo(json_encode($smsstate), "SMS response");
                 }
 
-                if(){
-                    $subtext = "Debit Transaction";
-                            $reason  = "";
-                            $msg     = "Debit Amt:$request->final_amount,<br><br> Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . "<br><br> Avail Bal:" . $debitCustomer['charge_balance_after'] . "<br><br>Date:" . date('Y-m-d') . " <br><br>Ref: " . $request->transaction_reference;
-                            $this->sendTransactionReportEmail($subtext, $msg, $reason, $currentUser);
+                if (in_array($companyRecord->id, [87, 88, 89])) {
+                    $subtext = "Welcome Message";
+                    $reason  = "";
+                    $msg     = "Welcome to " . $companyRecord->company_name . ". Your OTP is $otp. ";
+                    $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
                 }
 
             }

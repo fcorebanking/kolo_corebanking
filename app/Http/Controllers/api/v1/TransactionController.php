@@ -5990,7 +5990,7 @@ class TransactionController extends Controller
     public function ninetyPSBTestHash(Request $request)
     {
         $ninePSBController = new NinePSBController();
-        return $ninePSBController->getHashed();
+        return $ninePSBController->getHashed($request);
     }
 
     public function checkCustomerAndCompanyBalanceBeforeBuyAirtime(

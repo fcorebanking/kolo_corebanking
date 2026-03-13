@@ -123,9 +123,7 @@ class MaintenancePackCron
                     $BranchWallet->save();
 
                     $account->update([
-                        'next_maintenance_date' => now()
-                            ->addDays($duration)
-                            ->toDateString(),
+                        now()->addMonth()->startOfMonth()->toDateString(),
                     ]);
 
                     $savingPendingData->update([

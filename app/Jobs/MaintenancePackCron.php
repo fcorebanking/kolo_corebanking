@@ -123,9 +123,7 @@ class MaintenancePackCron
                     $BranchWallet->save();
 
                     $account->update([
-                        'next_maintenance_date' => now()
-                            ->addDays($duration)
-                            ->toDateString(),
+                        'next_maintenance_date' => now()->addMonth()->startOfMonth()->toDateString(),
                     ]);
 
                     $savingPendingData->update([
@@ -133,7 +131,7 @@ class MaintenancePackCron
                     ]);
 
                     fundVault(['type' => 'maintenance_fee', 'value' => $charges, 'company_id' => $admin->company_id, 'created_by' => $admin->id, 'branch_id' => $admin->branch_id, 'transaction_id' => $transaction->id]);
-                    sendSMS(['txnid' => $transaction->id, 'userid' => $wb_account_detailsData->id], "Debit Amt:$charges  Desc: $desc Avail Bal:$balanceAfter Date:$today Ref:$transactionId", false, true, 'Debit Transaction');
+                    sendSMS(['txnid' => $transaction->id, 'userid' => $account->id], "Debit Amt:$charges  Desc: $desc Avail Bal:$balanceAfter Date:$today Ref:$transactionId", false, true, 'Debit Transaction');;
 
                 });
 

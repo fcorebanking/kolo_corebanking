@@ -77,7 +77,6 @@ class MaintenancePackCron
                     $admin
                 ) {
 
-                    $desc          = "Account Maintenance Charge for " . $previousMonthName;
                     $transactionId = generate_txnID();
 
                     $today = now()->toDateString();

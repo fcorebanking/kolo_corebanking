@@ -129,6 +129,8 @@ class MaintenancePackCron
                         'status' => 'paid',
                     ]);
 
+                    $desc = "Account Maintenance Charge for " . $previousMonthName;
+
                     fundVault(['type' => 'maintenance_fee', 'value' => $charges, 'company_id' => $admin->company_id, 'created_by' => $admin->id, 'branch_id' => $admin->branch_id, 'transaction_id' => $transaction->id]);
                     sendSMS(['txnid' => $transaction->id, 'userid' => $account->id], "Debit Amt:$charges  Desc: $desc Avail Bal:$balanceAfter Date:$today Ref:$transactionId", false, true, 'Debit Transaction');;
 

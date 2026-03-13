@@ -10,6 +10,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PendingSmsCron
@@ -27,7 +28,7 @@ class PendingSmsCron
     /**
      * Execute the job.
      */
-    public function handle()
+    /*   public function handle()
     {
         \logInfo("Pending SMS Cron Job is Working currently", 'Cron as Started');
         $today  = date('Y-m-d');
@@ -109,6 +110,104 @@ class PendingSmsCron
         }
         return 0;
 
+    }*/
+
+    public function handle()
+    {
+        \logInfo("Pending SMS Cron Job is Working currently", 'Cron as Started');
+        foreach (
+            Temp_Charges::where('status', 0)
+            ->where('date_due', '<=', now())
+            ->selectRaw('SUM(amount) as amount, wb_account_detail_id')
+            ->groupBy('wb_account_detail_id')
+            ->cursor() as $tempData
+        ) {
+
+            try {
+
+                $userid    = $tempData->wb_account_detail_id;
+                $smsCharge = $tempData->amount;
+
+                $wallet = user_wallet::where('wb_account_detail_id', $userid)->first();
+
+                if (! $wallet) {
+                    Log::warning("Wallet not found for account $userid");
+                    continue;
+                }
+
+                $accountUser = $wallet->wb_account_details->user;
+
+                if (! $accountUser) {
+                    continue;
+                }
+
+                $branchId  = $accountUser->branch_id;
+                $companyId = $accountUser->company_id;
+                $admin     = User::where('company_id', $companyId)->first()->id;
+
+                $branchWallet = BranchWallet::where('branch_id', $branchId)->first();
+
+                if (! $branchWallet || $branchWallet->balance < $smsCharge) {
+                    continue;
+                }
+
+                DB::transaction(function () use (
+                    $wallet,
+                    $branchWallet,
+                    $smsCharge,
+                    $userid,
+                    $branchId,
+                    $companyId,
+                    $admin
+                ) {
+
+                    $before = $wallet->balance;
+                    $after  = $before - $smsCharge;
+
+                    $wallet->update([
+                        'balance' => $after,
+                    ]);
+
+                    $branchWallet->decrement('balance', $smsCharge);
+
+                    Temp_Charges::where('wb_account_detail_id', $userid)
+                        ->update(['status' => 1]);
+
+                    $ledger_cr       = null;
+                    $ledger_dr       = null;
+                    $ledger_Settings = get_CR_DR_TXN_Type_Ledger(33, $company_id);
+                    if ($ledger_Settings) {
+                        $ledger_cr = $ledger_Settings->ledger_cr;
+                        $ledger_dr = $ledger_Settings->ledger_dr;
+                    }
+
+                    transactions::create([
+                        'balance_before'         => $before,
+                        'amount'                 => $smsCharge,
+                        'description'            => 'Auto SMS Charge',
+                        'account_id'             => $userid,
+                        'branch_id'              => $branchId,
+                        'company_id'             => $companyId,
+                        'transaction_reference'  => generate_txnID(),
+                        'transaction_type_id'    => 33,
+                        'credit_debit_type_id'   => 2,
+                        'transaction_remarks_id' => 2,
+                        'balance_after'          => $after,
+                        'created_date'           => now()->toDateString(),
+                    ]);
+
+                });
+
+            } catch (\Throwable $e) {
+
+                Log::error('Pending SMS job failed', [
+                    'account' => $tempData->wb_account_detail_id,
+                    'error'   => $e->getMessage(),
+                ]);
+
+            }
+
+        }
     }
 
 }

@@ -45,7 +45,7 @@ class LoanCron extends Command
      *
      * @return int
      */
-    public function handle()
+    /* public function handle()
     {
         \logInfo("Loan Cron");
         $infoData = loan::where(['loan_status_id' => 1, 'auto_pay' => 1])->where('user_id', '!=', 0)->get();
@@ -77,7 +77,79 @@ class LoanCron extends Command
             }
         }
         return 0;
+    }*/
+
+    public function handle()
+    {
+        \logInfo("Loan Cron");
+
+        $dateNow = now()->toDateString();
+
+        foreach (
+
+            loan::where([
+                'loan_status_id' => 1,
+                'auto_pay'       => 1,
+            ])
+            ->where('user_id', '!=', 0)
+            ->cursor() as $loan) {
+
+            try {
+
+                $encLoanId = Crypt::encryptString($loan->id);
+
+                $repayment = json_decode(
+                    app('App\Http\Controllers\LoanController')
+                        ->loanRepaymentBreakDown($encLoanId, new Request)
+                );
+
+                if (! $repayment) {
+                    continue;
+                }
+
+                // MISSED PAYMENTS
+                if ($repayment->missed > 0) {
+
+                    $amtToPay = $repayment->missed;
+
+                    $this->penaltyCharge($repayment, $loan, $amtToPay);
+
+                    $this->loanpayer($loan, $amtToPay);
+
+                    continue;
+                }
+
+                // NORMAL REPAYMENT
+                foreach ($repayment->repaymentTable ?? [] as $schedule) {
+
+                    if (
+                        $schedule->currentRepayStatus == 2 &&
+                        $schedule->repaymentDateDueloan == $dateNow
+                    ) {
+
+                        $this->loanpayer(
+                            $loan,
+                            $schedule->EachRepayment
+                        );
+
+                    }
+
+                }
+
+            } catch (\Throwable $e) {
+
+                \Log::error("Loan Cron Failed", [
+                    'loan_id' => $loan->id,
+                    'error'   => $e->getMessage(),
+                ]);
+
+            }
+
+        }
+
+        return 0;
     }
+
     public function loanpayer($info, $amtToPay)
     {
         $user = User::where(['id' => $info->user_id])->first();
@@ -101,34 +173,34 @@ class LoanCron extends Command
             $wallet    = user_wallet::where('id', $wb_account_details->user_wallet->id)->update(['balance' => $balance]);
             if ($amtToPay > 0) {
                 if ($wallet) {
-                    $BranchWallet = BranchWallet::where('branch_id', $branch_id)->first();
+                    $BranchWallet           = BranchWallet::where('branch_id', $branch_id)->first();
                     $BranchWallet->balance -= $amtToPay;
                     $BranchWallet->save();
-                    $auth                      = User::where('company_id', $info->user->company_id)->first();
-                    $AmtInterest               = ($info->rate / 100) * $amtToPay;
-                    $principal4rAmount         = $amtToPay - $AmtInterest;
-                    $loancharges               = app('App\Http\Controllers\LoanController')->LoanMethodPercentReturn($principal4rAmount, $AmtInterest, $info->LoanFee, $info->LoanFeeMethod, $info->mrgtFee, $info->mrgtFeeMethod);
-                    $loanPaymentStateData      = app('App\Http\Controllers\LoanController')->getLoanCurrentRepayment($info, $amtToPay);
-                    $principalLeft             = $loanPaymentStateData['Pleft'];
-                    $interestLeft              = $loanPaymentStateData['Ileft'];
-                    $loanBalance               = $info->loanBalance - $amtToPay;
-                    $loanFee                   = $loancharges['loanFee'];
-                    $mrgFee                    = $loancharges['mrgFee'];
-                    $loanPayment               = new LoanRepayment;
-                    $loanPayment->loan_id      = $info->id;
-                    $loanPayment->paymentDate  = $paymentDate;
-                    $loanPayment->amount       = $amtToPay;
-                    $loanPayment->branch_id    = $branch_id;
-                    $loanPayment->mgrtFee      = $mrgFee;
-                    $loanPayment->loanFee      = $loanFee;
-                    $loanPayment->P            = $loanPaymentStateData['paymentP'];
-                    $loanPayment->I            = $loanPaymentStateData['paymentI'];
-                    $loanPayment->remark       = $loanPaymentStateData['message'];
-                    $loanPayment->payment_ref  = str_shuffle(time());
-                    $loanPayment->method       = 2;
-                    $loanPayment->balance      = $loanBalance;
-                    $loanPayment->initiator_id = $auth->id;
-                    $loanPayment->created_by   = $auth->id;
+                    $auth                       = User::where('company_id', $info->user->company_id)->first();
+                    $AmtInterest                = ($info->rate / 100) * $amtToPay;
+                    $principal4rAmount          = $amtToPay - $AmtInterest;
+                    $loancharges                = app('App\Http\Controllers\LoanController')->LoanMethodPercentReturn($principal4rAmount, $AmtInterest, $info->LoanFee, $info->LoanFeeMethod, $info->mrgtFee, $info->mrgtFeeMethod);
+                    $loanPaymentStateData       = app('App\Http\Controllers\LoanController')->getLoanCurrentRepayment($info, $amtToPay);
+                    $principalLeft              = $loanPaymentStateData['Pleft'];
+                    $interestLeft               = $loanPaymentStateData['Ileft'];
+                    $loanBalance                = $info->loanBalance - $amtToPay;
+                    $loanFee                    = $loancharges['loanFee'];
+                    $mrgFee                     = $loancharges['mrgFee'];
+                    $loanPayment                = new LoanRepayment;
+                    $loanPayment->loan_id       = $info->id;
+                    $loanPayment->paymentDate   = $paymentDate;
+                    $loanPayment->amount        = $amtToPay;
+                    $loanPayment->branch_id     = $branch_id;
+                    $loanPayment->mgrtFee       = $mrgFee;
+                    $loanPayment->loanFee       = $loanFee;
+                    $loanPayment->P             = $loanPaymentStateData['paymentP'];
+                    $loanPayment->I             = $loanPaymentStateData['paymentI'];
+                    $loanPayment->remark        = $loanPaymentStateData['message'];
+                    $loanPayment->payment_ref   = str_shuffle(time());
+                    $loanPayment->method        = 2;
+                    $loanPayment->balance       = $loanBalance;
+                    $loanPayment->initiator_id  = $auth->id;
+                    $loanPayment->created_by    = $auth->id;
                     $loanPayment->save();
                     if ($loanPayment) {
                         $loanTXN = transactions::create([
@@ -218,17 +290,17 @@ class LoanCron extends Command
                     }
                 }
                 if ($usewb_account_details != null) {
-                    $balanceBefore  = $usewb_account_details->user_wallet->balance;
-                    $account_typeid = $usewb_account_details->id;
-                    $balance        = $balanceBefore - $penaltycharge;
-                    $auth           = User::where('company_id', $info->user->company_id)->first();
-                    $wallet         = user_wallet::where('id', $usewb_account_details->user_wallet->id)->update(['balance' => $balance]);
-                    $BranchWallet   = BranchWallet::where('branch_id', $user->branch_id)->first();
+                    $balanceBefore          = $usewb_account_details->user_wallet->balance;
+                    $account_typeid         = $usewb_account_details->id;
+                    $balance                = $balanceBefore - $penaltycharge;
+                    $auth                   = User::where('company_id', $info->user->company_id)->first();
+                    $wallet                 = user_wallet::where('id', $usewb_account_details->user_wallet->id)->update(['balance' => $balance]);
+                    $BranchWallet           = BranchWallet::where('branch_id', $user->branch_id)->first();
                     $BranchWallet->balance -= $penaltycharge;
                     $BranchWallet->save();
-                    $ledger_cr       = null;
-                    $ledger_dr       = null;
-                    $ledger_Settings = get_CR_DR_TXN_Type_Ledger(62, $auth->company_id);
+                    $ledger_cr        = null;
+                    $ledger_dr        = null;
+                    $ledger_Settings  = get_CR_DR_TXN_Type_Ledger(62, $auth->company_id);
                     if ($ledger_Settings) {
                         $ledger_cr = $ledger_Settings->ledger_cr;
                         $ledger_dr = $ledger_Settings->ledger_dr;

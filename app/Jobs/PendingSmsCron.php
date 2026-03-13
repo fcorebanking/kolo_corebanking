@@ -151,52 +151,59 @@ class PendingSmsCron
                     continue;
                 }
 
-                DB::transaction(function () use (
-                    $wallet,
-                    $branchWallet,
-                    $smsCharge,
-                    $userid,
-                    $branchId,
-                    $companyId,
-                    $admin
-                ) {
+                $isMonthly = $accountUser->company->setting->sms_charge_frequencie_id;
 
-                    $before = $wallet->balance;
-                    $after  = $before - $smsCharge;
+                if (isset($isMonthly)) {
+                    DB::transaction(function () use (
+                        $wallet,
+                        $branchWallet,
+                        $smsCharge,
+                        $userid,
+                        $branchId,
+                        $companyId,
+                        $admin
+                    ) {
 
-                    $wallet->update([
-                        'balance' => $after,
-                    ]);
+                        $before = $wallet->balance;
+                        $after  = $before - $smsCharge;
 
-                    $branchWallet->decrement('balance', $smsCharge);
+                        $wallet->update([
+                            'balance' => $after,
+                        ]);
 
-                    Temp_Charges::where('wb_account_detail_id', $userid)
-                        ->update(['status' => 1]);
+                        $branchWallet->decrement('balance', $smsCharge);
 
-                    $ledger_cr       = null;
-                    $ledger_dr       = null;
-                    $ledger_Settings = get_CR_DR_TXN_Type_Ledger(33, $company_id);
-                    if ($ledger_Settings) {
-                        $ledger_cr = $ledger_Settings->ledger_cr;
-                        $ledger_dr = $ledger_Settings->ledger_dr;
-                    }
+                        Temp_Charges::where('wb_account_detail_id', $userid)
+                            ->update(['status' => 1]);
 
-                    transactions::create([
-                        'balance_before'         => $before,
-                        'amount'                 => $smsCharge,
-                        'description'            => 'Auto SMS Charge',
-                        'account_id'             => $userid,
-                        'branch_id'              => $branchId,
-                        'company_id'             => $companyId,
-                        'transaction_reference'  => generate_txnID(),
-                        'transaction_type_id'    => 33,
-                        'credit_debit_type_id'   => 2,
-                        'transaction_remarks_id' => 2,
-                        'balance_after'          => $after,
-                        'created_date'           => now()->toDateString(),
-                    ]);
+                        $ledger_cr       = null;
+                        $ledger_dr       = null;
+                        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(33, $company_id);
+                        if ($ledger_Settings) {
+                            $ledger_cr = $ledger_Settings->ledger_cr;
+                            $ledger_dr = $ledger_Settings->ledger_dr;
+                        }
 
-                });
+                        transactions::create([
+                            'balance_before'         => $before,
+                            'amount'                 => $smsCharge,
+                            'description'            => 'Auto SMS Charge' . date('Y-m-d h:i:s'),
+                            'account_id'             => $userid,
+                            'branch_id'              => $branchId,
+                            'company_id'             => $companyId,
+                            'transaction_reference'  => generate_txnID(),
+                            'transaction_type_id'    => 33,
+                            'credit_debit_type_id'   => 2,
+                            'transaction_remarks_id' => 2,
+                            'balance_after'          => $after,
+                            'created_date'           => now()->toDateString(),
+                            "created_by"             => $admin,
+                            "ledger_cr"              => $ledger_cr,
+                            "ledger_dr"              => $ledger_dr,
+                        ]);
+
+                    });
+                }
 
             } catch (\Throwable $e) {
 

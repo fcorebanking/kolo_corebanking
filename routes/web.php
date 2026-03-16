@@ -279,17 +279,17 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                             Route::get('/', CustomerSavingComponent::class);
                         });
                         Route::prefix('competition')->name('competition.')->group(function () {
-                            Route::get('/', [App\Http\Controllers\TalentShowSettingsController::class, 'index']);
-                            Route::post('/', [App\Http\Controllers\TalentShowSettingsController::class, 'store']);
-                            Route::get('/category', [App\Http\Controllers\TalentCategoryController::class, 'index']);
-                            Route::post('/category', [App\Http\Controllers\TalentCategoryController::class, 'store']);
-                            Route::post('/category/{id}', [App\Http\Controllers\TalentCategoryController::class, 'update']);
-                            Route::get('/talents', [App\Http\Controllers\TalentsController::class, 'index'])->name('talents_page');
-                            Route::put('/talents/{id}/{status}', [App\Http\Controllers\TalentsController::class, 'setStatus'])->name('talents_status');
-                            Route::put('/talents/{id}', [App\Http\Controllers\TalentsController::class, 'resetVote']);
-
-                            Route::get('/votes', [App\Http\Controllers\TalentsController::class, 'votePage'])->name('votes_page');
-                            Route::post('/talent', [App\Http\Controllers\TalentsController::class, 'addTalent']);
+                            //    Route::get('/', [App\Http\Controllers\TalentShowSettingsController::class, 'index']);
+                            //   Route::post('/', [App\Http\Controllers\TalentShowSettingsController::class, 'store']);
+                            //     Route::get('/category', [App\Http\Controllers\TalentCategoryController::class, 'index']);
+                            //   Route::post('/category', [App\Http\Controllers\TalentCategoryController::class, 'store']);
+                            //   Route::post('/category/{id}', [App\Http\Controllers\TalentCategoryController::class, 'update']);
+                            //    Route::get('/talents', [App\Http\Controllers\TalentsController::class, 'index'])->name('talents_page');
+                            //    Route::put('/talents/{id}/{status}', [App\Http\Controllers\TalentsController::class, 'setStatus'])->name('talents_status');
+                            //   Route::put('/talents/{id}', [App\Http\Controllers\TalentsController::class, 'resetVote']);
+//
+                            //    Route::get('/votes', [App\Http\Controllers\TalentsController::class, 'votePage'])->name('votes_page');
+                            //    Route::post('/talent', [App\Http\Controllers\TalentsController::class, 'addTalent']);
 
                         });
 

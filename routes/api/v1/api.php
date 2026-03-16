@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\api\v1\CardController;
-use App\Http\Controllers\api\v1\CoinremitterController;
 use App\Http\Controllers\api\v1\CustomerSavingController;
 use App\Http\Controllers\api\v1\InternationalTransaction;
 use App\Http\Controllers\api\v1\InvestmentController;
@@ -367,17 +366,17 @@ Route::group(['middleware' => 'auth:api'], function () {
 });
 
 Route::group(['middleware' => 'auth:api'], function () {
-    Route::post('/coinremitter/view-coin', [CoinremitterController::class, 'viewCoin']);
-    Route::put('/coinremitter/add-address', [CoinremitterController::class, 'get_new_address']);
-    Route::post('/coinremitter/validateAddress', [CoinremitterController::class, 'validateAddress']);
-    Route::post('/coinremitter/wallet-transfer', [CoinremitterController::class, 'walletTransfer']);
-    Route::post('/coinremitter/withdraw', [CoinremitterController::class, 'withdraw']);
-    Route::post('/coinremitter/create-invoice', [CoinremitterController::class, 'createInvoice']);
-    Route::get('/coinremitter/my-crypto-wallet', [CoinremitterController::class, 'myCrypto']);
-    Route::post('/coinremitter/my-crypto-transaction', [CoinremitterController::class, 'transactionHistory']);
-    Route::post('/coinremitter/transfer-history', [CoinremitterController::class, 'getTransferHistory']);
-    Route::get('/coinremitter/get-coin-rate', [CoinremitterController::class, 'get_coin_rate']);
-    Route::get('/coinremitter/get-coin-rate2', [CoinremitterController::class, 'get_coin_rate_OBJ']);
+    // Route::post('/coinremitter/view-coin', [CoinremitterController::class, 'viewCoin']);
+    // Route::put('/coinremitter/add-address', [CoinremitterController::class, 'get_new_address']);
+    // Route::post('/coinremitter/validateAddress', [CoinremitterController::class, 'validateAddress']);
+    // Route::post('/coinremitter/wallet-transfer', [CoinremitterController::class, 'walletTransfer']);
+    // Route::post('/coinremitter/withdraw', [CoinremitterController::class, 'withdraw']);
+    // Route::post('/coinremitter/create-invoice', [CoinremitterController::class, 'createInvoice']);
+    // Route::get('/coinremitter/my-crypto-wallet', [CoinremitterController::class, 'myCrypto']);
+    // Route::post('/coinremitter/my-crypto-transaction', [CoinremitterController::class, 'transactionHistory']);
+    // Route::post('/coinremitter/transfer-history', [CoinremitterController::class, 'getTransferHistory']);
+    // Route::get('/coinremitter/get-coin-rate', [CoinremitterController::class, 'get_coin_rate']);
+    // Route::get('/coinremitter/get-coin-rate2', [CoinremitterController::class, 'get_coin_rate_OBJ']);
     //transactionHistory
 });
 

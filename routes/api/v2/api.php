@@ -1,24 +1,21 @@
 <?php
 
 use App\Http\Controllers\api\v2\CardController;
+use App\Http\Controllers\api\v2\InvestmentController;
+use App\Http\Controllers\api\v2\LoanController;
 use App\Http\Controllers\api\v2\LoginController;
+use App\Http\Controllers\api\v2\MeetingController;
 use App\Http\Controllers\api\v2\NibbsController;
+use App\Http\Controllers\api\v2\OrderController;
 use App\Http\Controllers\api\v2\RegisterController;
-use App\Http\Controllers\api\v2\SpecialAPIController;
 use App\Http\Controllers\api\v2\TransactionController;
 use App\Http\Controllers\api\v2\user\UserController;
-use App\Http\Controllers\CompanySettingsController;
+use App\Http\Controllers\api\v2\UtilityController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
-use App\Http\Controllers\api\v2\LoanController;
-use App\Http\Controllers\api\v2\InvestmentController;
-use App\Http\Controllers\api\v2\UtilityController;
-use App\Http\Controllers\api\v2\OrderController;
-use App\Http\Controllers\api\v2\MeetingController;
-use App\Http\Controllers\HomeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -45,7 +42,7 @@ Route::prefix('/users')->group(function () {
     Route::post('/resend-otp', [UserController::class, 'resendOtp']);
     Route::post('/send-otp', [UserController::class, 'sendOtp']);
     Route::post('/forgot-password-send-otp', [UserController::class, 'forgotPasswordSendOTP']);
-    Route::post('/reset-password', [UserController::class, 'resetPassword']);//users/change-pin
+    Route::post('/reset-password', [UserController::class, 'resetPassword']); //users/change-pin
     Route::post('/confirm-otp', [UserController::class, 'confirmOTP']);
     Route::middleware('auth:api')->post('/change-password', [UserController::class, 'changePassword']);
     Route::middleware('auth:api')->post('/change-pin', [UserController::class, 'resetPin']);
@@ -57,7 +54,6 @@ Route::prefix('/users')->group(function () {
 
     //New API
     Route::middleware('checkApiKey')->get('/virtual-accounts', [UserController::class, 'getVirtualAccounts']);
-
 
 });
 
@@ -82,13 +78,13 @@ Route::get('/login-kuda', [KudaController::class, 'login']);
 Route::post('/kuda-create-account', [KudaController::class, 'createAccount']);
 Route::post('/kuda-webhook', [TransactionController::class, 'kudaWebhook']);
 
-Route::middleware("restrictIP")->middleware('checkApiKey')->post('/create-account', [SpecialAPIController::class, 'createAccount']);
-Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/get-balance/{accountNumber}', [SpecialAPIController::class, 'getAccountBalance']);
-Route::middleware("restrictIP")->post('/generate-key', [SpecialAPIController::class, 'generateKey']);
-Route::middleware("restrictIP")->post('/save-developer-settings', [SpecialAPIController::class, 'saveDeveloperSettings']);
-Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->post('/bank-transfer', [SpecialAPIController::class, 'transferToBankAccount']);
-Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/transaction/query/{reference}', [SpecialAPIController::class, 'queryTransaction']);
-Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/account-statement', [SpecialAPIController::class, 'getAccountStatement']);
+//Route::middleware("restrictIP")->middleware('checkApiKey')->post('/create-account', [SpecialAPIController::class, 'createAccount']);
+//Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/get-balance/{accountNumber}', [SpecialAPIController::class, 'getAccountBalance']);
+//Route::middleware("restrictIP")->post('/generate-key', [SpecialAPIController::class, 'generateKey']);
+//Route::middleware("restrictIP")->post('/save-developer-settings', [SpecialAPIController::class, 'saveDeveloperSettings']);
+//Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->post('/bank-transfer', [SpecialAPIController::class, 'transferToBankAccount']);
+//Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/transaction/query/{reference}', [SpecialAPIController::class, 'queryTransaction']);
+//Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/account-statement', [SpecialAPIController::class, 'getAccountStatement']);
 
 Route::post('/transactions/woven-webhook', [TransactionController::class, 'wovenWebhook'])->name('v2-woven-webhook')->middleware('log.route');
 Route::post('/transactions/flutterwave-webhook', [TransactionController::class, 'flutterwaveWebhook'])->name('v2-flutterwave-webhook')->middleware('log.route');
@@ -124,7 +120,7 @@ Route::prefix('/accounts')->group(function () {
     Route::middleware("restrictIP")->post('/advice/debit-user', [NibbsController::class, 'directDebitMandate'])->name('v2-direct-debit-mandate');
     Route::middleware("restrictIP")->post('/fi', [NibbsController::class, 'addNewBanks'])->name('v2-add-new-banks');
     Route::middleware("restrictIP")->post('/advice/credit-user', [NibbsController::class, 'creditUser'])->name('v2-credit-user-advice');
-    Route::get('/transaction/{reference}', [SpecialAPIController::class, 'queryTransaction']);
+    // Route::get('/transaction/{reference}', [SpecialAPIController::class, 'queryTransaction']);
 
     Route::middleware("restrictIP")->post('/funds-transfer-advice/credit-user', [NibbsController::class, 'reverseFundsTransferCredit'])->name('v2-funds-transfer-reversal-credit-user');
     Route::middleware("restrictIP")->post('/funds-transfer-advice/debit-user', [NibbsController::class, 'reverseFundsTransferDebit'])->name('v2-funds-transfer-reversal-debit-user');
@@ -165,8 +161,6 @@ Route::prefix('/transactions')->group(function () {
         Route::post('/verify-smart-card', [TransactionController::class, 'verifySmartCard']);
         Route::get('/get-data-bundles/{networkProvider}', [TransactionController::class, 'getDataBundles']);
         Route::middleware('checkAccountStatus')->post('/bank-transfer', [TransactionController::class, 'transferToBankAccount'])->middleware('log.route');
-
-
 
     });
     Route::middleware('checkApiKey')->get('/list', [TransactionController::class, 'getAllTransactions']);
@@ -213,4 +207,3 @@ Route::prefix('/investment')->group(function () {
 Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/transaction/get-info/{id}', [TransactionController::class, 'txnInfo']);
 });
-

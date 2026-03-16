@@ -3492,11 +3492,10 @@ class TransactionController extends Controller
     public function profitLossDashboard(Request $request)
     {
         $profitIDs = [
-            12, 13, 14, 17, 23, 27, 30, 32, 33, 38, 39,  51, 54, 55, 56, 57, 58, 62, 67,
-            76, 91, 92, 95, 100, 41, 42, 51, 93, 106, 125,
+            12, 13, 17, 23, 27, 30, 33, 39, 41, 42, 51, 54, 55, 58, 62, 68, 70, 76, 91, 92, 100, 106, 125,
         ];
 
-        $lossIDs = [16, 27, 18, 43, 46, 85];
+        $lossIDs = [16, 17, 18, 23, 27, 43, 46, 59, 85, 95, 125];
 
         $query = transactions::query()->where('company_id', auth()->user()->company->id);
 
@@ -3524,11 +3523,28 @@ class TransactionController extends Controller
 
         // PROFIT
         $profitTransactions = $transactions->whereIn('transaction_type_id', $profitIDs);
-        $totalProfit        = $profitTransactions->sum('amount');
+        // $totalProfit        = $profitTransactions->sum('amount');
+
+        $totalProfit = $profitTransactions->sum(function ($t) {
+            if ($t->transaction_type_id == 27 || $t->transaction_type_id == 125) {
+                return ($t->balance_after - $t->amount); // or whatever column you want
+            }
+
+            return $t->amount;
+        });
 
         // LOSS
         $lossTransactions = $transactions->whereIn('transaction_type_id', $lossIDs);
-        $totalLoss        = $lossTransactions->sum('amount');
+        //    $totalLoss        = $lossTransactions->sum('amount');
+
+        $totalLoss = $lossTransactions->sum(function ($t) {
+
+            if ($t->transaction_type_id == 23 || $t->transaction_type_id == 27 || $t->transaction_type_id == 125) {
+                return ($t->company_balance_after - $t->company_amount); // or whatever column you want
+            }
+
+            return $t->amount;
+        });
 
         // NET
         $net = $totalProfit - $totalLoss;

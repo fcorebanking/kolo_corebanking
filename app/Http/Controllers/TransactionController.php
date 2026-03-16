@@ -3527,7 +3527,7 @@ class TransactionController extends Controller
 
         $totalProfit = $profitTransactions->sum(function ($t) {
             if ($t->transaction_type_id == 27 || $t->transaction_type_id == 125) {
-                return ($t->balance_after  - $t->balance_before); // or whatever column you want
+                return ($t->balance_after - $t->amount); // or whatever column you want
             }
 
             return $t->amount;
@@ -3540,7 +3540,7 @@ class TransactionController extends Controller
         $totalLoss = $lossTransactions->sum(function ($t) {
 
             if ($t->transaction_type_id == 23 || $t->transaction_type_id == 27 || $t->transaction_type_id == 125) {
-                return ($t->company_balance_after - $t->company_balance_before); // or whatever column you want
+                return ($t->company_balance_after - ($t->company_balance_before + $t->company_amount )); // or whatever column you want
             }
 
             return $t->amount;

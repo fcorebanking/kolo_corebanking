@@ -3492,11 +3492,11 @@ class TransactionController extends Controller
     public function profitLossDashboard(Request $request)
     {
         $profitIDs = [
-            12, 13, 14, 17, 23, 27, 30, 32, 33, 38, 39, 46, 51, 54, 55, 56, 57, 58, 62, 67,
-            76, 91, 92, 95, 100, 41, 42, 51, 93, 106, 125
+            12, 13, 14, 17, 23, 27, 30, 32, 33, 38, 39,  51, 54, 55, 56, 57, 58, 62, 67,
+            76, 91, 92, 95, 100, 41, 42, 51, 93, 106, 125,
         ];
 
-        $lossIDs = [16, 27, 18, 43, 85];
+        $lossIDs = [16, 27, 18, 43, 46, 85];
 
         $query = transactions::query()->where('company_id', auth()->user()->company->id);
 

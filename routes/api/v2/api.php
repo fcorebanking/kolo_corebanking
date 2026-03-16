@@ -5,7 +5,6 @@ use App\Http\Controllers\api\v2\InvestmentController;
 use App\Http\Controllers\api\v2\LoanController;
 use App\Http\Controllers\api\v2\LoginController;
 use App\Http\Controllers\api\v2\MeetingController;
-use App\Http\Controllers\api\v2\NibbsController;
 use App\Http\Controllers\api\v2\OrderController;
 use App\Http\Controllers\api\v2\RegisterController;
 use App\Http\Controllers\api\v2\TransactionController;
@@ -122,8 +121,8 @@ Route::prefix('/accounts')->group(function () {
     // Route::middleware("restrictIP")->post('/advice/credit-user', [NibbsController::class, 'creditUser'])->name('v2-credit-user-advice');
     // Route::get('/transaction/{reference}', [SpecialAPIController::class, 'queryTransaction']);
 
-    Route::middleware("restrictIP")->post('/funds-transfer-advice/credit-user', [NibbsController::class, 'reverseFundsTransferCredit'])->name('v2-funds-transfer-reversal-credit-user');
-    Route::middleware("restrictIP")->post('/funds-transfer-advice/debit-user', [NibbsController::class, 'reverseFundsTransferDebit'])->name('v2-funds-transfer-reversal-debit-user');
+    //Route::middleware("restrictIP")->post('/funds-transfer-advice/credit-user', [NibbsController::class, 'reverseFundsTransferCredit'])->name('v2-funds-transfer-reversal-credit-user');
+    // Route::middleware("restrictIP")->post('/funds-transfer-advice/debit-user', [NibbsController::class, 'reverseFundsTransferDebit'])->name('v2-funds-transfer-reversal-debit-user');
 });
 Route::group(['middleware' => 'auth:api'], function () {
 

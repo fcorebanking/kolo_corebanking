@@ -3496,7 +3496,7 @@ class TransactionController extends Controller
             76, 91, 92, 95, 100, 41, 42, 51, 93,
         ];
 
-        $query = transactions::query();
+        $query = transactions::where('company_id', auth()->user()->company->id)->query();
 
         // FILTER: DATE FROM
         if ($request->from) {
@@ -3532,10 +3532,18 @@ class TransactionController extends Controller
         $net = $totalProfit - $totalLoss;
 
         // GROUP BY TYPE FOR DISPLAY
-        $profitGrouped = $profitTransactions->groupBy('transaction_type_id');
-        $lossGrouped   = $lossTransactions->groupBy('transaction_type_id');
+        //   $profitGrouped = $profitTransactions->groupBy('transaction_type_id');
+        //   $lossGrouped   = $lossTransactions->groupBy('transaction_type_id');
 
-        $branches = branch::all();
+        $profitGrouped = $profitTransactions->groupBy(function ($item) {
+            return $item->type->transaction_type ?? 'Unknown';
+        });
+
+        $lossGrouped = $lossTransactions->groupBy(function ($item) {
+            return $item->type->transaction_type ?? 'Unknown';
+        });
+
+        $branches = branch::where('company_id', auth()->user()->company->id)->get();
         $staff    = User::all();
 
         return view('livewire.profit-loss', compact(

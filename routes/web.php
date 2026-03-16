@@ -191,7 +191,7 @@ Route::get('/security/2factor', [App\Http\Controllers\LoginController::class, 's
 Route::post('/security/2factor', [App\Http\Controllers\LoginController::class, 'verifyOTP'])->middleware('auth');
 Route::post('/security/2factor-resend', [App\Http\Controllers\LoginController::class, 'resendOTP'])->middleware('auth');
 Route::get('/', function () {
-    return redirect('/dashboard');
+    return redirect('v');
 });
 Route::group(['middleware' => ['auth_factor', '2fa']], function () {
     Route::post('/2fa', function () {

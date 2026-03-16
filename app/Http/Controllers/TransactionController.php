@@ -3492,7 +3492,7 @@ class TransactionController extends Controller
     public function profitLossDashboard(Request $request)
     {
         $profitIDs = [
-            7, 8, 27, 30, 33, 38, 39, 54, 55, 56, 57, 58, 62,
+            7, 8, 27, 30, 33, 38, 39, 43, 46, 54, 55, 56, 57, 58, 62, 67,
             76, 91, 92, 95, 100, 41, 42, 51, 93,
         ];
 

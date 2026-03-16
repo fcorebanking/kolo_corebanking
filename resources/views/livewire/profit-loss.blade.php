@@ -5,7 +5,7 @@
 
         <h4 class="mb-4">Profit & Loss Dashboard</h4>
 
-        <form method="GET" action="{{ route('profit.loss') }}">
+        <form method="GET" action="{{ route('company.accounting.profit.loss') }}">
             <div class="row mb-4">
 
                 <div class="col-md-2">

@@ -1,137 +1,171 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="container">
-
-        <h4 class="mb-4">Profit & Loss Dashboard</h4>
-
-        <form method="GET" action="{{ route('company.accounting.profit.loss') }}">
-            <div class="row mb-4">
-
-                <div class="col-md-2">
-                    <label>From</label>
-                    <input type="date" name="from" class="form-control" value="{{ request('from') }}">
-                </div>
-
-                <div class="col-md-2">
-                    <label>To</label>
-                    <input type="date" name="to" class="form-control" value="{{ request('to') }}">
-                </div>
-
-                <div class="col-md-3">
-                    <label>Branch</label>
-                    <select name="branch_id" class="form-control">
-                        <option value="">All Branch</option>
-                        @foreach ($branches as $branch)
-                            <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
-                                {{ $branch->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-md-3">
-                    <label>Staff</label>
-                    <select name="staff_id" class="form-control">
-                        <option value="">All Staff</option>
-                        @foreach ($staff as $s)
-                            <option value="{{ $s->id }}" {{ request('staff_id') == $s->id ? 'selected' : '' }}>
-                                {{ $s->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-md-2">
-                    <label></label>
-                    <button class="btn btn-primary form-control">Filter</button>
-                </div>
-
-            </div>
-        </form>
+    <div class="container-fluid">
 
         <div class="row">
+            <div class="col-lg-12">
 
-            <!-- PROFIT -->
-            <div class="col-md-6">
+                <h4 class="mb-3">Profit & Loss Dashboard</h4>
 
-                <div class="card border-success">
+                <form method="GET" action="{{ route('company.accounting.profit.loss') }}">
+                    <div class="row align-items-end mb-3">
 
-                    <div class="card-header bg-success text-white">
-                        Revenue
-                    </div>
+                        <div class="col-md-2">
+                            <label class="form-label">From</label>
+                            <input type="date" name="from" class="form-control form-control-sm"
+                                value="{{ request('from') }}">
+                        </div>
 
-                    <div class="card-body">
+                        <div class="col-md-2">
+                            <label class="form-label">To</label>
+                            <input type="date" name="to" class="form-control form-control-sm"
+                                value="{{ request('to') }}">
+                        </div>
 
-                        <table class="table">
+                        <div class="col-md-3">
+                            <label class="form-label">Branch</label>
+                            <select name="branch_id" class="form-control form-control-sm">
+                                <option value="">All Branch</option>
+                                @foreach ($branches as $branch)
+                                    <option value="{{ $branch->id }}"
+                                        {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                                        {{ $branch->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                            @foreach ($profitGrouped as $type => $items)
-                                <tr>
-                                    <td>{{ $items->first()->type->name ?? 'Type ' . $type }}</td>
-                                    <td class="text-end">
-                                        ₦{{ number_format($items->sum('amount'), 2) }}
-                                    </td>
-                                </tr>
-                            @endforeach
+                        <div class="col-md-3">
+                            <label class="form-label">Staff</label>
+                            <select name="staff_id" class="form-control form-control-sm">
+                                <option value="">All Staff</option>
+                                @foreach ($staff as $s)
+                                    <option value="{{ $s->id }}"
+                                        {{ request('staff_id') == $s->id ? 'selected' : '' }}>
+                                        {{ $s->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                        </table>
-
-                        <div class="alert alert-success">
-                            <strong>Total Revenue : ₦{{ number_format($totalProfit, 2) }}</strong>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary btn-sm w-100">
+                                Filter
+                            </button>
                         </div>
 
                     </div>
-                </div>
-            </div>
+                </form>
 
-            <!-- LOSS -->
-            <div class="col-md-6">
 
-                <div class="card border-danger">
+                <div class="row">
 
-                    <div class="card-header bg-danger text-white">
-                        Expenses
-                    </div>
+                    <!-- REVENUE -->
+                    <div class="col-lg-6">
 
-                    <div class="card-body">
+                        <div class="card border-success shadow-sm">
 
-                        <table class="table">
+                            <div class="card-header bg-success text-white py-2">
+                                Revenue
+                            </div>
 
-                            @foreach ($lossGrouped as $type => $items)
-                                <tr>
-                                    <td>{{ $items->first()->type->name ?? 'Type ' . $type }}</td>
-                                    <td class="text-end">
-                                        ₦{{ number_format($items->sum('amount'), 2) }}
-                                    </td>
-                                </tr>
-                            @endforeach
+                            <div class="card-body p-2">
 
-                        </table>
+                                <div class="table-responsive">
+                                    <table class="table table-sm mb-2">
 
-                        <div class="alert alert-danger">
-                            <strong>Total Expenses : ₦{{ number_format($totalLoss, 2) }}</strong>
+                                        <tbody>
+
+                                            @foreach ($profitGrouped as $type => $items)
+                                                <tr>
+                                                    <td>{{ $items->first()->type->name ?? 'Type ' . $type }}</td>
+
+                                                    <td class="text-end fw-bold">
+                                                        ₦{{ number_format($items->sum('amount'), 2) }}
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+
+                                        </tbody>
+
+                                    </table>
+                                </div>
+
+                                <div class="alert alert-success py-2 mb-0 text-center">
+                                    <strong>Total Revenue : ₦{{ number_format($totalProfit, 2) }}</strong>
+                                </div>
+
+                            </div>
+
                         </div>
 
                     </div>
+
+
+                    <!-- EXPENSES -->
+                    <div class="col-lg-6">
+
+                        <div class="card border-danger shadow-sm">
+
+                            <div class="card-header bg-danger text-white py-2">
+                                Expenses
+                            </div>
+
+                            <div class="card-body p-2">
+
+                                <div class="table-responsive">
+                                    <table class="table table-sm mb-2">
+
+                                        <tbody>
+
+                                            @foreach ($lossGrouped as $type => $items)
+                                                <tr>
+                                                    <td>{{ $items->first()->type->name ?? 'Type ' . $type }}</td>
+
+                                                    <td class="text-end fw-bold">
+                                                        ₦{{ number_format($items->sum('amount'), 2) }}
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+
+                                        </tbody>
+
+                                    </table>
+                                </div>
+
+                                <div class="alert alert-danger py-2 mb-0 text-center">
+                                    <strong>Total Expenses : ₦{{ number_format($totalLoss, 2) }}</strong>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
                 </div>
+
+
+                <!-- NET RESULT -->
+
+                <div class="row mt-3">
+                    <div class="col-lg-12">
+
+                        @if ($net >= 0)
+                            <div class="alert alert-success text-center">
+                                <h5 class="mb-0">NET PROFIT : ₦{{ number_format($net, 2) }}</h5>
+                            </div>
+                        @else
+                            <div class="alert alert-danger text-center">
+                                <h5 class="mb-0">NET LOSS : ₦{{ number_format($net, 2) }}</h5>
+                            </div>
+                        @endif
+
+                    </div>
+                </div>
+
             </div>
-
-        </div>
-
-        <!-- NET -->
-
-        <div class="mt-4">
-
-            @if ($net >= 0)
-                <div class="alert alert-success text-center">
-                    <h4>NET PROFIT : ₦{{ number_format($net, 2) }}</h4>
-                </div>
-            @else
-                <div class="alert alert-danger text-center">
-                    <h4>NET LOSS : ₦{{ number_format($net, 2) }}</h4>
-                </div>
-            @endif
-
         </div>
 
     </div>

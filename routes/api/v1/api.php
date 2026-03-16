@@ -12,7 +12,6 @@ use App\Http\Controllers\api\v1\NibbsController;
 use App\Http\Controllers\api\v1\OrderController;
 use App\Http\Controllers\api\v1\RegisterController;
 use App\Http\Controllers\api\v1\SpecialAPIController;
-use App\Http\Controllers\api\v1\TalentModuleController;
 use App\Http\Controllers\api\v1\TransactionController;
 use App\Http\Controllers\api\v1\user\UserController;
 use App\Http\Controllers\api\v1\UtilityController;
@@ -88,12 +87,12 @@ Route::prefix('/users')->group(function () {
         // esusuProduct
         Route::delete('/delete-account', [UserController::class, 'deleteRequest']);
         //Talent
-        Route::get('/talent-category', [TalentModuleController::class, 'ViewCategory']);
-        Route::get('/talent/{id}', [TalentModuleController::class, 'viewTalent']);
-        Route::post('/talent/{id}', [TalentModuleController::class, 'RegisterTalent']);
-        Route::get('/talent-charges', [TalentModuleController::class, 'charges']);
-        Route::post('/vote-talent/{id}', [TalentModuleController::class, 'VoteTalent']);
-        Route::get('/view-talent/{id}', [TalentModuleController::class, 'ViewTalentVote']);
+        //   Route::get('/talent-category', [TalentModuleController::class, 'ViewCategory']);
+        // Route::get('/talent/{id}', [TalentModuleController::class, 'viewTalent']);
+        //    Route::post('/talent/{id}', [TalentModuleController::class, 'RegisterTalent']);
+        //   Route::get('/talent-charges', [TalentModuleController::class, 'charges']);
+        //    Route::post('/vote-talent/{id}', [TalentModuleController::class, 'VoteTalent']);
+        //    Route::get('/view-talent/{id}', [TalentModuleController::class, 'ViewTalentVote']);
 
     });
     //resetPin

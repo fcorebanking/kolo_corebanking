@@ -41,7 +41,7 @@
                         @foreach ($branches as $branch)
                             <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
 
-                                {{ $branch->name }}
+                                {{ $branch->branch_name }}
 
                             </option>
                         @endforeach

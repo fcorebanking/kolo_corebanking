@@ -11,7 +11,6 @@ use App\Http\Controllers\api\v1\MeetingController;
 use App\Http\Controllers\api\v1\NibbsController;
 use App\Http\Controllers\api\v1\OrderController;
 use App\Http\Controllers\api\v1\RegisterController;
-use App\Http\Controllers\api\v1\SpecialAPIController;
 use App\Http\Controllers\api\v1\TransactionController;
 use App\Http\Controllers\api\v1\user\UserController;
 use App\Http\Controllers\api\v1\UtilityController;
@@ -137,13 +136,13 @@ Route::post('/kuda-webhook', [TransactionController::class, 'kudaWebhook'])->mid
 //Parkway APIs
 //Route::post('/parkway-create-account', [ParkwayController::class, 'createVirtualAccount']);
 
-Route::middleware("restrictIP")->middleware('checkApiKey')->post('/create-account', [SpecialAPIController::class, 'createAccount']);
-Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/get-balance/{accountNumber}', [SpecialAPIController::class, 'getAccountBalance']);
-Route::middleware("restrictIP")->post('/generate-key', [SpecialAPIController::class, 'generateKey']);
-Route::middleware("restrictIP")->post('/save-developer-settings', [SpecialAPIController::class, 'saveDeveloperSettings']);
-Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->post('/bank-transfer', [SpecialAPIController::class, 'transferToBankAccount']);
-Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/transaction/query/{reference}', [SpecialAPIController::class, 'queryTransaction']);
-Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/account-statement', [SpecialAPIController::class, 'getAccountStatement']);
+//Route::middleware("restrictIP")->middleware('checkApiKey')->post('/create-account', [SpecialAPIController::class, 'createAccount']);
+//Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/get-balance/{accountNumber}', [SpecialAPIController::class, 'getAccountBalance']);/
+//Route::middleware("restrictIP")->post('/generate-key', [SpecialAPIController::class, 'generateKey']);
+//Route::middleware("restrictIP")->post('/save-developer-settings', [SpecialAPIController::class, 'saveDeveloperSettings']);
+//Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->post('/bank-transfer', [SpecialAPIController::class, 'transferToBankAccount']);
+//Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/transaction/query/{reference}', [SpecialAPIController::class, 'queryTransaction']);
+//Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/account-statement', [SpecialAPIController::class, 'getAccountStatement']);
 
 Route::post('/transactions/admin-debit-transaction', [TransactionController::class, 'debitCustomeFromApi'])->name('admin-debit-transaction')->middleware('log.route');
 
@@ -215,7 +214,7 @@ Route::prefix('/accounts')->group(function () {
     Route::middleware("restrictIP")->post('/advice/debit-user', [NibbsController::class, 'directDebitMandate'])->name('direct-debit-mandate')->middleware('log.route');
     Route::middleware("restrictIP")->post('/fi', [NibbsController::class, 'addNewBanks'])->name('add-new-banks')->middleware('log.route');
     Route::middleware("restrictIP")->post('/advice/credit-user', [NibbsController::class, 'creditUser'])->name('credit-user-advice')->middleware('log.route');
-    Route::get('/transaction/{reference}', [SpecialAPIController::class, 'queryTransaction']);
+    //   Route::get('/transaction/{reference}', [SpecialAPIController::class, 'queryTransaction']);
 
     Route::middleware("restrictIP")->post('/funds-transfer-advice/credit-user', [NibbsController::class, 'reverseFundsTransferCredit'])->name('funds-transfer-reversal-credit-user');
     Route::middleware("restrictIP")->post('/funds-transfer-advice/debit-user', [NibbsController::class, 'reverseFundsTransferDebit'])->name('funds-transfer-reversal-debit-user');

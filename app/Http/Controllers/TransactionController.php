@@ -3531,8 +3531,8 @@ class TransactionController extends Controller
                 logInfo(json_encode($t->balance_after), "balance_after for $t->transaction_type_id ");
                 logInfo(json_encode($t->amount), "amount for  $t->transaction_type_id ");
 
-                // $adjustedAmount = ($t->amount + $t->balance_before) - $t->balance_after;
-                $adjustedAmount = $t->balance_after;
+                $adjustedAmount = ($t->amount + $t->balance_before) - $t->balance_after;
+
                 logInfo(json_encode($adjustedAmount), "profitTransactions for  $t->transaction_type_id ");
                 return $adjustedAmount; // or whatever column you want
             }
@@ -3547,8 +3547,7 @@ class TransactionController extends Controller
         $totalLoss = $lossTransactions->sum(function ($t) {
 
             if ($t->transaction_type_id == 23 || $t->transaction_type_id == 27 || $t->transaction_type_id == 125) {
-                //    $adjustedAmount = ($t->company_balance_before + $t->company_amount) - $t->company_balance_after;
-                $adjustedAmount = $t->company_amount;
+                $adjustedAmount = ($t->company_balance_before + $t->company_amount) - $t->company_balance_after;
                 return $adjustedAmount; // or whatever column you want
             }
 

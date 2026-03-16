@@ -2912,7 +2912,7 @@ class TransactionController extends Controller
                     $bank = banks::where('bank_code', $request->bankCode)->orwhere('short_code', $request->bankCode)->first();
 
                     //9 safe heaven
-                    if (in_array(auth()->user()->company_id, ['14', '42', '64', '67', '69', '74', '79' , '87', '88' , '89'])) {
+                    if (in_array(auth()->user()->company_id, ['14', '42', '64', '67', '69', '74', '79', '87', '88', '89'])) {
 
                         $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', auth()->user()->company_id)->first();
                         $ebankingService          = new EbankingCompanyService($preferredEbankingPartner);
@@ -3487,5 +3487,65 @@ class TransactionController extends Controller
         } else {
             return true;
         }
+    }
+
+    public function profitLossDashboard(Request $request)
+    {
+        $profitIDs = [
+            7, 8, 27, 30, 33, 38, 39, 54, 55, 56, 57, 58, 62,
+            76, 91, 92, 95, 100, 41, 42, 51, 93,
+        ];
+
+        $query = transactions::query();
+
+        // FILTER: DATE FROM
+        if ($request->from) {
+            $query->whereDate('created_at', '>=', $request->from);
+        }
+
+        // FILTER: DATE TO
+        if ($request->to) {
+            $query->whereDate('created_at', '<=', $request->to);
+        }
+
+        // FILTER: BRANCH
+        if ($request->branch_id) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
+        // FILTER: STAFF
+        if ($request->staff_id) {
+            $query->where('account_id', $request->staff_id);
+        }
+
+        $transactions = $query->get();
+
+        // PROFIT
+        $profitTransactions = $transactions->whereIn('transaction_type_id', $profitIDs);
+        $totalProfit        = $profitTransactions->sum('amount');
+
+        // LOSS
+        $lossTransactions = $transactions->whereNotIn('transaction_type_id', $profitIDs);
+        $totalLoss        = $lossTransactions->sum('amount');
+
+        // NET
+        $net = $totalProfit - $totalLoss;
+
+        // GROUP BY TYPE FOR DISPLAY
+        $profitGrouped = $profitTransactions->groupBy('transaction_type_id');
+        $lossGrouped   = $lossTransactions->groupBy('transaction_type_id');
+
+        $branches = branch::all();
+        $staff    = User::all();
+
+        return view('reports.profit_loss', compact(
+            'profitGrouped',
+            'lossGrouped',
+            'totalProfit',
+            'totalLoss',
+            'net',
+            'branches',
+            'staff'
+        ));
     }
 }

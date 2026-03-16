@@ -18,7 +18,6 @@ use App\Http\Controllers\api\v1\UtilityController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ThirdParty\KudaController;
-use App\Http\Controllers\ThirdParty\ParkwayController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Http\Middleware\LogRoute;
 use Illuminate\Http\Request;
@@ -136,7 +135,7 @@ Route::post('/kuda-create-account', [KudaController::class, 'createAccount']);
 Route::post('/kuda-webhook', [TransactionController::class, 'kudaWebhook'])->middleware('log.route');
 
 //Parkway APIs
-Route::post('/parkway-create-account', [ParkwayController::class, 'createVirtualAccount']);
+//Route::post('/parkway-create-account', [ParkwayController::class, 'createVirtualAccount']);
 
 Route::middleware("restrictIP")->middleware('checkApiKey')->post('/create-account', [SpecialAPIController::class, 'createAccount']);
 Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/get-balance/{accountNumber}', [SpecialAPIController::class, 'getAccountBalance']);

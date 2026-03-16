@@ -115,7 +115,7 @@
                                                 ₦{{ number_format(
                                                     $items->sum(function ($t) {
                                                         if (in_array($t->transaction_type_id, [27, 125])) {
-                                                            return $t->amount + $t->balance_before - $t->balance_after;
+                                                            return abs($t->balance_after - ($t->amount + $t->balance_before));
                                                         }
                                                 
                                                         return $t->amount;

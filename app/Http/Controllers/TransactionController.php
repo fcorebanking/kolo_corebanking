@@ -3528,11 +3528,11 @@ class TransactionController extends Controller
         $totalProfit = $profitTransactions->sum(function ($t) {
             if ($t->transaction_type_id == 27 || $t->transaction_type_id == 125) {
                 logInfo(json_encode($t->balance_after), "balance_after for $t->transaction_type_id ");
-                logInfo(json_encode($t->amount), "amount for $transaction_type_id ");
+                logInfo(json_encode($t->amount), "amount for  $t->transaction_type_id ");
 
                 $adjustedAmount = $t->balance_after - ($t->amount + $t->balance_before);
 
-                logInfo(json_encode($adjustedAmount), "profitTransactions for $transaction_type_id ");
+                logInfo(json_encode($adjustedAmount), "profitTransactions for $ $t->transaction_type_id ");
                 return $adjustedAmount; // or whatever column you want
             }
 

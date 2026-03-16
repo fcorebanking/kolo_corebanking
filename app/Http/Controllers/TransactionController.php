@@ -3538,7 +3538,7 @@ class TransactionController extends Controller
         $branches = branch::all();
         $staff    = User::all();
 
-        return view('reports.profit_loss', compact(
+        return view('livewire.profit-loss.blade', compact(
             'profitGrouped',
             'lossGrouped',
             'totalProfit',

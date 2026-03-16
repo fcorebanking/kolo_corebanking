@@ -147,7 +147,7 @@ Route::get('/email/verify', function () {
 
     $url = url("verify-account/" . $verificationHash);
 
-    $msg = 'A Verification email has been sent to your email account. Click on the link in the email to verify your account<br><br>';
+    $msg  = 'A Verification email has been sent to your email account. Click on the link in the email to verify your account<br><br>';
     $msg .= '<a href="' . $url . '">Verify Account</a>';
 
     if (\auth()->user()->email_verified_at != null) {
@@ -263,8 +263,8 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                             Route::get('/balance-sheet-page', [ReportController::class, 'balancesheetpage'])->name('balancesheetpage');
                             Route::get('/balance-sheet', [ReportController::class, 'balancesheet'])->name('balancesheet');
                             Route::get('/view-cash-flow', CashFlowComponent::class);
-                          //  Route::get('/view-profit-and-loss', ProfitAndLossComponent::class);
-                            Route::get('/view-profit-and-loss', [TransactionController::class,'profitLossDashboard'])->name('profit.loss');
+                            //  Route::get('/view-profit-and-loss', ProfitAndLossComponent::class);
+                            Route::get('/view-profit-and-loss', [TransactionController::class, 'profitLossDashboard'])->name('profit.loss');
                             Route::get('/add-ledger-account', LedgerAccount::class)->name('ledger-account');
                             Route::get('/edit-ledger-account/{id}', LedgerAccountEdit::class)->name('edit-ledger-account');
                             Route::get('/view-ledger-account', LedgerAccountList::class)->name('ledger-list');

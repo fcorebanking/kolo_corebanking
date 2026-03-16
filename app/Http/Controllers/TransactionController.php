@@ -3496,7 +3496,7 @@ class TransactionController extends Controller
             76, 91, 92, 95, 100, 41, 42, 51, 93,
         ];
 
-        $query = transactions::where('company_id', auth()->user()->company->id)->query();
+        $query = transactions::query()->where('company_id', auth()->user()->company->id);
 
         // FILTER: DATE FROM
         if ($request->from) {

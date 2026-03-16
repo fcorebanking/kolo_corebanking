@@ -108,18 +108,18 @@ Route::middleware("restrictIP")->post('/users/restrict-account', [UserController
 
 Route::prefix('/accounts')->group(function () {
 
-    Route::middleware("restrictIP")->post('/block', [NibbsController::class, 'blockUserAccount'])->name('v2-block-user-account');
-    Route::middleware("restrictIP")->post('/unblock', [NibbsController::class, 'unblockUserAccount'])->name('v2-unblock-user-account');
-    Route::middleware("restrictIP")->post('/credit-user', [NibbsController::class, 'creditUser'])->name('v2-credit-customer');
-    Route::middleware("restrictIP")->post('/debit-user', [NibbsController::class, 'debitUser'])->name('v2-debit-user');
-    Route::middleware("restrictIP")->post('/balance', [NibbsController::class, 'getAccountBalance'])->name('v2-account-balance');
-    Route::middleware("restrictIP")->get('/lookup/{account_number}', [NibbsController::class, 'lookupAccount'])->name('v2-look-account');
-    Route::middleware("restrictIP")->post('/amount/block', [NibbsController::class, 'lienAccount'])->name('v2-lien-account');
-    Route::middleware("restrictIP")->post('/amount/unblock', [NibbsController::class, 'unlienAccount'])->name('v2-unlien-account');
-    Route::middleware("restrictIP")->post('/advice', [NibbsController::class, 'accountMandate'])->name('v2-account-manadate');
-    Route::middleware("restrictIP")->post('/advice/debit-user', [NibbsController::class, 'directDebitMandate'])->name('v2-direct-debit-mandate');
-    Route::middleware("restrictIP")->post('/fi', [NibbsController::class, 'addNewBanks'])->name('v2-add-new-banks');
-    Route::middleware("restrictIP")->post('/advice/credit-user', [NibbsController::class, 'creditUser'])->name('v2-credit-user-advice');
+    //Route::middleware("restrictIP")->post('/block', [NibbsController::class, 'blockUserAccount'])->name('v2-block-user-account');
+    //Route::middleware("restrictIP")->post('/unblock', [NibbsController::class, 'unblockUserAccount'])->name('v2-unblock-user-account');
+    //Route::middleware("restrictIP")->post('/credit-user', [NibbsController::class, 'creditUser'])->name('v2-credit-customer');
+    /// Route::middleware("restrictIP")->post('/debit-user', [NibbsController::class, 'debitUser'])->name('v2-debit-user');
+    // Route::middleware("restrictIP")->post('/balance', [NibbsController::class, 'getAccountBalance'])->name('v2-account-balance');
+    //Route::middleware("restrictIP")->get('/lookup/{account_number}', [NibbsController::class, 'lookupAccount'])->name('v2-look-account');
+    //Route::middleware("restrictIP")->post('/amount/block', [NibbsController::class, 'lienAccount'])->name('v2-lien-account');
+    //Route::middleware("restrictIP")->post('/amount/unblock', [NibbsController::class, 'unlienAccount'])->name('v2-unlien-account');
+    //Route::middleware("restrictIP")->post('/advice', [NibbsController::class, 'accountMandate'])->name('v2-account-manadate');
+    //Route::middleware("restrictIP")->post('/advice/debit-user', [NibbsController::class, 'directDebitMandate'])->name('v2-direct-debit-mandate');
+    //Route::middleware("restrictIP")->post('/fi', [NibbsController::class, 'addNewBanks'])->name('v2-add-new-banks');
+    // Route::middleware("restrictIP")->post('/advice/credit-user', [NibbsController::class, 'creditUser'])->name('v2-credit-user-advice');
     // Route::get('/transaction/{reference}', [SpecialAPIController::class, 'queryTransaction']);
 
     Route::middleware("restrictIP")->post('/funds-transfer-advice/credit-user', [NibbsController::class, 'reverseFundsTransferCredit'])->name('v2-funds-transfer-reversal-credit-user');

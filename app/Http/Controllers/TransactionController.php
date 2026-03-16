@@ -3546,7 +3546,7 @@ class TransactionController extends Controller
         $totalLoss = $lossTransactions->sum(function ($t) {
 
             if ($t->transaction_type_id == 23 || $t->transaction_type_id == 27 || $t->transaction_type_id == 125) {
-                $adjustedAmount = $t->company_balance_after - ($t->company_balance_before + $t->company_amount);
+                $adjustedAmount = ($t->company_balance_before + $t->company_amount)  -$t->company_balance_after ;
                 return $adjustedAmount; // or whatever column you want
             }
 

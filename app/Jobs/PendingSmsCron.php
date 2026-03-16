@@ -178,7 +178,7 @@ class PendingSmsCron
 
                         $ledger_cr       = null;
                         $ledger_dr       = null;
-                        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(33, $company_id);
+                        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(33, $companyId);
                         if ($ledger_Settings) {
                             $ledger_cr = $ledger_Settings->ledger_cr;
                             $ledger_dr = $ledger_Settings->ledger_dr;

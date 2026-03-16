@@ -88,6 +88,13 @@ class Kernel extends ConsoleKernel
             });
 
         //  $schedule->command('pendingsms:cron')->everyFiveMinutes();
+        $schedule->job(new PendingSmsCron)->everyThirtyMinutes()->days([1])->onSuccess(function () {
+            Log::info('Your PendingPenalty Job executed successfully.');
+        })
+            ->onFailure(function () {
+                Log::error('Your PendingPenalty Job failed');
+            });
+
         $schedule->job(new PendingSmsCron)->dailyAt('1:00')->days([1])->onSuccess(function () {
             Log::info('Your PendingPenalty Job executed successfully.');
         })

@@ -3530,9 +3530,9 @@ class TransactionController extends Controller
                 logInfo(json_encode($t->balance_after), "balance_after for $t->transaction_type_id ");
                 logInfo(json_encode($t->amount), "amount for  $t->transaction_type_id ");
 
-                $adjustedAmount = $t->balance_after - ($t->amount + $t->balance_before);
+                $adjustedAmount = ($t->amount + $t->balance_before) - $t->balance_after;
 
-                logInfo(json_encode($adjustedAmount), "profitTransactions for $ $t->transaction_type_id ");
+                logInfo(json_encode($adjustedAmount), "profitTransactions for  $t->transaction_type_id ");
                 return $adjustedAmount; // or whatever column you want
             }
 

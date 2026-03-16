@@ -26,6 +26,7 @@ use App\Models\Mandate;
 use App\Models\PreferredEbankingPartner;
 use App\Models\PreferredEbankingPartnerCompany;
 use App\Models\savings_product;
+use App\Models\Staffrole;
 use App\Models\TempWebhook;
 use App\Models\transactions;
 use App\Models\transaction_types;
@@ -3546,7 +3547,7 @@ class TransactionController extends Controller
         $totalLoss = $lossTransactions->sum(function ($t) {
 
             if ($t->transaction_type_id == 23 || $t->transaction_type_id == 27 || $t->transaction_type_id == 125) {
-                $adjustedAmount = ($t->company_balance_before + $t->company_amount)  -$t->company_balance_after ;
+                $adjustedAmount = ($t->company_balance_before + $t->company_amount) - $t->company_balance_after;
                 return $adjustedAmount; // or whatever column you want
             }
 
@@ -3569,7 +3570,10 @@ class TransactionController extends Controller
         });
 
         $branches = branch::where('company_id', auth()->user()->company->id)->get();
-        $staff    = User::all();
+        $staff    = Staffrole::where('company_id', auth()->user()->company->id)->get();
+
+        logInfo(json_encode($branches), "branches ");
+        logInfo(json_encode($staff), "staff  ");
 
         return view('livewire.profit-loss', compact(
             'profitGrouped',

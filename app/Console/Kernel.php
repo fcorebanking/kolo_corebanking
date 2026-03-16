@@ -19,7 +19,7 @@ use App\Jobs\BirthdayCron;
 use App\Jobs\CardMaintenanceCron;
 use App\Jobs\CardNairaPartnerMaintenanceCron;
 use App\Jobs\CompanySettimentThreshold;
-use App\Jobs\DailyHybridSummaryJob;
+//use App\Jobs\DailyHybridSummaryJob;
 use App\Jobs\InvestmentCron;
 use App\Jobs\LoanCron;
 use App\Jobs\LoanExtend;
@@ -88,7 +88,7 @@ class Kernel extends ConsoleKernel
             });
 
         //  $schedule->command('pendingsms:cron')->everyFiveMinutes();
-        $schedule->job(new PendingSmsCron)->everyThirtyMinutes()->days([1])->onSuccess(function () {
+        $schedule->job(new PendingSmsCron)->everyThirtyMinutes()->onSuccess(function () {
             Log::info('Your PendingPenalty Job executed successfully.');
         })
             ->onFailure(function () {
@@ -199,14 +199,14 @@ class Kernel extends ConsoleKernel
                 Log::error('Your SubscriptionCron Job failed');
             });
 
-        $schedule->job(new DailyHybridSummaryJob)->dailyAt('23:00')->onSuccess(function () {
+        /*  $schedule->job(new DailyHybridSummaryJob)->dailyAt('23:00')->onSuccess(function () {
             Log::info('Your DailyHybridSummaryJob executed successfully.');
         })
             ->onFailure(function () {
                 Log::error('Your DailyHybridSummaryJob failed');
             });
 
-        /*  $schedule->job(new DailyHybridSummaryJob)->everyTenMinutes()->onSuccess(function () {
+          $schedule->job(new DailyHybridSummaryJob)->everyTenMinutes()->onSuccess(function () {
             Log::info('Your DailyHybridSummaryJob executed successfully.');
         })
             ->onFailure(function () {

@@ -3498,7 +3498,7 @@ class TransactionController extends Controller
 
         $lossIDs = [16, 17, 18, 23, 27, 43, 46, 59, 85, 95, 125];
 
-        $WbaCharge = WbaCharge::all;
+        $WbaCharge = WbaCharge::all();
 
         $query = transactions::query()->where('company_id', auth()->user()->company->id);
 

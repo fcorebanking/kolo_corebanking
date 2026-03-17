@@ -183,8 +183,18 @@
 
                                                 ₦{{ number_format(
                                                     $items->sum(function ($t) {
-                                                        if (in_array($t->transaction_type_id, [23, 27, 125])) {
+                                                        if ($t->transaction_type_id == 23) {
+                                                            return 5;
+                                                            // or whatever column you want
+                                                        }
+                                                
+                                                        if ($t->transaction_type_id == 27) {
                                                             return abs($t->company_balance_after - ($t->company_balance_before + $t->company_amount));
+                                                            // or whatever column you want
+                                                        }
+                                                
+                                                        if ($t->transaction_type_id == 125) {
+                                                            return \App\Models\WbaCharge::find(1)->charge;
                                                         }
                                                 
                                                         return $t->amount;

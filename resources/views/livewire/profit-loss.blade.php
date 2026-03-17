@@ -194,7 +194,9 @@
                                                         }
                                                 
                                                         if ($t->transaction_type_id == 125) {
-                                                            return \App\Models\WbaCharge::find(1)->charge;
+                                                            $wbaCharge = \App\Models\WbaCharge::find(1)->charge;
+                                                
+                                                            return $t->amount > 9999 ? $wbaCharge + 50 : $wbaCharge;
                                                         }
                                                 
                                                         return $t->amount;

@@ -181,7 +181,16 @@
 
                                             <td class="text-end fw-bold">
 
-                                                ₦{{ number_format($items->sum('amount'), 2) }}
+                                                ₦{{ number_format(
+                                                    $items->sum(function ($t) {
+                                                        if (in_array($t->transaction_type_id, [23, 27, 125])) {
+                                                            return abs($t->company_balance_after - ($t->company_balance_before + $t->company_amount));
+                                                        }
+                                                
+                                                        return $t->amount;
+                                                    }),
+                                                    2,
+                                                ) }}
 
                                             </td>
 

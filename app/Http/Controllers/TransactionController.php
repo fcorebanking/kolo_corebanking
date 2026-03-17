@@ -3498,8 +3498,6 @@ class TransactionController extends Controller
 
         $lossIDs = [16, 17, 18, 23, 27, 43, 46, 59, 85, 95, 125];
 
-        $WbaCharge = WbaCharge::all();
-
         $query = transactions::query()->where('company_id', auth()->user()->company->id);
 
         // FILTER: DATE FROM
@@ -3548,7 +3546,7 @@ class TransactionController extends Controller
         //    $totalLoss        = $lossTransactions->sum('amount');
 
         $totalLoss = $lossTransactions->sum(function ($t) {
-
+            $WbaCharge = WbaCharge::all();
             if ($t->transaction_type_id == 23) {
                 $adjustedAmount = 5;
                 return $adjustedAmount; // or whatever column you want

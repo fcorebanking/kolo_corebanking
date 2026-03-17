@@ -3555,12 +3555,13 @@ class TransactionController extends Controller
             }
 
             if ($t->transaction_type_id == 27) {
-                $adjustedAmount = abs($t->company_balance_after - ($t->company_balance_before + $t->company_amount));
+                $adjustedAmount = $t->amount > 9999 ? ($WbaCharge[0]->charge + 50) : $WbaCharge[0]->charge;
+
                 return $adjustedAmount; // or whatever column you want
             }
 
             if ($t->transaction_type_id == 125) {
-                $adjustedAmount = $t->amount > 9999 ? ($WbaCharge[0]->charge + 50) : $WbaCharge[0]->charge;
+                $adjustedAmount = abs($t->company_balance_after - ($t->company_balance_before + $t->company_amount));
 
                 return $adjustedAmount; // or whatever column you want
             }

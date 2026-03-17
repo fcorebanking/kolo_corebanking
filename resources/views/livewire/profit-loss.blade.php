@@ -189,14 +189,15 @@
                                                         }
                                                 
                                                         if ($t->transaction_type_id == 27) {
-                                                            return abs($t->company_balance_after - ($t->company_balance_before + $t->company_amount));
+                                                            $wbaCharge = \App\Models\WbaCharge::find(1)->charge;
+                                                
+                                                            return $t->amount > 9999 ? $wbaCharge + 50 : $wbaCharge;
+                                                
                                                             // or whatever column you want
                                                         }
                                                 
                                                         if ($t->transaction_type_id == 125) {
-                                                            $wbaCharge = \App\Models\WbaCharge::find(1)->charge;
-                                                
-                                                            return $t->amount > 9999 ? $wbaCharge + 50 : $wbaCharge;
+                                                            return abs($t->company_balance_after - ($t->company_balance_before + $t->company_amount));
                                                         }
                                                 
                                                         return $t->amount;

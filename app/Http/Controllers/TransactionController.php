@@ -3550,7 +3550,7 @@ class TransactionController extends Controller
         $totalLoss = $lossTransactions->sum(function ($t) {
 
             if ($t->transaction_type_id == 23) {
-                $adjustedAmount = 5 ;
+                $adjustedAmount = 5;
                 return $adjustedAmount; // or whatever column you want
             }
 
@@ -3560,7 +3560,8 @@ class TransactionController extends Controller
             }
 
             if ($t->transaction_type_id == 125) {
-                $adjustedAmount = $WbaCharge[0]->charge;
+                $adjustedAmount = $t->amount > 9999 ? ($WbaCharge[0]->charge + 50) : $WbaCharge[0]->charge;
+
                 return $adjustedAmount; // or whatever column you want
             }
 

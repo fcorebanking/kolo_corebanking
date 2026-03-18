@@ -416,7 +416,7 @@ class NinePSBController extends WebhookController
     {
 
         try {
-            $privateKey         = $request->privateKey;
+            $privateKey         = $request->privatekey;
             $senderAccount      = $request->input('customer.account.senderaccountnumber');
             $beneficiaryAccount = $request->input('customer.account.number');
             $bankCode           = "120001";

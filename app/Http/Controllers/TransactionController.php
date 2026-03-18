@@ -3523,16 +3523,14 @@ class TransactionController extends Controller
         $transactions = $query->get();
 
         // PROFIT
-        $profitTransactions = $transactions->whereIn('transaction_type_id', $profitIDs);
+        //  $profitTransactions = $transactions->whereIn('transaction_type_id', $profitIDs);
         // $totalProfit        = $profitTransactions->sum('amount');
 
-         $profitTransactions = $transactions
+        $profitTransactions = $transactions
             ->where(function ($q) use ($profitIDs) {
                 $q->whereIn('transaction_type_id', $profitIDs)
                     ->orWhereNull('transaction_type_id');
             });
-
-        
 
         $totalProfit = $profitTransactions->sum(function ($t) {
             if (is_null($t->transaction_type_id)) {

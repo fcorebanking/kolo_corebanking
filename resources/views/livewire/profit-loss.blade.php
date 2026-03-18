@@ -103,39 +103,44 @@
 
                                 <tbody>
 
-                                    @forelse ($finalGrouped as $typeName => $items)
+                                    {{-- FIRST LOOP --}}
+                                    @forelse ($profitGrouped as $typeName => $items)
                                         <tr>
-
                                             <td>{{ $typeName }}</td>
-
                                             <td class="text-end fw-bold">
-
-
-
                                                 ₦{{ number_format(
                                                     $items->sum(function ($t) {
                                                         if (in_array($t->transaction_type_id, [27, 125])) {
                                                             return abs($t->balance_after - ($t->amount + $t->balance_before));
                                                         }
-                                                
-                                                        return $t->amount;
+                                                        return $t->amount ?? 0;
                                                     }),
                                                     2,
                                                 ) }}
-
                                             </td>
-
                                         </tr>
+                                    @endforelse
 
 
-                                    @empty
+                                    {{-- SECOND LOOP (CONTINUES NATURALLY) --}}
+                                    @forelse ($profitMissingGrouped as $typeName => $items)
+                                        <tr>
+                                            <td>{{ $typeName }}</td>
+                                            <td class="text-end fw-bold">
+                                                ₦{{ number_format($items->sum(fn($t) => $t->amount ?? 0), 2) }}
+                                            </td>
+                                        </tr>
+                                    @endforelse
 
+
+                                    {{-- EMPTY STATE --}}
+                                    @if ($profitGrouped->isEmpty() && $profitMissingGrouped->isEmpty())
                                         <tr>
                                             <td colspan="2" class="text-center text-muted">
                                                 No revenue data
                                             </td>
                                         </tr>
-                                    @endforelse
+                                    @endif
 
                                 </tbody>
 

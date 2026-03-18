@@ -423,6 +423,13 @@ class NinePSBController extends WebhookController
             $amount             = $request->amount; // ensure two decimal places
             $reference          = generateTransactionReference();
 
+            logInfo($privateKey, "9PSB privateKey");
+            logInfo($senderAccount, "9PSB senderAccount");
+            logInfo($beneficiaryAccount, "9PSB beneficiaryAccount,");
+            logInfo($bankCode, "9PSB bankCode");
+            logInfo($amount, "9PSB amount");
+            logInfo($reference, "9PSB reference");
+
             $hashed = $this->hash($privateKey, $senderAccount, $beneficiaryAccount, $bankCode, $amount, $reference);
             return [
                 'status'  => true,

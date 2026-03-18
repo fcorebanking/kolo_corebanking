@@ -3555,16 +3555,14 @@ class TransactionController extends Controller
 
         $missingIDs = $profitIDsCollection->diff($existingIDs);
 
-        $missingTransactions = $missingIDs->map(function ($id) {
+        $missingProfitTransactions = $missingIDs->map(function ($id) {
             return (object) [
                 'transaction_type_id' => $id,
                 'amount'              => 0,
             ];
         });
 
-        $profitTransactions = $profitTransactions->concat($missingTransactions);
-
-      //  dd($profitTransactions->pluck('transaction_type_id'));
+        //  dd($profitTransactions->pluck('transaction_type_id'));
 
         // LOSS
         $lossTransactions = $transactions->whereIn('transaction_type_id', $lossIDs);
@@ -3621,6 +3619,7 @@ class TransactionController extends Controller
             'lossGrouped',
             'totalProfit',
             'totalLoss',
+            'missingProfitTransactions',
             'net',
             'branches',
             'staff'

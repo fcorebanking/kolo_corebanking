@@ -104,7 +104,7 @@
                                 <tbody>
 
                                     {{-- FIRST LOOP --}}
-                                    @forelse ($profitGrouped as $typeName => $items)
+                                    @foreach ($profitGrouped as $typeName => $items)
                                         <tr>
                                             <td>{{ $typeName }}</td>
                                             <td class="text-end fw-bold">
@@ -119,18 +119,18 @@
                                                 ) }}
                                             </td>
                                         </tr>
-                                    @endforelse
+                                    @endforeach
 
 
-                                    {{-- SECOND LOOP (CONTINUES NATURALLY) --}}
-                                    @forelse ($profitMissingGrouped as $typeName => $items)
+                                    {{-- SECOND LOOP --}}
+                                    @foreach ($profitMissingGrouped as $typeName => $items)
                                         <tr>
                                             <td>{{ $typeName }}</td>
                                             <td class="text-end fw-bold">
                                                 ₦{{ number_format($items->sum(fn($t) => $t->amount ?? 0), 2) }}
                                             </td>
                                         </tr>
-                                    @endforelse
+                                    @endforeach
 
 
                                     {{-- EMPTY STATE --}}

@@ -3548,11 +3548,12 @@ class TransactionController extends Controller
         $lossTransactions = $transactions->whereIn('transaction_type_id', $lossIDs);
         //    $totalLoss        = $lossTransactions->sum('amount');
 
-        if (is_null($t->transaction_type_id)) {
-            return 0;
-        }
+       
 
         $totalLoss = $lossTransactions->sum(function ($t) {
+             if (is_null($t->transaction_type_id)) {
+            return 0;
+        }
             $WbaCharge = WbaCharge::all();
             if ($t->transaction_type_id == 23) {
                 $adjustedAmount = 5;

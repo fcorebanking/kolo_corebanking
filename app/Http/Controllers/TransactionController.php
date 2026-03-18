@@ -3564,6 +3564,8 @@ class TransactionController extends Controller
 
         $profitTransactions = $profitTransactions->concat($missingTransactions);
 
+        dd($profitTransactions->pluck('transaction_type_id'));
+
         // LOSS
         $lossTransactions = $transactions->whereIn('transaction_type_id', $lossIDs);
         //    $totalLoss        = $lossTransactions->sum('amount');

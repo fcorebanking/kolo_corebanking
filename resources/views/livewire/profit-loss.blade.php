@@ -126,15 +126,34 @@
                                             </td>
 
                                         </tr>
+                                        @forelse ($profitMissingGrouped as $typeName => $items)
+                                            <tr>
 
-                                    @empty
+                                                <td>{{ $typeName }}</td>
 
-                                        <tr>
-                                            <td colspan="2" class="text-center text-muted">
-                                                No revenue data
-                                            </td>
-                                        </tr>
-                                    @endforelse
+                                                <td class="text-end fw-bold">
+
+
+
+                                                    ₦{{ number_format(
+                                                        $items->sum(function ($t) {
+                                                            return $t->amount;
+                                                        }),
+                                                        2,
+                                                    ) }}
+
+                                                </td>
+
+                                            </tr>
+
+                                        @empty
+
+                                            <tr>
+                                                <td colspan="2" class="text-center text-muted">
+                                                    No revenue data
+                                                </td>
+                                            </tr>
+                                        @endforelse
 
                                 </tbody>
 

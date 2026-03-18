@@ -3520,29 +3520,17 @@ class TransactionController extends Controller
             $query->where('account_id', $request->staff_id);
         }
 
-        $query->where(function ($q) use ($profitIDs) {
-            $q->whereIn('transaction_type_id', $profitIDs)
-                ->orWhereNull('transaction_type_id');
-        });
-
         $transactions = $query->get();
 
         // PROFIT
 
-        $profitTransactions = $transactions->filter(function ($t) use ($profitIDs) {
-            return in_array($t->transaction_type_id, $profitIDs)
-            || is_null($t->transaction_type_id);
-        });
-
-        dd($profitTransactions->pluck('transaction_type_id'));
-
         $profitTransactions = $transactions->whereIn('transaction_type_id', $profitIDs);
         // $totalProfit        = $profitTransactions->sum('amount');
 
+        //  dd($profitTransactions->pluck('transaction_type_id'));
+
         $totalProfit = $profitTransactions->sum(function ($t) {
-            if (is_null($t->transaction_type_id)) {
-                return 0;
-            }
+
             if ($t->transaction_type_id == 27 || $t->transaction_type_id == 125) {
                 logInfo(json_encode($t->balance_before), "balance_before for $t->transaction_type_id ");
                 logInfo(json_encode($t->amount), "amount for  $t->transaction_type_id ");
@@ -3556,6 +3544,25 @@ class TransactionController extends Controller
 
             return $t->amount;
         });
+
+        $existingIDs = $profitTransactions
+            ->pluck('transaction_type_id')
+            ->filter() // removes nulls (optional)
+            ->unique()
+            ->values();
+
+        $profitIDsCollection = collect($profitIDs);
+
+        $missingIDs = $profitIDsCollection->diff($existingIDs);
+
+        $missingTransactions = $missingIDs->map(function ($id) {
+            return (object) [
+                'transaction_type_id' => $id,
+                'amount'              => 0,
+            ];
+        });
+
+        $profitTransactions = $profitTransactions->concat($missingTransactions);
 
         // LOSS
         $lossTransactions = $transactions->whereIn('transaction_type_id', $lossIDs);

@@ -3523,37 +3523,59 @@ class TransactionController extends Controller
         $transactions = $query->get();
 
         // PROFIT
-        $profitTransactions = $transactions->whereIn('transaction_type_id', $profitIDs);
+        //  $profitTransactions = $transactions->whereIn('transaction_type_id', $profitIDs);
         // $totalProfit        = $profitTransactions->sum('amount');
 
+        $profitTransactions = $transactions
+            ->where(function ($q) use ($profitIDs) {
+                $q->whereIn('transaction_type_id', $profitIDs)
+                    ->orWhereNull('transaction_type_id');
+            });
+
+        $profitTransactions = $transactions
+            ->where(function ($q) use ($profitIDs) {
+                $q->whereIn('transaction_type_id', $profitIDs)
+                    ->orWhereNull('transaction_type_id');
+            });
+
         $totalProfit = $profitTransactions->sum(function ($t) {
-            if (is_null($t->transaction_type_id)) {
+
+            $type   = $t->transaction_type_id;
+            $amount = $t->amount ?? 0;
+            $before = $t->balance_before ?? 0;
+            $after  = $t->balance_after ?? 0;
+
+            // 👉 If transaction_type_id is NULL → return 0
+            if (is_null($type)) {
                 return 0;
             }
-            if ($t->transaction_type_id == 27 || $t->transaction_type_id == 125) {
-                logInfo(json_encode($t->balance_before), "balance_before for $t->transaction_type_id ");
-                logInfo(json_encode($t->amount), "amount for  $t->transaction_type_id ");
-                logInfo(json_encode($t->balance_after), "balance_after for $t->transaction_type_id ");
 
-                $adjustedAmount = abs($t->balance_after - ($t->amount + $t->balance_before));
+            // 👉 Special calculation
+            if (in_array($type, [27, 125])) {
 
-                logInfo(json_encode($adjustedAmount), "profitTransactions for  $t->transaction_type_id ");
-                return $adjustedAmount; // or whatever column you want
+                logInfo(json_encode($before), "balance_before for $type");
+                logInfo(json_encode($amount), "amount for $type");
+                logInfo(json_encode($after), "balance_after for $type");
+
+                $adjustedAmount = abs($after - ($amount + $before));
+
+                logInfo(json_encode($adjustedAmount), "profitTransactions for $type");
+
+                return $adjustedAmount;
             }
 
-            return $t->amount;
+            // 👉 Normal transactions
+            return $amount;
         });
 
         // LOSS
         $lossTransactions = $transactions->whereIn('transaction_type_id', $lossIDs);
         //    $totalLoss        = $lossTransactions->sum('amount');
 
-       
-
         $totalLoss = $lossTransactions->sum(function ($t) {
-             if (is_null($t->transaction_type_id)) {
-            return 0;
-        }
+            if (is_null($t->transaction_type_id)) {
+                return 0;
+            }
             $WbaCharge = WbaCharge::all();
             if ($t->transaction_type_id == 23) {
                 $adjustedAmount = 5;

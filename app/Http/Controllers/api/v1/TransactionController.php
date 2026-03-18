@@ -5991,8 +5991,7 @@ class TransactionController extends Controller
 
     public function ninetyPSBTestHash(Request $request)
     {
-         $data = $request->all();
-        logInfo(json_encode($data), "9PSB Reqest from test Hash");
+       
         $ninePSBController = new NinePSBController();
         return $ninePSBController->getHashed($request);
     }

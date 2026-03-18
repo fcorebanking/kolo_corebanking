@@ -414,16 +414,14 @@ class NinePSBController extends WebhookController
 
     public function getHashed(Request $request)
     {
-        $data = $request->all();
-        logInfo(json_encode($data), "9PSB Reqest");
 
         try {
-            $privateKey         = $data['privatekey'];
-            $senderAccount      = $data['customer']['account']['senderaccountnumber'];
-            $beneficiaryAccount = $data['customer']['account']['number'];
+            $privateKey         = $request->privateKey;
+            $senderAccount      = $request->input('customer.account.senderaccountnumber');
+            $beneficiaryAccount = $request->input('customer.account.number');
             $bankCode           = "120001";
-            $amount             = $data['order']['amount']; // ensure two decimal places
-            $reference          = $data['transaction']['reference'];
+            $amount             = $request->input('order.amount'); // ensure two decimal places
+            $reference          = $request->input('transaction.reference');
 
             logInfo($privateKey, "9PSB privateKey");
             logInfo($senderAccount, "9PSB senderAccount");

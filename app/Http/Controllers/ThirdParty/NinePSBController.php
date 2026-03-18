@@ -415,6 +415,7 @@ class NinePSBController extends WebhookController
     public function getHashed(Request $request)
     {
         $data = $request->all();
+        logInfo(json_encode($data), "9PSB Reqest");
 
         try {
             $privateKey         = $data['privatekey'];

@@ -421,7 +421,7 @@ class NinePSBController extends WebhookController
             $beneficiaryAccount = $request->input('customer.account.number');
             $bankCode           = "120001";
             $amount             = $request->amount; // ensure two decimal places
-            $reference          = generateTransactionReference();
+            $reference          = $request->input('transaction.reference');
 
             logInfo($privateKey, "9PSB privateKey");
             logInfo($senderAccount, "9PSB senderAccount");

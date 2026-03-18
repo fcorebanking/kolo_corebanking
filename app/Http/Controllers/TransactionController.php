@@ -3520,6 +3520,11 @@ class TransactionController extends Controller
             $query->where('account_id', $request->staff_id);
         }
 
+        $query->where(function ($q) use ($profitIDs) {
+            $q->whereIn('transaction_type_id', $profitIDs)
+                ->orWhereNull('transaction_type_id');
+        });
+
         $transactions = $query->get();
 
         // PROFIT

@@ -3604,6 +3604,10 @@ class TransactionController extends Controller
             return $item->type->transaction_type ?? 'Unknown';
         });
 
+        $profitMissingGrouped = $missingProfitTransactions->groupBy(function ($item) {
+            return $item->type->transaction_type ?? 'Unknown';
+        });
+
         $lossGrouped = $lossTransactions->groupBy(function ($item) {
             return $item->type->transaction_type ?? 'Unknown';
         });
@@ -3619,7 +3623,7 @@ class TransactionController extends Controller
             'lossGrouped',
             'totalProfit',
             'totalLoss',
-            'missingProfitTransactions',
+            '$profitMissingGrouped',
             'net',
             'branches',
             'staff'

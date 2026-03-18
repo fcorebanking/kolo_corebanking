@@ -103,7 +103,7 @@
 
                                 <tbody>
 
-                                    @forelse ($profitGrouped as $typeName => $items)
+                                    @forelse ($finalGrouped as $typeName => $items)
                                         <tr>
 
                                             <td>{{ $typeName }}</td>
@@ -126,34 +126,16 @@
                                             </td>
 
                                         </tr>
-                                        @forelse ($profitMissingGrouped as $typeName => $items)
-                                            <tr>
-
-                                                <td>{{ $typeName }}</td>
-
-                                                <td class="text-end fw-bold">
 
 
+                                    @empty
 
-                                                    ₦{{ number_format(
-                                                        $items->sum(function ($t) {
-                                                            return $t->amount;
-                                                        }),
-                                                        2,
-                                                    ) }}
-
-                                                </td>
-
-                                            </tr>
-
-                                        @empty
-
-                                            <tr>
-                                                <td colspan="2" class="text-center text-muted">
-                                                    No revenue data
-                                                </td>
-                                            </tr>
-                                        @endforelse
+                                        <tr>
+                                            <td colspan="2" class="text-center text-muted">
+                                                No revenue data
+                                            </td>
+                                        </tr>
+                                    @endforelse
 
                                 </tbody>
 

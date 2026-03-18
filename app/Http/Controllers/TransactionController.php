@@ -3608,7 +3608,7 @@ class TransactionController extends Controller
             return $item->type->transaction_type ?? 'Unknown';
         });
 
-       $finalGrouped = $profitGrouped->concat($profitMissingGrouped);
+        $finalGrouped = $profitGrouped->concat($profitMissingGrouped);
 
         $lossGrouped = $lossTransactions->groupBy(function ($item) {
             return $item->type->transaction_type ?? 'Unknown';
@@ -3625,7 +3625,7 @@ class TransactionController extends Controller
             'lossGrouped',
             'totalProfit',
             'totalLoss',
-            'profitMissingGrouped',
+            'finalGrouped',
             'net',
             'branches',
             'staff'

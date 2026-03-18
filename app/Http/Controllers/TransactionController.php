@@ -3527,6 +3527,9 @@ class TransactionController extends Controller
         // $totalProfit        = $profitTransactions->sum('amount');
 
         $totalProfit = $profitTransactions->sum(function ($t) {
+            if (is_null($t->transaction_type_id)) {
+                return 0;
+            }
             if ($t->transaction_type_id == 27 || $t->transaction_type_id == 125) {
                 logInfo(json_encode($t->balance_before), "balance_before for $t->transaction_type_id ");
                 logInfo(json_encode($t->amount), "amount for  $t->transaction_type_id ");
@@ -3544,6 +3547,10 @@ class TransactionController extends Controller
         // LOSS
         $lossTransactions = $transactions->whereIn('transaction_type_id', $lossIDs);
         //    $totalLoss        = $lossTransactions->sum('amount');
+
+        if (is_null($t->transaction_type_id)) {
+            return 0;
+        }
 
         $totalLoss = $lossTransactions->sum(function ($t) {
             $WbaCharge = WbaCharge::all();

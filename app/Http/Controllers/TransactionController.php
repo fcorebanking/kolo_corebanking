@@ -2912,11 +2912,11 @@ class TransactionController extends Controller
 
                     $bank = banks::where('bank_code', $request->bankCode)->orwhere('short_code', $request->bankCode)->first();
 
-                    //9 safe heaven
-                    if (in_array(auth()->user()->company_id, ['14', '42', '64', '67', '69', '74', '79', '87', '88', '89'])) {
+                    $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', auth()->user()->company_id)->first();
 
-                        $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', auth()->user()->company_id)->first();
-                        $ebankingService          = new EbankingCompanyService($preferredEbankingPartner);
+                    if (isset($preferredEbankingPartner->company_id)) {
+
+                        $ebankingService = new EbankingCompanyService($preferredEbankingPartner);
 
                     } else {
                         $preferredEbankingPartner = PreferredEbankingPartner::all();

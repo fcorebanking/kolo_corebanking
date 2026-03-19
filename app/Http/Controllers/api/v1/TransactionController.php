@@ -1173,10 +1173,11 @@ class TransactionController extends Controller
                             }
 
                             logInfo(json_encode($currentUser->company->id), "PreferredEbankingPartnerCompany");
+                            $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', $currentUser->company->id)->first();
 
-                            if (in_array($currentUser->company->id, ['14', '42', '64', '67', '69', '74', '79', '87', '88', '89'])) {
+                            if (isset($preferredEbankingPartner->company_id)) {
                                 //logInfo(json_encode($currentUser->company->id), "PreferredEbankingPartnerCompany");
-                                $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', $currentUser->company->id)->first();
+
                                 logInfo(json_encode($preferredEbankingPartner), "PreferredEbankingPartnerCompany");
                                 $ebankingService = new EbankingCompanyService($preferredEbankingPartner);
 

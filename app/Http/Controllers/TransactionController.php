@@ -3566,7 +3566,7 @@ class TransactionController extends Controller
             ];
         });
 
-        dd($missingProfitTransactions);
+       // dd($missingProfitTransactions);
 
         // LOSS
         $lossTransactions = $transactions->whereIn('transaction_type_id', $lossIDs);

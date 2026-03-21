@@ -3648,7 +3648,7 @@ class TransactionController extends Controller
             'totalProfit',
             'totalLoss',
             'profitMissingGrouped',
-            '$lossMissingGrouped',
+            'lossMissingGrouped',
             'net',
             'branches',
             'staff'

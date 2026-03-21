@@ -3558,12 +3558,10 @@ class TransactionController extends Controller
         $transactionTypeNames = \App\Models\transaction_types::whereIn('id', $missingIDs)
             ->pluck('transaction_type', 'id'); // [id => name]
 
-       
-
         $missingProfitTransactions = $missingIDs->map(function ($id) {
             return (object) [
                 'transaction_type_id' => $id,
-                'type_name'           => \App\Models\transaction_types::whereIn('id', $id)->transaction_type ?? 'Unknown',
+                'type_name'           => \App\Models\transaction_types::whereIn('id', $id)->first()->transaction_type ?? 'Unknown',
                 'amount'              => 0,
             ];
         });

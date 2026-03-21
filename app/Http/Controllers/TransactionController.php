@@ -3555,9 +3555,6 @@ class TransactionController extends Controller
 
         $missingIDs = $profitIDsCollection->diff($existingIDs);
 
-        $transactionTypeNames = \App\Models\transaction_types::whereIn('id', $missingIDs)
-            ->pluck('transaction_type', 'id'); // [id => name]
-
         $missingProfitTransactions = $missingIDs->map(function ($id) {
             return (object) [
                 'transaction_type_id' => $id,
@@ -3597,6 +3594,25 @@ class TransactionController extends Controller
             return $t->amount;
         });
 
+          
+        $existingLossIDs = $lossTransactions
+            ->pluck('transaction_type_id')
+            ->filter() // removes nulls (optional)
+            ->unique()
+            ->values();
+
+        $lossIDsCollection = collect($lossIDs );
+
+        $missingLossIDs = $lossIDsCollection->diff($lossIDs);
+
+        $missingLossTransactions = $missingLossIDs->map(function ($id) {
+            return (object) [
+                'transaction_type_id' => $id,
+                'type_name'           => \App\Models\transaction_types::where('id', $id)->first()->transaction_type ?? 'Unknown',
+                'amount'              => 0,
+            ];
+        });
+
         // NET
         $net = $totalProfit - $totalLoss;
 
@@ -3618,6 +3634,8 @@ class TransactionController extends Controller
             return $item->type->transaction_type ?? 'Unknown';
         });
 
+         $lossMissingGrouped = $missingLossTransactions->groupBy('type_name');
+
         $branches = branch::where('company_id', auth()->user()->company->id)->get();
         $staff    = Staffrole::where('company_id', auth()->user()->company->id)->get();
 
@@ -3630,6 +3648,7 @@ class TransactionController extends Controller
             'totalProfit',
             'totalLoss',
             'profitMissingGrouped',
+            '$lossMissingGrouped',
             'net',
             'branches',
             'staff'

@@ -180,49 +180,46 @@
 
                                 <tbody>
 
-                                    @forelse ($lossGrouped as $typeName => $items)
+                                    {{-- FIRST LOOP --}}
+                                    @foreach ($lossGrouped as $typeName => $items)
                                         <tr>
-
                                             <td>{{ $typeName }}</td>
-
                                             <td class="text-end fw-bold">
-
                                                 ₦{{ number_format(
                                                     $items->sum(function ($t) {
-                                                        if ($t->transaction_type_id == 23) {
-                                                            return 5;
-                                                            // or whatever column you want
+                                                        if (in_array($t->transaction_type_id, [27, 125])) {
+                                                            return abs($t->balance_after - ($t->amount + $t->balance_before));
                                                         }
-                                                
-                                                        if ($t->transaction_type_id == 27) {
-                                                            $wbaCharge = \App\Models\WbaCharge::find(1)->charge;
-                                                
-                                                            return $t->amount > 9999 ? $wbaCharge + 50 : $wbaCharge;
-                                                
-                                                            // or whatever column you want
-                                                        }
-                                                
-                                                        if ($t->transaction_type_id == 125) {
-                                                            return abs($t->company_balance_after - ($t->company_balance_before + $t->company_amount));
-                                                        }
-                                                
-                                                        return $t->amount;
+                                                        return $t->amount ?? 0;
                                                     }),
                                                     2,
                                                 ) }}
-
                                             </td>
-
                                         </tr>
+                                    @endforeach
 
-                                    @empty
 
+                                    {{-- SECOND LOOP --}}
+                                    @foreach ($lossMissingGrouped as $typeName => $items)
+                                        <tr>
+                                            <td>{{ $typeName }}</td>
+                                            <td class="text-end fw-bold">
+                                                ₦{{ number_format($items->sum(fn($t) => $t->amount ?? 0), 2) }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+
+
+                                    {{-- EMPTY STATE --}}
+                                    @if ($lossGrouped->isEmpty() && $lossMissingGrouped->isEmpty())
                                         <tr>
                                             <td colspan="2" class="text-center text-muted">
                                                 No expense data
                                             </td>
                                         </tr>
-                                    @endforelse
+                                    @endif
+
+
 
                                 </tbody>
 

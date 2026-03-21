@@ -3555,9 +3555,13 @@ class TransactionController extends Controller
 
         $missingIDs = $profitIDsCollection->diff($existingIDs);
 
+        $transactionTypeNames = \App\Models\transaction_types::whereIn('id', $missingIDs)
+            ->pluck('name', 'id'); // [id => name]
+
         $missingProfitTransactions = $missingIDs->map(function ($id) {
             return (object) [
                 'transaction_type_id' => $id,
+                'type_name'           => $transactionTypeNames[$id] ?? 'Unknown',
                 'amount'              => 0,
             ];
         });
@@ -3606,11 +3610,9 @@ class TransactionController extends Controller
             return $item->type->transaction_type ?? 'Unknown';
         });
 
-         dd($profitGrouped );
+        //  dd($profitGrouped);
 
-        $profitMissingGrouped = $missingProfitTransactions->groupBy(function ($item) {
-            return $item->type->transaction_type ?? 'Unknown';
-        });
+        $profitMissingGrouped = $missingProfitTransactions->groupBy('type_name');
 
         dd($profitMissingGrouped);
 

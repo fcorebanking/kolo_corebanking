@@ -3566,7 +3566,7 @@ class TransactionController extends Controller
             ];
         });
 
-       // dd($missingProfitTransactions);
+        // dd($missingProfitTransactions);
 
         // LOSS
         $lossTransactions = $transactions->whereIn('transaction_type_id', $lossIDs);
@@ -3612,7 +3612,7 @@ class TransactionController extends Controller
 
         $profitMissingGrouped = $missingProfitTransactions->groupBy('type_name');
 
-        dd($profitMissingGrouped);
+        //    dd($profitMissingGrouped);
 
         $lossGrouped = $lossTransactions->groupBy(function ($item) {
             return $item->type->transaction_type ?? 'Unknown';

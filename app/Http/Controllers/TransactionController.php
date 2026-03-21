@@ -3562,6 +3562,8 @@ class TransactionController extends Controller
             ];
         });
 
+         dd($missingProfitTransactions->pluck('transaction_type_id'));
+
         //  dd($profitTransactions->pluck('transaction_type_id'));
 
         // LOSS

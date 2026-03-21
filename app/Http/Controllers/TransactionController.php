@@ -3555,13 +3555,10 @@ class TransactionController extends Controller
 
         $missingIDs = $profitIDsCollection->diff($existingIDs);
 
-       
-
         $transactionTypeNames = \App\Models\transaction_types::whereIn('id', $missingIDs)
             ->pluck('transaction_type', 'id'); // [id => name]
 
-         dd( $transactionTypeNames);
-
+       
         $missingProfitTransactions = $missingIDs->map(function ($id) {
             return (object) [
                 'transaction_type_id' => $id,
@@ -3569,6 +3566,9 @@ class TransactionController extends Controller
                 'amount'              => 0,
             ];
         });
+
+         dd( $missingProfitTransactions);
+
 
         // LOSS
         $lossTransactions = $transactions->whereIn('transaction_type_id', $lossIDs);

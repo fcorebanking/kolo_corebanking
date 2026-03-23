@@ -1158,6 +1158,9 @@ class WebhookController extends Controller
         $username = $request->getUser();
         $password = $request->getPassword();
 
+        logInfo(json_encode($username), "request username");
+        logInfo(json_encode($password), "request password");
+
         // Your expected credentials (store in .env)
         $validUser = config('ninePSB.username');
         $validPass = config('ninePSB.password');

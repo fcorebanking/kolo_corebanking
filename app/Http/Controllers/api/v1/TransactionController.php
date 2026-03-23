@@ -1553,9 +1553,7 @@ class TransactionController extends Controller
                     }
 
                     if (
-                        in_array(auth()->user()->company_id, [87, 88, 89] && ($wbAccount->currency_id != $sourceWbAccount->currency_id))
-
-                    ) {
+                        in_array(auth()->user()->company_id, [87, 88, 89]) && ($wbAccount->currency_id != $sourceWbAccount->currency_id)) {
                         $final_amount = $this->getExchangeRates($request, $wbAccount->currency_id, $sourceWbAccount->currency_id);
                     } else {
                         $final_amount = $request->final_amount;
@@ -5937,6 +5935,27 @@ class TransactionController extends Controller
         $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
 
         logInfo(json_encode($handleWebhook), "Handle web hook Sudo result");
+        logInfo("$httpCode", "httpCode");
+
+        return response()->json($handleWebhook, $httpCode);
+
+    }
+
+    public function ninetyPSBWebhook(Request $request)
+    {
+
+        $ninePSBController = new NinePSBController();
+        // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
+
+        if (! $request['type'] != "transfer") {
+            response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
+        }
+
+        $handleWebhook = $ninePSBController->handleNinePSBWebhook($request);
+
+        $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
+
+        logInfo(json_encode($handleWebhook), "Handle web hook Ninepsb result");
         logInfo("$httpCode", "httpCode");
 
         return response()->json($handleWebhook, $httpCode);

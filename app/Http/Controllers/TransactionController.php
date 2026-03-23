@@ -3594,14 +3594,13 @@ class TransactionController extends Controller
             return $t->amount;
         });
 
-          
         $existingLossIDs = $lossTransactions
             ->pluck('transaction_type_id')
             ->filter() // removes nulls (optional)
             ->unique()
             ->values();
 
-        $lossIDsCollection = collect($lossIDs );
+        $lossIDsCollection = collect($lossIDs);
 
         $missingLossIDs = $lossIDsCollection->diff($lossIDs);
 
@@ -3634,7 +3633,7 @@ class TransactionController extends Controller
             return $item->type->transaction_type ?? 'Unknown';
         });
 
-         $lossMissingGrouped = $missingLossTransactions->groupBy('type_name');
+        $lossMissingGrouped = $missingLossTransactions->groupBy('type_name');
 
         $branches = branch::where('company_id', auth()->user()->company->id)->get();
         $staff    = Staffrole::where('company_id', auth()->user()->company->id)->get();

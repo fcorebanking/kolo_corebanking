@@ -1151,6 +1151,32 @@ class WebhookController extends Controller
         logInfo(json_encode($requestResponse), "request Response");
     }
 
+    public function ninetyPSBWebhook()
+    {
+
+        // Get credentials from header
+        $username = $request->getUser();
+        $password = $request->getPassword();
+
+        // Your expected credentials (store in .env)
+        $validUser = config('ninePSB.username');
+        $validPass = config('ninePSB.password');
+
+        if ($username !== $validUser || $password !== $validPass) {
+            return response()->json([
+                'success' => false,
+                'status'  => 'error',
+                'code'    => '401',
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        $requestResponse = $request->all();
+        logInfo(json_encode($requestResponse), "request Response");
+
+        response()->json(['status' => true, 'status' => 'success', 'code' => '00', 'message' => 'Acknowledged'], 200);
+    }
+
     public function handleFincraWebhook($request)
     {
         $requestResponse = $request->all();

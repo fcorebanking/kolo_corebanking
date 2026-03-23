@@ -1151,7 +1151,7 @@ class WebhookController extends Controller
         logInfo(json_encode($requestResponse), "request Response");
     }
 
-    public function handleNinePSBWebhook()
+    public function handleNinePSBWebhook(Request $request)
     {
 
         // Get credentials from header

@@ -1163,18 +1163,18 @@ class WebhookController extends Controller
         $validPass = config('ninePSB.password');
 
         if ($username !== $validUser || $password !== $validPass) {
-            return response()->json([
+            return [
                 'success' => false,
                 'status'  => 'error',
                 'code'    => '401',
                 'message' => 'Unauthorized',
-            ], 401);
+            ];
         }
 
         $requestResponse = $request->all();
         logInfo(json_encode($requestResponse), "request Response");
 
-        response()->json(['status' => true, 'status' => 'success', 'code' => '00', 'message' => 'Acknowledged'], 200);
+        return ['status' => true, 'status' => 'success', 'code' => '00', 'message' => 'Acknowledged'];
     }
 
     public function handleFincraWebhook($request)

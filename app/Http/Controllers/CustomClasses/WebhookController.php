@@ -1167,11 +1167,11 @@ class WebhookController extends Controller
 
         if ($username !== $validUser || $password !== $validPass) {
             return [
-                'success'  => false,
-                'status'   => 'error',
-                'code'     => '401',
-                'message'  => 'Unauthorized',
-                'httpCode' => false,
+                'success' => false,
+                'status'  => 'error',
+                'code'    => '401',
+                'message' => 'Unauthorized',
+
             ];
         }
 

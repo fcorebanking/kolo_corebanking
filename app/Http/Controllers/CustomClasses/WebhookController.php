@@ -1177,7 +1177,7 @@ class WebhookController extends Controller
         $requestResponse = $request->all();
         logInfo(json_encode($requestResponse), "request Response");
 
-        return ['status' => true, 'status' => 'success', 'code' => '00', 'message' => 'Acknowledged'];
+        return ['status' => true, 'code' => '00', 'message' => 'Acknowledged'];
     }
 
     public function handleFincraWebhook($request)

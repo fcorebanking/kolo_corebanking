@@ -1167,17 +1167,18 @@ class WebhookController extends Controller
 
         if ($username !== $validUser || $password !== $validPass) {
             return [
-                'success' => false,
-                'status'  => 'error',
-                'code'    => '401',
-                'message' => 'Unauthorized',
+                'success'  => false,
+                'status'   => 'error',
+                'code'     => '401',
+                'message'  => 'Unauthorized',
+                'httpCode' => false,
             ];
         }
 
         $requestResponse = $request->all();
         logInfo(json_encode($requestResponse), "request Response");
 
-        return ['status' => true, 'code' => '00', 'message' => 'Acknowledged'];
+        return ['status' => true, 'code' => '00', 'message' => 'Acknowledged', 'httpCode' => true];
     }
 
     public function handleFincraWebhook($request)

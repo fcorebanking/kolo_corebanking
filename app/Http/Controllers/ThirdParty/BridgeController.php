@@ -211,7 +211,7 @@ class BridgeController extends WebhookController
                 return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
             }
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Sudo Customer Get Result Error");
+            logInfo($e->getMessage(), "Bridge Customer Get Result Error");
 
             return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
         }
@@ -242,7 +242,7 @@ class BridgeController extends WebhookController
                 return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
             }
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Sudo Customer Get Result Error");
+            logInfo($e->getMessage(), "Bridge Customer Get Result Error");
 
             return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
         }
@@ -460,6 +460,7 @@ class BridgeController extends WebhookController
 
     private function bridgeHeader()
     {
+        logInfo($this->apiKey, "Bridge API key");
         $header = [
             'Api-Key:'        => $this->apiKey,
             'Content - Type'  => 'application / json',

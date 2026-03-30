@@ -49,12 +49,12 @@ class CardController extends Controller
         $user = auth()->user();
 
         // Temporary service restriction
-        if ($user->company_id != 14) {
+        /*   if ($user->company_id != 14) {
             return response()->json([
                 'status'  => false,
                 'message' => 'This service is currently unavailable and will be restored soon',
             ]);
-        }
+        }*/
 
         // Fetch company settings
         $companySettings = company_settings::where('company_id', $user->company_id)->first();
@@ -259,17 +259,17 @@ class CardController extends Controller
 
             if ($userWallet->balance >= $amount) {
 
-                $userWallet->balance -= $amount;
-                $userWallet->updated_at      = Carbon::now();
-                $user->balance_fails         = 0;
-                $user->transaction_pin_fails = 0;
+                $userWallet->balance         -= $amount;
+                $userWallet->updated_at       = Carbon::now();
+                $user->balance_fails          = 0;
+                $user->transaction_pin_fails  = 0;
                 $user->save();
-                $response = ["status" => true, 'message' => "Customer Debited", 'balance' => $userWallet->balance];
+                $response  = ["status" => true, 'message' => "Customer Debited", 'balance' => $userWallet->balance];
             } else {
                 if ($user->balance_fails < 4) {
                     $user->balance_fails += 1;
                     $user->save();
-                    $response = ["status" => false, 'message' => "Insufficient Funds"];
+                    $response  = ["status" => false, 'message' => "Insufficient Funds"];
                 } else {
                     // auth()->user()->status_id = 5;
                     $this->restrictUserAccount(2, "Multiple Insuficient balance trials");
@@ -292,8 +292,8 @@ class CardController extends Controller
 
             $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
 
-            $userWallet->balance += $amount;
-            $userWallet->updated_at = Carbon::now();
+            $userWallet->balance    += $amount;
+            $userWallet->updated_at  = Carbon::now();
             $userWallet->save();
 
             $response = ["status" => true, 'message' => "Customer Debited", 'balance' => $userWallet->balance];
@@ -322,7 +322,7 @@ class CardController extends Controller
                 if (auth()->user()->balance_fails < 4) {
                     auth()->user()->balance_fails += 1;
                     auth()->user()->save();
-                    $response = ["status" => false, 'message' => "Insufficient Funds"];
+                    $response  = ["status" => false, 'message' => "Insufficient Funds"];
                 } else {
                     // auth()->user()->status_id = 5;
                     $this->restrictUserAccount(2, "Multiple Insuficient balance trials");

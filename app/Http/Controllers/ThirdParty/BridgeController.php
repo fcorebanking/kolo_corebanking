@@ -462,9 +462,9 @@ class BridgeController extends WebhookController
     {
         logInfo($this->apiKey, "Bridge API key");
         $header = [
-            'Api-Key'        => $this->apiKey,
-            'Content - Type'  => 'application / json',
-            'Idempotency-Key' => Str::uuid()
+            "Api-Key"         => $this->apiKey,
+            "Content-Type"    => "application/json",
+            "Idempotency-Key" => Str::uuid()
             ,
         ];
 

@@ -231,7 +231,8 @@ class BridgeController extends WebhookController
             } else {
                 $endpoint = "https://api.sandbox.bridge.xyz/v0/customers/tos_links";
                 $body     = [];
-                $result   = $this->bridgePostRequest($endpoint, $body);
+                $action   = null;
+                $result   = $this->bridgePostRequest($endpoint, $body, $action);
             }
 
             logInfo(json_encode($result), "Bride Customer Result");
@@ -458,16 +459,19 @@ class BridgeController extends WebhookController
         };
     }
 
-    private function bridgeHeader()
+    private function bridgeHeader($action = null)
     {
         logInfo($this->apiKey, "Bridge API key");
 
         $header = [
-            "Api-Key"         => $this->apiKey,
-            "Content-Type"    => "application/json",
-            "Idempotency-Key" => Str::uuid()->toString()
-            ,
+            "Api-Key"      => $this->apiKey,
+            "Content-Type" => "application/json",
+
         ];
+
+        if ($action == 'idemkey') {
+            $headers['Idempotency-Key'] = (string) Str::uuid();
+        }
 
         return $header;
     }
@@ -510,10 +514,10 @@ class BridgeController extends WebhookController
         }
     }
 
-    private function bridgePostRequest($endpoint, $body)
+    private function bridgePostRequest($endpoint, $body, $action = null)
     {
-        logInfo(json_encode($body), "Fincra Process Endpoint Body");
-        $response = Http::withHeaders($this->bridgeHeader())->post($endpoint, $body);
+        logInfo(json_encode($body), "Bridge Process Endpoint Body");
+        $response = Http::withHeaders($this->bridgeHeader($action))->post($endpoint, $body);
         return $response;
     }
 

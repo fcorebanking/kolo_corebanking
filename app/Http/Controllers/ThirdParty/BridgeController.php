@@ -88,7 +88,9 @@ class BridgeController extends WebhookController
 
             \logInfo($jsonBody, "Bridge Request body");
 
-            $createAccountResponse = $this->bridgePostRequest($url, $body);
+            $action = 'idemkey';
+
+            $createAccountResponse = $this->bridgePostRequest($url, $body, $action);
 
             logInfo($createAccountResponse, "bridge Create Account Response");
 
@@ -176,9 +178,10 @@ class BridgeController extends WebhookController
         logInfo($body, "Bridge Customer Register request body");
 
         $endpoint = "$this->baseUrl/customers";
+        $action   = 'idemkey';
 
         try {
-            $result = $this->bridgePostRequest($endpoint, $body);
+            $result = $this->bridgePostRequest($endpoint, $body, $action);
 
             logInfo(json_encode($result), "Bridge Customer Register Result");
 
@@ -462,7 +465,7 @@ class BridgeController extends WebhookController
         };
     }
 
-    private function bridgeHeader($action = null)
+    private function bridgeHeader($action)
     {
         logInfo($this->apiKey, "Bridge API key");
 
@@ -521,7 +524,7 @@ class BridgeController extends WebhookController
         }
     }
 
-    private function bridgePostRequest($endpoint, $body, $action = null)
+    private function bridgePostRequest($endpoint, $body, $action)
     {
         logInfo(json_encode($body), "Bridge Process Endpoint Body");
         $response = Http::withHeaders($this->bridgeHeader($action))->post($endpoint, $body);
@@ -530,7 +533,8 @@ class BridgeController extends WebhookController
 
     public function bridgeGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->bridgeHeader())->get("$endpoint");
+        $action   = null;
+        $response = Http::withHeaders($this->bridgeHeader($action))->get("$endpoint");
         return $response->json();
     }
 

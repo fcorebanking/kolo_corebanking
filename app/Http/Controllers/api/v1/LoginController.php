@@ -65,9 +65,9 @@ class LoginController extends Controller
         if (Auth::user()->company->status_id != 1) {
             return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
         }
-        /*  if (Auth::user()->company->id == 92) {
+        if (Auth::user()->company->id == 46 || Auth::user()->company->id == 52 || Auth::user()->company->id == 26 || Auth::user()->company->id == 86) {
             return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
-        }*/
+        }
 
         if (Auth::user()->user_type_id == 2) {
             return response()->json(['status' => false, 'message' => 'This Account is not a Customer Account'], 401);

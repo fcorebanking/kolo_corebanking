@@ -243,7 +243,7 @@ class BridgeController extends WebhookController
 
             logInfo(json_encode($result), "Bride Customer Result");
 
-            if (isset($result['statusCode']) && $result['statusCode'] == 200) {
+            if (isset($result['url']) ) {
                 return $result;
             } else {
                 return ['status' => false, 'message' => "Failed to get bridge customer... Please contact support"];

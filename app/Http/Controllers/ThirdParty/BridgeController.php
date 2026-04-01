@@ -224,6 +224,8 @@ class BridgeController extends WebhookController
             ->where('currency_id', $customer->company->currency_id)
             ->value('acc_reference');
 
+        logInfo(json_encode($customerID), "Bride Customer Result customerID)");
+
         try {
             if ($customerID = ! null) {
                 $endpoint = "https://api.sandbox.bridge.xyz/v0/customers/$customerID/tos_acceptance_link";

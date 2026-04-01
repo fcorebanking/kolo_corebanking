@@ -226,6 +226,7 @@ class BridgeController extends WebhookController
 
         logInfo(json_encode($customerID), "Bride Customer Result customerID)");
 
+        $customerID = null;
         try {
             if ($customerID = ! null) {
                 $endpoint = "https://api.sandbox.bridge.xyz/v0/customers/$customerID/tos_acceptance_link";

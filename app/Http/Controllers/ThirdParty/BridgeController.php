@@ -529,7 +529,7 @@ class BridgeController extends WebhookController
         logInfo(json_encode($body), "Bridge Process Endpoint Body");
         logInfo(json_encode($action), "Bridge Process Endpoint action");
         $response = Http::withHeaders($this->bridgeHeader($action))->post($endpoint, $body);
-        return $response;
+        return $response->json();
     }
 
     public function bridgeGetRequest($endpoint)

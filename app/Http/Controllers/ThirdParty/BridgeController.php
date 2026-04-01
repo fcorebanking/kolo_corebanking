@@ -231,7 +231,7 @@ class BridgeController extends WebhookController
 
         $customerBridgeID = null;
         try {
-            if ($customerBridgeID = ! null) {
+            if ($customerBridgeID != null) {
                 $endpoint = "https://api.sandbox.bridge.xyz/v0/customers/$customerID/tos_acceptance_link";
                 $result   = $this->bridgeGetRequest($endpoint);
             } else {

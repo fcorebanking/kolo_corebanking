@@ -475,6 +475,8 @@ class BridgeController extends WebhookController
             $headers['Idempotency-Key'] = (string) Str::uuid();
         }
 
+        logInfo(json_encode($headers), "Bridge Header");
+
         return $header;
     }
 

@@ -234,7 +234,7 @@ class BridgeController extends WebhookController
             } else {
                 $endpoint = "https://api.sandbox.bridge.xyz/v0/customers/tos_links";
                 $body     = [];
-                $action   = null;
+                $action   = 'idemkey';
                 $result   = $this->bridgePostRequest($endpoint, $body, $action);
             }
 
@@ -243,7 +243,7 @@ class BridgeController extends WebhookController
             if (isset($result['statusCode']) && $result['statusCode'] == 200) {
                 return $result;
             } else {
-                return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
+                return ['status' => false, 'message' => "Failed to get bridge customer... Please contact support"];
             }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Bridge Customer Get Result Error");

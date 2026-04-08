@@ -177,7 +177,7 @@ class RegisterController extends Controller
         // $response = $assetMatrix->createAccount($customerReference, $request->email, $request->phone, $request->first_name, $request->last_name, "");
         // echo \json_encode($createAdminAccount);
 
-        $bank_id      = $companyRecord->setting->preferred_bank_id ?? 126;
+        $bank_id      = $companyRecord->setting->preferred_bank_id ?? 232;
         $selectedBank = banks::where('id', $bank_id)->first();
         if (! isset($request->account_type) || $request->account_type != 'regular') {
             $virtualAccount = new VirtualAccountType();

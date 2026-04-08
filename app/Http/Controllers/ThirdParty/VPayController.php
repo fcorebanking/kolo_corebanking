@@ -42,6 +42,8 @@ class VPayController extends WebhookController
             "validityTime"   => "3600",
         ];
 
+        logInfo($body, "VFD Login request");
+
         try {
             $response = $this->vPayPostRequestAuth("https://api-apps.vfdbank.systems/vfd-tech/baas-portal/v1.1/baasauth/token", $body);
 
@@ -153,7 +155,7 @@ class VPayController extends WebhookController
 
         ];
 
-        logInfo($body, "VFD Ccreate Account request");
+        logInfo($body, "VFD Create Account request");
 
         try {
 

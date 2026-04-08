@@ -41,6 +41,8 @@ Route::post('/admin-process-verify-reverse-transactions', [TransactionController
 Route::post('/bridge-webhook', [TransactionController::class, 'bridgeWebhook']);
 Route::post('/9psb-test-hash', [TransactionController::class, 'ninetyPSBTestHash']);
 Route::post('/9psb-webhook', [TransactionController::class, 'ninetyPSBWebhook']);
+Route::post('/create-vpay-vaccount', [TransactionController::class, 'createVPayAccount']);
+Route::post('/create-safehaven-vaccount', [TransactionController::class, 'createSafehavenAccount']);
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();

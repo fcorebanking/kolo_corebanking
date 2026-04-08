@@ -1,8 +1,6 @@
 <?php
-
 namespace App\Http\Controllers\ThirdParty;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\CustomClasses\WebhookController;
 use Exception;
 use Illuminate\Http\Request;
@@ -17,37 +15,40 @@ class VPayController extends WebhookController
     private $baseUrl;
     private $token;
 
-    function __construct()
+    public function __construct()
     {
         $this->token = "";
         if (env('APP_MODE') == 'test') {
 
-            $this->username = config('vpay.username_test');
-            $this->password = config('vpay.password_test');
+            $this->username  = config('vpay.username_test');
+            $this->password  = config('vpay.password_test');
             $this->pubilcKey = config('vpay.public_key_test');
-            $this->baseUrl = config('vpay.base_url_test');
+            $this->secretKey = config('vpay.secret_key_live');
+            $this->baseUrl   = config('vpay.base_url_test');
         } else {
-            $this->username = config('vpay.username_live');
-            $this->password = config('vpay.password_live');
+            $this->username  = config('vpay.username_live');
+            $this->password  = config('vpay.password_live');
             $this->pubilcKey = config('vpay.public_key_live');
-            $this->baseUrl = config('vpay.base_url_live');
+            $this->secretKey = config('vpay.secret_key_live');
+            $this->baseUrl   = config('vpay.base_url_live');
         }
     }
 
     public function login()
     {
         $body = [
-            "username" => $this->username,
-            "password" => $this->password
+            "consumerKey"    => $this->username,
+            "consumerSecret" => $this->password,
+            "validityTime"   => "3600",
         ];
 
         try {
-            $response = $this->vPayPostRequest("query/merchant/login", $body);
+            $response = $this->vPayPostRequestAuth("https://api-apps.vfdbank.systems/vfd-tech/baas-portal/v1.1/baasauth/token", $body);
 
             logInfo($response, "Vpay Login");
 
-            if ($response['status']) {
-                $this->token = $response['token'];
+            if ($response['status'] == "00") {
+                $this->token = $response['data']['access_token'];
                 return ['status' => true, 'message' => 'Login success'];
             } else {
                 return ['status' => false, 'message' => $response['message']];
@@ -63,12 +64,12 @@ class VPayController extends WebhookController
     public function addCluster($businessname, $email, $phone, $contactfirstname, $contactlastname, $bvn)
     {
         $body = [
-            'businessname' => $businessname,
-            'email' => $email,
-            'phone' => $phone,
+            'businessname'     => $businessname,
+            'email'            => $email,
+            'phone'            => $phone,
             'contactfirstname' => $contactfirstname,
-            'contactlastname' => $contactlastname,
-            'bvn' => $bvn
+            'contactlastname'  => $contactlastname,
+            'bvn'              => $bvn,
         ];
 
         logInfo($body, "Add cluster request");
@@ -91,12 +92,12 @@ class VPayController extends WebhookController
     public function bankTransfer($nuban, $bank_code, $amount, $remark, $transaction_ref, $clusterId)
     {
         $body = [
-            'businessname' => $nuban,
-            'bank_code' => $bank_code,
-            'amount' => $amount,
-            'remark' => $remark,
+            'businessname'    => $nuban,
+            'bank_code'       => $bank_code,
+            'amount'          => $amount,
+            'remark'          => $remark,
             'transaction_ref' => $transaction_ref,
-            'clusterId' => $clusterId
+            'clusterId'       => $clusterId,
         ];
 
         try {
@@ -117,12 +118,12 @@ class VPayController extends WebhookController
     public function getTill($businessname, $email, $phone, $contactfirstname, $contactlastname, $clusterId)
     {
         $body = [
-            'businessname' => $businessname,
-            'email' => $email,
-            'phone' => $phone,
+            'businessname'     => $businessname,
+            'email'            => $email,
+            'phone'            => $phone,
             'contactfirstname' => $contactfirstname,
-            'contactlastname' => $contactlastname,
-            'cluster' => $clusterId
+            'contactlastname'  => $contactlastname,
+            'cluster'          => $clusterId,
         ];
 
         try {
@@ -144,11 +145,12 @@ class VPayController extends WebhookController
     public function createAccount($businessname, $email, $phone, $contactfirstname, $contactlastname, $bvn)
     {
         $body = [
-            'email' => $email,
-            'phone' => $phone,
-            'contactfirstname' => $contactfirstname,
-            'contactlastname' => $contactlastname,
-            'bvn' => $bvn
+            'email'     => $email,
+            'phone'     => $phone,
+            'firstname' => $contactfirstname,
+            'lastname'  => $contactlastname,
+            'bvn'       => $bvn,
+
         ];
 
         logInfo($body, "VFD Ccreate Account request");
@@ -157,38 +159,23 @@ class VPayController extends WebhookController
 
             $loginResponse = $this->login();
 
-            if (!$loginResponse['status']) {
+            if (! $loginResponse['status']) {
                 return ['status' => false, 'message' => 'Unable to Authorize Third party'];
             }
 
-            $clusterId = "";
+            $response = $this->vPayPostRequest("client/individual", $body);
 
-            $addCluster = $this->addCluster($businessname, $email, $phone, $contactfirstname, $contactlastname, $bvn);
+            logInfo($response, "Vpay Create Account");
 
-            if (!$addCluster['status']) {
-                return ['status' => false, 'message' => 'Kindly ensure a valid BVN, email and phone is provided'];
-            }
+            if ($response['status'] == "00") {
 
-            $clusterId = $addCluster['data']['cluster_id'];
-
-            $getTill = $this->getTill($businessname, $email, $phone, $contactfirstname, $contactlastname, $clusterId);
-
-            if (!$getTill['status']) {
-                return ['status' => false, 'message' => 'Kindly ensure a valid BVN, email and phone is provided'];
-            }
-            $tillId = $getTill['data']['till_id'];
-
-            $response = $this->vPayGetRequest("query/merchant/cluster/$clusterId/cashpoints/show");
-
-            if ($response['status']) {
-                $response = $response['data'][0];
                 return [
-                    'status' => true,
+                    'status'  => true,
                     'message' => 'Account Created successfully',
-                    'data' => [
-                        'virtual_account_number' => $response['nuban'],
-                        "cluster_id" => $clusterId
-                    ]
+                    'data'    => [
+                        'virtual_account_number' => $response['data']['accountNo'],
+
+                    ],
                 ];
             } else {
                 return ['status' => false, 'message' => $response['message']];
@@ -203,8 +190,8 @@ class VPayController extends WebhookController
 
     public function verifyIncomingWebhook(Request $request)
     {
-        //Check if payload has 
-        if (!$request->hasHeader('x-payload-auth')) {
+        //Check if payload has
+        if (! $request->hasHeader('x-payload-auth')) {
             return ['status' => false, 'message' => "Unauthorized: Authorization token is required"];
         }
 
@@ -212,7 +199,7 @@ class VPayController extends WebhookController
 
         $secret = decryptJWT($signature, 'secret');
 
-        if (!$secret['status']) {
+        if (! $secret['status']) {
             return $secret;
         }
 
@@ -227,22 +214,29 @@ class VPayController extends WebhookController
     public function vPayPostRequest($endpoint, $body)
     {
         logInfo($this->vPayHeader(), "Header information");
-        $response = Http::withHeaders($this->vPayHeader())->post("$this->baseUrl$endpoint", $body);
+        $response = Http::withHeaders($this->vPayHeader())->post("$this->baseUrl $endpoint", $body);
+        return $response->json();
+    }
+
+    public function vPayPostRequestAuth($endpoint, $body)
+    {
+        logInfo($this->vPayHeader(), "Header information");
+        $response = Http::post("$endpoint", $body);
         return $response->json();
     }
 
     public function vPayGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->vPayHeader())->get("$this->baseUrl$endpoint");
+        $response = Http::withHeaders($this->vPayHeader())->get("$this->baseUrl $endpoint");
         return $response->json();
     }
 
     public function vPayHeader()
     {
         $header = [
-            'Content-Type' => 'application/json',
-            'publicKey' => $this->pubilcKey,
-            'b-access-token' => $this->token
+            'Content-Type'   => 'application/json',
+            'publicKey'      => $this->pubilcKey,
+            'b-access-token' => $this->token,
         ];
 
         return $header;

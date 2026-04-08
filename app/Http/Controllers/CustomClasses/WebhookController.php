@@ -1194,6 +1194,139 @@ class WebhookController extends Controller
 
     }
 
+    public function handleVPayWebhook()
+    {
+
+        try {
+
+            $this->validateDuplicate();
+
+            $this->logWebhook();
+
+            DB::beginTransaction();
+
+            $getVirtualAccount = $this->virtualAccount;
+
+            $companyWallet = company_wallet::where('subscription_vaccount', $this->virtualAccount)->first();
+
+            logInfo("check company id");
+
+            $companyId = $companyWallet->company_id;
+
+            logInfo($companyId, "company id");
+
+            $originalAmount = $this->normalizeAmount();
+
+            $newdescription = str_replace("TO WOBILO AFRICA LIMITED", "", $this->description);
+            $service        = "subscription_maintenance";
+
+            $credit = creditCompanyWithService(
+                $companyId,
+                $originalAmount,
+                $service
+            );
+
+            $transaction = transactions::create([
+                "balance_before"         => $credit['balance_before'],
+                "company_balance_before" => $credit['balance_before'],
+                "amount"                 => $originalAmount,
+                "company_amount"         => $originalAmount,
+                "balance_after"          => $credit['balance_after'],
+                "company_balance_after"  => $credit['balance_after'],
+                "description"            => $newdescription,
+                "company_id"             => $companyId,
+                "transaction_reference"  => $this->transactionReference,
+                "transaction_remarks_id" => 2,
+                "transaction_type_id"    => $this->webhookType == "cgate" ? 97 : 6,
+                "credit_debit_type_id"   => 1,
+                "created_date"           => $this->transactionDate,
+                "created_by"             => 1,
+            ]);
+
+            //    $customer  = $account->user;
+            $balanceAfter = $credit['charge_balance_after'];
+            $desc         = $newdescription;
+            $currentDate  = Carbon::now();
+            $message      = "Credit Amt:$originalAmount Desc: $desc Avail Bal:$balanceAfter Date:$this->transactionDate Ref:$this->transactionReference";
+
+            DB::commit();
+//$this->sendCreditSMS($customer, $amount, $balanceAfter);
+            return $this->respondSuccess();
+
+        } catch (Exception $e) {
+
+            logInfo($e->getMessage() . $e->getLine(), "$this->webhookType WebHook Error");
+
+            return $this->respondFailure();
+        }
+    }
+
+    public function handleSafeHavenWebhook()
+    {
+
+        try {
+
+            $this->validateDuplicate();
+
+            $this->logWebhook();
+
+            DB::beginTransaction();
+
+            $getVirtualAccount = $this->virtualAccount;
+
+            $companyWallet = company_wallet::where('card_vaccount', $this->virtualAccount)->first();
+
+            logInfo("check company id");
+
+            $companyId = $companyWallet->company_id;
+
+            logInfo($companyId, "company id");
+
+            $originalAmount = $this->normalizeAmount();
+
+            $newdescription = str_replace("TO WOBILO AFRICA LIMITED", "", $this->description);
+            $service        = "atm_naira_card";
+
+            $credit = creditCompanyWithService(
+                $companyId,
+                $originalAmount,
+                $service
+            );
+
+            $transaction = transactions::create([
+                "balance_before"         => $credit['balance_before'],
+                "company_balance_before" => $credit['balance_before'],
+                "amount"                 => $originalAmount,
+                "company_amount"         => $originalAmount,
+                "balance_after"          => $credit['balance_after'],
+                "company_balance_after"  => $credit['balance_after'],
+                "description"            => $newdescription,
+                "company_id"             => $companyId,
+                "transaction_reference"  => $this->transactionReference,
+                "transaction_remarks_id" => 2,
+                "transaction_type_id"    => $this->webhookType == "cgate" ? 97 : 6,
+                "credit_debit_type_id"   => 1,
+                "created_date"           => $this->transactionDate,
+                "created_by"             => 1,
+            ]);
+
+            $balanceAfter = $credit['charge_balance_after'];
+            $desc         = $newdescription;
+            $currentDate  = Carbon::now();
+            $message      = "Credit Amt:$originalAmount Desc: $desc Avail Bal:$balanceAfter Date:$this->transactionDate Ref:$this->transactionReference";
+
+            DB::commit();
+
+            return $this->respondSuccess();
+
+        } catch (Exception $e) {
+
+            logInfo($e->getMessage() . $e->getLine(), "$this->webhookType WebHook Error");
+
+            return $this->respondFailure();
+        }
+    }
+
     private function getVirtualAccountNumber($kudaVirtualNumber)
     {
         if (isset($kudaVirtualNumber->payingBank) && $kudaVirtualNumber->payingBank == "Paycom(OPay)") {

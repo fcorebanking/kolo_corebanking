@@ -2239,11 +2239,11 @@ class TransactionController extends Controller
     {
 
         $vpayController = new VPayController();
-        $verifyWebhook  = $vpayController->verifyIncomingWebhook($request);
+        /* $verifyWebhook  = $vpayController->verifyIncomingWebhook($request);
 
         if (! $verifyWebhook['status']) {
             response()->json($verifyWebhook, 400);
-        }
+        }*/
 
         $vpayController->transactionReference = $request->reference;
         $vpayController->wbaCharge            = getWbaTransferCharges(7, $request->amount);
@@ -2255,7 +2255,7 @@ class TransactionController extends Controller
         $vpayController->request              = $request;
         $vpayController->fromTempWebhook      = 'false';
 
-        $handleWebhook = $vpayController->handleWebhook();
+        $handleWebhook = $vpayController->handleVPayWebhook();
 
         return response()->json($handleWebhook, $handleWebhook['httpCode']);
     }
@@ -6483,6 +6483,28 @@ class TransactionController extends Controller
         } else {
             response()->json(['status' => 0, 'message' => "Gift Card Transaction failed"], 400);
         }
+    }
+
+    public function createVPayAccount(Request $requestid)
+    {
+        $vpay = new VPayController();
+
+        $companyRecord    = Company::where('id', $request->company)->first();
+        $userRecord       = User::where('company_id', $request->company)->where('user_type_id', 2)->first();
+        $businessname     = $companyRecord->short_name;
+        $email            = $userRecord->email;
+        $phone            = $userRecord->phone;
+        $contactfirstname = $businessname;
+        $contactlastname  = $companyRecord->first_name;
+        $bvn              = $userRecord->bvn;
+
+        return $vpay->createAccount($businessname, $email, $phone, $contactfirstname, $contactlastname, $bvn);
+
+    }
+
+    public function createSafehavenAccount(Request $request)
+    {
+
     }
 
     private function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)

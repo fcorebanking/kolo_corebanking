@@ -2772,6 +2772,51 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
     return $response;
 }
 
+function creditCompanyWithService($companyId, $originalAmount, $service)
+{
+
+    $response = [];
+
+    $company = Company::find($companyId);
+
+    if ($originalAmount > 0) {
+
+        if ($service == "subscription_maintenance") {
+            $companyInitialBalance = $company->wallet->subscription_balance;
+        }
+        if ($service == "atm_naira_card") {
+            $companyInitialBalance = $company->wallet->card_balance;
+
+        }
+
+        $companyBalanceAfter = $companyInitialBalance + $originalAmount;
+
+        if ($service == "subscription_maintenance") {
+
+            $companyFinalBalance  = $company->wallet->subscription_balance += $originalAmount;
+
+        }
+        if ($service == "atm_naira_card") {
+            $companyFinalBalance  = $company->wallet->card_balance += $originalAmount;
+
+        }
+
+        $company->wallet->save();
+
+        $response  = [
+            "status"                => true,
+            'message'               => "Amount is Valid",
+            'balance_before'        => $companyInitialBalance,
+            'balance_after'         => $companyBalanceAfter,
+            'charge_balance_before' => $companyBalanceAfter,
+            'charge_balance_after'  => $companyFinalBalance,
+        ];
+    } else {
+        $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+    }
+    return $response;
+}
+
 function tryToDebitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $user = null)
 {
 
@@ -4961,3 +5006,5 @@ function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
 
     return $revenue;
 }
+
+

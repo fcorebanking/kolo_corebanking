@@ -14,7 +14,9 @@ return new class extends Migration
     public function up()
     {
         Schema::table('company_wallets', function (Blueprint $table) {
-            //
+            $table->double('subscription_balance', 15, 8);
+            $table->string('subscription_vaccount')->nullable();
+            $table->string('card_vaccount')->nullable();
         });
     }
 

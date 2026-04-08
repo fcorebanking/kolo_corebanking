@@ -6485,7 +6485,7 @@ class TransactionController extends Controller
         }
     }
 
-    public function createVPayAccount(Request $requestid)
+    public function createVPayAccount(Request $request)
     {
         $vpay = new VPayController();
 

@@ -37,8 +37,8 @@ class VPayController extends WebhookController
     public function login()
     {
         $body = [
-            "consumerKey"    => $this->username,
-            "consumerSecret" => $this->password,
+            "consumerKey"    => $this->pubilcKey,
+            "consumerSecret" => $this->secretKey,
             "validityTime"   => "3600",
         ];
 
@@ -234,9 +234,8 @@ class VPayController extends WebhookController
     public function vPayHeader()
     {
         $header = [
-            'Content-Type'   => 'application/json',
-            'publicKey'      => $this->pubilcKey,
-            'b-access-token' => $this->token,
+            'Content-Type' => 'application/json',
+            'AccessToken'  => $this->token,
         ];
 
         return $header;

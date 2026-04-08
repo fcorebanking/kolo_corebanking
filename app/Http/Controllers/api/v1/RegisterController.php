@@ -271,7 +271,7 @@ class RegisterController extends Controller
                 'phone'                        => $userPhone,
                 'otp'                          => $otp,
                 'nin'                          => $request->nin ?? null,
-                'bank_id'                      => $bank_id ?? 126,
+                'bank_id'                      => $bank_id ?? 232,
                 'pin'                          => $request->pin,
                 'address'                      => $request->address,
                 'dob'                          => $request->dob,

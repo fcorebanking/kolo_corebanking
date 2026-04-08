@@ -89,7 +89,7 @@ class RegisterController extends Controller
         }*/
 
         match ((int) $request->company) {
-            31, 37, 49, 59, 87, 88, 89, 96 => true,
+            14, 31, 37, 49, 59, 87, 88, 89, 96 => true,
             default => tap($this->verifyBVN($request), function ($bvnCheck) {
                 if ($bvnCheck['status'] === false) {
                     abort(response()->json([

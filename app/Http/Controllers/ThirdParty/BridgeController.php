@@ -164,14 +164,15 @@ class BridgeController extends WebhookController
 
             "identifying_information" => [
 
-                "type"            => $request->type,
-                "issuing_country" => $request->issuing_country,
-                "number"          => $request->number,
-                "description"     => $request->description,
-                "expiration"      => $request->expiration,
-                "image_front"     => $request->image_front,
-                "image_back"      => $request->image_back,
-
+                [
+                    "type"            => $request->type,
+                    "issuing_country" => $request->issuing_country,
+                    "number"          => $request->number,
+                    "description"     => $request->description,
+                    "expiration"      => $request->expiration,
+                    "image_front"     => $request->image_front,
+                    "image_back"      => $request->image_back,
+                ],
             ],
         ];
 

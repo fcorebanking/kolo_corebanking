@@ -178,6 +178,7 @@ class RegisterController extends Controller
         // echo \json_encode($createAdminAccount);
 
         $bank_id      = $companyRecord->setting->preferred_bank_id ?? 232;
+        
         $selectedBank = banks::where('id', $bank_id)->first();
         if (! isset($request->account_type) || $request->account_type != 'regular') {
             $virtualAccount = new VirtualAccountType();

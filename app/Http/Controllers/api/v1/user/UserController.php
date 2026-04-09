@@ -1807,7 +1807,7 @@ class UserController extends Controller
                 $response = $createAccountService->createVirtualAccount($virtualAccount);
 
             } else {
-                $response = $this->addForeignAccount();
+                $response = $this->addForeignAccount($request);
             }
 
             if (! $response['status']) {

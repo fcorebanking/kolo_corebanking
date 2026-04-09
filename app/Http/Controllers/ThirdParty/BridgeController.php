@@ -152,7 +152,7 @@ class BridgeController extends WebhookController
                 "city"          => $request->city ?? "",
                 "country"       => $request->country ?? "",
                 "street_line_2" => "",
-                //  "postalCode"    => $request->postal_code,
+                "postalCode"    => $request->postal_code,
 
             ],
 

@@ -83,7 +83,7 @@ class BridgeController extends WebhookController
 
         $jsonBody = json_encode($body);
 
-        $url = "{$this->baseUrl}/{$customerID}/virtual_accounts ";
+        $url = "{$this->baseUrl}{$customerID}/virtual_accounts ";
 
         \logInfo($url, "Bridge Request url");
         \logInfo($customerID, "Bridge Request customer id");

@@ -45,7 +45,7 @@ class BridgeController extends WebhookController
     public function createAccount(Request $request)
     {
         $customer       = auth('api')->user();
-        $createCustomer = $this->createBridgeCustomer($request, $customer)['id'];
+        $createCustomer = $this->createBridgeCustomer($request, $customer);
         $customerID     = $createCustomer['id'];
         $currency_id    = $customer->company->currency_id;
         /* match ($currency_id) {

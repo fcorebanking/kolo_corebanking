@@ -10,10 +10,12 @@ use App\Models\User;
 use App\Models\UserCard;
 use App\Models\user_wallet;
 use Carbon\Carbon;
+use Exception;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
@@ -106,9 +108,15 @@ class LoginController extends Controller
 
             $myUserWallets = [];
 
+            $total_wallet_balance_currency = 0;
+
             foreach (Auth::user()->accounts as $key => $wallet) {
-                $userWallet      = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
-                $myUserWallets[] = ["account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN'];
+                $userWallet        = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
+                $myUserWallets[]   = ["account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN'];
+                $userWalletAccount = wb_account_details::where('id', $wallet->id)->first();
+                if (Auth::user()->company->currency_id != 1 && $userWalletAccount->currency_id != Auth::user()->company->currency_id) {
+                    $total_wallet_balance_currency += $this->getExchangeRates($userWallet->balance, Auth::user()->company->currency_id, $userWalletAccount->currency_id);
+                }
             }
 
             //   \logInfo(json_encode($myUserWallets), "User Wallets");
@@ -118,39 +126,40 @@ class LoginController extends Controller
             $sliders = CarouselImage::where(['status_id' => 1, 'company_id' => auth()->user()->company_id])->get();
 
             $userDetails = [
-                "first_name"                   => $request->user()->first_name,
-                "last_name"                    => $request->user()->last_name,
-                "uuid"                         => $request->user()->uuid,
-                "phone"                        => $request->user()->phone,
-                "profile_pic"                  => $request->user()->profile_pic ?? "",
-                "username"                     => $request->user()->username,
-                "bvn"                          => $request->user()->bvn,
-                "bvn_status_id"                => $request->user()->bvn_status_id,
-                "nin"                          => $request->user()->nin,
-                "email"                        => $request->user()->email,
-                "address"                      => $request->user()->address,
-                "sex"                          => $request->user()->sex,
-                "is_agent"                     => $request->user()->is_agent,
+                "first_name"                    => $request->user()->first_name,
+                "last_name"                     => $request->user()->last_name,
+                "uuid"                          => $request->user()->uuid,
+                "phone"                         => $request->user()->phone,
+                "profile_pic"                   => $request->user()->profile_pic ?? "",
+                "username"                      => $request->user()->username,
+                "bvn"                           => $request->user()->bvn,
+                "bvn_status_id"                 => $request->user()->bvn_status_id,
+                "nin"                           => $request->user()->nin,
+                "email"                         => $request->user()->email,
+                "address"                       => $request->user()->address,
+                "sex"                           => $request->user()->sex,
+                "is_agent"                      => $request->user()->is_agent,
                 // "otp" => $request->user()->otp,
-                "virtual_account"              => $request->user()->virtual_account,
-                "account_reference"            => $request->user()->account_reference,
-                "bank_id"                      => $request->user()->bank_id,
-                "validID_file"                 => $request->user()->validID_file,
-                "otherID_file"                 => $request->user()->otherID_file,
-                "company_id"                   => $request->user()->company_id,
-                "status_id"                    => $request->user()->status_id,
-                "phone_verification_status_id" => $request->user()->phone_verification_status_id,
-                "account_officer_id"           => $request->user()->account_officer_id,
-                "branch_id"                    => $request->user()->branch_id,
-                "tier"                         => $request->user()->kyc_level_id,
-                "balance"                      => $userWallet->balance,
-                "wallets"                      => $myUserWallets,
-                "cards"                        => $virtualCard,
-                "sliders"                      => $sliders,
-                "loanCount"                    => count($request->user()->allLoan),
-                "company"                      => ["phone" => $adminUser->company->company_phone, "email" => $adminUser->company->company_email],
-                "is_card_available"            => count($virtualCard) > 0,
-                "currency"                     => $request->user()->company->currency->code,
+                "virtual_account"               => $request->user()->virtual_account,
+                "account_reference"             => $request->user()->account_reference,
+                "bank_id"                       => $request->user()->bank_id,
+                "validID_file"                  => $request->user()->validID_file,
+                "otherID_file"                  => $request->user()->otherID_file,
+                "company_id"                    => $request->user()->company_id,
+                "status_id"                     => $request->user()->status_id,
+                "phone_verification_status_id"  => $request->user()->phone_verification_status_id,
+                "account_officer_id"            => $request->user()->account_officer_id,
+                "branch_id"                     => $request->user()->branch_id,
+                "tier"                          => $request->user()->kyc_level_id,
+                "balance"                       => $userWallet->balance,
+                "wallets"                       => $myUserWallets,
+                "cards"                         => $virtualCard,
+                "sliders"                       => $sliders,
+                "loanCount"                     => count($request->user()->allLoan),
+                "company"                       => ["phone" => $adminUser->company->company_phone, "email" => $adminUser->company->company_email],
+                "is_card_available"             => count($virtualCard) > 0,
+                "currency"                      => $request->user()->company->currency->code,
+                "total_wallet_balance_currency" => $total_wallet_balance_currency,
 
             ];
 
@@ -229,5 +238,40 @@ class LoginController extends Controller
             \Log::error("Failed to send TransactionReport email: " . $e->getMessage());
             // continue silently
         }
+    }
+
+    public function getExchangeRates($final_amount, $destinationCurrencyID, $sourceCurrencyID)
+    {
+
+        try {
+            $destinationCurrency = $this->matchCurrency($destinationCurrencyID);
+            $sourceCurrency      = $this->matchCurrency($sourceCurrencyID);
+            $amount              = $final_amount;
+            \logInfo("https://v6.exchangerate-api.com/v6/8ad2a80d79f07a6f69fe4ead/pair/$destinationCurrency/$sourceCurrency/$amount", "Get Exhange URL");
+            $response = Http::get("https://v6.exchangerate-api.com/v6/8ad2a80d79f07a6f69fe4ead/pair/$destinationCurrency/$sourceCurrency/$amount");
+            \logInfo(json_encode($response), "Get Exhange Response");
+
+            return $response['conversion_result'];
+
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), "Get Exhange Error");
+            return response()->json(["status" => 0, 'message' => "Failed to Verify Account"], 400);
+        }
+
+    }
+
+    private function matchCurrency($currency_id)
+    {
+        return match ($currency_id) {
+            2       => "USD",
+            3       => "CAD",
+            4       => "GBP",
+            5       => "ZAR",
+            6       => "CNY",
+            7       => "EUR",
+            8       => "GHS",
+
+            default => "NGN",
+        };
     }
 }

@@ -9,6 +9,7 @@ use App\Models\savings_product;
 use App\Models\User;
 use App\Models\UserCard;
 use App\Models\user_wallet;
+use App\Models\wb_account_details;
 use Carbon\Carbon;
 use Exception;
 use GuzzleHttp\Client;

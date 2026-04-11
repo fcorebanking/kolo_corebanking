@@ -3566,8 +3566,8 @@ class TransactionController extends Controller
             $destinationCurrency = $this->matchCurrency($destinationCurrencyID);
             $sourceCurrency      = $this->matchCurrency($sourceCurrencyID);
             $amount              = $request->final_amount;
-            \logInfo("https://v6.exchangerate-api.com/v6/8ad2a80d79f07a6f69fe4ead/pair/$destinationCurrency/$sourceCurrency/$amount", "Get Exhange URL");
-            $response = Http::get("https://v6.exchangerate-api.com/v6/8ad2a80d79f07a6f69fe4ead/pair/$destinationCurrency/$sourceCurrency/$amount");
+           \logInfo("https://v6.exchangerate-api.com/v6/8ad2a80d79f07a6f69fe4ead/pair/$sourceCurrency/$destinationCurrency/$amount", "Get Exhange URL");
+            $response = Http::get("https://v6.exchangerate-api.com/v6/8ad2a80d79f07a6f69fe4ead/pair/$sourceCurrency/$destinationCurrency/$amount");
             \logInfo(json_encode($response), "Get Exhange Response");
 
             return $response['conversion_result'];

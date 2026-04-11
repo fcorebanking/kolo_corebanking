@@ -121,8 +121,8 @@ class LoginController extends Controller
                     \logInfo($userWallet->balance, "User Wallet Balance");
                     \logInfo($userWalletAccount->currency_id, "User Wallet Account Currency id");
                     $convertedAmount  = $this->getExchangeRates($userWallet->balance, Auth::user()->company->currency_id, $userWalletAccount->currency_id);
-                    \logInfo($convertedAmount, "User Converted Amount");
-                    $total_wallet_balance_currency += $convertedAmount;
+                    \logInfo($convertedAmount['conversion_result'], "User Converted Amount");
+                    $total_wallet_balance_currency += $convertedAmount['conversion_result'];
                 }
             }
 
@@ -225,7 +225,7 @@ class LoginController extends Controller
             ],
         ]);
         $result = json_decode((string) $response->getBody(), true);
-        return response()->json($result, $this->successStatus);
+        return $result;
     }
 
     private function sendEmail($subtext, $msg, $reason, $user)

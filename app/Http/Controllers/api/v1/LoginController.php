@@ -115,8 +115,14 @@ class LoginController extends Controller
                 $userWallet        = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
                 $myUserWallets[]   = ["account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN'];
                 $userWalletAccount = wb_account_details::where('id', $wallet->id)->first();
+                \logInfo(Auth::user()->company->currency_id, "Company currency id");
+                \logInfo($userWalletAccount->currency_id, "User Wallet Account Currency id");
                 if (Auth::user()->company->currency_id != 1 && $userWalletAccount->currency_id != Auth::user()->company->currency_id) {
-                    $total_wallet_balance_currency += $this->getExchangeRates($userWallet->balance, Auth::user()->company->currency_id, $userWalletAccount->currency_id);
+                    \logInfo($userWallet->balance, "User Wallet Balance");
+                    \logInfo($userWalletAccount->currency_id, "User Wallet Account Currency id");
+                    $convertedAmount  = $this->getExchangeRates($userWallet->balance, Auth::user()->company->currency_id, $userWalletAccount->currency_id);
+                    \logInfo($convertedAmount, "User Converted Amount");
+                    $total_wallet_balance_currency += $convertedAmount;
                 }
             }
 

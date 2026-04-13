@@ -1507,7 +1507,9 @@ class TransactionController extends Controller
             in_array(auth()->user()->company_id, [87, 88, 89])
 
         ) {
-            $sourceWbAccount = wb_account_details::where('user_id', auth()->user()->id)->first();
+            // $sourceWbAccount = wb_account_details::where('virtual_accnum', $request->source_account)->orWhere('virtual_accnum', ($request->source_account . "_"))->orWhere('user_id', auth()->user()->id)->first();
+
+            $sourceWbAccount = wb_account_details::where('virtual_accnum', $request->source_account)->first() ?? wb_account_details::where('virtual_accnum', $request->source_account . "_")->first() ?? wb_account_details::where('user_id', auth()->user()->id)->first();
             if (! $sourceWbAccount) {
                 $ra = ["status" => false, "message" => "Beneficiary currency doesn not match any of your wallet!"];
                 return response()->json($ra, 406);
@@ -1538,7 +1540,7 @@ class TransactionController extends Controller
                     if ($request->destination_account == \auth()->user()->virtual_account) {
                         return response()->json(["status" => false, 'message' => "Cannot transfer to self"], 409);
                     }
-                   
+
                     if (\checkcustomerrestriction($wbAccount->user_id, 1)) {
                         return response()->json(["status" => false, 'message' => "Destinaion account is not allowed to recieve payment at the moment"], 400);
                     }

@@ -1847,7 +1847,7 @@ class UserController extends Controller
                             'virtual_accnum'     => $virtual_acccount_number,
                             'acc_reference'      => $customer_reference,
                             'has_atm_card'       => 0,
-                            "currency_id"        => $request->currency_id ?? $currency_id,
+                            "currency_id"        => $request->currency_id ?? auth('api')->user()->company->currency_id,
                         ]);
                         user_wallet::create([
                             'wb_account_detail_id' => $wb_account_details->id,

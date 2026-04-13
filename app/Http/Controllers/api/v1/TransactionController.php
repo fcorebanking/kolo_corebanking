@@ -1538,9 +1538,7 @@ class TransactionController extends Controller
                     if ($request->destination_account == \auth()->user()->virtual_account) {
                         return response()->json(["status" => false, 'message' => "Cannot transfer to self"], 409);
                     }
-                    if ($wbAccount->user->company_id != \auth()->user()->company_id) {
-                        return response()->json(["status" => false, 'message' => "Invalid account number"], 409);
-                    }
+                   
                     if (\checkcustomerrestriction($wbAccount->user_id, 1)) {
                         return response()->json(["status" => false, 'message' => "Destinaion account is not allowed to recieve payment at the moment"], 400);
                     }

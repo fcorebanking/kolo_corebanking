@@ -122,7 +122,7 @@ class RemittaController
     {
         $header = [
             'Content - Type' => 'application / json',
-            'api - key'      => '' . $this->apiKey,
+            'api-key'      => '' . $this->apiKey,
         ];
 
         return $header;

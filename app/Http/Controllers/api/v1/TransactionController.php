@@ -985,7 +985,7 @@ class TransactionController extends Controller
         if ($request->account_number == \auth()->user()->virtual_account) {
             return response()->json(["status" => false, 'message' => "Cannot transfer to self"], 409);
         }
-        $wbAccount = wb_account_details::where('virtual_accnum', $request->account_number)->first();
+        $wbAccount = wb_account_details::where('virtual_accnum', $request->account_number)->orWhere('virtual_accnum', ($request->account_number . "_"))->first();
 
         if ($wbAccount) {
 

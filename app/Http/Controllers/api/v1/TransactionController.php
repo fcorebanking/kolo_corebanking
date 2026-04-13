@@ -1495,12 +1495,13 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
         $wbAccount = wb_account_details::where('virtual_accnum', $request->destination_account)->first();
-        if (! $wbAccount) {
+
+        /*  if (! $wbAccount) {
             $companyAcc = $this->walletTransferCompany($request, $description, $transactionId);
 
             $ra = ["status" => false, "message" => "Beneficiary not found!"];
             return response()->json($ra, 406);
-        }
+        }*/
 
         if (
             in_array(auth()->user()->company_id, [87, 88, 89])

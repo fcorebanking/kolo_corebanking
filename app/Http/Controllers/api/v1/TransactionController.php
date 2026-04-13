@@ -1494,7 +1494,7 @@ class TransactionController extends Controller
             $ra = ["status" => false, "message" => "Please enter amount"];
             return response()->json($ra, 406);
         }
-        $wbAccount = wb_account_details::where('virtual_accnum', $request->destination_account)->first();
+        $wbAccount = wb_account_details::where('virtual_accnum', $request->destination_account)->orWhere('virtual_accnum', ($request->destination_account . "_"))->first();
 
         /*  if (! $wbAccount) {
             $companyAcc = $this->walletTransferCompany($request, $description, $transactionId);

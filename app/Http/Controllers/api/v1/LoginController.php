@@ -113,7 +113,7 @@ class LoginController extends Controller
 
             foreach (Auth::user()->accounts as $key => $wallet) {
                 $userWallet        = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
-                $myUserWallets[]   = ["account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN'];
+                $myUserWallets[]   = ["account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN', "currency_id" => $wallet->currency_id ?? 1];
                 $userWalletAccount = wb_account_details::where('id', $wallet->id)->first();
                 \logInfo(Auth::user()->company->currency_id, "Company currency id");
                 \logInfo($userWalletAccount->currency_id, "User Wallet Account Currency id");

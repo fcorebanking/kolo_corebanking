@@ -171,6 +171,7 @@ class BridgeController extends WebhookController
                     "type"            => $request->type,
                     "issuing_country" => $request->issuing_country,
                     "number"          => $request->number,
+                    "utr"             => $request->number,
                     "description"     => $request->description,
                     "expiration"      => $request->expiration,
                     "image_front"     => $request->image_front,

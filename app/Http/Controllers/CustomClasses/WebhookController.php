@@ -655,7 +655,7 @@ class WebhookController extends Controller
             } else {
                 $getVirtualAccount = null;
             }
-            $companyWallet = company_wallet::where('vaccount', $this->virtualAccount)->orWhere('vaccount', $getVirtualAccount)->first();
+            $companyWallet = company_wallet::where('vaccount', $this->virtualAccount)->orWhere('vaccount', $getVirtualAccount)->orWhere('vaccount', ($getVirtualAccount . "_"))->first();
         }
         logInfo("check company id");
 

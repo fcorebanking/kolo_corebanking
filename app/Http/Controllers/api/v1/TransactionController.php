@@ -1165,11 +1165,13 @@ class TransactionController extends Controller
                             if (! $customerBalance['status']) {
                                 return response()->json($customerBalance, 400);
                             }
+                            
+                            if (auth()->user()->company_id != 1) {
+                                $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->final_amount);
 
-                            $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->final_amount);
-
-                            if (! $checkCompanyBalance['status']) {
-                                return response()->json($checkCompanyBalance, 400);
+                                if (! $checkCompanyBalance['status']) {
+                                    return response()->json($checkCompanyBalance, 400);
+                                }
                             }
 
                             logInfo(json_encode($currentUser->company->id), "PreferredEbankingPartnerCompany");

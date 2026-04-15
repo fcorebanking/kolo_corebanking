@@ -577,7 +577,7 @@ class WebhookController extends Controller
 
         logInfo($accountNumber, "Webhook virtal hook");
 
-        return wb_account_details::where('virtual_accnum', $accountNumber)->first();
+        return wb_account_details::where('virtual_accnum', $accountNumber)->orWhere('virtual_accnum', ($accountNumber . "_"))->first();
 
     }
 

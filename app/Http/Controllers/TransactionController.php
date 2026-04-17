@@ -2887,6 +2887,18 @@ class TransactionController extends Controller
                         return $validateTransferAmount;
                     }
 
+                    $customerBalance = $this->checkCustomerAndCompanyBalance($request->amount);
+
+                    if (! $customerBalance['status']) {
+                        return response()->json($customerBalance, 400);
+                    }
+
+                    $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->amount);
+
+                    if (! $checkCompanyBalance['status']) {
+                        return response()->json($checkCompanyBalance, 400);
+                    }
+
                     $customerCharge = $customerCharge < $companyCharge ? ($companyCharge + ($companyCharge * 0.01)) : $customerCharge;
 
                     if ($request->chargeAmount != null) {
@@ -3652,5 +3664,62 @@ class TransactionController extends Controller
             'branches',
             'staff'
         ));
+    }
+
+    public function checkCustomerAndCompanyBalance($amount)
+    {
+
+        $response = [];
+
+        if ($amount > 0) {
+
+            $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
+
+            if ($userWallet->balance >= $amount) {
+
+                $companyWallet = company_wallet::where('company_id', \auth()->user()->company_id)->first();
+
+                if ($companyWallet->balance >= $amount) {
+
+                    $response = [
+                        "status"          => true,
+                        'message'         => "Amount is Valid",
+                        'account_id'      => auth()->user()->accounts->first()->id,
+                        'balance'         => $userWallet->balance,
+                        'company_balance' => $companyWallet->balance,
+                    ];
+                } else {
+                    $response = ["status" => false, 'message' => "Switcher Error... Please contact support $companyWallet->balance $amount"];
+                }
+            } else {
+                $response = ["status" => false, 'message' => "Insufficient Funds"];
+            }
+        } else {
+            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        }
+        return $response;
+    }
+
+     private function checkCompanyBalanceThresholdTransaction($amount)
+    {
+
+        $response   = [];
+        $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
+        $amountLeft = $userWallet->balance - $amount;
+
+        logInfo($amountLeft, "amountLeft for company");
+
+        if ($amount > 0) {
+
+            if ($amountLeft < 100001) {
+                $response = ["status" => false, 'message' => "Issue with this service. Contact Support"];
+            } else {
+                $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->company_id, 'balance' => $userWallet->balance];
+            }
+        } else {
+            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        }
+        return $response;
+
     }
 }

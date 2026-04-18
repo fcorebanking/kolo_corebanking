@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
@@ -16,7 +15,7 @@ class Kernel extends HttpKernel
     protected $middleware = [
         // \App\Http\Middleware\TrustHosts::class,
         \App\Http\Middleware\TrustProxies::class,
-        \Fruitcake\Cors\HandleCors::class,
+        \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
@@ -55,32 +54,32 @@ class Kernel extends HttpKernel
      * @var array
      */
     protected $routeMiddleware = [
-        'auth' => \App\Http\Middleware\Authenticate::class,
-        'log.route' => \App\Http\Middleware\LogRoute::class,
-        'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
-        'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
-        'can' => \Illuminate\Auth\Middleware\Authorize::class,
-        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
-        'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
-        'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
-        'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
-        'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'checkcompany' => \App\Http\Middleware\CheckCompany::class,
-        'checksubscription' => \App\Http\Middleware\CheckCompanySubscription::class,
-        'restrictIP' => \App\Http\Middleware\BlockIpAddressMiddleware::class,
-        'check_email_verify' => \App\Http\Middleware\CheckEmailVerify::class,
-        'checkAccountStatus' => \App\Http\Middleware\CheckAccountStatus::class,
-        'checkApiKey' => \App\Http\Middleware\CheckAPIKey::class,
-        'checkCompanyCustomer' => \App\Http\Middleware\VerifyCompanyCustomerApiKey::class,
-        'checkadmin' => \App\Http\Middleware\CheckAdmin::class,
-        'role' => \Spatie\Permission\Middlewares\RoleMiddleware::class,
-        'permission' => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
-        'role_or_permission' => \Spatie\Permission\Middlewares\RoleOrPermissionMiddleware::class,
-        'custom_permission' => \App\Http\Middleware\CustomPermission::class,
-        'check_plan' => \App\Http\Middleware\CheckPlan::class,
-        'check_closing_time' => \App\Http\Middleware\CheckClosingTime::class,
-        'auth_factor' => \App\Http\Middleware\authfactorOTP::class,
-        '2fa' => \PragmaRX\Google2FALaravel\Middleware::class,
+        'auth'                  => \App\Http\Middleware\Authenticate::class,
+        'log.route'             => \App\Http\Middleware\LogRoute::class,
+        'auth.basic'            => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
+        'cache.headers'         => \Illuminate\Http\Middleware\SetCacheHeaders::class,
+        'can'                   => \Illuminate\Auth\Middleware\Authorize::class,
+        'guest'                 => \App\Http\Middleware\RedirectIfAuthenticated::class,
+        'password.confirm'      => \Illuminate\Auth\Middleware\RequirePassword::class,
+        'signed'                => \Illuminate\Routing\Middleware\ValidateSignature::class,
+        'throttle'              => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        'verified'              => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'checkcompany'          => \App\Http\Middleware\CheckCompany::class,
+        'checksubscription'     => \App\Http\Middleware\CheckCompanySubscription::class,
+        'restrictIP'            => \App\Http\Middleware\BlockIpAddressMiddleware::class,
+        'check_email_verify'    => \App\Http\Middleware\CheckEmailVerify::class,
+        'checkAccountStatus'    => \App\Http\Middleware\CheckAccountStatus::class,
+        'checkApiKey'           => \App\Http\Middleware\CheckAPIKey::class,
+        'checkCompanyCustomer'  => \App\Http\Middleware\VerifyCompanyCustomerApiKey::class,
+        'checkadmin'            => \App\Http\Middleware\CheckAdmin::class,
+        'role'                  => \Spatie\Permission\Middlewares\RoleMiddleware::class,
+        'permission'            => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
+        'role_or_permission'    => \Spatie\Permission\Middlewares\RoleOrPermissionMiddleware::class,
+        'custom_permission'     => \App\Http\Middleware\CustomPermission::class,
+        'check_plan'            => \App\Http\Middleware\CheckPlan::class,
+        'check_closing_time'    => \App\Http\Middleware\CheckClosingTime::class,
+        'auth_factor'           => \App\Http\Middleware\authfactorOTP::class,
+        '2fa'                   => \PragmaRX\Google2FALaravel\Middleware::class,
         'usertransfer_throttle' => \App\Http\Middleware\UserTranserThrottle::class,
     ];
 }

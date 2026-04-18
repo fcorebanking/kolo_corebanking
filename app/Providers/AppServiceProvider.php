@@ -1,10 +1,10 @@
 <?php
-
 namespace App\Providers;
+
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
-use Laravel\Passport\Passport;
 
+//use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -17,9 +17,8 @@ class AppServiceProvider extends ServiceProvider
     public function register()
     {
 
-         Passport::ignoreMigrations();
+        //  Passport::ignoreMigrations();
         //  Passport::ignoreRoutes();
-
 
     }
 
@@ -28,14 +27,14 @@ class AppServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function cando($permission){
+    public function cando($permission)
+    {
         echo $permission;
     }
     public function boot()
     {
 
         Schema::defaultStringLength(191);
-
 
     }
 }

@@ -3700,7 +3700,7 @@ class TransactionController extends Controller
         return $response;
     }
 
-     private function checkCompanyBalanceThresholdTransaction($amount)
+    private function checkCompanyBalanceThresholdTransaction($amount)
     {
 
         $response   = [];

@@ -888,6 +888,7 @@ class RegisterController extends Controller
                         $wb_account_details            = wb_account_details::where('user_id', $userData->ReferralUpline->id)->first();
                         $referalPaymentTransactionType = 111; //refPayment
                         $transactions                  = transactions::where(['account_id' => $wb_account_details->id, 'transaction_type_id' => $referalPaymentTransactionType, "created_by" => $userData->id, "initiator" => $userData->id])->count();
+                        \logInfo($transactions, "Referall paid transaction count");
                         if ($transactions == 0) {
 
                             $ledgerCr                      = null;
@@ -926,8 +927,10 @@ class RegisterController extends Controller
                             $data['chargeamt']     = 0;
                             $CreditCustomer        = DebitCreditcustomer($data);
                             \logInfo('Message: Success comission paid', 'Commisiion: paid for ' . $userData->id);
+                        } else {
+                            \logInfo('Message: Failed comission paid', 'Commisiion: already paid for ' . $userData->id);
                         }
-                        \logInfo('Message: Failed comission paid', 'Commisiion: already paid for ' . $userData->id);
+
                     }
                 }
             }

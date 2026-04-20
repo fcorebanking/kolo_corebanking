@@ -3512,7 +3512,7 @@ class TransactionController extends Controller
             17, 23, 27, 30, 33, 39, 41, 42, 51, 54, 55, 58, 62, 66, 68, 70, 76, 91, 92, 100, 106, 125,
         ];
 
-        $lossIDs = [16, 17, 18, 23, 27, 43, 46, 59, 85, 95, 111, 125];
+        $lossIDs = [16, 17, 18, 27, 43, 46, 59, 85, 95, 111];
 
         $query = transactions::query()->where('company_id', auth()->user()->company->id);
 

@@ -110,6 +110,7 @@ class TransactionController extends Controller
     {
         $search          = $request->searchTerm;
         $transactionType = transaction_types::query();
+        \logInfo(json_encode($transactionType), "Transation Types");
 
         if ($search != null) {
             $transactionType->where(function ($transactionType) use ($search) {

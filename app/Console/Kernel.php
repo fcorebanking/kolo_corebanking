@@ -177,7 +177,7 @@ class Kernel extends ConsoleKernel
             });
 
         // $schedule->command('pendingmaintenance:charge')->everyFiveMinutes();
-        $schedule->job(new MaintenancePackCron)->everyThirtyMinutes()->onSuccess(function () {
+        $schedule->job(new MaintenancePackCron)->daily()->onSuccess(function () {
             Log::info('Your MaintenancePackCron Job executed successfully.');
         })
             ->onFailure(function () {

@@ -914,6 +914,7 @@ class RegisterController extends Controller
                                 "transaction_type_id"    => $referalPaymentTransactionType, //debit 7
                                 "credit_debit_type_id"   => 1,
                                 "transaction_remarks_id" => 2,
+                                "company_id"             => $userData->company_id,
                                 "balance_after"          => $balanceAfter,
                                 "created_date"           => date('Y-m-d'),
                                 "created_by"             => $userData->id,

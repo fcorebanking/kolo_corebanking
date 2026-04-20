@@ -3825,6 +3825,7 @@ function DebitCreditcustomer($data = [])
         $initiator            = $data['initiator'] ?? null;
         $sendSMS              = ($data['sendSMS']) ?? true;
         $request              = $data['request'] ?? null;
+       $company_id =  $data['company_id'] ?? null;
 
         $transactionId = generate_txnID();
         DB::beginTransaction();
@@ -3928,6 +3929,7 @@ function DebitCreditcustomer($data = [])
             "description"            => $desc,
             "account_id"             => $wb_account_details->id,
             "branch_id"              => $wb_account_details->user->branch_id,
+            "company_id"             =>   $company_id,
             "transaction_status_id"  => 1,
             "transaction_reference"  => $transactionId,
             "transaction_type_id"    => $transaction_type_id,  //debit 7

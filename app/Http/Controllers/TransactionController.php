@@ -597,7 +597,7 @@ class TransactionController extends Controller
         //  $query     = transactions::with(['type', 'remark', 'author', 'creditDebitType'])->where('company_id', $mycompany)->where('transaction_type_id', "<>", "16")->where("transaction_type_id", "<>", "33")->where('transaction_type_id', "<>", "15")->where("transaction_type_id", "<>", "42");
         $query = transactions::with(['type', 'remark', 'author', 'creditDebitType'])
             ->where('company_id', $mycompany)
-            ->whereNotIn('transaction_type_id', [15,16, 33, 42]);
+            ->whereNotIn('transaction_type_id', [15, 16, 33, 42]);
 
         if ($request->from != null && $request->to != null) {
             $query = $query->where('created_at', '>=', $request->from)->where('created_at', '<=', $request->to);

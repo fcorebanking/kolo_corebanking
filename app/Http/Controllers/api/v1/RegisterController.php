@@ -884,14 +884,14 @@ class RegisterController extends Controller
 
                             \logInfo('Message: possible fraud transaction ', 'possible fraud transaction for ' . $userData->id);
                         }
-                        $wb_account_details            = wb_account_details::where('user_id', $data_User->ReferralUpline->id)->first();
+                        $wb_account_details            = wb_account_details::where('user_id', $userData->ReferralUpline->id)->first();
                         $referalPaymentTransactionType = 111; //refPayment
                         $transactions                  = transactions::where(['account_id' => $wb_account_details->id, 'transaction_type_id' => $referalPaymentTransactionType, "created_by" => $userData->id, "initiator" => $userData->id])->count();
                         if ($transactions == 0) {
 
                             $ledgerCr                      = null;
                             $ledgerDr                      = null;
-                            $get_ledger_setting_commission = get_CR_DR_TXN_Type_Ledger($referalPaymentTransactionType, $data_User->company_id);
+                            $get_ledger_setting_commission = get_CR_DR_TXN_Type_Ledger($referalPaymentTransactionType, $userData->company_id);
                             if ($get_ledger_setting_commission) {
                                 $ledgerCr = $get_ledger_setting->ledger_cr;
                                 $ledgerDr = $get_ledger_setting->ledger_dr;
@@ -906,7 +906,7 @@ class RegisterController extends Controller
                                 "amount"                 => $referalsetting_direct_comission,
                                 "description"            => "Referal Comission",
                                 "account_id"             => $wb_account_details->id,
-                                "branch_id"              => $data_User->branch_id,
+                                "branch_id"              => $userData->branch_id,
                                 "transaction_status_id"  => 1,
                                 "transaction_reference"  => generate_txnID(),
                                 "transaction_type_id"    => $referalPaymentTransactionType, //debit 7

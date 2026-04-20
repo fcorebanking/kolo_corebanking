@@ -189,6 +189,7 @@ class maintenancePackCron extends Command
                         'credit_debit_type_id'   => 2,
                         'transaction_remarks_id' => 2,
                         'balance_after'          => $balanceAfter,
+                        "company_id"             => $user->company_id,
                         'created_date'           => $today,
                         "created_by"             => $admin->id,
                         "ledger_dr"              => $ledger_dr,

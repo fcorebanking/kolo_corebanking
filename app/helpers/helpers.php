@@ -2157,7 +2157,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
             logInfo(json_encode($companyWallet), "Company to be debitted");
 
-            $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge);
+            $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge);  // this is to check
 
             logInfo(json_encode($companyAfterBalance), "Company after balance");
 

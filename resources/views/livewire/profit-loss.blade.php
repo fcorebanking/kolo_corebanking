@@ -113,6 +113,10 @@
                                                         if (in_array($t->transaction_type_id, [27, 125])) {
                                                             return abs($t->balance_after - ($t->amount + $t->balance_before));
                                                         }
+                                                        if ($t->transaction_type_id == 66) {
+                                                            return $t->company_amount;
+                                                        }
+                                                
                                                         return $t->amount ?? 0;
                                                     }),
                                                     2,

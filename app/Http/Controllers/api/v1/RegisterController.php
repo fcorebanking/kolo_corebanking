@@ -8,6 +8,7 @@ use App\Models\banks;
 use App\Models\branch;
 use App\Models\Company;
 use App\Models\savings_product;
+use App\Models\transactions;
 use App\Models\User;
 use App\Models\user_wallet;
 use App\Models\wb_account_details;

@@ -865,7 +865,7 @@ class RegisterController extends Controller
         }
     }
 
-    private function referralJob($userData)
+    private function referralProcessJob($userData)
     {
         try {
             \logInfo('Referral  job', 'Referral');

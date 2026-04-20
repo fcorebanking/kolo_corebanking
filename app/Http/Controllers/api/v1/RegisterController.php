@@ -868,7 +868,7 @@ class RegisterController extends Controller
     private function referralJob($userData)
     {
         try {
-            \logInfo('ReferralCron  job', 'ReferralCron');
+            \logInfo('Referral  job', 'Referral');
             if (isset($userData->company->CustomerReferalSetting->direct_comission)) {
 
                 $referalsetting                  = $userData->company->CustomerReferalSetting;

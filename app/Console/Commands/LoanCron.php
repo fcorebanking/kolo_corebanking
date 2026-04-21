@@ -96,6 +96,8 @@ class LoanCron extends Command
 
             try {
 
+                \logInfo(json_encode($repayment), "Loan for $loan->id");
+
                 $encLoanId = Crypt::encryptString($loan->id);
 
                 $repayment = json_decode(
@@ -106,6 +108,8 @@ class LoanCron extends Command
                 if (! $repayment) {
                     continue;
                 }
+
+                \logInfo(json_encode($repayment), "Repayment");
 
                 // MISSED PAYMENTS
                 if ($repayment->missed > 0) {
@@ -153,6 +157,8 @@ class LoanCron extends Command
     public function loanpayer($info, $amtToPay)
     {
         $user = User::where(['id' => $info->user_id])->first();
+
+        \logInfo(json_encode($info), "loanpayer");
         if (! $user) {
             return false;
         }
@@ -281,7 +287,9 @@ class LoanCron extends Command
                 $payLoanPenalty->logDate  = $today;
                 $payLoanPenalty->status   = 'pending';
                 $payLoanPenalty->save();
-                $user                  = User::where(['id' => $info->user_id])->first();
+                $user = User::where(['id' => $info->user_id])->first();
+
+                \logInfo(json_encode($user->wb_account_details), "wb_account_details");
                 $usewb_account_details = null;
                 foreach ($user->wb_account_details as $wb_account_details) {
                     if ($penaltycharge <= $wb_account_details->user_wallet->balance) {

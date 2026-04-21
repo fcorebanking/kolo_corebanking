@@ -119,7 +119,7 @@ class LoanCron
                             ? ($row['EachRepayment'] ?? null)
                             : ($row->EachRepayment ?? null);
 
-                        if ($status == 2 && $dueDate == $dateNow) {
+                        if ($status == 2 && $dueDate == $today) {
 
                             $this->loanpayer($loan, $amount);
 

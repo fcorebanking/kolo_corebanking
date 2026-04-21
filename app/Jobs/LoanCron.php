@@ -92,8 +92,8 @@ class LoanCron
 
                 $today = date("Y-m-d");
 
-                \logInfo(json_encode($repayment), "Loan for $loan->id");
-                \logInfo(json_encode($repayment), "Repayment");
+                \logInfo(json_encode($repayment), "Loan Repayment for $loan->id");
+               
 
                 // No missed repayment
                 if ($repayment->missed <= 0) {

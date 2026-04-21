@@ -96,8 +96,6 @@ class LoanCron extends Command
 
             try {
 
-                \logInfo(json_encode($repayment), "Loan for $loan->id");
-
                 $encLoanId = Crypt::encryptString($loan->id);
 
                 $repayment = json_decode(
@@ -109,7 +107,7 @@ class LoanCron extends Command
                     continue;
                 }
 
-                \logInfo(json_encode($repayment), "Repayment");
+                \logInfo(json_encode($repayment), "Loan Repayment for $loan->id");
 
                 // MISSED PAYMENTS
                 if ($repayment->missed > 0) {

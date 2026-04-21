@@ -124,7 +124,7 @@ class LoanCron extends Command
                 // NORMAL REPAYMENT
                 foreach ($repayment->repaymentTable ?? [] as $schedule) {
 
-                    if (
+                    /*   if (
                         ($schedule->currentRepayStatus ?? $schedule['currentRepayStatus']) == 2 &&
                         ($schedule->repaymentDateDueloan ?? $schedule['repaymentDateDueloan']) == $dateNow
                     ) {
@@ -133,6 +133,24 @@ class LoanCron extends Command
                             $loan,
                             $schedule->EachRepayment ?? $schedule['EachRepayment']
                         );
+
+                    }*/
+
+                    $status = is_array($schedule)
+                        ? ($schedule['currentRepayStatus'] ?? null)
+                        : ($schedule->currentRepayStatus ?? null);
+
+                    $dueDate = is_array($schedule)
+                        ? ($schedule['repaymentDateDueloan'] ?? null)
+                        : ($schedule->repaymentDateDueloan ?? null);
+
+                    $amount = is_array($schedule)
+                        ? ($schedule['EachRepayment'] ?? null)
+                        : ($schedule->EachRepayment ?? null);
+
+                    if ($status == 2 && $dueDate == $dateNow) {
+
+                        $this->loanpayer($loan, $amount);
 
                     }
 

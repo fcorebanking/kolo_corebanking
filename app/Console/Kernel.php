@@ -135,7 +135,7 @@ class Kernel extends ConsoleKernel
             });
 
         //  $schedule->command('loan:cron')->everyFiveMinutes();
-        $schedule->job(new LoanCron)->everyThirtyMinutes()->onSuccess(function () {
+        $schedule->job(new LoanCron)->everySixHours()->onSuccess(function () {
             Log::info('Your LoanCro Job executed successfully.');
         })
             ->onFailure(function () {

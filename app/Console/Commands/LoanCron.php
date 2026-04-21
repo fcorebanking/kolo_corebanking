@@ -125,13 +125,13 @@ class LoanCron extends Command
                 foreach ($repayment->repaymentTable ?? [] as $schedule) {
 
                     if (
-                        $schedule->currentRepayStatus == 2 &&
-                        $schedule->repaymentDateDueloan == $dateNow
+                        ($schedule->currentRepayStatus ?? $schedule['currentRepayStatus']) == 2 &&
+                        ($schedule->repaymentDateDueloan ?? $schedule['repaymentDateDueloan']) == $dateNow
                     ) {
 
                         $this->loanpayer(
                             $loan,
-                            $schedule->EachRepayment
+                            $schedule->EachRepayment ?? $schedule['EachRepayment']
                         );
 
                     }

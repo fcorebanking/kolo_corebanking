@@ -184,6 +184,7 @@ class LoanCron
 
         \logInfo(json_encode($info), "loanpayer");
         $wbbal = $wb_account_details->user_wallet->balance;
+        \logInfo(json_encode($wbbal), "wbbal");
         if ($wbbal > 0) {
             $account_typeid = $wb_account_details->id;
             $balanceBefore  = $wb_account_details->user_wallet->balance;
@@ -194,6 +195,7 @@ class LoanCron
             $branch_id = $user->branch_id;
             $backdate  = $paymentDate  = date("Y-m-d");
             $wallet    = user_wallet::where('id', $wb_account_details->user_wallet->id)->update(['balance' => $balance]);
+            \logInfo(json_encode($amtToPay), "amtToPay");
             if ($amtToPay > 0) {
                 if ($wallet) {
                     $BranchWallet           = BranchWallet::where('branch_id', $branch_id)->first();

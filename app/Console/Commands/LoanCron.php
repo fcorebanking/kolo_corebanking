@@ -143,6 +143,7 @@ class LoanCron extends Command
                 \Log::error("Loan Cron Failed", [
                     'loan_id' => $loan->id,
                     'error'   => $e->getMessage(),
+                    'Line: '  => $e->getLine(),
                 ]);
 
             }

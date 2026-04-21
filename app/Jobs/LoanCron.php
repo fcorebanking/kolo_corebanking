@@ -121,8 +121,11 @@ class LoanCron
 
         } catch (\Throwable $e) {
 
-            Log::error("LoanCron Job error: " . $e->getMessage());
-            throw $e;
+              \Log::error("Loan Cron Failed", [
+                    'loan_id' => $loan->id,
+                    'error'   => $e->getMessage(),
+                    'Line: '  => $e->getLine(),
+                ]);
         }
     }
 

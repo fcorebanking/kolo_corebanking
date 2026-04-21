@@ -15,7 +15,6 @@ use Illuminate\Http\Request;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Log;
 
 class LoanCron
 {
@@ -90,16 +89,15 @@ class LoanCron
                     continue;
                 }
 
-                $today = date("Y-m-d");
+                $today = now()->toDateString();
 
                 \logInfo(json_encode($repayment), "Loan Repayment for $loan->id");
-               
 
                 // No missed repayment
                 if ($repayment->missed <= 0) {
 
                     foreach ($this->repaymentTableStream($repayment) as $row) {
-                        if (isset($row->repaymentDateDueloan)) {
+                        /* if (isset($row->repaymentDateDueloan)) {
                             if (
                                 $row->currentRepayStatus == 2 &&
                                 $row->repaymentDateDueloan == $today &&
@@ -107,6 +105,24 @@ class LoanCron
                             ) {
                                 $this->loanpayer($loan, $row->EachRepayment);
                             }
+                        }*/
+
+                        $status = is_array($row)
+                            ? ($row['currentRepayStatus'] ?? null)
+                            : ($row->currentRepayStatus ?? null);
+
+                        $dueDate = is_array($row)
+                            ? ($row['repaymentDateDueloan'] ?? null)
+                            : ($row->repaymentDateDueloan ?? null);
+
+                        $amount = is_array($row)
+                            ? ($row['EachRepayment'] ?? null)
+                            : ($row->EachRepayment ?? null);
+
+                        if ($status == 2 && $dueDate == $dateNow) {
+
+                            $this->loanpayer($loan, $amount);
+
                         }
 
                     }
@@ -121,11 +137,11 @@ class LoanCron
 
         } catch (\Throwable $e) {
 
-              \Log::error("Loan Cron Failed", [
-                    'loan_id' => $loan->id,
-                    'error'   => $e->getMessage(),
-                    'Line: '  => $e->getLine(),
-                ]);
+            \Log::error("Loan Cron Failed", [
+                'loan_id' => $loan->id,
+                'error'   => $e->getMessage(),
+                'Line: '  => $e->getLine(),
+            ]);
         }
     }
 
@@ -144,9 +160,7 @@ class LoanCron
     }
 
     private function repaymentTableStream($repayment): \Generator
-    {if ($repayment->missed <= 0) {
-
-    }
+    {
 
         if (! isset($repayment->repaymentTable)) {
             return;
@@ -154,7 +168,8 @@ class LoanCron
 
         foreach ($repayment->repaymentTable as $row) {
             yield $row;
-        }}
+        }
+    }
 
     public function loanpayer($info, $amtToPay)
     {
@@ -167,7 +182,7 @@ class LoanCron
             return false;
         }
 
-           \logInfo(json_encode($info), "loanpayer");
+        \logInfo(json_encode($info), "loanpayer");
         $wbbal = $wb_account_details->user_wallet->balance;
         if ($wbbal > 0) {
             $account_typeid = $wb_account_details->id;
@@ -291,7 +306,7 @@ class LoanCron
                 $payLoanPenalty->save();
                 $user                  = User::where(['id' => $info->user_id])->first();
                 $usewb_account_details = null;
-                  \logInfo(json_encode($user->wb_account_details), "wb_account_details");
+                \logInfo(json_encode($user->wb_account_details), "wb_account_details");
                 foreach ($user->wb_account_details as $wb_account_details) {
                     if ($penaltycharge <= $wb_account_details->user_wallet->balance) {
                         $usewb_account_details = $wb_account_details;
@@ -338,7 +353,7 @@ class LoanCron
                     \logInfo('penalty error ', "usewb_account_details is null at Userid: " . $info->user_id);
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             \logInfo(['loaninfo' => $info, "error" => 'Message: ' . $e->getMessage() . 'Line: ' . $e->getLine()], 'error logg');
         }
     }

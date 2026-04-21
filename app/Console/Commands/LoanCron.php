@@ -184,6 +184,7 @@ class LoanCron extends Command
             return false;
         }
         $wbbal = $wb_account_details->user_wallet->balance;
+        \logInfo(json_encode($wbbal), "loanpayer");
         if ($wbbal > 0) {
             $account_typeid = $wb_account_details->id;
             $balanceBefore  = $wb_account_details->user_wallet->balance;

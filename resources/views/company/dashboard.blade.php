@@ -17,23 +17,23 @@
             <div class="col-xl-12 col-lg-12 col-sm-12">
                 <!--  <div class="widget-content widget-content-area">
 
-                                            <h3 style="margin-bottom: 30px;"></h3>
+                                                <h3 style="margin-bottom: 30px;"></h3>
 
-                                            <div class="row" style="flex-direction: row; justify-content: center; align-items: center;">
-                                                <div class="col-md-6">
-                                                    <div class="clipboard">
-                                                        <form class="form-horizontal">
-                                                            <label for="input-copy"><strong>Customer Registration Link</strong></label>
-                                                            <input type="text" class="form-control mb-4" readonly id="input-copy"
-                                                                value="{{ $registrationLink }}">
+                                                <div class="row" style="flex-direction: row; justify-content: center; align-items: center;">
+                                                    <div class="col-md-6">
+                                                        <div class="clipboard">
+                                                            <form class="form-horizontal">
+                                                                <label for="input-copy"><strong>Customer Registration Link</strong></label>
+                                                                <input type="text" class="form-control mb-4" readonly id="input-copy"
+                                                                    value="{{ $registrationLink }}">
 
-                                                            <a class="mb-1 btn btn-primary" href="javascript:;" data-clipboard-action="copy"
-                                                                data-clipboard-target="#input-copy"><i class="fa fa-clipboard"></i> Copy Link</a>
-                                                        </form>
+                                                                <a class="mb-1 btn btn-primary" href="javascript:;" data-clipboard-action="copy"
+                                                                    data-clipboard-target="#input-copy"><i class="fa fa-clipboard"></i> Copy Link</a>
+                                                            </form>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div> -->
+                                            </div> -->
             </div>
 
         </div>
@@ -320,7 +320,7 @@
                                     </div>
 
                                     <div class="balance-info">
-                                        <h6>Dollar Vault</h6>
+                                        <h6>Cloud Subscription / Maintenance Wallet</h6>
                                         <p class='ussd'><i class="fa fa-spinner fa-spin" style="font-size:20px"></i>
                                         </p>
                                     </div>
@@ -334,8 +334,8 @@
                                                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
                                                 <polyline points="17 6 23 6 23 12"></polyline>
                                             </svg></span></div>
-                                    <a href='#' class="" data-toggle="modal" data-target="#exampleModal"
-                                        data-whatever="@mdo">Topup Dollar Vault</a>
+                                    <a href="javascript:void(0);" class="">Kuda MFB |
+                                        {{ $auth->company->wallet->subscription_vaccount ?? '' }}</a>
                                 </div>
                             </div>
                         </div>

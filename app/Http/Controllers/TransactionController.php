@@ -3070,6 +3070,8 @@ class TransactionController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
             logInfo($e->getMessage(), "Tranfer Error");
+            logInfo($e->getLine(), "Tranfer Error Line");
+             
             return ['status' => 0, 'message' => "Server Error... Please contact support"];
         }
     }

@@ -157,8 +157,8 @@ class HomeController extends Controller
                 ->get();
             if ($branch) {
                 foreach ($branch as $branchdata) {
-                    $total_branch += 1;
-                    $brancharray[] = ['name' => $branchdata->branch_name, 'balance' => ($branchdata->total_balance)];
+                    $total_branch  += 1;
+                    $brancharray[]  = ['name' => $branchdata->branch_name, 'balance' => ($branchdata->total_balance)];
                 }
             }
             $users_customer   = User::where(['user_type_id' => '1', 'status_id' => '1', 'company_id' => $auth->company_id]);
@@ -196,7 +196,7 @@ class HomeController extends Controller
             $transaction_type_day = $transaction_type_day->take(5)->get();
             if ($transaction_type_day) {
                 foreach ($transaction_type_day as $transaction_type_day_data) {
-                    $day_txn[] = $transaction_type_day_data->amount;
+                    $day_txn[]    = $transaction_type_day_data->amount;
                     $total_daily += $transaction_type_day_data->amount;
                 }
             }
@@ -401,14 +401,14 @@ class HomeController extends Controller
             $user_card_pending   = User::where(['company_id' => $auth->company_id, 'user_card_status_id' => 2, 'status_id' => 1])->count();
             $user_card_has       = User::where(['company_id' => $auth->company_id, 'user_card_status_id' => 3, 'status_id' => 1])->count();
             $company_wallet_data = [
-                'sms' => $company_wallet->sms, 
-                'whatsapp' => $company_wallet->whatsapp, 
-                'balance' => $company_wallet->balance, 
-                'ussd' => $company_wallet->ussd, 
-                'card_balance' => $company_wallet->card_balance,
-                'subscription_balance' => $company_wallet->subscription_balance
-            
-                ];
+                'sms'                  => $company_wallet->sms,
+                'whatsapp'             => $company_wallet->whatsapp,
+                'balance'              => $company_wallet->balance,
+                'ussd'                 => $company_wallet->ussd,
+                'card_balance'         => $company_wallet->card_balance,
+                'subscription_balance' => $company_wallet->subscription_balance,
+
+            ];
         }
 
         if ($viewtype) {
@@ -792,8 +792,8 @@ class HomeController extends Controller
         $brancharray          = [];
         if ($branch) {
             foreach ($branch as $branchdata) {
-                $total_branch += 1;
-                $brancharray[] = ['name' => $branchdata->branch_name, 'balance' => $branchdata->wallet->balance];
+                $total_branch  += 1;
+                $brancharray[]  = ['name' => $branchdata->branch_name, 'balance' => $branchdata->wallet->balance];
             }
         }
         $esusu = $esusu_count = Esusu::join('wb_account_details', 'wb_account_details.id', '=', 'esusus.wb_account_detail_id')
@@ -837,7 +837,7 @@ class HomeController extends Controller
         $total_daily = 0;
         if ($transaction_type_day) {
             foreach ($transaction_type_day as $transaction_type_day_data) {
-                $day_txn[] = $transaction_type_day_data->amount;
+                $day_txn[]    = $transaction_type_day_data->amount;
                 $total_daily += $transaction_type_day_data->amount;
             }
         }
@@ -1154,19 +1154,19 @@ class HomeController extends Controller
             $balanceBefore = $company_wallet->balance;
 
             $company_wallet->balance -= $amount;
-            $txnType = 7;
+            $txnType                  = 7;
             if ($wallet == 'sms') {
                 $company_wallet->sms += $amount;
-                $txnType = 16;
+                $txnType              = 16;
             } else if ($wallet == 'ussd') {
                 $company_wallet->ussd += $amount;
-                $txnType = 15;
+                $txnType               = 15;
             } else if ($wallet == 'whatsapp') {
                 $company_wallet->whatsapp += $amount;
-                $txnType = 29;
+                $txnType                   = 29;
             } else if ($wallet == 'card_balance') {
                 $company_wallet->card_balance += $amount;
-                $txnType = 9;
+                $txnType                       = 9;
             }
             $desc          = strtoupper($wallet) . " Wallet Topup!";
             $transactionId = generate_txnID();
@@ -1213,7 +1213,7 @@ class HomeController extends Controller
         while (Company::where('ussd_string', $string)->count() > 0) {
             $string += 1;
         }
-        $company->ussd_string = $string;
+        $company->ussd_string     = $string;
         $company_wallet->balance -= $generate_cost;
         if ($company_wallet->save()) {
             $company->save();

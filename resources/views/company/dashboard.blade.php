@@ -320,8 +320,8 @@
                                     </div>
 
                                     <div class="balance-info">
-                                        <h6>Cloud Subscription / Maintenance Wallet</h6>
-                                        <p class='ussd'><i class="fa fa-spinner fa-spin" style="font-size:20px"></i>
+                                        <h6>Cloud Subscription/Maintenance Wallet</h6>
+                                        <p class='subscription_vaccount'><i class="fa fa-spinner fa-spin" style="font-size:20px"></i>
                                         </p>
                                     </div>
                                 </div>

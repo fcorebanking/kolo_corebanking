@@ -263,6 +263,7 @@ try {
             dataType: 'json',
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function (data) {
+                console.log(data);
                 if (data.permission_to_see) {
                     currency = data.currency;
                     $('.link_cards').html(data.user_has_card);

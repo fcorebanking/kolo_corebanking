@@ -400,7 +400,15 @@ class HomeController extends Controller
         if ($request->page == "company_n_data") {
             $user_card_pending   = User::where(['company_id' => $auth->company_id, 'user_card_status_id' => 2, 'status_id' => 1])->count();
             $user_card_has       = User::where(['company_id' => $auth->company_id, 'user_card_status_id' => 3, 'status_id' => 1])->count();
-            $company_wallet_data = ['sms' => $company_wallet->sms, 'whatsapp' => $company_wallet->whatsapp, 'balance' => $company_wallet->balance, 'ussd' => $company_wallet->ussd, 'card_balance' => $company_wallet->card_balance];
+            $company_wallet_data = [
+                'sms' => $company_wallet->sms, 
+                'whatsapp' => $company_wallet->whatsapp, 
+                'balance' => $company_wallet->balance, 
+                'ussd' => $company_wallet->ussd, 
+                'card_balance' => $company_wallet->card_balance,
+                'subscription_balance' => $company_wallet->subscription_balance
+            
+                ];
         }
 
         if ($viewtype) {

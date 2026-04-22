@@ -272,12 +272,15 @@ try {
                     $sms = data.wallet_data.sms;
                     $ussd = data.wallet_data.ussd;
                     $whatsapp = data.wallet_data.whatsapp;
+                    $subscription_balance = data.wallet_data.subscription_balance;
                     $card_balance = data.wallet_data.card_balance;
                     $('.acc-amount').html(currency + formatToCurrency($balance));
                     $('.sms').html(currency + formatToCurrency($sms));
                     $('.ussd').html(currency + formatToCurrency($ussd));
                     $('.whatsapp').html(currency + formatToCurrency($whatsapp));
                     $('.card-balance').html(currency + formatToCurrency($card_balance));
+                    $('.subscription_balance').html(currency + formatToCurrency($subscription_subscription_balance));
+
                     $auth_wallet = currency + formatToCurrency((data.auth_wallet));
                     $('.auth_wallet').html($auth_wallet);
                 }

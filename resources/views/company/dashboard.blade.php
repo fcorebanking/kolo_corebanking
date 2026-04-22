@@ -17,23 +17,23 @@
             <div class="col-xl-12 col-lg-12 col-sm-12">
                 <!--  <div class="widget-content widget-content-area">
 
-                                                    <h3 style="margin-bottom: 30px;"></h3>
+                                                            <h3 style="margin-bottom: 30px;"></h3>
 
-                                                    <div class="row" style="flex-direction: row; justify-content: center; align-items: center;">
-                                                        <div class="col-md-6">
-                                                            <div class="clipboard">
-                                                                <form class="form-horizontal">
-                                                                    <label for="input-copy"><strong>Customer Registration Link</strong></label>
-                                                                    <input type="text" class="form-control mb-4" readonly id="input-copy"
-                                                                        value="{{ $registrationLink }}">
+                                                            <div class="row" style="flex-direction: row; justify-content: center; align-items: center;">
+                                                                <div class="col-md-6">
+                                                                    <div class="clipboard">
+                                                                        <form class="form-horizontal">
+                                                                            <label for="input-copy"><strong>Customer Registration Link</strong></label>
+                                                                            <input type="text" class="form-control mb-4" readonly id="input-copy"
+                                                                                value="{{ $registrationLink }}">
 
-                                                                    <a class="mb-1 btn btn-primary" href="javascript:;" data-clipboard-action="copy"
-                                                                        data-clipboard-target="#input-copy"><i class="fa fa-clipboard"></i> Copy Link</a>
-                                                                </form>
+                                                                            <a class="mb-1 btn btn-primary" href="javascript:;" data-clipboard-action="copy"
+                                                                                data-clipboard-target="#input-copy"><i class="fa fa-clipboard"></i> Copy Link</a>
+                                                                        </form>
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </div>
-                                                </div> -->
+                                                        </div> -->
             </div>
 
         </div>
@@ -321,7 +321,8 @@
 
                                     <div class="balance-info">
                                         <h6>Cloud Subscription/Maintenance Wallet</h6>
-                                        <p class='subscription_vaccount'><i class="fa fa-spinner fa-spin" style="font-size:20px"></i>
+                                        <p class='subscription_balance'><i class="fa fa-spinner fa-spin"
+                                                style="font-size:20px"></i>
                                         </p>
                                     </div>
                                 </div>

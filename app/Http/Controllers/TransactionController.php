@@ -2891,10 +2891,13 @@ class TransactionController extends Controller
                         return $validateTransferAmount;
                     }
 
-                    $customerBalance = $this->checkCustomerAndCompanyBalance($request->amount);
+                    if (isset($transaction->TXNBankDetails->user_id) && $transaction->TXNBankDetails->account_id != null) {
+                        $user_id         = $transaction->TXNBankDetails->user_id ?? $transaction->TXNBankDetails->account_id;
+                        $customerBalance = $this->checkCustomerAndCompanyBalance($request->amount, $user_id);
 
-                    if (! $customerBalance['status']) {
-                        return response()->json($customerBalance, 400);
+                        if (! $customerBalance['status']) {
+                            return response()->json($customerBalance, 400);
+                        }
                     }
 
                     $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->amount);
@@ -3071,7 +3074,7 @@ class TransactionController extends Controller
             DB::rollBack();
             logInfo($e->getMessage(), "Tranfer Error");
             logInfo($e->getLine(), "Tranfer Error Line");
-             
+
             return ['status' => 0, 'message' => "Server Error... Please contact support"];
         }
     }
@@ -3680,14 +3683,14 @@ class TransactionController extends Controller
         ));
     }
 
-    public function checkCustomerAndCompanyBalance($amount)
+    public function checkCustomerAndCompanyBalance($amount, $user_id)
     {
 
         $response = [];
 
         if ($amount > 0) {
-
-            $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
+            $wb_account_detail_id = wb_account_details::where('user_id', $user_id)->orWhere('id', $user_id)->first()->id;
+            $userWallet           = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
 
             if ($userWallet->balance >= $amount) {
 

@@ -279,7 +279,7 @@ try {
                     $('.ussd').html(currency + formatToCurrency($ussd));
                     $('.whatsapp').html(currency + formatToCurrency($whatsapp));
                     $('.card-balance').html(currency + formatToCurrency($card_balance));
-                    $('.subscription_balance').html(currency + formatToCurrency($subscription_subscription_balance));
+                    $('.subscription_balance').html(currency + formatToCurrency($subscription_balance));
 
                     $auth_wallet = currency + formatToCurrency((data.auth_wallet));
                     $('.auth_wallet').html($auth_wallet);

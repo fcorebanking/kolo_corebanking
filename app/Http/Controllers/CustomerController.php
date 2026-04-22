@@ -354,6 +354,8 @@ class CustomerController extends Controller
 
             if ($auth->company->id == 47) {
                 $virtualAccount->firstName = "$request->first_name " . "{$request->last_name}" . "/{$auth->company->short_name}";
+            } else if ($auth->company->id == 28) {
+                $virtualAccount->firstName = "$request->first_name " . "{$request->last_name}";
             } else {
                 $virtualAccount->firstName = "{$auth->company->short_name}/" . $request->first_name . " {$request->last_name}";
             }

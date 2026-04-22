@@ -1327,6 +1327,57 @@ class WebhookController extends Controller
         }
     }
 
+    private function processCompanyMaintenanceWebhook()
+    {
+        DB::beginTransaction();
+
+        $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
+        $companyWallet     = company_wallet::where('subscription_vaccount', $this->virtualAccount)->orWhere('subscription_vaccount', $getVirtualAccount)->orWhere('subscription_vaccount', ($getVirtualAccount . "_"))->first();
+
+        logInfo("check company id");
+
+        $companyId = $companyWallet->company_id;
+
+        logInfo($companyId, "company id");
+
+        $originalAmount = $this->normalizeAmount();
+
+        $newdescription = str_replace("TO WOBILO AFRICA LIMITED", "", $this->description);
+
+        $credit = creditCompanyWithChargeforMaintenance(
+            $companyId,
+            $originalAmount,
+            0
+        );
+
+        $transaction = transactions::create([
+            "balance_before"         => $credit['balance_before'],
+            "company_balance_before" => $credit['balance_before'],
+            "amount"                 => $originalAmount,
+            "company_amount"         => $originalAmount,
+            "balance_after"          => $credit['balance_after'],
+            "company_balance_after"  => $credit['balance_after'],
+            "description"            => $newdescription,
+            "company_id"             => $companyId,
+            "transaction_reference"  => $this->transactionReference,
+            "transaction_remarks_id" => 2,
+            "transaction_type_id"    => 6,
+            "credit_debit_type_id"   => 1,
+            "created_date"           => $this->transactionDate,
+            "created_by"             => 1,
+        ]);
+
+        $balanceAfter = $credit['balance_after'];
+        $desc         = $newdescription;
+        $currentDate  = Carbon::now();
+        $this->processCompanyInternational($companyId, $balanceAfter);
+        $message = "Credit Amt:$originalAmount Desc: $desc Avail Bal:$balanceAfter Date:$this->transactionDate Ref:$this->transactionReference";
+
+        DB::commit();
+
+        return $this->respondSuccess();
+    }
+
     private function getVirtualAccountNumber($kudaVirtualNumber)
     {
         if (isset($kudaVirtualNumber->payingBank) && $kudaVirtualNumber->payingBank == "Paycom(OPay)") {

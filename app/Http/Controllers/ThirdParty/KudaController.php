@@ -18,13 +18,15 @@ class KudaController extends WebhookController
         $this->token = "";
         if (env('APP_MODE') == 'test') {
 
-            $this->username = config('kuda.email_test');
-            $this->apiKey   = config('kuda.api_key_test');
-            $this->baseUrl  = config('kuda.base_url_test');
+            $this->username          = config('kuda.email_test');
+            $this->apiKey            = config('kuda.api_key_test');
+            $this->baseUrl           = config('kuda.base_url_test');
+            $this->apiMaintenanceKey = config('kuda.api_maintenace_key_live');
         } else {
-            $this->username = config('kuda.email_live');
-            $this->apiKey   = config('kuda.api_key_live');
-            $this->baseUrl  = config('kuda.base_url_live');
+            $this->username          = config('kuda.email_live');
+            $this->apiKey            = config('kuda.api_key_live');
+            $this->baseUrl           = config('kuda.base_url_live');
+            $this->apiMaintenanceKey = config('kuda.api_maintenace_key_live');
         }
     }
 
@@ -34,6 +36,36 @@ class KudaController extends WebhookController
         $body = [
             "email"  => $this->username,
             "apiKey" => $this->apiKey,
+        ];
+
+        // logInfo($body, "Kuda Bank Code in kuda controller body");
+
+        $header = ['Content-Type' => 'application/json'];
+        try {
+            $response = Http::post($this->baseUrl . "v2.1/Account/GetToken", $body);
+
+            logInfo($response, "Kuda Bank Code in kuda controller body");
+
+            if ($response->successful()) {
+                $this->token = $response;
+                return ['status' => true, 'message' => 'Login success'];
+            } else {
+                return ['status' => false, 'message' => 'Failed to login to Monnify'];
+            }
+        } catch (Exception $e) {
+
+            \logInfo($e->getMessage(), "Kuda Login serror log");
+
+            return ['status' => false, 'message' => 'Server Error...'];
+        }
+    }
+
+    public function loginForMaintenance()
+    {
+
+        $body = [
+            "email"  => $this->username,
+            "apiKey" => $this->apiMaintenanceKey,
         ];
 
         // logInfo($body, "Kuda Bank Code in kuda controller body");
@@ -130,6 +162,82 @@ class KudaController extends WebhookController
         try {
 
             $login = $this->login();
+
+            if (! $login['status']) {
+                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
+            }
+
+            \logInfo($requestBody, "Kuda Request body");
+
+            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
+
+            logInfo($createAccountResponse, "Kuda Create Account Response");
+
+            if ($createAccountResponse->successful()) {
+
+                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
+
+                if (! $createAccountResponse["status"]) {
+                    return [
+                        'status'  => false,
+                        'message' => $createAccountResponse["message"],
+                    ];
+                } else {
+                    return [
+                        'status'  => true,
+                        'message' => "Account Created Successfully",
+                        'data'    => [
+                            'account_number'         => $createAccountResponse['data']['accountNumber'],
+                            'virtual_account_number' => $createAccountResponse['data']['accountNumber'],
+                        ],
+                    ];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Account Creation Failed. Kindly contact support for assistance'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Laravel Kuda Error");
+
+            return ['status' => false, 'message' => 'Error Creating Account. Kindly contact support for assistance'];
+        }
+    }
+
+    public function createMaintenanceAccount($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference)
+    {
+        /*  $body = [
+            "servicetype" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
+            "requestref"  => $requestReference,
+            "data"        => [
+                "email"             => $email,
+                "phoneNumber"       => $phoneNumber,
+                "lastName"          => $lastName,
+                "firstName"         => $firstName,
+                "trackingReference" => $trackingReference,
+            ],
+        ];*/
+        $body = [
+            "serviceType" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
+            "requestRef"  => $requestReference,
+            "data"        => [
+                "Amount"        => 0,
+                "AccountName"   => "$firstName $lastName",
+                "IsPassThrough" => true,
+
+            ],
+        ];
+
+        $jsonBody = json_encode($body);
+
+        $requestBody = [
+            'data' => $jsonBody,
+        ];
+
+        //  $url = "v2.1/";
+        $url = "https://kuda-openapi.kuda.com/v2.1";
+
+        try {
+
+            $login = $this->loginForMaintenance();
 
             if (! $login['status']) {
                 return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];

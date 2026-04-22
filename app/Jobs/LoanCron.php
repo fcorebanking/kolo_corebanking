@@ -185,7 +185,7 @@ class LoanCron
         \logInfo(json_encode($info), "loanpayer");
         $wbbal = $wb_account_details->user_wallet->balance;
         \logInfo(json_encode($wbbal), "wbbal");
-        if ($wbbal > 0) {
+        /*  if ($wbbal > 0) {
             $account_typeid = $wb_account_details->id;
             $balanceBefore  = $wb_account_details->user_wallet->balance;
             if ($amtToPay > $balanceBefore) {
@@ -196,7 +196,7 @@ class LoanCron
             $backdate  = $paymentDate  = date("Y-m-d");
             $wallet    = user_wallet::where('id', $wb_account_details->user_wallet->id)->update(['balance' => $balance]);
             \logInfo(json_encode($amtToPay), "amtToPay");
-            if ($amtToPay > 0) {
+           if ($amtToPay > 0) {
                 if ($wallet) {
                     $BranchWallet           = BranchWallet::where('branch_id', $branch_id)->first();
                     $BranchWallet->balance -= $amtToPay;
@@ -253,6 +253,76 @@ class LoanCron
                         $appMSG            = "Your repayment of loan of $amtToPay via (Auto-Debit is acknowledged and your current loan balance is $info->loanBalance";
                         sendSMS($info->user_id, "$appMSG", true, true, 'Loan Repayment');
                     }
+                }
+            
+        }}*/
+
+        $account_typeid = $wb_account_details->id;
+        $balanceBefore  = $wb_account_details->user_wallet->balance;
+
+        $balance   = $balanceBefore - $amtToPay;
+        $branch_id = $user->branch_id;
+        $backdate  = $paymentDate  = date("Y-m-d");
+        $wallet    = user_wallet::where('id', $wb_account_details->user_wallet->id)->update(['balance' => $balance]);
+
+        \logInfo(json_encode($amtToPay), "amtToPay");
+
+        if ($amtToPay > 0) {
+            if ($wallet) {
+                $BranchWallet           = BranchWallet::where('branch_id', $branch_id)->first();
+                $BranchWallet->balance -= $amtToPay;
+                $BranchWallet->save();
+                $auth                       = User::where('company_id', $info->user->company_id)->first();
+                $AmtInterest                = ($info->rate / 100) * $amtToPay;
+                $principal4rAmount          = $amtToPay - $AmtInterest;
+                $loancharges                = app('App\Http\Controllers\LoanController')->LoanMethodPercentReturn($principal4rAmount, $AmtInterest, $info->LoanFee, $info->LoanFeeMethod, $info->mrgtFee, $info->mrgtFeeMethod);
+                $loanPaymentStateData       = app('App\Http\Controllers\LoanController')->getLoanCurrentRepayment($info, $amtToPay);
+                $principalLeft              = $loanPaymentStateData['Pleft'];
+                $interestLeft               = $loanPaymentStateData['Ileft'];
+                $loanBalance                = $info->loanBalance - $amtToPay;
+                $loanFee                    = $loancharges['loanFee'];
+                $mrgFee                     = $loancharges['mrgFee'];
+                $loanPayment                = new LoanRepayment;
+                $loanPayment->loan_id       = $info->id;
+                $loanPayment->paymentDate   = $paymentDate;
+                $loanPayment->amount        = $amtToPay;
+                $loanPayment->branch_id     = $branch_id;
+                $loanPayment->mgrtFee       = $mrgFee;
+                $loanPayment->loanFee       = $loanFee;
+                $loanPayment->P             = $loanPaymentStateData['paymentP'];
+                $loanPayment->I             = $loanPaymentStateData['paymentI'];
+                $loanPayment->remark        = $loanPaymentStateData['message'];
+                $loanPayment->payment_ref   = str_shuffle(time());
+                $loanPayment->method        = 2;
+                $loanPayment->balance       = $loanBalance;
+                $loanPayment->initiator_id  = $auth->id;
+                $loanPayment->created_by    = $auth->id;
+                $loanPayment->save();
+                if ($loanPayment) {
+                    $loanTXN = transactions::create([
+                        "balance_before"         => $balanceBefore,
+                        "amount"                 => $amtToPay,
+                        "description"            => "Loan auto repayment of $amtToPay from wallet",
+                        "account_id"             => $account_typeid,
+                        "branch_id"              => $branch_id,
+                        "transaction_status_id"  => 1,
+                        "transaction_reference"  => generate_txnID(),
+                        "transaction_type_id"    => 56, //Loan repayment 56
+                        "credit_debit_type_id"   => 2,  //debit 2
+                        "transaction_remarks_id" => 2,  //success 2
+                        "balance_after"          => $balance,
+                        "created_date"           => $backdate,
+                        "created_by"             => $auth->id,
+                        "loan_repayment_id"      => $loanPayment->id,
+                    ]);
+                    $loan_status_id = $info->loan_status_id;
+                    if (($principalLeft + $interestLeft) <= 0) {
+                        $loan_status_id = 10;
+                    }
+                    loan::where(['id' => $info->id])->update(['principalLeft' => $principalLeft, 'InterestLeft' => $interestLeft, 'loanBalance' => ($principalLeft + $interestLeft), 'loan_status_id' => $loan_status_id]);
+                    $info->loanBalance = $principalLeft + $interestLeft;
+                    $appMSG            = "Your repayment of loan of $amtToPay via (Auto-Debit is acknowledged and your current loan balance is $info->loanBalance";
+                    sendSMS($info->user_id, "$appMSG", true, true, 'Loan Repayment');
                 }
             }
         }

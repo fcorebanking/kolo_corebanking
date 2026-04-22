@@ -2157,6 +2157,32 @@ class TransactionController extends Controller
         return response()->json($handleWebhook, isset($handleWebhook['httpCode']) ? $handleWebhook['httpCode'] : 200);
     }
 
+    public function kudaWebMaintenanceWebhook(Request $request)
+    {
+
+        logInfo($request->all(), "Kuda Web Hook for Maintenance Request body");
+
+        $kudaController = new KudaController();
+
+        if ($request->transactionType != "Credit") {
+            return \response()->json(['status' => false, 'message' => 'Transaction is not a Credit Transaction']);
+        }
+
+        $kudaController->transactionReference = $request->transactionReference;
+        $kudaController->wbaCharge            = getWbaTransferCharges(2, $request->amount / 100);
+        $kudaController->virtualAccount       = $request->accountNumber;
+        $kudaController->amount               = $request->amount;
+        $kudaController->webhookType          = 'kuda';
+        $kudaController->description          = "You received Funds from $request->senderName";
+        $kudaController->transactionDate      = date('Y-m-d');
+        $kudaController->request              = $request;
+        $kudaController->fromTempWebhook      = 'false';
+
+        $handleWebhook = $kudaController->processCompanyMaintenanceWebhook();
+
+        return response()->json($handleWebhook, isset($handleWebhook['httpCode']) ? $handleWebhook['httpCode'] : 200);
+    }
+
     public function providusWebhook(Request $request)
     {
         try {
@@ -4397,7 +4423,7 @@ class TransactionController extends Controller
 
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 11, "Buy Airtime Initialized");
 
-                                                                    //($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
+        //($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
         $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015);
 
         if (! $debitCustomer['status']) {
@@ -4608,7 +4634,7 @@ class TransactionController extends Controller
 
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 12, $initialdescriptionCTUP);
 
-                                                                    //($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
+        //($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
         $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015);
 
         if (! $debitCustomer['status']) {

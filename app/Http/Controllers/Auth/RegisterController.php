@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ThirdParty\KudaController;
 use App\Models\Company;
 use App\Models\company_types;
 use App\Models\company_wallet;
@@ -333,7 +334,7 @@ class RegisterController extends Controller
                     $myMessage = "Account Name: " . $user->company->company_name . "
                     Account Number: " . $user->company->wallet->vaccount . "<br>Bank: " . $user->company->wallet->bank->bank_name . " <br> Company Setup pin: " . $user->company->transaction_pin . " Login Pin: $loginPin<br>";
 
-                    $msg = 'A Verification email has been sent to your email account. Click on the link in the email to verify your account<br><br>';
+                    $msg  = 'A Verification email has been sent to your email account. Click on the link in the email to verify your account<br><br>';
                     $msg .= '<a href="' . $url . '">Verify Account</a>';
 
                     // $sendSms = \sendSMS($user->id, $msg, true, false, "Account Creation Success", '', 0, false, 3, []);
@@ -464,7 +465,7 @@ class RegisterController extends Controller
 
             $url = url("verify-account/" . $verificationHash);
 
-            $msg = 'A Verification email has been sent to your email account. Click on the link in the email to verify your account<br><br>';
+            $msg  = 'A Verification email has been sent to your email account. Click on the link in the email to verify your account<br><br>';
             $msg .= '<a href="' . $url . '">Verify Account</a>';
 
             $sendSms = sendEmail("Account Activate Email", $msg, $verification);
@@ -523,7 +524,7 @@ class RegisterController extends Controller
 
         $url = url("verify-account/" . $verificationHash);
 
-        $msg = 'A Verification email has been sent to your email account. Click on the link in the email to verify your account<br><br>';
+        $msg  = 'A Verification email has been sent to your email account. Click on the link in the email to verify your account<br><br>';
         $msg .= '<a href="' . $url . '">Verify Account</a>';
 
         $sendSms = sendEmail("Account Activate Email", $msg, $userAccount);
@@ -572,6 +573,47 @@ class RegisterController extends Controller
             return response()->json(["status" => 0, "message" => $validator->errors()->all()[0], "data" => $validator->errors()->all()]);
         } else {
             return response()->json(["status" => 1, "message" => "Verified Successfully"]);
+        }
+    }
+
+    public function createAccountMaintenance($id)
+    {
+
+        try {
+
+            $company = Company::where('id', $id)->first();
+            $admin   = $company->allStaff()->first();
+
+            logInfo($request->all(), "Kuda Web Hook Request body");
+
+            $requestReference  = generateAccountReference();
+            $trackingReference = generateAccountReference();
+            $email             = $admin->email;
+            $phoneNumber       = $admin->email;
+            $firstName         = $admin->first_name;
+            $lastName          = $admin->last_name;
+
+            $kudaController = new KudaController();
+
+            $createAccountService = $kudaController->createMaintenanceAccount($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference);
+
+            if ($createAccountService["status"]) {
+
+                $company->wallet->subscription_vaccount = $createAccountService["data"]["account_number"];
+                $company->wallet->save();
+
+            }
+
+            \logInfo(json_encode($createAccountService), "create Account Maintenance was successful");
+
+        } catch (\Throwable $e) {
+
+            \Log::error("create Account Maintenance failed", [
+
+                'error'  => $e->getMessage(),
+                'Line: ' => $e->getLine(),
+            ]);
+
         }
     }
 }

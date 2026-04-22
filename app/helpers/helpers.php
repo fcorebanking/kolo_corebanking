@@ -2157,7 +2157,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
             logInfo(json_encode($companyWallet), "Company to be debitted");
 
-            $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge);  // this is to check
+            $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge); // this is to check
 
             logInfo(json_encode($companyAfterBalance), "Company after balance");
 
@@ -2682,6 +2682,33 @@ function creditCompanyWithCharge($companyId, $originalAmount, $companyCharge)
         $companyInitialBalance  = $company->wallet->balance;
         $companyBalanceAfter    = $companyInitialBalance + $originalAmount;
         $companyFinalBalance    = $company->wallet->balance   += ($originalAmount - $companyCharge);
+        $company->wallet->save();
+
+        $response = [
+            "status"                => true,
+            'message'               => "Amount is Valid",
+            'balance_before'        => $companyInitialBalance,
+            'balance_after'         => $companyBalanceAfter,
+            'charge_balance_before' => $companyBalanceAfter,
+            'charge_balance_after'  => $companyFinalBalance,
+        ];
+    } else {
+        $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+    }
+    return $response;
+}
+
+function creditCompanyWithChargeforMaintenance($companyId, $originalAmount, $companyCharge)
+{
+
+    $response = [];
+
+    if ($originalAmount > 0) {
+
+        $company                = Company::find($companyId);
+        $companyInitialBalance  = $company->wallet->subscription_balance;
+        $companyBalanceAfter    = $companyInitialBalance + $originalAmount;
+        $companyFinalBalance    = $company->wallet->subscription_balance   += ($originalAmount - $companyCharge);
         $company->wallet->save();
 
         $response = [

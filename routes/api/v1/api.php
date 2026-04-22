@@ -133,6 +133,7 @@ Route::get('/get-bets-type', [TransactionController::class, 'getBets']);
 Route::get('/login-kuda', [KudaController::class, 'login']);
 Route::post('/kuda-create-account', [KudaController::class, 'createAccount']);
 Route::post('/kuda-webhook', [TransactionController::class, 'kudaWebhook'])->middleware('log.route');
+Route::post('/kuda-maintenance-webhook', [TransactionController::class, 'kudaWebMaintenanceWebhook'])->middleware('log.route');
 
 //Parkway APIs
 //Route::post('/parkway-create-account', [ParkwayController::class, 'createVirtualAccount']);

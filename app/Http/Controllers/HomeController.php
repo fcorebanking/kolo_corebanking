@@ -1151,20 +1151,28 @@ class HomeController extends Controller
             return response()->json(['status' => 0, 'message' => 'Minimum wallet fund is 100000 !']);
         }
         if ($company_wallet->balance > $amount) {
-            $balanceBefore = $company_wallet->balance;
+            //  $balanceBefore = $company_wallet->balance;
 
-            $company_wallet->balance -= $amount;
-            $txnType                  = 7;
+            //  $company_wallet->balance -= $amount;
+            $txnType = 7;
             if ($wallet == 'sms') {
-                $company_wallet->sms += $amount;
-                $txnType              = 16;
+                $balanceBefore                         = $company_wallet->subscription_balance;
+                $company_wallet->subscription_balance -= $amount;
+                $company_wallet->sms                  += $amount;
+                $txnType                               = 16;
             } else if ($wallet == 'ussd') {
-                $company_wallet->ussd += $amount;
-                $txnType               = 15;
+                $balanceBefore                         = $company_wallet->subscription_balance;
+                $company_wallet->subscription_balance -= $amount;
+                $company_wallet->ussd                 += $amount;
+                $txnType                               = 15;
             } else if ($wallet == 'whatsapp') {
-                $company_wallet->whatsapp += $amount;
-                $txnType                   = 29;
+                $balanceBefore                         = $company_wallet->subscription_balance;
+                $company_wallet->subscription_balance -= $amount;
+                $company_wallet->whatsapp             += $amount;
+                $txnType                               = 29;
             } else if ($wallet == 'card_balance') {
+                $balanceBefore                 = $company_wallet->balance;
+                $company_wallet->balance      -= $amount;
                 $company_wallet->card_balance += $amount;
                 $txnType                       = 9;
             }

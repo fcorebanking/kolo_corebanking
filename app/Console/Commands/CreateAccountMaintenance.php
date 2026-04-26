@@ -30,7 +30,7 @@ class CreateAccountMaintenance extends Command
     {
         try {
 
-            $getCompanies = $this->getCompanySubcriptions();
+            $getCompanies = $this->getCompanies();
             foreach ($getCompanies as $company) {
                 $this->createMaintenanceAccount($company);
 

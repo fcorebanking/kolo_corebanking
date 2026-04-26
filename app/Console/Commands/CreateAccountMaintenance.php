@@ -68,10 +68,9 @@ class CreateAccountMaintenance extends Command
 
             $company->wallet->subscription_vaccount = $createAccountService["data"]["account_number"];
             $company->wallet->save();
+            \logInfo(json_encode($createAccountService), "create Account Maintenance was successful");
 
         }
-
-        \logInfo(json_encode($createAccountService), "create Account Maintenance was successful");
 
     }
 

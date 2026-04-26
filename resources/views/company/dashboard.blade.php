@@ -320,7 +320,7 @@
                                     </div>
 
                                     <div class="balance-info">
-                                        <h6>Service Balance</h6>
+                                        <h6>Service Wallet</h6>
                                         <p class='subscription_balance'><i class="fa fa-spinner fa-spin"
                                                 style="font-size:20px"></i>
                                         </p>

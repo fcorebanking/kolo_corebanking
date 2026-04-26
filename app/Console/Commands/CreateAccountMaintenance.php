@@ -28,49 +28,62 @@ class CreateAccountMaintenance extends Command
      */
     public function handle()
     {
-        try {
-
-            $getCompanies = $this->getCompanies();
-            foreach ($getCompanies as $company) {
+        $this->getCompanies()->each(function ($company) {
+            try {
                 $this->createMaintenanceAccount($company);
-
+            } catch (\Throwable $e) {
+                \logInfo([
+                    "company_id" => $company->id,
+                    "error"      => $e->getMessage(),
+                    "line"       => $e->getLine(),
+                ], 'maintenance account error');
             }
-
-        } catch (\Exception $e) {
-
-            \logInfo(["error" => 'Message: ' . $e->getMessage() . 'Line: ' . $e->getLine()], 'error logg');
-        }
+        });
 
     }
     public function getCompanies()
     {
 
-        $companies = Company::all();
-        return $companies;
+        return Company::select('id') // ✅ optimized
+            ->cursor();
     }
 
     public function createMaintenanceAccount($company)
     {
+        $company = Company::with('allStaff')->find($company->id);
 
-        $admin             = $company->allStaff()->first();
+        $admin = $company->allStaff->first();
+
+        if (! $admin) {
+            \logInfo(["company_id" => $company->id, "error" => "No admin found"], 'maintenance account');
+            return;
+        }
+
         $requestReference  = generateAccountReference();
         $trackingReference = generateAccountReference();
-        $email             = $admin->email;
-        $phoneNumber       = $admin->email;
-        $firstName         = $admin->first_name;
-        $lastName          = $admin->last_name;
 
-        $kudaController = new KudaController();
+        $kudaService = app(KudaController::class); // better than new
 
-        $createAccountService = $kudaController->createMaintenanceAccount($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference);
+        $response = $kudaService->createMaintenanceAccount(
+            $requestReference,
+            $admin->email,
+            $admin->phone ?? $admin->email,
+            $admin->first_name,
+            $admin->last_name,
+            $trackingReference
+        );
 
-        if ($createAccountService["status"]) {
-
-            $company->wallet->subscription_vaccount = $createAccountService["data"]["account_number"];
-            $company->wallet->save();
-            \logInfo(json_encode($createAccountService), "create Account Maintenance was successful");
-
+        if (! ($response['status'] ?? false)) {
+            \logInfo($response, "Maintenance account failed");
+            return;
         }
+
+        $wallet = $company->wallet;
+
+        $wallet->subscription_vaccount = $response["data"]["account_number"];
+        $wallet->save();
+
+        \logInfo($response, "Maintenance account created successfully");
 
     }
 

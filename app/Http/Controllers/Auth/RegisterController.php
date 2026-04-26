@@ -344,6 +344,8 @@ class RegisterController extends Controller
 
                     \logInfo($sendSms, "Send SMS log");
 
+                    $this->createMaintenanceAccount($company, $user);
+
                     // event(new Registered($user));
 
                     // $plotsms =  sendSMS($user->id, "$msg", true, true, 'Company Registration', '', 3);
@@ -576,44 +578,34 @@ class RegisterController extends Controller
         }
     }
 
-    public function createAccountMaintenance($id)
+    public function createMaintenanceAccount($company, $user)
     {
 
-        try {
+        $requestReference  = generateAccountReference();
+        $trackingReference = generateAccountReference();
 
-            $company = Company::where('id', $id)->first();
-            $admin   = $company->allStaff()->first();
+        $kudaService = app(KudaController::class); // better than new
 
-            logInfo($request->all(), "Kuda Web Hook Request body");
+        $response = $kudaService->createMaintenanceAccount(
+            $requestReference,
+            $user->email,
+            $user->phone ?? $admin->email,
+            $company->short_name,
+            "",
+            $trackingReference
+        );
 
-            $requestReference  = generateAccountReference();
-            $trackingReference = generateAccountReference();
-            $email             = $admin->email;
-            $phoneNumber       = $admin->email;
-            $firstName         = $admin->first_name;
-            $lastName          = $admin->last_name;
-
-            $kudaController = new KudaController();
-
-            $createAccountService = $kudaController->createMaintenanceAccount($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference);
-
-            if ($createAccountService["status"]) {
-
-                $company->wallet->subscription_vaccount = $createAccountService["data"]["account_number"];
-                $company->wallet->save();
-
-            }
-
-            \logInfo(json_encode($createAccountService), "create Account Maintenance was successful");
-
-        } catch (\Throwable $e) {
-
-            \Log::error("create Account Maintenance failed", [
-
-                'error'  => $e->getMessage(),
-                'Line: ' => $e->getLine(),
-            ]);
-
+        if (! ($response['status'] ?? false)) {
+            \logInfo($response, "Maintenance account failed");
+            return;
         }
+
+        $wallet = $company->wallet;
+
+        $wallet->subscription_vaccount = $response["data"]["account_number"];
+        $wallet->save();
+
+        \logInfo($response, "Maintenance account created successfully");
+
     }
 }

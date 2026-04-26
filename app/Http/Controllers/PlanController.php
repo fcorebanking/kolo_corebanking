@@ -359,9 +359,9 @@ class PlanController extends Controller
 
             }
             //echo "$moneyleft > 0 && $sameplan";
-            $companywallet->balance = $companywallet->balance - $finalpayment;
+            $companywallet->balance = $companywallet->subscription_balance - $finalpayment;
             $balanceBefore          = $companywallet->sms;
-            $companywallet->sms += 200;
+            $companywallet->sms     += 200;
             // echo "after sub $companywallet->balance ";
             //die(" <br> plan compare $plan->id == $sub->plan_id");
 
@@ -398,8 +398,8 @@ class PlanController extends Controller
 
                 $transaction->update([
                     "transaction_remarks_id" => 2,
-                    "balance_after"          => $companywallet->balance,
-                    "company_balance_after"  => $companywallet->balance,
+                    "balance_after"          => $companywallet->subscription_balance,
+                    "company_balance_after"  => $companywallet->subscription_balance,
                     "modified_by"            => $auth->id,
                 ]);
 

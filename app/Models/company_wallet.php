@@ -16,6 +16,9 @@ class company_wallet extends Model
         'whatsapp',
         'currency_code',
         'card_balance',
+        'subscription_balance',
+        'subscription_vaccount',
+        'card_vaccount',
     ];
 
     public function company()

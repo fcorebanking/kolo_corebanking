@@ -163,17 +163,17 @@ class SubscriptionCron
     private function paySubscription($company, $amt_to_pay, $transaction, $subCompany, $plan, $duration, $fdate, $endpayment)
     {
         $companywallet     = company_wallet::where('company_id', $company->id)->first();
-        $oldCompanyBalance = $companywallet->balance;
+        $oldCompanyBalance = $companywallet->subscription_balance;
         logInfo(json_encode($oldCompanyBalance), "OldCompanyBalance");
 
-        $companywallet->balance  = $oldCompanyBalance - $amt_to_pay;
-        logInfo(json_encode($companywallet->balance), "CompanyBalance after subscrition deduction");
+        $companywallet->subscription_balance  = $oldCompanyBalance - $amt_to_pay;
+        logInfo(json_encode($companywallet->subscription_balance), "CompanyBalance after subscrition deduction");
         $balanceBefore       = $companywallet->sms;
         $companywallet->sms += 200;
 
         logInfo($companywallet->toJson(), "Company wallet before saving");
         if ($companywallet->save()) {
-            logInfo(json_encode($companywallet->balance), "CompanyBalance after save");
+            logInfo(json_encode($companywallet->subscription_balance), "CompanyBalance after save");
             $subCompany->update([
                 'transaction_id' => $transaction->id,
                 'plan_id'        => $plan->id,
@@ -195,8 +195,8 @@ class SubscriptionCron
 
             $transaction->update([
                 "transaction_remarks_id" => 2,
-                "balance_after"          => $companywallet->balance,
-                "company_balance_after"  => $companywallet->balance,
+                "balance_after"          => $companywallet->subscription_balance,
+                "company_balance_after"  => $companywallet->subscription_balance,
                 "modified_by"            => $company->id,
             ]);
 

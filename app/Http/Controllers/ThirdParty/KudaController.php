@@ -243,11 +243,11 @@ class KudaController extends WebhookController
                 return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
             }
 
-            \logInfo($requestBody, "Kuda Request body");
+            \logInfo($requestBody, "Kuda Request Create Maintenance body");
 
             $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
 
-            logInfo($createAccountResponse, "Kuda Create Account Response");
+            logInfo($createAccountResponse, "Kuda Create Account Maintenance Response");
 
             if ($createAccountResponse->successful()) {
 

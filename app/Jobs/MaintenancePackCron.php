@@ -36,6 +36,8 @@ class MaintenancePackCron
             try {
                 echo "*******Cron********";
 
+                   \logInfo("******* MaintenancePackCron Cron********");
+
                 $account = $savingPendingData->wb_account;
 
                 if (! $account) {

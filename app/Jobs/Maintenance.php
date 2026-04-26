@@ -131,7 +131,7 @@ class Maintenance
 
     public function handle()
     {
-        \logInfo('Maintenance cron job', 'Maintenance');
+        \logInfo('pending Customer Saving Maintenance cron job', 'Maintenance');
 
         $today = now()->toDateString();
 

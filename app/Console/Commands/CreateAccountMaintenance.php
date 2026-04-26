@@ -68,8 +68,8 @@ class CreateAccountMaintenance extends Command
             $requestReference,
             $admin->email,
             $admin->phone ?? $admin->email,
-            $admin->first_name,
-            $admin->last_name,
+            $company->short_name,
+            "",
             $trackingReference
         );
 

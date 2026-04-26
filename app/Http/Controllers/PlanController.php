@@ -50,7 +50,7 @@ class PlanController extends Controller
             //max_staff max_branch max_customers
             $this->getMaxCustomers($auth, $plan);
 
-            $companybalance = $auth->company->wallet->balance;
+            $companybalance = $auth->company->wallet->subscription_balance;
             $company_name   = $auth->company->short_name;
             $amt_to_pay     = $this->getAmountPaid($plan, $auth, $duration, $companybalance, $company_name);
             \logInfo($amt_to_pay, "Plan amount converted");

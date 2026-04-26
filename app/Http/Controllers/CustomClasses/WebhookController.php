@@ -1327,18 +1327,18 @@ class WebhookController extends Controller
         }
     }
 
-    private function processCompanyMaintenanceWebhook()
+    public function processCompanyMaintenanceWebhook()
     {
         DB::beginTransaction();
 
         $getVirtualAccount = $this->getVirtualAccountNumber($this->request);
         $companyWallet     = company_wallet::where('subscription_vaccount', $this->virtualAccount)->orWhere('subscription_vaccount', $getVirtualAccount)->orWhere('subscription_vaccount', ($getVirtualAccount . "_"))->first();
 
-        logInfo("check company id");
+        logInfo("check company id for maintenance");
 
         $companyId = $companyWallet->company_id;
 
-        logInfo($companyId, "company id");
+        logInfo($companyId, "company id  for maintenance");
 
         $originalAmount = $this->normalizeAmount();
 

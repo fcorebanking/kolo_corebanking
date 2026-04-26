@@ -359,9 +359,9 @@ class PlanController extends Controller
 
             }
             //echo "$moneyleft > 0 && $sameplan";
-            $companywallet->balance = $companywallet->subscription_balance - $finalpayment;
-            $balanceBefore          = $companywallet->sms;
-            $companywallet->sms     += 200;
+            $companywallet->subscription_balance = $companywallet->subscription_balance - $finalpayment;
+            $balanceBefore                       = $companywallet->sms;
+            $companywallet->sms                  += 200;
             // echo "after sub $companywallet->balance ";
             //die(" <br> plan compare $plan->id == $sub->plan_id");
 

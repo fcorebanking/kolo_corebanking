@@ -3728,7 +3728,7 @@ class CustomerController extends Controller
 
         $myDescription = $adminUser->first_name . " " . $adminUser->last_name . " / " . $adminUser->company->company_name . '/' . "CAC Search Charge";
 
-        $customerBalance = debitCompanyWithCharge($adminUser->company_id, $chargeAmount, $chargeAmount, $adminUser);
+        $customerBalance = debitCompanyWithSubscriptionBalance($adminUser->company_id, $chargeAmount, $chargeAmount, $adminUser);
 
         if (! $customerBalance['status']) {
             return response()->json($customerBalance, 400);

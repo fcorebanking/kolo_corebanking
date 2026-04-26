@@ -71,6 +71,9 @@ class KudaController extends WebhookController
         // logInfo($body, "Kuda Bank Code in kuda controller body");
 
         $header = ['Content-Type' => 'application/json'];
+
+        logInfo($this->apiMaintenanceKey, "Kuda Bank Code apiMaintenanceKey body");
+
         try {
             $response = Http::post($this->baseUrl . "v2.1/Account/GetToken", $body);
 

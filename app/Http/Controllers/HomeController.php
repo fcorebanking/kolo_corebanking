@@ -1113,7 +1113,7 @@ class HomeController extends Controller
         return json_encode([]);
 
     }
-    public function fundwallet(Request $request)
+    /*public function fundwallet(Request $request)
     {
         $validator = Validator::make($request->all(), [
 
@@ -1150,7 +1150,7 @@ class HomeController extends Controller
         if ($amount < 100000 && $wallet == "card_balance") {
             return response()->json(['status' => 0, 'message' => 'Minimum wallet fund is 100000 !']);
         }
-        if ($company_wallet->balance > $amount) {
+        if ($company_wallet->subscription_balance > $amount) {
             //  $balanceBefore = $company_wallet->balance;
 
             //  $company_wallet->balance -= $amount;
@@ -1160,50 +1160,173 @@ class HomeController extends Controller
                 $company_wallet->subscription_balance -= $amount;
                 $company_wallet->sms                  += $amount;
                 $txnType                               = 16;
-            } else if ($wallet == 'ussd') {
+            }
+
+            if ($wallet == 'ussd') {
                 $balanceBefore                         = $company_wallet->subscription_balance;
                 $company_wallet->subscription_balance -= $amount;
                 $company_wallet->ussd                 += $amount;
                 $txnType                               = 15;
-            } else if ($wallet == 'whatsapp') {
+            }
+
+            if ($wallet == 'whatsapp') {
                 $balanceBefore                         = $company_wallet->subscription_balance;
                 $company_wallet->subscription_balance -= $amount;
                 $company_wallet->whatsapp             += $amount;
                 $txnType                               = 29;
-            } else if ($wallet == 'card_balance') {
+            }
+            $this->responseMessageTopup($wallet, $balanceBefore, $amount, $auth, $txnType, $company_wallet);
+        } else {
+            return response()->json(['status' => 0, 'message' => "Insuficient Balance!"]);
+        }
+
+        if ($company_wallet->balance > $amount) {
+            if ($wallet == 'card_balance') {
                 $balanceBefore                 = $company_wallet->balance;
                 $company_wallet->balance      -= $amount;
                 $company_wallet->card_balance += $amount;
                 $txnType                       = 9;
             }
-            $desc          = strtoupper($wallet) . " Wallet Topup!";
-            $transactionId = generate_txnID();
-            $data          = [
-                "balance_before"         => $balanceBefore,
-                "amount"                 => $amount,
-                "withdrawal_charge"      => 0,
-                "description"            => $desc,
-                "company_id"             => $auth->company_id,
-                "branch_id"              => $auth->branch_id,
-                "transaction_reference"  => $transactionId,
-                "transaction_type_id"    => $txnType, //debit 7
-                "credit_debit_type_id"   => 2,        //debit 2
-                "transaction_remarks_id" => 2,        //success 2
-                "balance_after"          => $company_wallet->balance,
-                "created_date"           => date('Y-m-d H:i:s'),
-                "created_by"             => $auth->id,
-            ];
-            transactions::create($data);
-
-            if ($company_wallet->save()) {
-                return response()->json(['status' => 1, 'message' => strtoupper($wallet) . " Wallet Topup Successful!"]);
-            } else {
-                return response()->json(['status' => 0, 'message' => "Operation Failed Try Again!"]);
-            }
+            $this->responseMessageTopup($wallet, $balanceBefore, $amount, $auth, $txnType, $company_wallet);
         } else {
             return response()->json(['status' => 0, 'message' => "Insuficient Balance!"]);
         }
+    }*/
+
+    public function fundwallet(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'amount' => 'required|numeric|gt:0',
+            'wallet' => 'required|in:sms,ussd,whatsapp,card_balance',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 0,
+                'message' => implode(', ', $validator->errors()->all()),
+            ]);
+        }
+
+        $amount = $request->amount;
+        $wallet = $request->wallet;
+        $auth   = auth()->user();
+
+        $companyWallet = company_wallet::where('company_id', $auth->company_id)->first();
+
+        if (! $companyWallet) {
+            return response()->json(['status' => 0, 'message' => 'Wallet not found']);
+        }
+
+        // Minimum checks
+        if ($amount < 1000) {
+            return response()->json(['status' => 0, 'message' => 'Minimum wallet fund is 1000!']);
+        }
+
+        if ($wallet == 'card_balance' && $amount < 100000) {
+            return response()->json(['status' => 0, 'message' => 'Minimum card funding is 100000!']);
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+            $txnType       = null;
+            $balanceBefore = null;
+
+            // 🔥 Wallet mapping (clean approach)
+            $map = [
+                'sms'      => ['field' => 'sms', 'type' => 16],
+                'ussd'     => ['field' => 'ussd', 'type' => 15],
+                'whatsapp' => ['field' => 'whatsapp', 'type' => 29],
+            ];
+
+            if (isset($map[$wallet])) {
+
+                if ($companyWallet->subscription_balance < $amount) {
+                    return response()->json(['status' => 0, 'message' => 'Insufficient Subscription Balance!']);
+                }
+
+                $balanceBefore = $companyWallet->subscription_balance;
+
+                $companyWallet->subscription_balance     -= $amount;
+                $companyWallet->{$map[$wallet]['field']} += $amount;
+
+                $txnType = $map[$wallet]['type'];
+            } elseif ($wallet === 'card_balance') {
+
+                if ($companyWallet->balance < $amount) {
+                    return response()->json(['status' => 0, 'message' => 'Insufficient Main Balance!']);
+                }
+
+                $balanceBefore = $companyWallet->balance;
+
+                $companyWallet->balance      -= $amount;
+                $companyWallet->card_balance += $amount;
+
+                $txnType = 9;
+            }
+
+            $companyWallet->save();
+
+            DB::commit();
+
+            return $this->responseMessageTopup(
+                $wallet,
+                $balanceBefore,
+                $amount,
+                $auth,
+                $txnType,
+                $companyWallet
+            );
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            \logInfo([
+                'error' => $e->getMessage(),
+                'line'  => $e->getLine(),
+            ], 'wallet funding error');
+
+            return response()->json([
+                'status'  => 0,
+                'message' => 'Something went wrong',
+            ]);
+        }
     }
+
+    public function createTransactionforTopup($wallet, $balanceBefore, $amount, $auth, $txnType, $company_wallet)
+    {
+        $desc          = strtoupper($wallet) . " Wallet Topup!";
+        $transactionId = generate_txnID();
+        $data          = [
+            "balance_before"         => $balanceBefore,
+            "amount"                 => $amount,
+            "withdrawal_charge"      => 0,
+            "description"            => $desc,
+            "company_id"             => $auth->company_id,
+            "branch_id"              => $auth->branch_id,
+            "transaction_reference"  => $transactionId,
+            "transaction_type_id"    => $txnType, //debit 7
+            "credit_debit_type_id"   => 2,        //debit 2
+            "transaction_remarks_id" => 2,        //success 2
+            "balance_after"          => $company_wallet->balance,
+            "created_date"           => date('Y-m-d H:i:s'),
+            "created_by"             => $auth->id,
+        ];
+        transactions::create($data);
+    }
+
+    public function responseMessageTopup($wallet, $balanceBefore, $amount, $auth, $txnType, $company_wallet)
+    {
+        $this->createTransactionforTopup($wallet, $balanceBefore, $amount, $auth, $txnType, $company_wallet);
+
+        if ($company_wallet->save()) {
+            return response()->json(['status' => 1, 'message' => strtoupper($wallet) . " Wallet Topup Successful!"]);
+        } else {
+            return response()->json(['status' => 0, 'message' => "Operation Failed Try Again!"]);
+        }
+    }
+
     public function generate_ussd_string()
     {
         $auth           = auth()->user();

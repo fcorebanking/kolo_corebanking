@@ -44,7 +44,7 @@ class SubscriptionCron
                     if (! $company->wallet || is_null($company->wallet->balance)) {
                         continue;
                     }
-                    $companybalance = $company->wallet->balance;
+                    $companybalance = $company->wallet->subscription_balance;
 
                     $company_name = $company->short_name;
                     logInfo(json_encode($companybalance), "Company balance for {$company_name} Subcription");

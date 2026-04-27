@@ -7,6 +7,7 @@ use App\Models\company_settings;
 use App\Models\company_wallet;
 use App\Models\transactions;
 use App\Models\UserCard;
+use App\Services\SafeHavenService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,13 +31,13 @@ class SafehavenController extends WebhookController
     private $baseSudoKey;
     private $fundingSourceId;
 
-    public function __construct()
+    public function __construct(SafeHavenService $safeHavenService)
     {
 
-        /*  if (auth()->user()->company_id == 14) {
-            return $this->getKeysFinova();
-        }
-    }*/
+        $this->safeHavenService = $safeHavenService;
+
+        $credentials = $this->safeHavenService->initCredentials();
+
         $this->token               = "";
         $this->ibsClientId         = "";
         $this->sessionId           = "";
@@ -1498,52 +1499,6 @@ class SafehavenController extends WebhookController
         $company_settings    = company_settings::findorfail($company_settings_id);
 
         return $company_settings->physical_card_withdrawal_charge ?? 0;
-    }
-
-    private function getKeysFinova()
-    {
-        $this->token               = "";
-        $this->ibsClientId         = "";
-        $this->sessionId           = "";
-        $this->sendingAccount      = "0117187948";
-        $this->grantType           = env('APP_MODE') == 'test' ? config('safehaven.grant_type_test') : config('safehaven.grant_type_live');
-        $this->clientAssertionType = env('APP_MODE') == 'test' ? config('safehaven.client_assertion_type_test') : config('safehaven.client_assertion_type_live');
-        $this->clientId            = env('APP_MODE') == 'test' ? config('safehaven.client_id_test') : config('safehaven.client_id_live');
-        $this->clientAssertion     = env('APP_MODE') == 'test' ? config('safehaven.client_assertion_test') : config('safehaven.client_assertion_live');
-        $this->baseUrl             = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
-        $this->debitAccount        = "0117187948" ?? "0115361250";
-
-        $this->baseSudoUrl = env('APP_MODE') == 'test' ? config('safehaven.base_url_sudo_test') : config('safehaven.base_url_sudo_live');
-
-        // $this->baseSudoUrl     = config('safehaven.base_url_sudo_test');
-        //  $this->baseSudoKey     = config('safehaven.base_url_sudo_test_key');
-
-        $this->fundingSourceId = env('APP_MODE') == 'test' ? "67d40044ad1be81c57ff0684" : "69206fa316f888f19e0025ff"; //69206fa316f888f19e0025ff
-        $this->debitAccountId  = env('APP_MODE') == 'test' ? "67d9ba1c39198caf19512516" : "67dac34b5eb41985c50d402c";
-        $this->baseSudoKey     = env('APP_MODE') == 'test' ? config('safehaven.base_url_sudo_test_key') : config('safehaven.base_url_sudo_live_key');
-    }
-
-    private function getKeysJethopay()
-    {
-        $this->token               = "";
-        $this->ibsClientId         = "";
-        $this->sessionId           = "";
-        $this->sendingAccount      = "0117187948";
-        $this->grantType           = env('APP_MODE') == 'test' ? config('safehaven.grant_type_test') : config('safehaven.grant_type_live');
-        $this->clientAssertionType = env('APP_MODE') == 'test' ? config('safehaven.client_assertion_type_test') : config('safehaven.client_assertion_type_live');
-        $this->clientId            = env('APP_MODE') == 'test' ? config('safehaven.client_id_test') : config('safehaven.client_id_live');
-        $this->clientAssertion     = env('APP_MODE') == 'test' ? config('safehaven.client_assertion_test') : config('safehaven.client_assertion_live');
-        $this->baseUrl             = env('APP_MODE') == 'test' ? config('safehaven.base_url_test') : config('safehaven.base_url_live');
-        $this->debitAccount        = "0117187948" ?? "0115361250";
-
-        $this->baseSudoUrl = env('APP_MODE') == 'test' ? config('safehaven.base_url_sudo_test') : config('safehaven.base_url_sudo_live');
-
-        // $this->baseSudoUrl     = config('safehaven.base_url_sudo_test');
-        //  $this->baseSudoKey     = config('safehaven.base_url_sudo_test_key');
-
-        $this->fundingSourceId = env('APP_MODE') == 'test' ? "67d40044ad1be81c57ff0684" : "69206fa316f888f19e0025ff"; //69206fa316f888f19e0025ff
-        $this->debitAccountId  = env('APP_MODE') == 'test' ? "67d9ba1c39198caf19512516" : "67dac34b5eb41985c50d402c";
-        $this->baseSudoKey     = env('APP_MODE') == 'test' ? config('safehaven.base_url_sudo_test_key') : config('safehaven.base_url_sudo_live_key');
     }
 
     private function initializeKeys()

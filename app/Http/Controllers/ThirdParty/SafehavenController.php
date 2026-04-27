@@ -38,6 +38,9 @@ class SafehavenController extends WebhookController
 
         $credentials = $this->safeHavenService->initCredentials();
 
+            logInfo(json_encode($$credentials), "Safe Haven credentials");
+
+
         $this->token               = "";
         $this->ibsClientId         = "";
         $this->sessionId           = "";

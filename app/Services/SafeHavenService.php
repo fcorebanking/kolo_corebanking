@@ -8,7 +8,10 @@ class SafeHavenService
     public function initCredentials()
     {
         $currentRequest = request()->all();
-        $company_id     = auth()->user()->comany_id ?? company_wallet::where('vaccount', $currentRequest['data']['creditAccountNumber'])->first()->company_id;
+        logInfo(json_encode($currentRequest), "Safe Haven request");
+
+        $company_id = auth()->user()->comany_id ?? company_wallet::where('vaccount', $currentRequest['data']['creditAccountNumber'])->first()->company_id;
+
         return match ($company_id) {
 
             63 => roseBulgePayredentials(),      //7000299948

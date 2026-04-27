@@ -5226,25 +5226,53 @@ class TransactionController extends Controller
         }
 
         $companyId = auth()->user()->company->id ?? $request->id;
-        $charge    = 50;
 
-        logInfo($companyId, "Debit company id");
+        if ($auth()->user()->bank->bank_code == "090286") {
+            $this->verifyIdentityWithSafeHaven($request);
+        } else {
 
-        $debitCompany = debitCompanyWithSubscriptionBalance($companyId, $charge, 0, );
-
-        if (! $debitCompany['status']) {
-            return response()->json(['status' => false, 'message' => 'Switcher Error. Kindly contact support'], 400);
+            $this->debitCompanyWithSubscriptionBVN($request, $companyId);
         }
 
-        logInfo($debitCompany, "Debit company log");
+    }
 
-        $this->debitBVNFromCompany($debitCompany, $companyId, $charge);
+    public function debitBVNFromCompany($debitCompanyWithCharge, $companyId, $charge)
+    {
+        $companyBalanceBefore       = $debitCompanyWithCharge['balance_before'];
+        $companyBalanceAfter        = $debitCompanyWithCharge['balance_after'];
+        $companyChargeBalanceBefore = $debitCompanyWithCharge['charge_balance_before'];
+        $companyChargeBalanceAfter  = $debitCompanyWithCharge['charge_balance_after'];
 
-        $time = strtotime($request->dob);
+        $transactionRef2 = generateTransactionReference();
 
+        transactions::create([
+            "company_balance_before" => $companyChargeBalanceBefore,
+            "company_amount"         => 0,
+            "account_id"             => null,
+            "company_balance_after"  => $companyChargeBalanceAfter,
+            "description"            => "Charge for BVN Check",
+            "transaction_reference"  => $transactionRef2,
+            "balance_before"         => $companyBalanceBefore,
+            "amount"                 => $charge,
+            "balance_after"          => $companyBalanceAfter,
+            "company_id"             => $companyId,
+            "transaction_remarks_id" => 2,
+            "transaction_type_id"    => 43,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $companyId,
+
+        ]);
+
+    }
+
+    public function verifyWithIdentityPass(Request $request)
+    {
         $identityPassController = new IdentityPassController();
 
         $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
+
+        $time = strtotime($request->dob);
 
         if (isset($bvnResponse['data']['verification']['status']) && $bvnResponse['data']['verification']['status'] == "VERIFIED") {
             $firstName       = $bvnResponse['data']['data']["firstName"];
@@ -5295,57 +5323,55 @@ class TransactionController extends Controller
                 400
             );
         }
+    }
 
-        return $bvnResponse;
-/*
-        $header = [
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'prod_sk_O4XNi5PieXhZTEpHXleNPxTZq',
-            'AppId'         => '66cdb8d3397cb7297b3eed22',
-        ];
+    public function debitCompanyWithSubscriptionBVN(Request $request, $companyId)
+    {
+        $charge = 50;
 
-        $url = "https://api.dojah.io/api/v1/kyc/bvn/advance?bvn=$request->bvn";
+        logInfo($companyId, "Debit company id");
 
-        $time        = strtotime($request->dob);
-        $bvnResponse = \getRequest($header, [], $url);
+        $debitCompany = debitCompanyWithSubscriptionBalance($companyId, $charge, 0, );
 
-        if (isset($bvnResponse['entity']['bvn'])) {
-            $firstName       = $bvnResponse["entity"]["first_name"];
-            $lastName        = $bvnResponse["entity"]["last_name"];
-            $dob             = $bvnResponse["entity"]["date_of_birth"];
-            $bvnFromResponse = $bvnResponse["entity"]["bvn"];
-            $phone           = $bvnResponse["entity"]["phone_number1"];
+        if (! $debitCompany['status']) {
+            return response()->json(['status' => false, 'message' => 'Switcher Error. Kindly contact support'], 400);
+        }
 
-            $newformat = date('Y-m-d', $time);
+        logInfo($debitCompany, "Debit company log");
 
-            $bvnDob = strtotime($dob);
+        $this->debitBVNFromCompany($debitCompany, $companyId, $charge);
 
-            if ($time == $bvnDob) {
+        $time = strtotime($request->dob);
 
-                return response()->json(
-                    [
-                        'status'  => true,
-                        'message' => "Account Verified Successfully",
-                        'data'    => [
-                            'first_name' => trim($firstName),
-                            "last_name"  => trim($lastName),
-                            "dob"        => $newformat,
-                            "bvn"        => trim($bvnFromResponse),
-                            "phone"      => trim($phone),
-                        ],
-                    ]
-                );
-            }else {
+        $this->verifyWithIdentityPass($request);
+    }
 
-                return response()->json(
-                    [
-                        'status'  => false,
-                        'message' => "Failed to verify BVN with Date of birth",
-                        'data'    => $request->bvn,
+    public function verifyIdentityWithSafeHaven(Request $request)
+    {
+        $safehavenController = new SafehavenController();
+
+        $bvnResponse = $safehavenController->verifyBVN($request->bvn);
+
+        if ($bvnResponse['statusCode'] == 200) {
+            return response()->json(
+                [
+                    'status'  => true,
+                    'message' => "Account Verified Successfully",
+                    'data'    => [
+                        'id'             => $bvnResponse['data']['data']['_id'],
+                        'clientId'       => $bvnResponse['data']['data']['clientId'],
+                        "identityNumber" => $bvnResponse['data']['data']['identityNumber'],
+                        "type"           => $bvnResponse['data']['data']['type'],
+                        'first_name'     => trim($bvnResponse['data']['data']['providerResponse']['firstName']),
+                        "last_name"      => trim($bvnResponse['data']['data']['providerResponse']['lastName']),
+                        "dob"            => $bvnResponse['data']['data']['providerResponse']['dateOfBirth'],
+                        "bvn"            => trim($bvnResponse['data']['data']['providerResponse']['bvn']),
+                        "phone"          => trim($bvnResponse['data']['data']['providerResponse']['phoneNumber1']),
+                        "address"        => trim($bvnResponse['data']['data']['providerResponse']['residentialAddress']),
                     ],
-                    400
-                );
-            }
+
+                ]
+            );
         } else {
 
             return response()->json(
@@ -5355,38 +5381,10 @@ class TransactionController extends Controller
                 ],
                 400
             );
-        }*/
-    }
-
-    public function debitBVNFromCompany($debitCompanyWithCharge, $companyId, $charge)
-    {
-        $companyBalanceBefore       = $debitCompanyWithCharge['balance_before'];
-        $companyBalanceAfter        = $debitCompanyWithCharge['balance_after'];
-        $companyChargeBalanceBefore = $debitCompanyWithCharge['charge_balance_before'];
-        $companyChargeBalanceAfter  = $debitCompanyWithCharge['charge_balance_after'];
-
-        $transactionRef2 = generateTransactionReference();
-
-        transactions::create([
-            "company_balance_before" => $companyChargeBalanceBefore,
-            "company_amount"         => 0,
-            "account_id"             => null,
-            "company_balance_after"  => $companyChargeBalanceAfter,
-            "description"            => "Charge for BVN Check",
-            "transaction_reference"  => $transactionRef2,
-            "balance_before"         => $companyBalanceBefore,
-            "amount"                 => $charge,
-            "balance_after"          => $companyBalanceAfter,
-            "company_id"             => $companyId,
-            "transaction_remarks_id" => 2,
-            "transaction_type_id"    => 43,
-            "credit_debit_type_id"   => 2,
-            "created_date"           => date('Y-m-d'),
-            "created_by"             => $companyId,
-
-        ]);
+        }
 
     }
+
     public function verifyBVNAlt(Request $request, $bvn)
     {
         if (! $bvn) {

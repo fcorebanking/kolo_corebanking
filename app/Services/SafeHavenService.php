@@ -7,10 +7,8 @@ class SafeHavenService
 {
     public function initCredentials()
     {
-        $currentRequest = request()->all();
-        logInfo(json_encode($currentRequest), "Safe Haven request");
-
-        $company_id = auth()->user()->comany_id ?? company_wallet::where('vaccount', $currentRequest['data']['creditAccountNumber'])->first()->company_id;
+        
+        $company_id = auth()->user()->comany_id;
 
         return match ($company_id) {
 

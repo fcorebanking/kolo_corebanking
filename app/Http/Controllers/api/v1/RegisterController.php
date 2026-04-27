@@ -181,6 +181,13 @@ class RegisterController extends Controller
         $bank_id = $companyRecord->setting->preferred_bank_id ?? 232;
 
         $selectedBank = banks::where('id', $bank_id)->first();
+
+        if ($selectedBank->bank_code == '090286') {
+             $safehavenController = new SafehavenController();
+
+        $bvnResponse = $safehavenController->verifyBVNMobile($request->bvn);
+        }
+
         if (! isset($request->account_type) || $request->account_type != 'regular') {
             $virtualAccount = new VirtualAccountType();
 
@@ -208,6 +215,11 @@ class RegisterController extends Controller
             $virtualAccount->address                      = $request->address;
             $virtualAccount->country                      = $companyRecord->currency_id ?? "";
             $virtualAccount->companyAccountCreationStatus = $companyRecord->setting->can_create_virtual_account;
+
+            if ($selectedBank->bank_code == '090286') {
+                $virtualAccount->bvnId = $request->identity_id;
+                $virtualAccount->otp   = $request->otp;
+            }
 
             $createAccountService = new AccountCreationService();
 

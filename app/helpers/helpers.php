@@ -2824,7 +2824,7 @@ function debitCompanyWithSubscriptionBalance($companyId, $originalAmount, $compa
 
         $companyAfterBalance = $companyInitialBalance - $debitAmount;
 
-        if ($companyInitialBalance > $debitAmount) {
+        if ($companyInitialBalance >= $debitAmount) {
 
             $companyBalanceAfter  = $companyInitialBalance - $originalAmount;
             $companyFinalBalance  = $company_wallet->subscription_balance -= $debitAmount;

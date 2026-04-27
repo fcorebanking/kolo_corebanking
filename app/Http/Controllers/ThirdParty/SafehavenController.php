@@ -31,15 +31,13 @@ class SafehavenController extends WebhookController
     private $baseSudoKey;
     private $fundingSourceId;
 
-    public function __construct(SafeHavenService $safeHavenService)
+    public function __construct()
     {
+        $safeHavenService = new SafeHavenService();
 
-        $this->safeHavenService = $safeHavenService;
+        $credentials = $safeHavenService->initCredentials();
 
-        $credentials = $this->safeHavenService->initCredentials();
-
-            logInfo(json_encode($$credentials), "Safe Haven credentials");
-
+        logInfo(json_encode($$credentials), "Safe Haven credentials");
 
         $this->token               = "";
         $this->ibsClientId         = "";

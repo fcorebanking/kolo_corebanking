@@ -1,6 +1,8 @@
 <?php
 namespace App\Services;
 
+use App\Models\company_wallet;
+
 class SafeHavenService
 {
     public function initCredentials()

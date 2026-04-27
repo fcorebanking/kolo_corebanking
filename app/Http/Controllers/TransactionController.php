@@ -1011,7 +1011,7 @@ class TransactionController extends Controller
 
         $transactionType = $request->verification_type == "bvn" ? 43 : 46;
 
-        $debitCompany = \debitCompanyWithCharge(\auth()->user()->company_id, $debitAmount, 0);
+        $debitCompany = \debitCompanyWithSubscriptionBalance(\auth()->user()->company_id, $debitAmount, 0);
 
         if (! $debitCompany['status']) {
             $debitCompany['status'] = 0;

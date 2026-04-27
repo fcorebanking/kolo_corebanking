@@ -5230,7 +5230,7 @@ class TransactionController extends Controller
 
         logInfo($companyId, "Debit company id");
 
-        $debitCompany = debitCompanyWithCharge($companyId, $charge, 0, );
+        $debitCompany = debitCompanyWithSubscriptionBalance($companyId, $charge, 0, );
 
         if (! $debitCompany['status']) {
             return response()->json(['status' => false, 'message' => 'Switcher Error. Kindly contact support'], 400);

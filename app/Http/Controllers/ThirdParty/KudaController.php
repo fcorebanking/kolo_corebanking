@@ -524,7 +524,7 @@ class KudaController extends WebhookController
                             'message' => $createAccountResponse["message"],
                         ];
                     }
-                } else if ($createAccountResponse["status"] == "4" && isset($createAccountResponse["sessionID"])) {
+                } else if ($createAccountResponse["status"] == "1" && isset($createAccountResponse["sessionID"])) {
                     return [
                         'status'  => "00",
                         'message' => "Transaction Verified Successfully (Session ID: " . $createAccountResponse["sessionID"] . ")",

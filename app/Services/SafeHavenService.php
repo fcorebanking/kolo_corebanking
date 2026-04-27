@@ -5,14 +5,16 @@ class SafeHavenService
 {
     public function initCredentials()
     {
-        return match (auth()->user()->comany_id) {
+        $currentRequest = request()->all();
+        $company_id     = auth()->user()->comany_id ?? company_wallet::where('vaccount', $currentRequest['data']['creditAccountNumber'])->first()->company_id;
+        return match ($company_id) {
 
-            63 => roseBulgePayredentials(),   //7000299948
-            67 => $this->oneZoyaPayredentials(),//7000320798
-            92 => $this->jethoPayredentials(), // 7000528130
-            97 => $this->dfsPayredentials(),  // 7000671610
+            63 => roseBulgePayredentials(),      //7000299948
+            67 => $this->oneZoyaPayredentials(), //7000320798
+            92 => $this->jethoPayredentials(),   // 7000528130
+            97 => $this->dfsPayredentials(),     // 7000671610
             default
-               => $this->finovaCredentials(),  //
+               => $this->finovaCredentials(), //
         };
     }
 

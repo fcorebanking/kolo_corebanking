@@ -98,8 +98,6 @@ class SafehavenController extends WebhookController
     public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId)
     {
 
-        
-
         logInfo($body, "Safe Have request");
 
         $endpoint = "accounts/v2/subaccount";
@@ -109,21 +107,21 @@ class SafehavenController extends WebhookController
             $loginResult = $this->getToken();
 
             $body = [
-            "autoSweepDetails"  => [
-                "schedule"      => "Instant",
-                "accountNumber" => $this->debitAccount,
-            ],
-            "autoSweep"         => "true",
-            "phoneNumber"       => $phone,
-            "emailAddress"      => $email,
-            "externalReference" => $customerReference,
-            "identityId"        => $bvnId,
-            "identityNumber"    => $bvn,
-            "identityType"      => "BVN",
-            "otp"               => $otp,
-            "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
+                "autoSweepDetails"  => [
+                    "schedule"      => "Instant",
+                    "accountNumber" => $this->debitAccount,
+                ],
+                "autoSweep"         => "true",
+                "phoneNumber"       => $phone,
+                "emailAddress"      => $email,
+                "externalReference" => $customerReference,
+                "identityId"        => $bvnId,
+                "identityNumber"    => $bvn,
+                "identityType"      => "BVN",
+                "otp"               => $otp,
+                "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
 
-        ];
+            ];
 
             if (! $loginResult['status']) {
                 return ['status' => false, 'message' => 'Failed to complete transfer'];
@@ -294,13 +292,12 @@ class SafehavenController extends WebhookController
 
     public function verifyBVN($bvn, $company_id = null)
     {
-       
 
         $url = "identity/v2";
 
         $loginResult = $this->getToken($company_id);
 
-         $body = [
+        $body = [
             "type"               => "BVN",
             "async"              => false,
             "number"             => $bvn,
@@ -339,13 +336,12 @@ class SafehavenController extends WebhookController
 
     public function verifyNIN($nin, $company_id = null)
     {
-       
 
         $url = "identity/v2";
 
         $loginResult = $this->getToken($company_id);
 
-         $body = [
+        $body = [
             "type"               => "NIN",
             "async"              => false,
             "number"             => $nin,
@@ -382,18 +378,16 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function verifyCAC($cac , $company_id = null)
+    public function verifyCAC($cac, $company_id = null)
     {
         logInfo($cac, "CAC");
         logInfo($this->debitAccount, "DEBIT Account");
-
-      
 
         $url = "identity/v2";
 
         $loginResult = $this->getToken($company_id);
 
-          $body = [
+        $body = [
             "type"               => "CAC-SEARCH",
             "async"              => false,
             "number"             => $cac,

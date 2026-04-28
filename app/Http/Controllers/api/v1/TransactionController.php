@@ -5362,12 +5362,12 @@ class TransactionController extends Controller
                     'status'  => true,
                     'message' => "Account Verified Successfully",
                     'data'    => [
-                        'id'             => $bvnResponse['data']['data']['_id'],
-                        'clientId'       => $bvnResponse['data']['data']['clientId'],
-                        "identityNumber" => $bvnResponse['data']['data']['identityNumber'],
+                        'id'             => $bvnResponse['data']['_id'],
+                        'clientId'       => $bvnResponse['data']['clientId'],
+                        "identityNumber" => $bvnResponse['data']['identityNumber'],
                         "type"           => $bvnResponse['data']['data']['type'],
-                        'otpId'          => trim($bvnResponse['data']['data']['otpId']),
-                        "message"        => trim($bvnResponse['data']['data']['message']),
+                        'otpId'          => trim($bvnResponse['data']['otpId']),
+                        "message"        => trim($bvnResponse['data']['message']),
 
                     ],
 

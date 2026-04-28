@@ -5227,7 +5227,7 @@ class TransactionController extends Controller
 
         $companyId = auth()->user()->company->id ?? $request->id;
 
-        if ($auth()->user()->bank->bank_code == "090286") {
+        if (auth()->user()->bank->bank_code == "090286") {
             $this->verifyIdentityWithSafeHaven($request);
         } else {
 

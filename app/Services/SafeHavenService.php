@@ -5,10 +5,8 @@ use App\Models\company_wallet;
 
 class SafeHavenService
 {
-    public function initCredentials()
+    public function initCredentials($company_id)
     {
-        
-        $company_id = auth()->user()->comany_id;
 
         return match ($company_id) {
 

@@ -46,7 +46,7 @@ class SafehavenController extends WebhookController
 
         $safeHavenService = new SafeHavenService();
 
-        $credentials = $safeHavenService->initCredentials();
+        $credentials = $safeHavenService->initCredentials($request->user()->comany_id);
 
         logInfo(json_encode($credentials), "Safe Haven credentials");
 

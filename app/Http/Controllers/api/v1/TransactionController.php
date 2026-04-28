@@ -5229,7 +5229,9 @@ class TransactionController extends Controller
 
         logInfo($companyId, "verifyBVN company id");
 
-        if (auth()->user()->bank->bank_code == "090286") {
+        $bankID = company_wallet::where('company_id', $companyId)->first()->bank_id;
+
+        if ($bankID == 190) {
             $this->verifyIdentityWithSafeHaven($request);
         } else {
 

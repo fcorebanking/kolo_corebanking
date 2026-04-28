@@ -46,7 +46,7 @@ class SafehavenController extends WebhookController
 
         $safeHavenService = new SafeHavenService();
 
-        $credentials = $safeHavenService->initCredentials(request()->user()->comany_id ?? $company_id);
+        $credentials = $safeHavenService->initCredentials($company_id);
 
         logInfo(json_encode($credentials), "Safe Haven credentials");
 
@@ -194,7 +194,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function bankTransfer($amount, $transactionReference, $description, $bankCode, $accountNumber, $sessionId)
+    public function bankTransfer($amount, $transactionReference, $description, $bankCode, $accountNumber, $sessionId, $companyID)
     {
         $body = [
             "amount"                   => floatval($amount),
@@ -209,7 +209,7 @@ class SafehavenController extends WebhookController
 
         try {
 
-            $loginResult = $this->getToken();
+            $loginResult = $this->getToken($companyID);
 
             if (! $loginResult['status']) {
                 return ['status' => false, 'message' => 'Failed to complete transfer'];

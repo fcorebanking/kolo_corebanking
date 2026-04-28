@@ -7,6 +7,7 @@ class SafeHavenService
 {
     public function initCredentials($company_id)
     {
+        logInfo(json_encode($company_id), "SafeHavenService company_id");
 
         return match ($company_id) {
 

@@ -98,7 +98,17 @@ class SafehavenController extends WebhookController
     public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId)
     {
 
-        $body = [
+        
+
+        logInfo($body, "Safe Have request");
+
+        $endpoint = "accounts/v2/subaccount";
+
+        try {
+
+            $loginResult = $this->getToken();
+
+            $body = [
             "autoSweepDetails"  => [
                 "schedule"      => "Instant",
                 "accountNumber" => $this->debitAccount,
@@ -114,14 +124,6 @@ class SafehavenController extends WebhookController
             "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
 
         ];
-
-        logInfo($body, "Safe Have request");
-
-        $endpoint = "accounts/v2/subaccount";
-
-        try {
-
-            $loginResult = $this->getToken();
 
             if (! $loginResult['status']) {
                 return ['status' => false, 'message' => 'Failed to complete transfer'];
@@ -292,16 +294,18 @@ class SafehavenController extends WebhookController
 
     public function verifyBVN($bvn, $company_id = null)
     {
-        $body = [
+       
+
+        $url = "identity/v2";
+
+        $loginResult = $this->getToken($company_id);
+
+         $body = [
             "type"               => "BVN",
             "async"              => false,
             "number"             => $bvn,
             "debitAccountNumber" => $this->debitAccount,
         ];
-
-        $url = "identity/v2";
-
-        $loginResult = $this->getToken($company_id);
 
         if (! $loginResult['status']) {
             return ['status' => false, 'message' => 'Failed to connect to Server. Please contact support'];
@@ -333,18 +337,20 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function verifyNIN($nin)
+    public function verifyNIN($nin, $company_id = null)
     {
-        $body = [
+       
+
+        $url = "identity/v2";
+
+        $loginResult = $this->getToken($company_id);
+
+         $body = [
             "type"               => "NIN",
             "async"              => false,
             "number"             => $nin,
             "debitAccountNumber" => $this->debitAccount,
         ];
-
-        $url = "identity/v2";
-
-        $loginResult = $this->getToken();
 
         if (! $loginResult['status']) {
             return ['status' => false, 'message' => 'Failed to connect to Server. Please contact support'];
@@ -376,21 +382,23 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function verifyCAC($cac)
+    public function verifyCAC($cac , $company_id = null)
     {
         logInfo($cac, "CAC");
         logInfo($this->debitAccount, "DEBIT Account");
 
-        $body = [
+      
+
+        $url = "identity/v2";
+
+        $loginResult = $this->getToken($company_id);
+
+          $body = [
             "type"               => "CAC-SEARCH",
             "async"              => false,
             "number"             => $cac,
             "debitAccountNumber" => $this->debitAccount,
         ];
-
-        $url = "identity/v2";
-
-        $loginResult = $this->getToken();
 
         if (! $loginResult['status']) {
             return ['status' => false, 'message' => 'Failed to connect to Server. Please contact support'];

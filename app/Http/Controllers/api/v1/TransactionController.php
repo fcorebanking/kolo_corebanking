@@ -2521,7 +2521,7 @@ class TransactionController extends Controller
         $safeHavenController = new SafehavenController();
         // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
 
-        if (! $request['type'] != "transfer") {
+        if ($request->type != "transfer") {
             response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
         }
 

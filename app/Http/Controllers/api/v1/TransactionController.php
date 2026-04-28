@@ -5225,10 +5225,9 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
-        $companyId = auth()->user()->company->id ?? $request->id;
+        $companyId = auth()->user()->company->id ?? $request->company_id;
 
-          logInfo(auth()->user()->id, "verifyBVN user id");
-          logInfo($companyId, "verifyBVN company id");
+        logInfo($companyId, "verifyBVN company id");
 
         if (auth()->user()->bank->bank_code == "090286") {
             $this->verifyIdentityWithSafeHaven($request);
@@ -5353,7 +5352,7 @@ class TransactionController extends Controller
     {
         $safehavenController = new SafehavenController();
 
-        $bvnResponse = $safehavenController->verifyBVN($request->bvn);
+        $bvnResponse = $safehavenController->verifyBVN($request->bvn, $request->company_id);
 
         if ($bvnResponse['statusCode'] == 200) {
             return response()->json(

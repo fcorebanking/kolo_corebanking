@@ -22,7 +22,7 @@ class SafeHavenService
 
     public function finovaCredentials()
     {
-        [
+        return [
             'owner'                      => 'Finova',
             'sendingAccount'             => "0117187948",
             'grant_type_live'            => env('SAFEHAVEN_GRANT_TYPE_LIVE', 'client_credentials'),
@@ -38,7 +38,7 @@ class SafeHavenService
 
     public function jethoPayredentials()
     {
-        [
+        return [
             'owner'                      => 'Jethopay',
             'sendingAccount'             => "0113408373",
             'grant_type_live'            => env('SAFEHAVEN_GRANT_TYPE_LIVE', 'client_credentials'),
@@ -54,7 +54,7 @@ class SafeHavenService
 
     public function dfsPayredentials()
     {
-        [
+        return [
             'owner'                      => 'DFS',
             'sendingAccount'             => "0110858465",
             'grant_type_live'            => env('SAFEHAVEN_GRANT_TYPE_LIVE', 'client_credentials'),
@@ -70,7 +70,7 @@ class SafeHavenService
 
     public function oneZoyaPayredentials()
     {
-        [
+        return [
             'owner'                      => 'One Zoya',
             'sendingAccount'             => "0117171310",
             'grant_type_live'            => env('SAFEHAVEN_GRANT_TYPE_LIVE', 'client_credentials'),
@@ -86,7 +86,7 @@ class SafeHavenService
 
     public function roseBulgePayredentials()
     {
-        [
+        return [
             'owner'                      => 'RoseBulge',
             'sendingAccount'             => "0113905054",
             'grant_type_live'            => env('SAFEHAVEN_GRANT_TYPE_LIVE', 'client_credentials'),

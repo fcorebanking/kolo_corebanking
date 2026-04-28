@@ -5366,12 +5366,9 @@ class TransactionController extends Controller
                         'clientId'       => $bvnResponse['data']['data']['clientId'],
                         "identityNumber" => $bvnResponse['data']['data']['identityNumber'],
                         "type"           => $bvnResponse['data']['data']['type'],
-                        'first_name'     => trim($bvnResponse['data']['data']['providerResponse']['firstName']),
-                        "last_name"      => trim($bvnResponse['data']['data']['providerResponse']['lastName']),
-                        "dob"            => $bvnResponse['data']['data']['providerResponse']['dateOfBirth'],
-                        "bvn"            => trim($bvnResponse['data']['data']['providerResponse']['bvn']),
-                        "phone"          => trim($bvnResponse['data']['data']['providerResponse']['phoneNumber1']),
-                        "address"        => trim($bvnResponse['data']['data']['providerResponse']['residentialAddress']),
+                        'otpId'     => trim($bvnResponse['data']['data']['otpId']),
+                        "message"      => trim($bvnResponse['data']['data']['message']),
+                       
                     ],
 
                 ]

@@ -65,7 +65,7 @@ class EbankingCompanyService
 
             $safeHavenController = new SafehavenController();
 
-            $bankTransfer = $safeHavenController->bankTransfer($bankTransferType->amount, $bankTransferType->transactionReference, $bankTransferType->description, $bankTransferType->bankCode, $bankTransferType->accountNumber, $bankAccount['data']['session_id'], $ebankingPartner->company_id);
+            $bankTransfer = $safeHavenController->bankTransfer($bankTransferType->amount, $bankTransferType->transactionReference, $bankTransferType->description, $bankTransferType->bankCode, $bankTransferType->accountNumber, $bankAccount['data']['session_id'], $this->ebankingPartner->company_id);
         } else if ($this->bankTransferPartner == 14) {
 
             $accountName = $bankAccount["data"]["account_name"];

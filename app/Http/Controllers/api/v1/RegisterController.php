@@ -3,6 +3,7 @@ namespace App\Http\Controllers\api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\ThirdParty\IdentityPassController;
+use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Mail\TransactionReport;
 use App\Models\banks;
 use App\Models\branch;
@@ -183,9 +184,9 @@ class RegisterController extends Controller
         $selectedBank = banks::where('id', $bank_id)->first();
 
         if ($selectedBank->bank_code == '090286') {
-             $safehavenController = new SafehavenController();
+            $safehavenController = new SafehavenController();
 
-        $bvnResponse = $safehavenController->verifyBVNMobile($request->bvn);
+            $bvnResponse = $safehavenController->verifyBVNMobile($request->bvn);
         }
 
         if (! isset($request->account_type) || $request->account_type != 'regular') {
@@ -852,11 +853,23 @@ class RegisterController extends Controller
 
     public function verifyBVN(Request $request)
     {
-        $identityPassController = new IdentityPassController();
+        if ($request->has('company_id')) {
+            $company = Company::where('id', $request->company_id)->first();
 
-        $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
+            $safehavenController = new SafehavenController();
 
-        return $bvnResponse;
+            $bvnResponse = $safehavenController->verifyBVN($request->bvn);
+
+            return $bvnResponse;
+
+        } else {
+            $identityPassController = new IdentityPassController();
+
+            $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
+
+            return $bvnResponse;
+        }
+
     }
 
     private function sendTransactionReportEmail($subtext, $msg, $reason, $user)

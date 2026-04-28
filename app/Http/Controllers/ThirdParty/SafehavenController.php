@@ -41,12 +41,12 @@ class SafehavenController extends WebhookController
 
     }
 
-    public function getToken()
+    public function getToken($company_id = null)
     {
 
         $safeHavenService = new SafeHavenService();
 
-        $credentials = $safeHavenService->initCredentials(request()->user()->comany_id);
+        $credentials = $safeHavenService->initCredentials(request()->user()->comany_id ?? $company_id);
 
         logInfo(json_encode($credentials), "Safe Haven credentials");
 
@@ -288,7 +288,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function verifyBVN($bvn)
+    public function verifyBVN($bvn, $company_id = null)
     {
         $body = [
             "type"               => "BVN",
@@ -299,7 +299,7 @@ class SafehavenController extends WebhookController
 
         $url = "identity/v2";
 
-        $loginResult = $this->getToken();
+        $loginResult = $this->getToken($company_id);
 
         if (! $loginResult['status']) {
             return ['status' => false, 'message' => 'Failed to connect to Server. Please contact support'];

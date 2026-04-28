@@ -311,7 +311,7 @@ class SafehavenController extends WebhookController
         try {
             $response = $this->safehavenPostRequest($url, $body);
 
-            logInfo($response, "Safehaven response");
+            logInfo($response, "Safehaven verify bvn response");
 
             if (isset($response['statusCode'])) {
                 if ($response['statusCode'] == 200) {

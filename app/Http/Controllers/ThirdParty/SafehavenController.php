@@ -70,6 +70,8 @@ class SafehavenController extends WebhookController
 
         logInfo($body, "Exchange cliient assertion");
 
+        logInfo($body, "Exchange cliient assertion");
+
         try {
             $response = $this->safehavenPostRequest("oauth2/token", $body);
 
@@ -614,7 +616,11 @@ class SafehavenController extends WebhookController
         logInfo("{$this->baseUrl}{$endpoint}", "Complete url");
         logInfo($this->safehavenHeader(), "Safe haven header");
         logInfo(json_encode($body), "Safe haven Body Request");
-        $response = Http::withHeaders($this->safehavenHeader())->post("{$this->baseUrl}{$endpoint}", $body);
+        $response = Http::withHeaders($this->safehavenHeader())
+            ->withOptions([
+                'force_ip_resolve' => 'v4',
+            ])
+            ->post("{$this->baseUrl}{$endpoint}", $body);
         return $response->json();
     }
 

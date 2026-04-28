@@ -126,7 +126,8 @@ class AccountCreationService
                 $requestReference,
                 $virtualAccount->bvn,
                 $virtualAccount->otp,
-                $virtualAccount->bvnId
+                $virtualAccount->bvnId,
+                $virtualAccount->companyID
             );
 
             if ($createAccountResponse['status']) {

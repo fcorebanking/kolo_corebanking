@@ -2521,11 +2521,11 @@ class TransactionController extends Controller
         $safeHavenController = new SafehavenController();
         // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
 
-        if ($request->type != "transfer") {
+        $currentRequest = $request->all();
+
+        if ($currentRequest['type'] != "transfer") {
             response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
         }
-
-        $currentRequest = $request->all();
 
         $safeHavenController->transactionReference = $currentRequest['data']['paymentReference'];
         $safeHavenController->wbaCharge            = getWbaTransferCharges(38, $currentRequest['data']['amount']);
@@ -5356,7 +5356,7 @@ class TransactionController extends Controller
 
         $bvnResponse = $safehavenController->verifyBVN($request->bvn, $request->company_id);
 
-        if ($bvnResponse['statusCode'] == 200) {
+        if ($bvnResponse['status']) {
             return response()->json(
                 [
                     'status'  => true,
@@ -5366,9 +5366,9 @@ class TransactionController extends Controller
                         'clientId'       => $bvnResponse['data']['data']['clientId'],
                         "identityNumber" => $bvnResponse['data']['data']['identityNumber'],
                         "type"           => $bvnResponse['data']['data']['type'],
-                        'otpId'     => trim($bvnResponse['data']['data']['otpId']),
-                        "message"      => trim($bvnResponse['data']['data']['message']),
-                       
+                        'otpId'          => trim($bvnResponse['data']['data']['otpId']),
+                        "message"        => trim($bvnResponse['data']['data']['message']),
+
                     ],
 
                 ]

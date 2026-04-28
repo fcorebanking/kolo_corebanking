@@ -95,7 +95,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId)
+    public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID)
     {
 
         logInfo($body, "Safe Have request");
@@ -104,7 +104,7 @@ class SafehavenController extends WebhookController
 
         try {
 
-            $loginResult = $this->getToken();
+            $loginResult = $this->getToken($companyID);
 
             $body = [
                 "autoSweepDetails"  => [

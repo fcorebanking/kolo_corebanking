@@ -3,11 +3,11 @@ namespace App\Http\Controllers\api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\ThirdParty\IdentityPassController;
-use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Mail\TransactionReport;
 use App\Models\banks;
 use App\Models\branch;
 use App\Models\Company;
+use App\Models\company_wallet;
 use App\Models\savings_product;
 use App\Models\transactions;
 use App\Models\User;
@@ -88,10 +88,10 @@ class RegisterController extends Controller
                 return response()->json(["status" => false, "message" => "Failed to verify BVN!"], 400);
 
             }
-        }*/
+        }
 
         match ((int) $request->company) {
-            14, 31, 37, 49, 59, 87, 88, 89, 96 => true,
+            14, 31, 37, 49, 59,63, 87, 88, 89, 96, => true,
             default => tap($this->verifyBVN($request), function ($bvnCheck) {
                 if ($bvnCheck['status'] === false) {
                     abort(response()->json([
@@ -100,7 +100,25 @@ class RegisterController extends Controller
                     ], 400));
                 }
             }),
-        };
+        };*/
+
+        $skipCompanies    = [14, 31, 37, 49, 59, 63, 87, 88, 89, 96];
+        $selected_bank_id = company_wallet::where('company_id', $request->company)->first()->bank_id;
+
+        if (! in_array((int) $request->company, $skipCompanies)) {
+
+            if ($bank_id != 190) {
+
+                $bvnCheck = $this->verifyBVN($request);
+
+                if ($bvnCheck['status'] === false) {
+                    abort(response()->json([
+                        'status'  => false,
+                        'message' => 'Failed to verify BVN!',
+                    ], 400));
+                }
+            }
+        }
 
         \logInfo(json_encode($request->all()), "Registration request");
 
@@ -179,15 +197,9 @@ class RegisterController extends Controller
         // $response = $assetMatrix->createAccount($customerReference, $request->email, $request->phone, $request->first_name, $request->last_name, "");
         // echo \json_encode($createAdminAccount);
 
-        $bank_id = $companyRecord->setting->preferred_bank_id ?? 232;
+        $bank_id = $companyRecord->setting->preferred_bank_id ?? $selected_bank_id;
 
         $selectedBank = banks::where('id', $bank_id)->first();
-
-        if ($selectedBank->bank_code == '090286') {
-            $safehavenController = new SafehavenController();
-
-            $bvnResponse = $safehavenController->verifyBVNMobile($request->bvn);
-        }
 
         if (! isset($request->account_type) || $request->account_type != 'regular') {
             $virtualAccount = new VirtualAccountType();
@@ -218,8 +230,10 @@ class RegisterController extends Controller
             $virtualAccount->companyAccountCreationStatus = $companyRecord->setting->can_create_virtual_account;
 
             if ($selectedBank->bank_code == '090286') {
-                $virtualAccount->bvnId = $request->identity_id;
-                $virtualAccount->otp   = $request->otp;
+                $virtualAccount->bvnId     = $request->identity_id;
+                $virtualAccount->otp       = $request->otp;
+                $virtualAccount->companyID = $request->company;
+
             }
 
             $createAccountService = new AccountCreationService();
@@ -853,22 +867,11 @@ class RegisterController extends Controller
 
     public function verifyBVN(Request $request)
     {
-        if ($request->has('company_id')) {
-            $company = Company::where('id', $request->company_id)->first();
+        $identityPassController = new IdentityPassController();
 
-            $safehavenController = new SafehavenController();
+        $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
 
-            $bvnResponse = $safehavenController->verifyBVN($request->bvn);
-
-            return $bvnResponse;
-
-        } else {
-            $identityPassController = new IdentityPassController();
-
-            $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
-
-            return $bvnResponse;
-        }
+        return $bvnResponse;
 
     }
 

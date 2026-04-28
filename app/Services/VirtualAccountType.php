@@ -6,6 +6,7 @@ class VirtualAccountType
     public $bankCode;
     public $currencyCode;
     public $companyName;
+    public $companyID;
     public $companyShortName;
     public $companyAccountCreationStatus;
     public $accountType; // personal or coperate

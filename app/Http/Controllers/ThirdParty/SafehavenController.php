@@ -59,7 +59,7 @@ class SafehavenController extends WebhookController
         $this->clientId            = $credentials['client_id_live'];
         $this->clientAssertion     = $credentials['client_assertion_live'];
         $this->baseUrl             = $credentials['base_url_live'];
-        $this->debitAccount        = $credentials['debitAccount '];
+        $this->debitAccount        = $credentials['debitAccount'];
 
         $body = [
             'grant_type'            => $this->grantType,

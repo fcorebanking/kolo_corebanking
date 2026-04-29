@@ -109,7 +109,7 @@ class RemittaController
     {
         // $endpoint = "https://api-gateway.remita.net/services/connect-gateway/api/v1/vending/products?page=0&pageSize=20&countryCode=NGA&categoryCode=electricity";
 
-        $endpoint = "https://api-gateway.remita.net/services/connect-gateway/api/v1/vending/providers";
+        $endpoint = "https://api-gateway.remita.net/services/connect-gateway/api/v1/vending/products?page=0&pageSize=20&countryCode=NGA&categoryCode=electricity";
         logInfo($endpoint, "Remita Get rndpoint info");
 
         $result = $this->remitaGetRequest($endpoint);
@@ -136,9 +136,7 @@ class RemittaController
     public function remitaGetRequest($url)
     {
         $response = Http::withHeaders($this->remitaHeader())
-            ->withOptions([
-                'force_ip_resolve' => 'v4',
-            ])
+
             ->get("$url");
         return $response->json();
     }

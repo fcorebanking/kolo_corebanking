@@ -1,7 +1,6 @@
 <?php
 namespace App\Services;
 
-use App\Models\RemitaCredential;
 use App\Models\RemitaMandate;
 use App\Models\Remitasalaryhistory;
 use App\Models\User;
@@ -23,7 +22,7 @@ class RemittaController
     private $iswbaAPI;
     public function __construct()
     {
-        $RemitaCredential = RemitaCredential::where(['company_id' => auth()->user()->company_id, 'ownership' => 1])->first();
+        /*    $RemitaCredential = RemitaCredential::where(['company_id' => auth()->user()->company_id, 'ownership' => 1])->first();
         if (! $RemitaCredential) {
             $RemitaCredential = RemitaCredential::where(['iswba' => 1])->first();
 
@@ -44,7 +43,7 @@ class RemittaController
             'Merchant_id'   => $this->machant,
             'Request_id'    => $this->requestID,
             'Authorization' => $this->authorization,
-        ];
+        ];*/
     }
 
     public function buyElectricity($transactionId, $electrictyDisco, $meterType, $meterNumber, $amount, $phoneNumber)

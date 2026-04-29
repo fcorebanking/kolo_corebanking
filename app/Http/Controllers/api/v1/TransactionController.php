@@ -5220,7 +5220,7 @@ class TransactionController extends Controller
 
         $validation = Validator::make($request->all(), [
             "bvn" => 'required|numeric|gt:0',
-            "dob" => 'required',
+            "dob" => 'sometimes',
         ]);
         if ($validation->fails()) {
             $ra = ["status" => false, "message" => "BVN and Date of birth is required"];
@@ -5234,7 +5234,7 @@ class TransactionController extends Controller
         $bankID = company_wallet::where('company_id', $companyId)->first()->bank_id;
 
         if ($bankID == 190) {
-        return $this->verifyIdentityWithSafeHaven($request);
+            return $this->verifyIdentityWithSafeHaven($request);
         } else {
 
             return $this->debitCompanyWithSubscriptionBVN($request, $companyId);
@@ -5354,9 +5354,16 @@ class TransactionController extends Controller
 
     public function verifyIdentityWithSafeHaven(Request $request)
     {
-        $safehavenController = new SafehavenController();
 
-        $bvnResponse = $safehavenController->verifyBVN($request->bvn, $request->company_id);
+        return $this->safeHavenIdentityCheckResponse($request->bvn, $request->company_id);
+
+    }
+
+    public function safeHavenIdentityCheckResponse($bvn, $company_id)
+    {
+
+        $safehavenController = new SafehavenController();
+        $bvnResponse         = $safehavenController->verifyBVN($bvn, $company_id);
 
         if ($bvnResponse['status']) {
             return response()->json(
@@ -5385,7 +5392,6 @@ class TransactionController extends Controller
                 400
             );
         }
-
     }
 
     public function verifyBVNAlt(Request $request, $bvn)
@@ -6547,9 +6553,47 @@ class TransactionController extends Controller
 
     }
 
-    public function createSafehavenAccount(Request $request)
+    public function initiateCreateSafehavenAccount(Request $request)
     {
 
+        $company = Company::with('allStaff')->find($request->company);
+
+        $admin = $company->allStaff->first();
+
+        $this->safeHavenIdentityCheckResponse($admin->bvn, $request->company);
+    }
+
+    public function createSafehavenAccount(Request $request)
+    {
+        $company = Company::with('allStaff')->find($request->company);
+
+        $admin = $company->allStaff->first();
+
+        if (! $admin) {
+            \logInfo(["company_id" => $company->id, "error" => "No admin found"], 'Create Safehaven Account');
+            response()->json(['status' => 0, 'message' => "No admin found"], 400);
+        }
+        $firstName = $company->short_name;
+
+        $lastName = "";
+
+        $email = $admin->email;
+
+        $phone = $admin->phone;
+
+        $customerReference = generateTransactionReference();
+
+        $bvn = $admin->bvn;
+
+        $otp = $request->otp;
+
+        $bvnId = $request->bvnId;
+
+        $companyID = $request->company;
+
+        $safeHavenController = new SafehavenController();
+
+        return $safeHavenController->createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID);
     }
 
     private function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)

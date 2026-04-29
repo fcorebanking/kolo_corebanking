@@ -2002,6 +2002,13 @@ class UserController extends Controller
         $virtualAccount->country                      = $company->currency_id;
         $virtualAccount->companyAccountCreationStatus = $company->setting->can_create_virtual_account;
 
+        if ($bank->bank_code == '090286') {
+            $virtualAccount->bvnId     = $request->id;
+            $virtualAccount->otp       = $request->otp;
+            $virtualAccount->companyID = $request->company;
+
+        }
+
         return (new AccountCreationService())->createVirtualAccount($virtualAccount);
     }
 

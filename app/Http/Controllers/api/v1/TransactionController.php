@@ -6587,7 +6587,7 @@ class TransactionController extends Controller
 
         $bvnId = $request->bvnId;
 
-         $companyIDforSafeHavenAccountCheck = 14; //finova account
+        $companyIDforSafeHavenAccountCheck = 14; //finova account
 
         $safeHavenController = new SafehavenController();
 

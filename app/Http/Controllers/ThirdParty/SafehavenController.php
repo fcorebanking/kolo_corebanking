@@ -198,20 +198,21 @@ class SafehavenController extends WebhookController
 
     public function bankTransfer($amount, $transactionReference, $description, $bankCode, $accountNumber, $sessionId, $companyID)
     {
-        $body = [
-            "amount"                   => floatval($amount),
-            "nameEnquiryReference"     => $sessionId,
-            "debitAccountNumber"       => $this->sendingAccount,
-            "narration"                => $description,
-            "beneficiaryBankCode"      => $bankCode,
-            "beneficiaryAccountNumber" => $accountNumber,
-            "saveBeneficiary"          => false,
-            "paymentReference"         => $transactionReference,
-        ];
 
         try {
 
             $loginResult = $this->getToken($companyID);
+
+            $body = [
+                "amount"                   => floatval($amount),
+                "nameEnquiryReference"     => $sessionId,
+                "debitAccountNumber"       => $this->sendingAccount,
+                "narration"                => $description,
+                "beneficiaryBankCode"      => $bankCode,
+                "beneficiaryAccountNumber" => $accountNumber,
+                "saveBeneficiary"          => false,
+                "paymentReference"         => $transactionReference,
+            ];
 
             if (! $loginResult['status']) {
                 return ['status' => false, 'message' => 'Failed to complete transfer'];

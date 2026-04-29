@@ -425,8 +425,13 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function creditCheck($cac)
+    public function creditCheck($cac, $company_id = null)
     {
+
+        $url = "identity/v2";
+
+        $loginResult = $this->getToken();
+
         $body = [
             "type"               => "CREDITCHECK",
             "async"              => false,
@@ -434,10 +439,6 @@ class SafehavenController extends WebhookController
             "provider"           => "firstCentral",
             "debitAccountNumber" => $this->debitAccount,
         ];
-
-        $url = "identity/v2";
-
-        $loginResult = $this->getToken();
 
         if (! $loginResult['status']) {
             return ['status' => false, 'message' => 'Failed to connect to Server. Please contact support'];

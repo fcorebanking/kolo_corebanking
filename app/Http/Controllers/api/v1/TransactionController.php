@@ -2521,12 +2521,12 @@ class TransactionController extends Controller
         $safeHavenController = new SafehavenController();
         // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
 
-         logInfo($request->all(), "SafehavenWeb Hook Request body");
+        logInfo($request->all(), "SafehavenWeb Hook Request body");
 
         $currentRequest = $request->all();
 
         if ($currentRequest['type'] != "transfer") {
-            response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
+            return response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
         }
 
         $safeHavenController->transactionReference = $currentRequest['data']['paymentReference'];

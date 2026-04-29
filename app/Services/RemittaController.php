@@ -106,6 +106,15 @@ class RemittaController
         }
     }
 
+    public function getElectricityCategory()
+    {
+        $endpoint = "https://api-gateway.remita.net/services/connect-gateway/api/v1/vending/products?page=0&pageSize=20&countryCode=NGA&categoryCode=electricity";
+
+        $result = $this->remitaGetRequest($endpoint);
+
+        logInfo(json_encode($result), "Remita Get Electricity info");
+    }
+
     public function remitaBaseUrl()
     {
         return env('APP_MODE') == 'test' ? "https://api-demo.systemspecsng.com/services/connect-gateway/api/v1/vending/transactions" : "https://api-demo.systemspecsng.com/services/connect-gateway/api/v1/vending/transactions";
@@ -114,7 +123,21 @@ class RemittaController
     public function remitaPostRequest($body)
     {
         logInfo($this->remitaBaseUrl());
-        $response = Http::withHeaders($this->remitaHeader())->post($this->remitaBaseUrl(), $body);
+        $response = Http::withHeaders($this->remitaHeader())
+            ->withOptions([
+                'force_ip_resolve' => 'v4',
+            ])
+            ->post($this->remitaBaseUrl(), $body);
+        return $response->json();
+    }
+
+    public function remitaGetRequest($url)
+    {
+        $response = Http::withHeaders($this->remitaHeader())
+            ->withOptions([
+                'force_ip_resolve' => 'v4',
+            ])
+            ->get("$url");
         return $response->json();
     }
 
@@ -122,7 +145,7 @@ class RemittaController
     {
         $header = [
             'Content - Type' => 'application / json',
-            'api-key'      => '' . $this->apiKey,
+            'secretKey'      => 'sk_live_+/sHp4DCskZEfFkliedPOZL+uYsDkHh+C9OeV631lqX1bRrp+rt2MiWdxCDVuPht',
         ];
 
         return $header;

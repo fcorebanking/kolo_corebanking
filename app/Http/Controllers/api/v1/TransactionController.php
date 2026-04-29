@@ -5929,6 +5929,13 @@ class TransactionController extends Controller
         return response()->json(['status' => 'ok'], 200);
     }
 
+    public function testAPIExternal(Request $request)
+    {
+        $remitaController = new RemittaController();
+
+        return $remitaController->getElectricityCategory();
+    }
+
     public function finova4tsWebhook(Request $request)
     {
 

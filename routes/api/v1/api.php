@@ -36,7 +36,7 @@ Route::post('/twilio-webhook', [TransactionController::class, 'twilioWebhook']);
 Route::post('/test-finova-webhook', [TransactionController::class, 'finovaWebhook']);
 Route::post('/4ts-finova-webhook', [TransactionController::class, 'finova4tsWebhook']);
 Route::post('/create-physical-card', [TransactionController::class, 'createPhysicalCard']);
-Route::get('/get-4t5-session', [TransactionController::class, 'get4T5SessionToken']);
+Route::get('/get-api-session', [TransactionController::class, 'testAPIExternal']);
 Route::post('/admin-process-verify-reverse-transactions', [TransactionController::class, 'verifyAndReverseTransactionAdmin']);
 Route::post('/bridge-webhook', [TransactionController::class, 'bridgeWebhook']);
 Route::post('/9psb-test-hash', [TransactionController::class, 'ninetyPSBTestHash']);

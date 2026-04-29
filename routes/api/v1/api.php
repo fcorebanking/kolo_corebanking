@@ -42,8 +42,8 @@ Route::post('/bridge-webhook', [TransactionController::class, 'bridgeWebhook']);
 Route::post('/9psb-test-hash', [TransactionController::class, 'ninetyPSBTestHash']);
 Route::post('/9psb-webhook', [TransactionController::class, 'ninetyPSBWebhook']);
 Route::post('/create-vpay-vaccount', [TransactionController::class, 'createVPayAccount']);
-Route::post('/initiate-create-safehaven-vaccount', [TransactionController::class, 'initiateCreateSafehavenAccount']);
-Route::post('/create-safehaven-vaccount', [TransactionController::class, 'createSafehavenAccount']);
+Route::post('/initiate-create-safehaven-vaccount', [TransactionController::class, 'initiateCreateSafehavenMaintenancAccount']);
+Route::post('/create-safehaven-vaccount', [TransactionController::class, 'createSafehavenMaintenancAccount']);
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();

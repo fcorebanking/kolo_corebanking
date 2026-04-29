@@ -6553,17 +6553,19 @@ class TransactionController extends Controller
 
     }
 
-    public function initiateCreateSafehavenAccount(Request $request)
+    public function initiateCreateSafehavenMaintenanceAccount(Request $request)
     {
 
         $company = Company::with('allStaff')->find($request->company);
 
         $admin = $company->allStaff->first();
 
-        $this->safeHavenIdentityCheckResponse($admin->bvn, $request->company);
+        $companyIDforSafeHavenAccountCheck = 14; //finova account
+
+        $this->safeHavenIdentityCheckResponse($admin->bvn, $companyIDforSafeHavenAccountCheck);
     }
 
-    public function createSafehavenAccount(Request $request)
+    public function createSafehavenMaintenancAccount(Request $request)
     {
         $company = Company::with('allStaff')->find($request->company);
 
@@ -6589,11 +6591,11 @@ class TransactionController extends Controller
 
         $bvnId = $request->bvnId;
 
-        $companyID = $request->company;
+         $companyIDforSafeHavenAccountCheck = 14; //finova account
 
         $safeHavenController = new SafehavenController();
 
-        return $safeHavenController->createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID);
+        return $safeHavenController->createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyIDforSafeHavenAccountCheck);
     }
 
     private function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)

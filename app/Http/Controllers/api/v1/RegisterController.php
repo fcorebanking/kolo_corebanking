@@ -107,7 +107,7 @@ class RegisterController extends Controller
 
         if (! in_array((int) $request->company, $skipCompanies)) {
 
-            if ($bank_id != 190) {
+            if ($selected_bank_id != 190) {
 
                 $bvnCheck = $this->verifyBVN($request);
 

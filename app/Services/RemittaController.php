@@ -143,8 +143,8 @@ class RemittaController
     public function remitaHeader()
     {
         $header = [
-            'Content - Type' => 'application / json',
-            'secretKey'      => 'sk_live_+/sHp4DCskZEfFkliedPOZL+uYsDkHh+C9OeV631lqX1bRrp+rt2MiWdxCDVuPht',
+            'Content-Type' => 'application/json',
+            'secretKey'    => 'sk_live_+/sHp4DCskZEfFkliedPOZL+uYsDkHh+C9OeV631lqX1bRrp+rt2MiWdxCDVuPht',
         ];
 
         return $header;

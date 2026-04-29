@@ -145,7 +145,8 @@ class RemittaController
     {
         $header = [
             'Content-Type' => 'application/json',
-            //    'secretKey'    => 'remi_test_sk_YVZ6OXpRcHdmaitoOUU3TGZya1Fob2IxZSt1bUxMdnV3ZlZtb1E9PTdlM2M0ZjYyYzc2MzQ0YzA2YTFlODFhYWE2MmI5MzU2NzQ4NWY0OTY3ZDM1YmEzOWMzOTczZDk1YzU5NjE3NWM=',
+            'secretKey'    => 'sk_live_+/sHp4DCskZEfFkliedPOZL+uYsDkHh+C9OeV631lqX1bRrp+rt2MiWdxCDVuPht',
+
         ];
 
         return $header;

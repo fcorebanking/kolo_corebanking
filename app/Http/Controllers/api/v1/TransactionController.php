@@ -5234,10 +5234,10 @@ class TransactionController extends Controller
         $bankID = company_wallet::where('company_id', $companyId)->first()->bank_id;
 
         if ($bankID == 190) {
-            $this->verifyIdentityWithSafeHaven($request);
+        return $this->verifyIdentityWithSafeHaven($request);
         } else {
 
-            $this->debitCompanyWithSubscriptionBVN($request, $companyId);
+            return $this->debitCompanyWithSubscriptionBVN($request, $companyId);
         }
 
     }

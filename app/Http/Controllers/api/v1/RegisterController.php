@@ -230,7 +230,7 @@ class RegisterController extends Controller
             $virtualAccount->companyAccountCreationStatus = $companyRecord->setting->can_create_virtual_account;
 
             if ($selectedBank->bank_code == '090286') {
-                $virtualAccount->bvnId     = $request->identityNumber;
+                $virtualAccount->bvnId     = $request->id;
                 $virtualAccount->otp       = $request->otp;
                 $virtualAccount->companyID = $request->company;
 

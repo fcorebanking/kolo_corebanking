@@ -98,8 +98,6 @@ class SafehavenController extends WebhookController
     public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID)
     {
 
-       
-
         $endpoint = "accounts/v2/subaccount";
 
         try {
@@ -123,10 +121,10 @@ class SafehavenController extends WebhookController
 
             ];
 
-             logInfo($body, "Safe Have request");
+            logInfo($body, "Safe Have request");
 
             if (! $loginResult['status']) {
-                return ['status' => false, 'message' => 'Failed to complete transfer'];
+                return ['status' => false, 'message' => 'Safe Haven Access createVirtualAccount Response'];
             }
 
             $createAccount = $this->safehavenPostRequest($endpoint, $body);

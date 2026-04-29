@@ -98,7 +98,7 @@ class SafehavenController extends WebhookController
     public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID)
     {
 
-        logInfo($body, "Safe Have request");
+       
 
         $endpoint = "accounts/v2/subaccount";
 
@@ -122,6 +122,8 @@ class SafehavenController extends WebhookController
                 "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
 
             ];
+
+             logInfo($body, "Safe Have request");
 
             if (! $loginResult['status']) {
                 return ['status' => false, 'message' => 'Failed to complete transfer'];

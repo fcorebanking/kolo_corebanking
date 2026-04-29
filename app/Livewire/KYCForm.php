@@ -1,10 +1,9 @@
 <?php
+namespace App\Livewire;
 
-namespace App\Http\Livewire;
-
+use App\Models\wb_account_details;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use App\Models\wb_account_details;
 
 class KYCForm extends Component
 {
@@ -12,13 +11,13 @@ class KYCForm extends Component
 
     public $account_number;
     public $bvn;
-    public $passport ;//= asset('ready/images/secure.png');
-    public $account = null;
+    public $passport; //= asset('ready/images/secure.png');
+    public $account          = null;
     public $validationStatus = false;
-    public $nextIsBvn = false;
-    public $nextIsFace = false;
-    public $imageVerifying = false;
-    public $ids = [];
+    public $nextIsBvn        = false;
+    public $nextIsFace       = false;
+    public $imageVerifying   = false;
+    public $ids              = [];
     public $tier;
     public $id_card_type;
     // public $bill_type;
@@ -37,8 +36,9 @@ class KYCForm extends Component
     {
         return view('livewire.k-y-c-form');
     }
-    public function verifyAccountNumber(){
-        $wb_account_details = wb_account_details::where('virtual_accnum',$this->account_number)->first();
+    public function verifyAccountNumber()
+    {
+        $wb_account_details = wb_account_details::where('virtual_accnum', $this->account_number)->first();
 
     }
 }

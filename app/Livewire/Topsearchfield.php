@@ -1,6 +1,5 @@
 <?php
-
-namespace App\Http\Livewire;
+namespace App\Livewire;
 
 use Livewire\Component;
 
@@ -8,16 +7,16 @@ class Topsearchfield extends Component
 {
     public $showDate;
     public $showBranch;
-    public $showTransactionType,$showledgerAccount;
-    public $to,$from,$branchID,$ledgerAccount,$staff;
+    public $showTransactionType, $showledgerAccount;
+    public $to, $from, $branchID, $ledgerAccount, $staff;
 
-    public function mount($showDate, $showBranch, $showTransactionType,$showledgerAccount=false,$staff=false)
+    public function mount($showDate, $showBranch, $showTransactionType, $showledgerAccount = false, $staff = false)
     {
-        $this->showDate = $showDate;
-        $this->showBranch = $showBranch;
+        $this->showDate            = $showDate;
+        $this->showBranch          = $showBranch;
         $this->showTransactionType = $showTransactionType;
-        $this->showledgerAccount = $showledgerAccount;
-        $this->staff = $staff;
+        $this->showledgerAccount   = $showledgerAccount;
+        $this->staff               = $staff;
 
     }
     public function updatedFrom()

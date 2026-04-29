@@ -107,7 +107,10 @@ class RemittaController
 
     public function getElectricityCategory()
     {
-        $endpoint = "https://api-gateway.remita.net/services/connect-gateway/api/v1/vending/products?page=0&pageSize=20&countryCode=NGA&categoryCode=electricity";
+        // $endpoint = "https://api-gateway.remita.net/services/connect-gateway/api/v1/vending/products?page=0&pageSize=20&countryCode=NGA&categoryCode=electricity";
+
+        $endpoint = "https://api-gateway.remita.net/services/connect-gateway/api/v1/vending/categories?page=0&size=20";
+        logInfo($endpoint, "Remita Get rndpoint info");
 
         $result = $this->remitaGetRequest($endpoint);
 

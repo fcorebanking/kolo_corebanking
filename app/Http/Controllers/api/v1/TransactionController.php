@@ -5221,6 +5221,7 @@ class TransactionController extends Controller
         $validation = Validator::make($request->all(), [
             "bvn" => 'required|numeric|gt:0',
             "dob" => 'sometimes',
+            'nin' => 'sometimes',
         ]);
         if ($validation->fails()) {
             $ra = ["status" => false, "message" => "BVN and Date of birth is required"];
@@ -5354,16 +5355,19 @@ class TransactionController extends Controller
 
     public function verifyIdentityWithSafeHaven(Request $request)
     {
-
-        return $this->safeHavenIdentityCheckResponse($request->bvn, $request->company_id);
+        return $this->safeHavenIdentityCheckResponse($request);
 
     }
 
-    public function safeHavenIdentityCheckResponse($bvn, $company_id)
+    public function safeHavenIdentityCheckResponse(Request $request)
     {
 
         $safehavenController = new SafehavenController();
-        $bvnResponse         = $safehavenController->verifyBVN($bvn, $company_id);
+        if ($request->has('nin')) {
+            $bvnResponse = $safehavenController->verifyNIN($request->nin, $request->company_id);
+        } else {
+            $bvnResponse = $safehavenController->verifyBVN($request->bvn, $request->company_id);
+        }
 
         if ($bvnResponse['status']) {
             return response()->json(

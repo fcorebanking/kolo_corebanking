@@ -5367,7 +5367,7 @@ class TransactionController extends Controller
                         "identityNumber" => $bvnResponse['data']['identityNumber'],
                         "type"           => $bvnResponse['data']['type'],
                         'otpId'          => trim($bvnResponse['data']['otpId']),
-                        "message"        => trim($bvnResponse['data']['message']),
+                        "message"        => trim($bvnResponse['message']),
 
                     ],
 

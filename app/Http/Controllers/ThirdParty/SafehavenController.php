@@ -318,7 +318,7 @@ class SafehavenController extends WebhookController
 
                     return [
                         'status'  => true,
-                        'message' => "BVN Verified Successfully",
+                        'message' => $response['message'],
                         'data'    => $response['data'],
                     ];
                 } else {

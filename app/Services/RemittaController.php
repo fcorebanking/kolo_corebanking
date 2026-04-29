@@ -109,7 +109,7 @@ class RemittaController
     {
         // $endpoint = "https://api-gateway.remita.net/services/connect-gateway/api/v1/vending/products?page=0&pageSize=20&countryCode=NGA&categoryCode=electricity";
 
-        $endpoint = "https://api-demo.systemspecsng.com/services/connect-gateway/api/v1/vending/products?page=0&pageSize=20&countryCode=NGA&categoryCode=electricity";
+        $endpoint = "https://api-gateway.remita.net/services/connect-gateway/api/v1/vending/products?page=0&pageSize=20&countryCode=NGA&categoryCode=electricity";
         logInfo($endpoint, "Remita Get rndpoint info");
 
         $result = $this->remitaGetRequest($endpoint);

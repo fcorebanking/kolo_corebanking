@@ -1,20 +1,20 @@
 <?php
 namespace App\Services;
 
-use App\Models\company_wallet;
-
 class SafeHavenService
 {
     public function initCredentials($company_id)
     {
+        $company_id = (int) $company_id;
+
         logInfo(json_encode($company_id), "SafeHavenService company_id");
 
         return match ($company_id) {
 
-            63 => roseBulgePayredentials(),      //7000299948
-            67 => $this->oneZoyaPayredentials(), //7000320798
-            92 => $this->jethoPayredentials(),   // 7000528130
-            97 => $this->dfsPayredentials(),     // 7000671610
+            63 => $this->roseBulgePayredentials(), //7000299948
+            67 => $this->oneZoyaPayredentials(),   //7000320798
+            92 => $this->jethoPayredentials(),     // 7000528130
+            97 => $this->dfsPayredentials(),       // 7000671610
             default
                => $this->finovaCredentials(), //
         };

@@ -147,7 +147,7 @@ class RemittaController
     {
         $header = [
             'Content-Type' => 'application/json',
-            'secretKey'    => 'sk_live_+/sHp4DCskZEfFkliedPOZL+uYsDkHh+C9OeV631lqX1bRrp+rt2MiWdxCDVuPht',
+            'secretKey'    => 'sHp4DCskZEfFkliedPOZL+uYsDkHh+C9OeV631lqX1bRrp+rt2MiWdxCDVuPht',
         ];
 
         return $header;

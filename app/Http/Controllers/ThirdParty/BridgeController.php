@@ -46,8 +46,20 @@ class BridgeController extends WebhookController
     {
         $customer       = auth('api')->user();
         $createCustomer = $this->createBridgeCustomer($request, $customer);
-        $customerID     = $createCustomer['id'];
-        $currency_id    = $customer->company->currency_id;
+        return [
+            'status'  => true,
+            'data'    => [
+                'account_reference' => $createCustomer['id'],
+            ],
+            'message' => "Account Pending: Your Account is under review",
+        ];
+
+    }
+
+    public function createVirtualAccount($customerBridgeID)
+    {
+        $customer    = User::where('remittar_customer_id', $customerBridgeID)->first();
+        $currency_id = $customer->company->currency_id;
         /* match ($currency_id) {
             4       => 'GBP',
             7       => 'EUR',
@@ -143,6 +155,36 @@ class BridgeController extends WebhookController
         $phone     = $request->phone ?? $customer->phone;
         $address   = $request->address ?? $customer->address;
 
+        $identifying_information_nino = [
+            "type"            => "nino",
+            "issuing_country" => "GBR",
+            "number"          => $request->nino,
+
+        ];
+
+        $identifying_information_tin = [
+            "type"            => "tin",
+            "issuing_country" => "NGA",
+            "number"          => $request->number,
+
+        ];
+
+        $body_identifying_information = [
+            "type"            => $request->type,
+            "issuing_country" => $request->issuing_country,
+            "number"          => $request->number,
+            "description"     => $request->description,
+            "expiration"      => $request->expiration,
+            "image_front"     => $request->image_front,
+            "image_back"      => $request->image_back,
+        ];
+
+        if ($request->issuing_country == "GBR") {
+            $identifying_information = [
+                $body_identifying_information, $identifying_information_nino,
+            ];
+        }
+
         $body = [
             "type"                    => "individual",
             "first_name"              => $firstName,
@@ -165,18 +207,7 @@ class BridgeController extends WebhookController
                 "base", "sepa",
             ],
 
-            "identifying_information" => [
-
-                [
-                    "type"            => $request->type,
-                    "issuing_country" => $request->issuing_country,
-                    "number"          => $request->number,
-                    "description"     => $request->description,
-                    "expiration"      => $request->expiration,
-                    "image_front"     => $request->image_front,
-                    "image_back"      => $request->image_back,
-                ],
-            ],
+            "identifying_information" => $identifying_information,
         ];
 
         logInfo($body, "Bridge Customer Register request body");

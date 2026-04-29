@@ -5977,10 +5977,6 @@ class TransactionController extends Controller
         $bridgeController = new BridgeController();
         // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
 
-        if (! $request['type'] != "transfer") {
-            response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
-        }
-
         $handleWebhook = $bridgeController->handleBridgeWebhook($request);
 
         $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;

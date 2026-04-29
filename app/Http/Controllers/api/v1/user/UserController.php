@@ -1753,7 +1753,7 @@ class UserController extends Controller
         }
     }
 
-    public function addAccount(Request $request)
+    /* public function addAccount(Request $request)
     {
         \logInfo(json_encode(auth('api')->user()->company_id), "api scompany idr");
 
@@ -1807,15 +1807,19 @@ class UserController extends Controller
                 $response = $createAccountService->createVirtualAccount($virtualAccount);
 
             } else {
-                $response = $this->addForeignAccount($request);
+                $response                   = $this->addForeignAccount($request, $user);
+                $user->remittar_customer_id = $response['data']['account_reference'];
+                $user->save();
+                return response()->json($response);
             }
 
             if (! $response['status']) {
                 $response['status'] = 0;
                 return response()->json($response);
             }
+
             logInfo($response, "Create Account service response");
-            $customer_reference      = $response['data']['account_reference'] ?? $customer_reference;
+            $customer_reference      = $response['data']['account_reference'];
             $virtual_acccount_number = $response['data']['virtual_account'] ?? $response['data']['account_number'];
             $currency_id             = $response['data']['currency_id'] ?? null;
 
@@ -1866,6 +1870,187 @@ class UserController extends Controller
             logInfo($e->getMessage(), "Laravel Kuda Error");
             return response()->json(['status' => 0, 'message' => "An error occured!"], 400);
         }
+    }*/
+
+    public function addAccount(Request $request)
+    {
+        try {
+            $authUser  = auth('api')->user();
+            $companyId = $authUser->company_id;
+
+            \logInfo($companyId, "api company id");
+
+            // ✅ Get user
+            $user = User::where([
+                'user_type_id' => 1,
+                'uuid'         => $request->uuid,
+                'company_id'   => $companyId,
+            ])->first();
+
+            if (! $user) {
+                return response()->json([
+                    'status'  => 0,
+                    'message' => 'User not found',
+                ], 404);
+            }
+
+            \logInfo($user, "api saving account user");
+
+            // ✅ Get saving product
+            $saving = savings_product::where([
+                'company_id' => $user->company_id,
+                'id'         => $request->savings_product_type,
+            ])->first();
+
+            if (! $saving) {
+                return response()->json([
+                    'status'  => 0,
+                    'message' => 'Invalid savings product',
+                ]);
+            }
+
+            $company = $authUser->company;
+            $bankId  = 126;
+
+            // ✅ Decide account type
+            if ($this->shouldCreateLocalAccount($request, $company)) {
+
+                $response = $this->createLocalAccount($request, $user, $company, $bankId);
+
+            } else {
+
+                $response = $this->addForeignAccount($request, $user);
+
+                $user->update([
+                    'remittar_customer_id' => $response['data']['account_reference'] ?? null,
+                ]);
+
+                return response()->json($response);
+            }
+
+            // ✅ Handle API failure
+            if (! ($response['status'] ?? false)) {
+                return response()->json([
+                    'status'  => 0,
+                    'message' => $response['message'] ?? 'Account creation failed',
+                ]);
+            }
+
+            \logInfo($response, "Create Account service response");
+
+            // ✅ Extract response
+            $accountReference = $response['data']['account_reference'];
+            $accountNumber    = $response['data']['virtual_account'] ?? $response['data']['account_number'];
+
+            $currencyId = $response['data']['currency_id'] ?? null;
+
+            // ✅ Update user
+            $user->update([
+                'virtual_account'   => $accountNumber,
+                'account_reference' => $accountReference,
+            ]);
+
+            // ✅ Handle wallet/account
+            return $this->handleWalletAccount(
+                $request,
+                $user,
+                $saving,
+                $accountNumber,
+                $accountReference,
+                $bankId,
+                $currencyId
+            );
+
+        } catch (\Exception $e) {
+            \logInfo($e->getMessage(), "Laravel Account Error");
+
+            return response()->json([
+                'status'  => 0,
+                'message' => 'An error occurred!',
+            ], 400);
+        }
+    }
+
+    private function shouldCreateLocalAccount($request, $company): bool
+    {
+        return $company->currency_id == 1 || $request->has('bvn');
+    }
+
+    private function createLocalAccount($request, $user, $company, $bankId)
+    {
+        $bank = banks::find($bankId);
+
+        // Save BVN if missing
+        if (! $user->bvn && $request->bvn) {
+            $user->update(['bvn' => $request->bvn]);
+        }
+
+        $virtualAccount = new VirtualAccountType();
+
+        $virtualAccount->bankCode                     = $bank->bank_code;
+        $virtualAccount->currencyCode                 = $company->currency->code;
+        $virtualAccount->firstName                    = $company->short_name . "/" . $user->first_name;
+        $virtualAccount->companyShortName             = $company->short_name;
+        $virtualAccount->lastName                     = $user->last_name;
+        $virtualAccount->email                        = $user->email;
+        $virtualAccount->accountType                  = 'personal';
+        $virtualAccount->phone                        = $user->phone;
+        $virtualAccount->dob                          = $user->dob;
+        $virtualAccount->gender                       = $user->gender;
+        $virtualAccount->bvn                          = $user->bvn;
+        $virtualAccount->address                      = $user->address;
+        $virtualAccount->country                      = $company->currency_id;
+        $virtualAccount->companyAccountCreationStatus = $company->setting->can_create_virtual_account;
+
+        return (new AccountCreationService())->createVirtualAccount($virtualAccount);
+    }
+
+    private function handleWalletAccount(
+        $request,
+        $user,
+        $saving,
+        $accountNumber,
+        $accountReference,
+        $bankId,
+        $currencyId
+    ) {
+        $existing = wb_account_details::where([
+            'account_product_id' => $saving->id,
+            'user_id'            => $user->id,
+        ])->first();
+
+        if ($request->replace_account == "yes") {
+
+            wb_account_details::where('user_id', $user->id)->update([
+                'virtual_accnum' => $accountNumber,
+                'acc_reference'  => $accountReference,
+                'bankid'         => $bankId,
+                'currency_id'    => $request->currency_id ?? $currencyId,
+            ]);
+
+        } else {
+
+            $account = wb_account_details::create([
+                'user_id'            => $user->id,
+                'account_product_id' => $saving->id,
+                'bankid'             => $bankId,
+                'virtual_accnum'     => $accountNumber,
+                'acc_reference'      => $accountReference,
+                'has_atm_card'       => 0,
+                'currency_id'        => $request->currency_id ?? $user->company->currency_id,
+            ]);
+
+            user_wallet::create([
+                'wb_account_detail_id' => $account->id,
+                'balance'              => 0,
+            ]);
+        }
+
+        return response()->json([
+            'status'         => 1,
+            'message'        => 'Account Added!',
+            'virtual_accnum' => $accountNumber,
+        ]);
     }
 
     public function addForeignAccount(Request $request)

@@ -1317,7 +1317,7 @@ class TransactionController extends Controller
 
                                     goldencreditSMSPost($phone, $transaction_type, $amount, $balance, $account_id);
                                 } else {
-                                    sendSMS($currentUser->id, "Debit Amt:$request->final_amount, Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . " Avail Bal:" . $debitCustomer['charge_balance_after'] . "Date:" . date('Y-m-d') . " Ref: " . $request->transaction_reference, true, true, 'Debit Transaction');
+                                    sendSMS($currentUser->id, "Debit Amt: | $request->final_amount, Desc: App/ {$request->description} " . "Acc: {$bankAccount['data']['account_name']} " . "Bal: N {$debitCustomer['charge_balance_after']} " . "Date: " . date('Y-m-d') . " Ref: " . $request->transaction_reference, true, true, 'Debit Transaction');
                                     // $transaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
                                 }
                             }

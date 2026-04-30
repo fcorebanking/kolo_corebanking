@@ -5604,7 +5604,7 @@ class TransactionController extends Controller
     {
 
         $validation = Validator::make($request->all(), [
-            "bvn" => 'required|numeric|gt:0',
+            "bvn" => 'sometime|numeric|gt:0',
             "dob" => 'sometimes',
             'nin' => 'sometimes',
         ]);

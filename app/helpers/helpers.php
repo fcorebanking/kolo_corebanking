@@ -4828,10 +4828,13 @@ function smsCustomer($phone, $msg, $company_short, $title, $company_id)
 {
     //  $apikey = env('SMS_API_KEY');
 
+    $company_id = (int) $company_id;
+
     $apikey = match ($company_id) {
         87      => env('SMS_API_KEY_GOVAULT'),
         88      => env('SMS_API_KEY_GOVAULT'),
         89      => env('SMS_API_KEY_GOVAULT'),
+        92      => env('SMS_API_KEY_JETHO'),
 
         default => env('SMS_API_KEY'),
     };

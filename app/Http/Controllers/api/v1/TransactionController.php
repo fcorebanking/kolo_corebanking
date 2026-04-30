@@ -3630,7 +3630,7 @@ class TransactionController extends Controller
             default => "NGN",
         };
     }
-    public function getTerminalBalance(Request $request)
+    /* public function getTerminalBalance(Request $request)
     {
 
         $currentRequest = $request->all();
@@ -3958,6 +3958,391 @@ class TransactionController extends Controller
             \logInfo($e->getMessage(), "Convertion error");
             return response()->json(["status" => false, 'message' => "Failed to Verify Account"], 400);
         }
+    }*/
+
+    public function getTerminalBalance(Request $request)
+    {
+        try {
+            $data = $request->all();
+
+            // Handle VACT transfer
+            if (data_get($data, 'data.transaction.type') === 'vact_transfer') {
+                return $this->amuchaWebhook($request);
+            }
+
+            // Action-based flow
+            if (isset($data['action_type'])) {
+                return $this->handleAction($data);
+            }
+
+            // Event-based flow
+            if (isset($data['event_type'])) {
+                return $this->handleEvent($data);
+            }
+
+            return response()->json(['status' => false, 'message' => 'Invalid request'], 400);
+
+        } catch (\Exception $e) {
+            logInfo($e->getMessage(), "Conversion error");
+            return response()->json(["status" => false, 'message' => "Failed"], 400);
+        }
+    }
+
+    private function handleAction(array $data)
+    {
+        $terminal = $this->getTerminal($data);
+
+        if (! $terminal) {
+            return $this->invalidTerminalResponse($data['action_type']);
+        }
+
+        $user = $terminal->agent;
+
+        if (! $this->isValidPin($user, $data)) {
+            return $this->invalidPinResponse($data['action_type']);
+        }
+
+        return match ($data['action_type']) {
+            'pre-balance-check-auth' => $this->handleBalanceCheck($terminal),
+            'pre-payout-auth'        => $this->handlePayout($terminal, $user, $data),
+            default                  => response()->json(['status' => false], 400),
+        };
+    }
+
+    private function getTerminal($data)
+    {
+        $serial = data_get($data, 'data.terminal.serialNo');
+
+        return AgentTerminal::where('terminal_code', $serial)->first();
+    }
+
+    private function invalidTerminalResponse($type)
+    {
+        return $type === "pre-payout-auth"
+            ? response()->json(['data' => ['transaction' => ['shouldActionProceed' => false, 'reasonCode' => '03']]])
+            : response()->json(["status" => false, 'message' => "Invalid POS terminal Code"]);
+    }
+
+    private function isValidPin($user, $data): bool
+    {
+        return $user->pin == data_get($data, 'data.terminal.pin');
+    }
+
+    private function handleBalanceCheck($terminal)
+    {
+        return response()->json([
+            "data" => [
+                "user" => [
+                    "balance"  => number_format($terminal->balance, 2, '.', ''),
+                    "currency" => "NGN",
+                ],
+            ],
+        ]);
+    }
+
+    private function invalidPinResponse(string $actionType)
+    {
+        return match ($actionType) {
+
+            'pre-balance-check-auth' => response()->json([
+                "status"  => "INVALID_PIN",
+                "message" => "Invalid authentication",
+            ]),
+
+            'pre-payout-auth'        => response()->json([
+                'data' => [
+                    'transaction' => [
+                        'shouldActionProceed' => false,
+                        'reasonCode'          => '05',
+                    ],
+                ],
+            ]),
+
+            default                  => response()->json([
+                "status"  => false,
+                "message" => "Invalid PIN",
+            ], 400),
+        };
+    }
+
+    private function handlePayout($terminal, $user, array $data)
+    {
+        // 1. Validate terminal status
+        if ($terminal->status == 0) {
+            return $this->payoutResponse(false, '02');
+        }
+
+        $companySettings = company_settings::where('company_id', $user->company_id)->first();
+
+        if ($companySettings->pos_setting == 2) {
+            return $this->payoutResponse(false, '02');
+        }
+
+        // 2. Prevent duplicate transaction
+        $rrn = data_get($data, 'data.transaction.rrn');
+
+        if (transactions::where('transaction_reference', $rrn)->exists()) {
+            return $this->payoutResponse(false, '01');
+        }
+
+        // 3. Extract transaction data safely
+        $amount = (float) data_get($data, 'data.transaction.amount');
+        $type   = data_get($data, 'data.transaction.type');
+
+        // 4. Calculate charges
+        [$charge, $customerCharge] = $this->calculateCharges($companySettings, $amount, $type);
+
+        // 5. Debit terminal (VERY IMPORTANT → wrap in DB transaction ideally)
+        $debit = debitPOSTerminalWithCharge(
+            $terminal->id,
+            $amount,
+            $customerCharge,
+            $charge,
+            $user
+        );
+
+        if (! $debit['status']) {
+            return $this->handleDebitFailure($debit);
+        }
+
+        // 6. Save transaction
+        $this->createTransaction($terminal, $user, $data, $debit);
+
+        // 7. Success
+        return $this->payoutResponse(true, '00');
+    }
+
+    private function payoutResponse(bool $status, string $code)
+    {
+        return response()->json([
+            'data' => [
+                'transaction' => [
+                    'shouldActionProceed' => $status,
+                    'reasonCode'          => $code,
+                ],
+            ],
+        ]);
+    }
+
+    private function calculateCharges($settings, $amount, $type): array
+    {
+        $charge         = 25;
+        $customerCharge = $settings->max_bank_transfer_charge;
+
+        if (in_array($type, ['topup', 'data'])) {
+            return [0, 0];
+        }
+
+        return [$charge, $customerCharge];
+    }
+
+    private function handleDebitFailure($debit)
+    {
+        return match ($debit['responseCode']) {
+            0       => $this->payoutResponse(false, '07'),
+            1       => $this->payoutResponse(false, '01'),
+            default => $this->payoutResponse(false, '99'),
+        };
+    }
+
+    private function createTransaction($terminal, $user, $data, $debit)
+    {
+        $account = $user->wb_account_details[0];
+
+        $description = $this->buildDescription($data);
+
+        transactions::create([
+            "balance_before"         => $debit['balance_before'],
+            "amount"                 => $debit['amount'],
+            "balance_after"          => $debit['balance_after'],
+            "account_id"             => $account->id,
+            "description"            => $description,
+            "branch_id"              => $user->branch_id,
+            "company_balance_before" => $debit['company_balance_before'],
+            "company_amount"         => $debit['company_amount'],
+            "company_balance_after"  => $debit['company_balance_after'],
+            "company_id"             => $user->company_id,
+            "transaction_reference"  => data_get($data, 'data.transaction.rrn'),
+            "transaction_remarks_id" => 2,
+            "transaction_type_id"    => 124,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => now()->toDateString(),
+            "created_by"             => $account->id,
+        ]);
+
+    }
+
+    private function buildDescription($data): string
+    {
+        return "WirelessPay miniPos - You carried out " .
+        data_get($data, 'data.transaction.type') . " " .
+        data_get($data, 'data.transaction.customerBillerId') . " " .
+        data_get($data, 'data.transaction.productId') . " " .
+        data_get($data, 'data.terminal.serialNo') . " " .
+        data_get($data, 'data.transaction.rrn') . " " .
+        data_get($data, 'data.transaction.billerAccountName');
+    }
+    private function handleEvent(array $data)
+    {
+        if ($data['event_type'] !== 'payment_success') {
+            return response()->json(['status' => '00']);
+        }
+
+        $type = data_get($data, 'data.transaction.type');
+
+        if (! in_array($type, ['withdrawal', 'purchase'])) {
+            return response()->json(['status' => '00']);
+        }
+
+        return $this->handlePaymentSuccess($data);
+    }
+
+    private function handlePaymentSuccess(array $data)
+    {
+        $terminal = $this->getTerminal($data);
+
+        if (! $terminal) {
+            return response()->json(['status' => '00', 'message' => 'Invalid POS Serial Number']);
+        }
+
+        // 2. Prevent duplicate
+        $rrn = data_get($data, 'data.transaction.rrn');
+
+        if (transactions::where('transaction_reference', $rrn)->exists()) {
+            return response()->json(['status' => '00', 'message' => 'Transaction already exists']);
+        }
+
+        $user     = $terminal->agent;
+        $settings = company_settings::where('company_id', $user->company_id)->first();
+
+        $amount = (float) data_get($data, 'data.transaction.transactionAmount');
+
+        // 3. Prepare shared data
+        $account   = $user->wb_account_details[0];
+        $branchId  = $user->branch->id;
+        $companyId = $user->company_id;
+
+        // 4. Calculate charges
+        [$customerCharge, $companyCharge] = $this->calculatePaymentCharges($settings, $amount);
+
+        // 5. Process credit (wrapped in DB transaction ⚠️)
+        return \DB::transaction(function () use (
+            $settings,
+            $terminal,
+            $user,
+            $account,
+            $amount,
+            $customerCharge,
+            $companyCharge,
+            $branchId,
+            $companyId,
+            $data,
+            $rrn
+        ) {
+
+            if ($settings->pos_setting == 2) {
+                $credit = $this->creditCustomerFlow($account, $amount, $customerCharge);
+
+                $this->storeCustomerTransaction($credit, $account, $branchId, $rrn, $data);
+
+            } else {
+                $credit = $this->creditTerminalFlow($terminal, $amount, $customerCharge, $companyCharge, $companyId);
+
+                $this->storeTerminalTransaction($credit, $terminal, $user, $branchId, $companyId, $rrn, $data);
+            }
+
+            return response()->json(['status' => '00', 'message' => 'Webhook handled successfully']);
+        });
+
+    }
+
+    private function calculatePaymentCharges($settings, $amount): array
+    {
+        $customerCharge = ($settings->additional_pos_charge_percent / 100) * $amount;
+
+        $customerCharge = min($customerCharge, $settings->pos_charge_capped_at);
+
+        $companyCharge = getWbaTransferCharges(39, $amount);
+
+        return [$customerCharge, $companyCharge];
+    }
+
+    private function creditCustomerFlow($account, $amount, $charge)
+    {
+        $credit = creditCustomerOnly($account->id, $amount, $charge);
+
+        if (! $credit['status']) {
+            throw new \Exception('Customer credit failed');
+        }
+
+        return $credit;
+    }
+
+    private function creditTerminalFlow($terminal, $amount, $charge, $companyCharge, $companyId)
+    {
+        $credit = creditPOSTerminal(
+            $terminal->terminal_code,
+            $amount,
+            $charge,
+            $companyCharge,
+            $companyId
+        );
+
+        if (! $credit['status']) {
+            throw new \Exception('Terminal credit failed');
+        }
+
+        return $credit;
+    }
+
+    private function storeCustomerTransaction($credit, $account, $branchId, $rrn, $data)
+    {
+        transactions::create([
+            "branch_id"             => $branchId,
+            "account_id"            => $account->id,
+            "description"           => "You Received funds via POS Terminal",
+            "balance_before"        => $credit['balance_before'],
+            "balance_after"         => $credit['pos_charge_balance_after'],
+            "amount"                => $credit['amount'],
+            "transaction_reference" => $rrn,
+            "transaction_type_id"   => 109,
+            "credit_debit_type_id"  => 1,
+            "created_date"          => now()->toDateString(),
+            "created_by"            => $account->id,
+        ]);
+    }
+
+    private function storeTerminalTransaction($credit, $terminal, $user, $branchId, $companyId, $rrn, $data)
+    {
+        $description = $this->buildWebhookDescription($data);
+
+        transactions::create([
+            "balance_before"         => $credit['pos_balance_before'],
+            "amount"                 => $credit['pos_amount'],
+            "balance_after"          => $credit['pos_charge_balance_after'],
+            "company_amount"         => $credit['company_amount'],
+            "company_balance_before" => $credit['company_balance_before'],
+            "company_balance_after"  => $credit['company_balance_after'],
+            "description"            => $description,
+            "branch_id"              => $branchId,
+            "company_id"             => $companyId,
+            "account_id"             => $user->wb_account_details[0]->id,
+            "transaction_reference"  => $rrn,
+            "transaction_type_id"    => 63,
+            "credit_debit_type_id"   => 1,
+            "created_date"           => now()->toDateString(),
+            "created_by"             => $user->id,
+        ]);
+    }
+
+    private function buildWebhookDescription($data): string
+    {
+        return "WirelessPay miniPos - " .
+        data_get($data, 'data.transaction.transactionId') . " " .
+        data_get($data, 'data.transaction.type') . " " .
+        data_get($data, 'data.transaction.transactionAmount') . " " .
+        data_get($data, 'data.transaction.terminalSerialNumber') . " " .
+        data_get($data, 'data.transaction.rrn');
     }
 
     public function processOrder(Request $request)

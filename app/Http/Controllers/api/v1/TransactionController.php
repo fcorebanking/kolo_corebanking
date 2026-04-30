@@ -4810,8 +4810,16 @@ class TransactionController extends Controller
 
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 11, "Buy Airtime Initialized");
 
-        //($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
-        $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015);
+        //($customerAccountId, $(int) $company_id;companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
+        // $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015);
+
+        $company_debit_bankcode = $this->getCompanyBankCode();
+        $debitCustomer          = match ($company_debit_bankcode) {
+
+            190 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015), //7000299948
+            default
+                => \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015),
+        };
 
         if (! $debitCustomer['status']) {
             return response()->json($debitCustomer, 400);
@@ -4915,6 +4923,14 @@ class TransactionController extends Controller
         } else {
             return response()->json(["status" => false, 'message' => "Failed to purchase airtime. Kindly contact admin for assistance if you have been debited", 'data' => $transactionId], 400);
         }
+    }
+
+    public function getCompanyBankCode()
+    {
+        $company_bank_id         = company_wallet::where('company_id', auth()->user()->company_id)->first()->bank_id;
+        $bank                    = banks::find($company_bank_id);
+        $company_debit_bank_code = (int) $bank->bank_code;
+        return $company_debit_bank_code;
     }
 
     public function buyDataBundle(Request $request)
@@ -5022,7 +5038,16 @@ class TransactionController extends Controller
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 12, $initialdescriptionCTUP);
 
         //($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
-        $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015);
+        // $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015);
+
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
+        $debitCustomer = match ($company_debit_bankcode) {
+
+            190 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015), //7000299948
+            default
+                => \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015),
+        };
 
         if (! $debitCustomer['status']) {
             return response()->json($debitCustomer, 400);
@@ -5339,8 +5364,16 @@ class TransactionController extends Controller
         if (! $buyElectricity['status']) {
             return response()->json($buyElectricity, 400);
         } else {
-            $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
+            //     $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
 
+            $company_debit_bankcode = $this->getCompanyBankCode();
+
+            $debitCustomer = match ($company_debit_bankcode) {
+
+                190 => \debitCustomerAndCompanyWithChargeServiceWallet($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge), //7000299948
+                default
+                    => \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge),
+            };
             /*   if (! $debitCustomer['status']) {
                 return \response()->json($debitCustomer, 400);
             }*/
@@ -5503,7 +5536,16 @@ class TransactionController extends Controller
 
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 13, "Subscribe TV Initialized");
 
-        $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
+        //  $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
+
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
+        $debitCustomer = match ($company_debit_bankcode) {
+
+            190 => \debitCustomerAndCompanyWithChargeServiceWallet($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge), //7000299948
+            default
+                => \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge),
+        };
 
         if (! $debitCustomer['status']) {
             return response()->json($debitCustomer, 400);

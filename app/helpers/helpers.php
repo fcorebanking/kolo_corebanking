@@ -2223,6 +2223,104 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
     return $response;
 }
 
+function debitCustomerAndCompanyWithChargeServiceWallet($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
+{
+    logInfo($customerAccountId, "customerAccountId");
+    logInfo($companyId, "companyId");
+
+    $response = [];
+
+    if (! Auth::check()) {
+        $currentUser = $user;
+    } else {
+        $currentUser = auth()->user();
+    }
+
+    if ($originalAmount > 0) {
+
+        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
+
+        if (! $userWallet) {
+            $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
+        }
+
+        logInfo(json_encode($userWallet), "User to be debitted");
+
+        $customerInitialBalance = $userWallet->balance;
+
+        logInfo($originalAmount, "Original Amount to be debitted");
+        logInfo($customerCharge, "Charge to be debitted");
+        if ($customerInitialBalance > ($originalAmount + $customerCharge)) {
+
+            $company = Company::find($companyId);
+
+           $companyWallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
+
+            logInfo(json_encode($companyWallet), "Company to be debitted");
+
+            $companyAfterBalance = $companyWallet->subscription_balance - ($originalAmount + $customerCharge); // this is to check
+
+            logInfo(json_encode($companyAfterBalance), "Company after balance");
+
+           
+            if ($companyWallet->subscription_balance > ($originalAmount + $customerCharge)) {
+
+                $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
+                $paymentcash           = ($originalAmount + $customerCharge);
+                $customerFinalBalance  = $userWallet->balance -= $paymentcash;
+
+                if ($userWallet->save()) {
+                    $BranchWallet           = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
+                    $BranchWallet->balance -= $paymentcash;
+                    $BranchWallet->save();
+                }
+                $companyInitialBalance = $companyWallet->subscription_balance;
+                $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
+
+                $companyFinalBalance  = $companyWallet->subscription_balance -= ($originalAmount + $companyCharge);
+                $companyWallet->save();
+
+                $currentUser->balance_fails = 0;
+                $currentUser->save();
+
+                $response = [
+                    "status"                        => true,
+                    'message'                       => "Amount is Valid",
+                    'account_id'                    => $customerAccountId,
+                    'balance_before'                => $customerInitialBalance,
+                    'balance_after'                 => $customerBalanceAfter,
+                    'charge_balance_before'         => $customerBalanceAfter,
+                    'charge_balance_after'          => $customerFinalBalance,
+                    'company_balance_before'        => $companyInitialBalance,
+                    'company_amount'                => $originalAmount,
+                    'company_balance_after'         => $companyBalanceAfter,
+                    'company_charge_balance_before' => $companyBalanceAfter,
+                    'company_charge_balance_after'  => $companyFinalBalance,
+                ];
+
+                logInfo(json_encode($response), "debitCustomerAndCompanyWithCharge");
+
+            } else {
+                $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
+            }
+        } else {
+            if ($currentUser->balance_fails < 4) {
+                $currentUser->balance_fails += 1;
+                $currentUser->save();
+                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds Customer Funds"];
+            } else {
+                // auth()->user()->status_id = 5;
+                restrictUserAccount(2, "Multiple Insuficient balance trials");
+
+                $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support"];
+            }
+        }
+    } else {
+        $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+    }
+    return $response;
+}
+
 function checkCustomerAndCompanyWithCharge($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
 {
     logInfo($customerAccountId, "customerAccountId");
@@ -2629,6 +2727,99 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
                 $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 
                 $companyFinalBalance  = $company->wallet->balance -= ($originalAmount - $companyCashbackAmount);
+                $company->wallet->save();
+
+                $currentUser->balance_fails = 0;
+                $currentUser->save();
+
+                $response = [
+                    "status"                          => true,
+                    'message'                         => "Amount is Valid",
+                    'account_id'                      => $customerAccountId,
+                    'balance_before'                  => $customerInitialBalance,
+                    'balance_after'                   => $customerBalanceAfter,
+                    'cashback_balance_before'         => $customerBalanceAfter,
+                    'cashback_balance_after'          => $customerFinalBalance,
+                    'company_balance_before'          => $companyInitialBalance,
+                    'company_amount'                  => $originalAmount,
+                    'customer_cashback'               => $customerCashbackAmount,
+                    'company_cashback'                => $companyCashbackAmount,
+                    'company_balance_after'           => $companyBalanceAfter,
+                    'company_cashback_balance_before' => $companyBalanceAfter,
+                    'company_cashback_balance_after'  => $companyFinalBalance,
+                ];
+            } else {
+                $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
+            }
+        } else {
+            if ($currentUser->balance_fails < 4) {
+                $currentUser->balance_fails += 1;
+                $currentUser->save();
+                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
+            } else {
+                // auth()->user()->status_id = 5;
+                restrictUserAccount(2, "Multiple Insuficient balance trials");
+
+                $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support"];
+            }
+        }
+    } else {
+        $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+    }
+    return $response;
+}
+
+function debitCustomerAndCompanyWithCompanyCashbackServiceWallet($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
+{
+
+    $response = [];
+
+    if (! Auth::check()) {
+        $currentUser = $user;
+    } else {
+        $currentUser = auth()->user();
+    }
+
+    if ($originalAmount > 0) {
+
+        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
+
+        if (! $userWallet) {
+            $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
+        }
+
+        $customerInitialBalance = $userWallet->balance;
+
+        $customerCashbackAmount = $customerCashback * $originalAmount;
+        $companyCashbackAmount  = $companyCashback * $originalAmount;
+
+        if ($customerInitialBalance > ($originalAmount - $customerCashbackAmount)) {
+
+            $company    = Company::find($companyId);
+           
+            $companyAfterBalance = $company->wallet->subscription_balance - $originalAmount;
+
+            logInfo($company->wallet->subscription_balance, "Company Service Wallet balance");
+            logInfo(json_encode($companyAfterBalance), "Company after  Service Wallet balance for cash back");
+            logInfo(json_encode($companyIDsStatus), "Company id status");
+
+           
+
+            if ($company->wallet->subscription_balance > ($originalAmount - $companyCashbackAmount)) {
+
+                $customerBalanceAfter = $customerInitialBalance - $originalAmount;
+
+                $customerFinalBalance  = $userWallet->balance -= ($originalAmount - $customerCashbackAmount);
+                $userWallet->save();
+                if (isset($userWallet->wb_account_details->user->branch_id)) {
+                    $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
+                    $BranchWallet->balance -= $originalAmount;
+                    $BranchWallet->save();
+                }
+                $companyInitialBalance = $company->wallet->subscription_balance;
+                $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
+
+                $companyFinalBalance  = $company->wallet->subscription_balance -= ($originalAmount - $companyCashbackAmount);
                 $company->wallet->save();
 
                 $currentUser->balance_fails = 0;

@@ -4821,7 +4821,7 @@ class TransactionController extends Controller
 
             90286 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015), //7000299948
             default
-                => \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015),
+                  => \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015),
         };
 
         if (! $debitCustomer['status']) {
@@ -4830,9 +4830,9 @@ class TransactionController extends Controller
 
         $buyAirtime = match ($company_debit_bankcode) {
 
-            90286 => $this->safeHavenControllerSercice('buyAirtime', $transactionId, $networkProvider, $request), //7000299948
+            90286 => $this->safeHavenControllerSercice('buyAirtime', $transactionId, $request), //7000299948
             default
-                => $this->vtPassControllerSercice('buyAirtime', $transactionId, $networkProvider, $request),
+                  => $this->vtPassControllerSercice('buyAirtime', $transactionId, $request),
         };
 
         if ($buyAirtime["status"] != false) {
@@ -5006,7 +5006,7 @@ class TransactionController extends Controller
 
             90286 => $this->vtPassControllerSercice('getDataBundlesList', $request), //7000299948
             default
-                => $this->vtPassControllerSercice('getDataBundlesList', $request),
+                  => $this->vtPassControllerSercice('getDataBundlesList', $request),
         };
 
         if (! $dataBundles['status']) {
@@ -5055,7 +5055,7 @@ class TransactionController extends Controller
 
             90286 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015), //7000299948
             default
-                => \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015),
+                  => \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015),
         };
 
         if (! $debitCustomer['status']) {
@@ -5066,7 +5066,7 @@ class TransactionController extends Controller
 
             90286 => $this->safeHavenControllerSercice('buyData', $transactionId, $request), //7000299948
             default
-                => $this->vtPassControllerSercice('buyData', $transactionId, $request, $selectedDataBundle['variation_amount']),
+                  => $this->vtPassControllerSercice('buyData', $transactionId, $request, $selectedDataBundle['variation_amount']),
         };
 
         if ($buyData["status"]) {
@@ -5365,7 +5365,7 @@ class TransactionController extends Controller
 
                 90286 => $this->safeHavenControllerSercice('buyElectricity', $request), //7000299948
                 default
-                    => $this->vtPassControllerSercice('buyElectricity', $request),
+                      => $this->vtPassControllerSercice('buyElectricity', $request),
             };
 
         }
@@ -5379,7 +5379,7 @@ class TransactionController extends Controller
 
                 90286 => \debitCustomerAndCompanyWithChargeServiceWallet($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge), //7000299948
                 default
-                    => \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge),
+                      => \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge),
             };
             /*   if (! $debitCustomer['status']) {
                 return \response()->json($debitCustomer, 400);
@@ -5549,9 +5549,9 @@ class TransactionController extends Controller
 
         $debitCustomer = match ($company_debit_bankcode) {
 
-           90286  => \debitCustomerAndCompanyWithChargeServiceWallet($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge), //7000299948
+            90286 => \debitCustomerAndCompanyWithChargeServiceWallet($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge), //7000299948
             default
-                => \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge),
+                  => \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge),
         };
 
         if (! $debitCustomer['status']) {
@@ -5562,7 +5562,7 @@ class TransactionController extends Controller
 
             90286 => $this->safeHavenControllerSercice('subscribeCableTV', $transactionId, $request), //7000299948
             default
-                => $this->vtPassControllerSercice('subscribeCableTV', $transactionId, $request),
+                  => $this->vtPassControllerSercice('subscribeCableTV', $transactionId, $request),
         };
 
         logInfo($subscribeCableTV, "VTPass Subscribe Cable TV Log");
@@ -5677,7 +5677,7 @@ class TransactionController extends Controller
 
             90286 => $this->verifyIdentityWithSafeHaven($request), //7000299948
             default
-                => $this->debitCompanyWithSubscriptionBVN($request, $companyId),
+                  => $this->debitCompanyWithSubscriptionBVN($request, $companyId),
         };
 
     }
@@ -5871,7 +5871,7 @@ class TransactionController extends Controller
 
             90286 => $this->safeHavenControllerSercice('verifyMeterNumber', $request), //7000299948
             default
-                => $this->vtPassControllerSercice('verifyMeterNumber', $request),
+                  => $this->vtPassControllerSercice('verifyMeterNumber', $request),
         };
 
         if (! $verifyMeterResult['status']) {
@@ -5899,7 +5899,7 @@ class TransactionController extends Controller
 
             90286 => $this->safeHavenControllerSercice('verifyCableTV', $request), //7000299948
             default
-                => $this->vtPassControllerSercice('verifyCableTV', $request),
+                  => $this->vtPassControllerSercice('verifyCableTV', $request),
         };
 
         if (! $verifyCableTV["status"]) {
@@ -6033,9 +6033,9 @@ class TransactionController extends Controller
 
         $dataBundles = match ($company_debit_bankcode) {
 
-            90286=> $this->vtPassControllerSercice('getDataBundles', $networkProvider), //7000299948
+            90286 => $this->vtPassControllerSercice('getDataBundles', $networkProvider), //7000299948
             default
-                => $this->vtPassControllerSercice('getDataBundles', $networkProvider),
+                  => $this->vtPassControllerSercice('getDataBundles', $networkProvider),
         };
 
         if ($dataBundles['status']) {
@@ -6053,7 +6053,7 @@ class TransactionController extends Controller
 
             90286 => $this->vtPassControllerSercice('getDataBundles', $networkProvider), //7000299948
             default
-                => $this->vtPassControllerSercice('getDataBundles', $networkProvider),
+                  => $this->vtPassControllerSercice('getDataBundles', $networkProvider),
         };
 
         if ($dataBundles['status']) {
@@ -6098,7 +6098,7 @@ class TransactionController extends Controller
 
             90286 => $this->safeHavenControllerSercice('getSubscriptions', $cableTV), //7000299948
             default
-                => $this->vtPassControllerSercice('getSubscriptions', $cableTV),
+                  => $this->vtPassControllerSercice('getSubscriptions', $cableTV),
         };
 
         if (! $dataBundles['status']) {

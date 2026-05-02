@@ -4825,11 +4825,12 @@ class TransactionController extends Controller
             return response()->json($debitCustomer, 400);
         }
 
-        $vtPassController = new VTPassController();
+        $buyAirtime = match ($company_debit_bankcode) {
 
-        $networkProvider = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
-
-        $buyAirtime = $vtPassController->buyAirtime($transactionId, $networkProvider, $request->final_amount, $request->phone_number);
+            190 => $this->safeHavenControllerSercice('buyAirtime', $transactionId, $networkProvider, $request), //7000299948
+            default
+                => $this->vtPassControllerSercice('buyAirtime', $transactionId, $networkProvider, $request),
+        };
 
         if ($buyAirtime["status"] != false) {
 
@@ -4996,7 +4997,14 @@ class TransactionController extends Controller
             return response()->json("Service is not available at the moment . Please try again later", 400);
         }
 
-        $dataBundles = $this->getDataBundlesList($request->network_provider);
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
+        $dataBundles = match ($company_debit_bankcode) {
+
+            190 => $this->vtPassControllerSercice('getDataBundlesList', $request), //7000299948
+            default
+                => $this->vtPassControllerSercice('getDataBundlesList', $request),
+        };
 
         if (! $dataBundles['status']) {
             return response()->json(["status" => false, 'message' => "Failed to get Data bundles"], 400);
@@ -5040,8 +5048,6 @@ class TransactionController extends Controller
         //($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
         // $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015);
 
-        $company_debit_bankcode = $this->getCompanyBankCode();
-
         $debitCustomer = match ($company_debit_bankcode) {
 
             190 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015), //7000299948
@@ -5053,11 +5059,14 @@ class TransactionController extends Controller
             return response()->json($debitCustomer, 400);
         }
 
-        $vtPassController = new VTPassController();
+        $buyData = match ($company_debit_bankcode) {
 
-        $buyAirtime = $vtPassController->buyData($transactionId, $request->network_provider, $request->data_plan, $selectedDataBundle['variation_amount'], $request->phone_number);
+            190 => $this->safeHavenControllerSercice('buyData', $transactionId, $request), //7000299948
+            default
+                => $this->vtPassControllerSercice('buyData', $transactionId, $request, $selectedDataBundle['variation_amount']),
+        };
 
-        if ($buyAirtime["status"]) {
+        if ($buyData["status"]) {
 
 /*
             $ledger_cr       = null;
@@ -5153,7 +5162,7 @@ class TransactionController extends Controller
             }
 
         } else {
-            return response()->json(["status" => false, 'message' => $buyAirtime['message']], 400);
+            return response()->json(["status" => false, 'message' => $buyData['message']], 400);
         }
     }
 
@@ -5331,6 +5340,8 @@ class TransactionController extends Controller
             "phone"          => $request->phone_number,
         ];
 
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
         if (\auth()->user()->company_id == 80) {
             $remitaController = new RemittaController();
 
@@ -5346,27 +5357,20 @@ class TransactionController extends Controller
             logInfo($buyElectricity, "Remita Electricity Response");
 
         } else {
-            $endpoint = "pay";
 
-            $vtPassController = new VTPassController();
+            $buyElectricity = match ($company_debit_bankcode) {
 
-            $buyElectricity = $vtPassController->buyElectricity(
-                $transactionId,
-                $request->electricity_disco,
-                $request->meter_type,
-                $request->meter_number,
-                $request->final_amount,
-                $request->phone_number
-            );
-            logInfo($buyElectricity, "VTPass Electricity Response");
+                190 => $this->safeHavenControllerSercice('buyElectricity', $request), //7000299948
+                default
+                    => $this->vtPassControllerSercice('buyElectricity', $request),
+            };
+
         }
 
         if (! $buyElectricity['status']) {
             return response()->json($buyElectricity, 400);
         } else {
             //     $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
-
-            $company_debit_bankcode = $this->getCompanyBankCode();
 
             $debitCustomer = match ($company_debit_bankcode) {
 
@@ -5551,9 +5555,12 @@ class TransactionController extends Controller
             return response()->json($debitCustomer, 400);
         }
 
-        $vtPassController = new VTPassController();
+        $subscribeCableTV = match ($company_debit_bankcode) {
 
-        $subscribeCableTV = $vtPassController->subscribeCableTV($transactionId, $request->cable_tv_type, $request->subscription_plan, $request->smart_card_number, $request->final_amount, $request->phone_number);
+            190 => $this->safeHavenControllerSercice('subscribeCableTV', $transactionId, $request), //7000299948
+            default
+                => $this->vtPassControllerSercice('subscribeCableTV', $transactionId, $request),
+        };
 
         logInfo($subscribeCableTV, "VTPass Subscribe Cable TV Log");
 
@@ -5661,12 +5668,14 @@ class TransactionController extends Controller
 
         $bankID = company_wallet::where('company_id', $companyId)->first()->bank_id;
 
-        if ($bankID == 190) {
-            return $this->verifyIdentityWithSafeHaven($request);
-        } else {
+        $company_bank_id = (int) $bankID;
 
-            return $this->debitCompanyWithSubscriptionBVN($request, $companyId);
-        }
+        return match ($company_bank_id) {
+
+            190 => $this->verifyIdentityWithSafeHaven($request), //7000299948
+            default
+                => $this->debitCompanyWithSubscriptionBVN($request, $companyId),
+        };
 
     }
 
@@ -5853,9 +5862,14 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
-        $vtPassController = new VTPassController();
+        $company_debit_bankcode = $this->getCompanyBankCode();
 
-        $verifyMeterResult = $vtPassController->verifyMeterNumber($request->meter_number, $request->electricity_disco, $request->type);
+        $verifyMeterResult = match ($company_debit_bankcode) {
+
+            190 => $this->safeHavenControllerSercice('verifyMeterNumber', $request), //7000299948
+            default
+                => $this->vtPassControllerSercice('verifyMeterNumber', $request),
+        };
 
         if (! $verifyMeterResult['status']) {
             return response()->json($verifyMeterResult, 400);
@@ -5876,9 +5890,14 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
-        $vtPassController = new VTPassController();
+        $company_debit_bankcode = $this->getCompanyBankCode();
 
-        $verifyCableTV = $vtPassController->verifyCableTV($request->smart_card_number, $request->cable_tv_type);
+        $verifyCableTV = match ($company_debit_bankcode) {
+
+            190 => $this->safeHavenControllerSercice('verifyCableTV', $request), //7000299948
+            default
+                => $this->vtPassControllerSercice('verifyCableTV', $request),
+        };
 
         if (! $verifyCableTV["status"]) {
             return response()->json($verifyCableTV, 400);
@@ -6007,8 +6026,14 @@ class TransactionController extends Controller
 
     public function getDataBundles($networkProvider)
     {
-        $vtPassController = new VTPassController();
-        $dataBundles      = $vtPassController->getDataBundles($networkProvider);
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
+        $dataBundles = match ($company_debit_bankcode) {
+
+            190 => $this->vtPassControllerSercice('getDataBundles', $networkProvider), //7000299948
+            default
+                => $this->vtPassControllerSercice('getDataBundles', $networkProvider),
+        };
 
         if ($dataBundles['status']) {
             return ['status' => true, 'message' => 'Data Bundles fetched successfully', 'data' => $dataBundles['data']];
@@ -6019,8 +6044,14 @@ class TransactionController extends Controller
 
     public function getDataBundlesList($networkProvider)
     {
-        $vtPassController = new VTPassController();
-        $dataBundles      = $vtPassController->getDataBundles($networkProvider);
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
+        $dataBundles = match ($company_debit_bankcode) {
+
+            190 => $this->vtPassControllerSercice('getDataBundles', $networkProvider), //7000299948
+            default
+                => $this->vtPassControllerSercice('getDataBundles', $networkProvider),
+        };
 
         if ($dataBundles['status']) {
             return ['status' => true, 'message' => 'Data Bundles fetched successfully', 'data' => $dataBundles['data']];
@@ -6058,8 +6089,14 @@ class TransactionController extends Controller
 
         $cableTV = $request['cableTvType'] ?? $request->query('cableTvType');
 
-        $vtPassController = new VTPassController();
-        $dataBundles      = $vtPassController->getSubscriptions($cableTV);
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
+        $dataBundles = match ($company_debit_bankcode) {
+
+            190 => $this->safeHavenControllerSercice('getSubscriptions', $cableTV), //7000299948
+            default
+                => $this->vtPassControllerSercice('getSubscriptions', $cableTV),
+        };
 
         if (! $dataBundles['status']) {
             return response()->json($dataBundles, 400);
@@ -6556,7 +6593,7 @@ class TransactionController extends Controller
             ];
         }
 
-        $companyIDs       = [1, 29, 36];
+        $companyIDs       = [1, 29, 36, 92];
         $companyIDsStatus = in_array($company->id, $companyIDs);
 
         $companyAfterBalance = $company->wallet->balance - $originalAmount;
@@ -7103,5 +7140,112 @@ class TransactionController extends Controller
         }
         return $response;
 
+    }
+
+    private function vtPassControllerSercice($action, $transactionId = null, $networkProvider = null, Request $request, $selectedDataBundle = null, $cableTV = null)
+    {
+
+        $vtPassController = new VTPassController();
+
+        if ($action == "buyAirTime") {
+            $networkProvider = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
+
+            $service = $vtPassController->buyAirtime($transactionId, $networkProvider, $request->final_amount, $request->phone_number);
+        }
+        if ($action == "buyData") {
+            $service = $vtPassController->buyData($transactionId, $request->network_provider, $request->data_plan, $selectedDataBundle['variation_amount'], $request->phone_number);
+        }
+        if ($action == "buyElectricity") {
+            $service = $vtPassController->buyElectricity(
+                $transactionId,
+                $request->electricity_disco,
+                $request->meter_type,
+                $request->meter_number,
+                $request->final_amount,
+                $request->phone_number
+            );
+            logInfo($service, "VTPass Electricity Response");
+        }
+        if ($action == "subscribeCableTV") {
+            $subscribeCableTV = $vtPassController->subscribeCableTV($transactionId, $request->cable_tv_type, $request->subscription_plan, $request->smart_card_number, $request->final_amount, $request->phone_number);
+        }
+        if ($action == "verifyMeterNumber") {
+            $service = $vtPassController->verifyMeterNumber($request->meter_number, $request->electricity_disco, $request->type);
+        }
+        if ($action == "verifyCableTV") {
+            $service = $vtPassController->verifyCableTV($request->smart_card_number, $request->cable_tv_type);
+        }
+        if ($action == "getDataBundles") {
+
+            $service = $vtPassController->getDataBundles($networkProvider);
+        }
+
+        if ($action == "getSubscriptions") {
+
+            $service = $vtPassController->getSubscriptions($cableTV);
+        }
+
+        return $service;
+    }
+    private function safeHavenControllerSercice($action, $transactionId = null, Request $request, $selectedDataBundle = null, $cableTV = null)
+    {
+
+        $safeHavenController = new SafehavenController();
+        $company_bank_id     = company_wallet::where('company_id', auth()->user()->company_id)->first()->bank_id;
+        $company_bank_id     = (int) $company_bank_id;
+
+        $getService = $safeHavenController->getService($action, $company_bank_id);
+
+            if ($request->network_provider != null) {
+                $networkProvider    = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
+                $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_bank_id, $networkProvider);
+            } else {
+                $getServiceCategory = $safeHavenController->getServiceCategory($getService['data'], $company_bank_id);
+            }
+
+            $getServiceCategoryID = $getServiceCategory['data']['_id'];
+
+        if ($action == "buyAirTime") {
+
+            $service = $safeHavenController->buyAirtime($transactionId,  $getServiceCategoryID, $request->final_amount, $request->phone_number, $company_bank_id  );
+        }
+        if ($action == "buyData") {
+           
+            $service    = $safeHavenController->buyData($transactionId, $getServiceCategoryID, $getServiceCategory['data']['service'], $request->final_amount, $request->phone_number, $company_bank_id  );
+        }
+
+        if ($action == "buyElectricity") {
+            
+            $service    = $safeHavenController->buyElectricity(
+                $transactionId,
+                $request->electricity_disco,
+                $request->meter_type,
+                $request->meter_number,
+                $request->final_amount,
+                $request->phone_number,
+                $company_bank_id  
+            );
+            logInfo($service, "VTPass Electricity Response");
+        }
+
+        if ($action == "subscribeCableTV") {
+            
+            $service    = $safeHavenController->subscribeCableTV($transactionId, $getServiceCategoryID, $request->subscription_plan, $request->smart_card_number, $request->final_amount, $request->phone_number);
+        }
+
+        if ($action == "verifyMeterNumber") {
+            $service = $safeHavenController->verifyMeterNumber($request->meter_number, $getServiceCategoryID, $company_bank_id);
+        }
+
+        if ($action == "verifyCableTV") {
+            $service = $safeHavenController->verifyCableTV($request->smart_card_number, $getServiceCategoryID, $company_bank_id);
+        }
+
+        if ($action == "getDataBundles") {
+
+            $service = $safeHavenController->getDataBundles($networkProvider);
+        }
+
+        return $service;
     }
 }

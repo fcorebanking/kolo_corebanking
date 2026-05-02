@@ -291,6 +291,404 @@ class SafehavenController extends WebhookController
         }
     }
 
+    public function getServices($companyID)
+    {
+        try {
+
+            $loginSafehaven = $this->getToken($companyID);
+
+            if (! $loginSafehaven['status']) {
+                $loginSafehaven['status'] = "01";
+                return $loginSafehaven;
+            }
+
+            $result = $this->safehavenGetRequest("vas/services");
+
+            logInfo($result, "Safehaven Get Services Response");
+
+            if (isset($result["statusCode"])) {
+                if ($result["statusCode"] == 200) {
+                    return ['status' => true, 'message' => 'Get Services successfully', 'data' => $result['data']];
+                } else {
+                    return ['status' => false, 'message' => 'Failed to Verify Transaction'];
+                }
+            } else {
+                return ['status' => "03", 'message' => 'Failed to Verify Transaction'];
+            }
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), "Safehaven Login serror log");
+            return ['status' => "05", 'message' => 'Server Error...'];
+        }
+    }
+
+    public function getService(string $action, $companyID)
+    {
+
+        $results = $this->getServices($companyID);
+        if ($results['status']) {
+            $map = [
+                'buyAirTime'       => [
+                    'name'       => 'Mobile Recharge',
+                    'identifier' => 'AIRTIME',
+                    'log'        => 'Safehaven Get Airtime Service Response',
+                ],
+                'buyData'          => [
+                    'name'       => 'DATA PURCHASE',
+                    'identifier' => 'DATA',
+                    'log'        => 'Safehaven Get Data Service Response',
+                ],
+                'buyElectricity'   => [
+                    'name'       => 'UTILITY BILLS',
+                    'identifier' => 'UTILITY',
+                    'log'        => 'Safehaven Get UTILITY Service Response',
+                ],
+                'subscribeCableTV' => [
+                    'name'       => 'CABLE TV',
+                    'identifier' => 'CABLETV',
+                    'log'        => 'Safehaven Get CABLE TV Service Response',
+                ],
+                'verifyMeterNumber'   => [
+                    'name'       => 'UTILITY BILLS',
+                    'identifier' => 'UTILITY',
+                    'log'        => 'Safehaven Get UTILITY Service Response',
+                ],
+                'verifyCableTV' => [
+                    'name'       => 'CABLE TV',
+                    'identifier' => 'CABLETV',
+                    'log'        => 'Safehaven Get CABLE TV Service Response',
+                ],
+                // future actions can go here
+            ];
+
+            if (! isset($map[$action])) {
+                return null;
+            }
+
+            foreach ($results as $result) {
+                if (
+                    ($result['name'] ?? null) == $map[$action]['name'] &&
+                    ($result['identifier'] ?? null) == $map[$action]['identifier']
+                ) {
+                    logInfo($result['name'], $map[$action]['log']);
+                    return $result;
+                }
+            }
+
+            return null;
+        }
+
+    }
+
+    public function getServiceCategory($result, $companyID, $provider)
+    {
+
+        try {
+
+            $loginSafehaven = $this->getToken($companyID);
+
+            if (! $loginSafehaven['status']) {
+                $loginSafehaven['status'] = "01";
+                return $loginSafehaven;
+            }
+
+            $result = $this->safehavenGetRequest("vas/service/{$result[_id]}");
+
+            logInfo($result, "Safehaven Get Services Category Response");
+
+            if (isset($result["statusCode"])) {
+                if ($result["statusCode"] == 200) {
+                    foreach ($results as $result) {
+                        if (
+                            ($result['name']) == $provider ||
+                            ($result['identifier']) == $provider
+                        ) {
+                            logInfo($result['name'], "Reslt Provider response");
+                            return ['status' => true, 'message' => 'Get Services successfully', 'data' => $result];
+                        }
+                    }
+
+                } else {
+                    return ['status' => false, 'message' => 'Failed to  Get Services Category'];
+                }
+            } else {
+                return ['status' => "03", 'message' => 'Failed to  Get Services Category'];
+            }
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), "Safehaven Login serror log");
+            return ['status' => "05", 'message' => 'Server Error...'];
+        }
+    }
+
+    public function buyAirtime($transactionId, $network, $amount, $phoneNumber, $companyID)
+    {
+
+        try {
+            $loginResult = $this->getToken($companyID);
+
+            if (! $loginResult['status']) {
+                return ['status' => false, 'message' => 'Safe Haven Access buyAirtime Response'];
+            }
+
+            $body = [
+                "externalReference"  => $transactionId,
+                "serviceCategoryId"  => $network,
+                "amount"             => $amount,
+                "phoneNumber"        => $phoneNumber,
+                "channel"            => "WEB",
+                "debitAccountNumber" => this->debitAccount,
+
+            ];
+
+            logInfo($body, "Safe Haven Airtime request");
+
+            $buyAirtime = $this->safehavenPostRequest("vas/pay/airtime", $body);
+
+            logInfo($buyAirtime, "SafeHaven Airtime Response log");
+
+            if ($buyAirtime["statusCode"] == 200) {
+                return ["status" => true, 'message' => "Airtime Purhcase Successful"];
+            } else {
+                return ["status" => false, 'message' => 'Failed to purchase airtime, Please contact support'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "SafeHaven log error");
+            return ["status" => false, 'message' => 'Failed to purchase airtime, Please contact support'];
+        }
+    }
+
+    public function buyData($transactionId, $network, $dataPlain, $amount, $phoneNumber, $companyID)
+    {
+        try {
+            $loginResult = $this->getToken($companyID);
+
+            if (! $loginResult['status']) {
+                return ['status' => false, 'message' => 'Safe Haven Access buyData Response'];
+            }
+
+            $body = [
+                "serviceCategoryId"  => $network,
+                "bundleCode"         => $dataPlain,
+                "amount"             => $amount,
+                "phone"              => $phoneNumber,
+                "externalReference"  => $transactionId,
+                "channel"            => "WEB",
+                "debitAccountNumber" => this->debitAccount,
+            ];
+
+            logInfo($body, "Safe Haven Data request");
+
+            $buyDataResponse = $this->safehavenPostRequest("vas/pay/data", $body);
+
+            logInfo($buyDataResponse, "Safe Haven Data Response Log");
+
+            if ($buyDataResponse["statusCode"] == 200) {
+                return ["status" => true, 'message' => "Data Purchcase Successful"];
+            } else {
+                return ["status" => false, 'message' => 'Failed to purchase data, Please contact support'];
+            }
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), "SafeHaven Data Error");
+            return ["status" => false, 'message' => 'Failed to purchase data, Please contact support'];
+        }
+    }
+
+    public function verifyMeterNumber($meterNumber, $electrictyDisco, $companyID)
+    {
+        $loginResult = $this->getToken($companyID);
+
+        if (! $loginResult['status']) {
+            return ['status' => false, 'message' => 'Safe Haven Access buyData Response'];
+        }
+
+        $body = [
+            "serviceCategoryId" => $meterNumber,
+            "entityNumber"      => $electrictyDisco,
+
+        ];
+
+        logInfo($body, "Safe Haven verify meter request");
+
+        $verifyMeterResult = $this->safehavenPostRequest("vas/verify", $body);
+
+        logInfo($verifyMeterResult, "Safe Haven Verify Meter Number Response Log");
+
+        if (isset($verifyMeterResult["statusCode"])) {
+            if ($verifyMeterResult["statusCode"] == 200) {
+
+                return [
+                    'status'  => true,
+                    'message' => "Meter Verified Successfully",
+                    'data'    => [
+                        'meter_name'   => trim($verifyMeterResult['data']['name']),
+                        'address'      => trim($verifyMeterResult['data']['address']),
+                        'meter_type'   => trim($verifyMeterResult['data']['vendType']),
+                        //    'meter_number' => $electrictyDisco == "abuja-electric" ? trim($verifyMeterResult['content']['Meter_Number']) : (trim($verifyMeterResult['content']['Meter_Number']) ?? trim($verifyMeterResult['content']['MeterNumber'])),
+
+                        'meter_number' => trim($verifyMeterResult['data']['meterNo']
+                        ),
+                    ],
+                ];
+            } else {
+
+                return [
+                    'status'  => false,
+                    'message' => "Failed to verify meter number",
+                ];
+            }
+        } else {
+
+            return [
+                'status'  => false,
+                'message' => "Failed to verify meter number. Please contact support",
+            ];
+        }
+    }
+
+    public function buyElectricity($transactionId, $electrictyDisco, $meterType, $meterNumber, $amount, $phoneNumber, $companyID)
+    {
+
+        $loginResult = $this->getToken($companyID);
+
+        if (! $loginResult['status']) {
+            return ['status' => false, 'message' => 'Safe Haven Access buyElectricity Response'];
+        }
+
+        $body = [
+            "externalReference"  => $transactionId,
+            "serviceCategoryId"  => $electrictyDisco,
+            "vendType"           => $meterType,
+            "meterNumber"        => $meterNumber,
+            "amount"             => $amount,
+            "channel"            => "WEB",
+            "debitAccountNumber" => this->debitAccount,
+        ];
+
+        $buyElectricity = $this->safehavenPostRequest("vas/pay/utility", $body);
+
+        logInfo($buyElectricity, "Safe Haven Buy Electricity Response Log");
+
+        try {
+
+            if (isset($buyElectricity)) {
+                if ($buyElectricity["statusCode"] == 200) {
+
+                    $electricityToken = isset($buyElectricity['data']['utilityToken']);
+
+                    $returnTypeResponse = [
+                        'balance'         => "0.0",
+                        'token'           => $electricityToken,
+                        'purchased_units' => null,
+                    ];
+
+                    return [
+                        "status"  => true,
+                        'message' => "Electricity Unit Purchase Successful",
+                        'data'    => $returnTypeResponse,
+                    ];
+                } else {
+                    return ["status" => false, 'message' => $buyElectricity['response_description']];
+                }
+            } else {
+                return ["status" => false, 'message' => "Failed to Purchase Electricity"];
+            }
+        } catch (Exception $e) {
+            \logInfo(json_encode($e->getMessage()), "Safe Haven Buy Electricity Error Response Log");
+            return ["status" => false, 'message' => "Sorry, Unable to get token. Kindly contact support"];
+        }
+    }
+
+    public function verifyCableTV($smart_card_number, $cable_tv_type, $companyID)
+    {
+        $loginResult = $this->getToken($companyID);
+
+        if (! $loginResult['status']) {
+            return ['status' => false, 'message' => 'Safe Haven Access buyData Response'];
+        }
+
+        try {
+
+            $body = [
+                "serviceCategoryId" => $cable_tv_type,
+                "entityNumber"      => $smart_card_number,
+
+            ];
+
+            $verifyCableResponse = $this->safehavenPostRequest("vas/verify", $body);
+
+            logInfo($verifyCableResponse, "Safe Haven Verify Cable Response Log");
+
+            if (isset($verifyCableResponse["statusCode"])) {
+                if ($verifyCableResponse["statusCode"] == 200) {
+
+                    return [
+                        'status'  => true,
+                        'message' => "Cable TV Verified Successfully",
+                        'data'    => [
+                            'customer_name'   => trim($verifyCableResponse['data']['name']),
+                            'cable_tv'        =>  "",
+                            'current_bouquet' => "",
+                            //   'current_bouquet_code' => trim($verifyCableResponse['content']['Current_Bouquet_Code']) ?? "",
+                            'renewal_amount'  =>  "",
+                        ],
+                    ];
+                } else {
+
+                    return [
+                        'status'  => false,
+                        'message' => "Failed to verify meter number",
+                    ];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Failed to verify smart card. Please contact support'];
+            }
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), "VTPASS Data Error");
+            return ["status" => false, 'message' => 'Failed to purchase data, Please contact support'];
+        }
+    }
+
+    public function subscribeCableTV($transactionId, $cableTVType, $subscriptionPlan, $smartCardNumber, $amount, $phone, $companyID)
+    {
+        try {
+
+            $body = [
+                "request_id"        => $transactionId,
+                "serviceID"         => $cableTVType,
+                "variation_code"    => $subscriptionPlan,
+                "billersCode"       => $smartCardNumber,
+                "subscription_type" => "renew",
+                "amount"            => $amount,
+                "phone"             => $phone,
+            ];
+
+            logInfo(json_encode($body), "VTPass Subscribe CableTV Request");
+
+            $endpoint = "pay";
+
+            $meterResponse = $this->vtpassPostRequest($endpoint, $body);
+
+            logInfo($meterResponse, "VTPass Subscribe CableTV Response Log");
+
+            if (isset($meterResponse["code"])) {
+                if ($meterResponse["code"] == "000") {
+
+                    return
+                        [
+                        "status"  => true,
+                        'message' => "Cable TV Purchase Successful",
+                    ];
+                } else {
+                    return ["status" => false, 'message' => $meterResponse['response_description']];
+                }
+            } else {
+                return ["status" => false, 'message' => "Failed to subscribe cable TV"];
+            }
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), "VTPASS Data Error");
+            return ["status" => false, 'message' => 'Failed to purchase data, Please contact support'];
+        }
+    }
+
     public function verifyBVN($bvn, $company_id = null)
     {
 

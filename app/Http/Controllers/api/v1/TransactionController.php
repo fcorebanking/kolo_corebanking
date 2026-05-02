@@ -6593,7 +6593,7 @@ class TransactionController extends Controller
             ];
         }
 
-        $companyIDs       = [1, 29, 36, 92];
+        $companyIDs       = [1, 29, 36, 92, 97];
         $companyIDsStatus = in_array($company->id, $companyIDs);
 
         $companyAfterBalance = $company->wallet->balance - $originalAmount;
@@ -7196,41 +7196,41 @@ class TransactionController extends Controller
 
         $getService = $safeHavenController->getService($action, $company_bank_id);
 
-            if ($request->network_provider != null) {
-                $networkProvider    = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
-                $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_bank_id, $networkProvider);
-            } else {
-                $getServiceCategory = $safeHavenController->getServiceCategory($getService['data'], $company_bank_id);
-            }
+        if ($request->network_provider != null) {
+            $networkProvider    = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
+            $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_bank_id, $networkProvider);
+        } else {
+            $getServiceCategory = $safeHavenController->getServiceCategory($getService['data'], $company_bank_id);
+        }
 
-            $getServiceCategoryID = $getServiceCategory['data']['_id'];
+        $getServiceCategoryID = $getServiceCategory['data']['_id'];
 
         if ($action == "buyAirTime") {
 
-            $service = $safeHavenController->buyAirtime($transactionId,  $getServiceCategoryID, $request->final_amount, $request->phone_number, $company_bank_id  );
+            $service = $safeHavenController->buyAirtime($transactionId, $getServiceCategoryID, $request->final_amount, $request->phone_number, $company_bank_id);
         }
         if ($action == "buyData") {
-           
-            $service    = $safeHavenController->buyData($transactionId, $getServiceCategoryID, $getServiceCategory['data']['service'], $request->final_amount, $request->phone_number, $company_bank_id  );
+
+            $service = $safeHavenController->buyData($transactionId, $getServiceCategoryID, $getServiceCategory['data']['service'], $request->final_amount, $request->phone_number, $company_bank_id);
         }
 
         if ($action == "buyElectricity") {
-            
-            $service    = $safeHavenController->buyElectricity(
+
+            $service = $safeHavenController->buyElectricity(
                 $transactionId,
                 $request->electricity_disco,
                 $request->meter_type,
                 $request->meter_number,
                 $request->final_amount,
                 $request->phone_number,
-                $company_bank_id  
+                $company_bank_id
             );
             logInfo($service, "VTPass Electricity Response");
         }
 
         if ($action == "subscribeCableTV") {
-            
-            $service    = $safeHavenController->subscribeCableTV($transactionId, $getServiceCategoryID, $request->subscription_plan, $request->smart_card_number, $request->final_amount, $request->phone_number);
+
+            $service = $safeHavenController->subscribeCableTV($transactionId, $getServiceCategoryID, $request->subscription_plan, $request->smart_card_number, $request->final_amount, $request->phone_number);
         }
 
         if ($action == "verifyMeterNumber") {

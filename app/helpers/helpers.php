@@ -2801,7 +2801,7 @@ function debitCustomerAndCompanyWithCompanyCashbackServiceWallet($customerAccoun
 
             logInfo($company->wallet->subscription_balance, "Company Service Wallet balance");
             logInfo(json_encode($companyAfterBalance), "Company after  Service Wallet balance for cash back");
-            logInfo(json_encode($companyIDsStatus), "Company id status");
+          
 
            
 

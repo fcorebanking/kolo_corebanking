@@ -4814,6 +4814,9 @@ class TransactionController extends Controller
         // $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015);
 
         $company_debit_bankcode = $this->getCompanyBankCode();
+
+logInfo($company_debit_bankcode, "company_debit_bankcode");
+
         $debitCustomer          = match ($company_debit_bankcode) {
 
             190 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015), //7000299948

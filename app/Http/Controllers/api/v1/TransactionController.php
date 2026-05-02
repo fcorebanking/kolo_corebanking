@@ -4815,11 +4815,11 @@ class TransactionController extends Controller
 
         $company_debit_bankcode = $this->getCompanyBankCode();
 
-logInfo($company_debit_bankcode, "company_debit_bankcode");
+        logInfo($company_debit_bankcode, "company_debit_bankcode");
 
-        $debitCustomer          = match ($company_debit_bankcode) {
+        $debitCustomer = match ($company_debit_bankcode) {
 
-            190 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015), //7000299948
+            90286 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015), //7000299948
             default
                 => \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015),
         };
@@ -4830,7 +4830,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         $buyAirtime = match ($company_debit_bankcode) {
 
-            190 => $this->safeHavenControllerSercice('buyAirtime', $transactionId, $networkProvider, $request), //7000299948
+            90286 => $this->safeHavenControllerSercice('buyAirtime', $transactionId, $networkProvider, $request), //7000299948
             default
                 => $this->vtPassControllerSercice('buyAirtime', $transactionId, $networkProvider, $request),
         };
@@ -5004,7 +5004,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         $dataBundles = match ($company_debit_bankcode) {
 
-            190 => $this->vtPassControllerSercice('getDataBundlesList', $request), //7000299948
+            90286 => $this->vtPassControllerSercice('getDataBundlesList', $request), //7000299948
             default
                 => $this->vtPassControllerSercice('getDataBundlesList', $request),
         };
@@ -5053,7 +5053,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         $debitCustomer = match ($company_debit_bankcode) {
 
-            190 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015), //7000299948
+            90286 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015), //7000299948
             default
                 => \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $selectedDataBundle['variation_amount'], 0.05, 0.015),
         };
@@ -5064,7 +5064,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         $buyData = match ($company_debit_bankcode) {
 
-            190 => $this->safeHavenControllerSercice('buyData', $transactionId, $request), //7000299948
+            90286 => $this->safeHavenControllerSercice('buyData', $transactionId, $request), //7000299948
             default
                 => $this->vtPassControllerSercice('buyData', $transactionId, $request, $selectedDataBundle['variation_amount']),
         };
@@ -5363,7 +5363,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
             $buyElectricity = match ($company_debit_bankcode) {
 
-                190 => $this->safeHavenControllerSercice('buyElectricity', $request), //7000299948
+                90286 => $this->safeHavenControllerSercice('buyElectricity', $request), //7000299948
                 default
                     => $this->vtPassControllerSercice('buyElectricity', $request),
             };
@@ -5377,7 +5377,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
             $debitCustomer = match ($company_debit_bankcode) {
 
-                190 => \debitCustomerAndCompanyWithChargeServiceWallet($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge), //7000299948
+                90286 => \debitCustomerAndCompanyWithChargeServiceWallet($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge), //7000299948
                 default
                     => \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge),
             };
@@ -5549,7 +5549,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         $debitCustomer = match ($company_debit_bankcode) {
 
-            190 => \debitCustomerAndCompanyWithChargeServiceWallet($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge), //7000299948
+           90286  => \debitCustomerAndCompanyWithChargeServiceWallet($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge), //7000299948
             default
                 => \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge),
         };
@@ -5560,7 +5560,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         $subscribeCableTV = match ($company_debit_bankcode) {
 
-            190 => $this->safeHavenControllerSercice('subscribeCableTV', $transactionId, $request), //7000299948
+            90286 => $this->safeHavenControllerSercice('subscribeCableTV', $transactionId, $request), //7000299948
             default
                 => $this->vtPassControllerSercice('subscribeCableTV', $transactionId, $request),
         };
@@ -5675,7 +5675,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         return match ($company_bank_id) {
 
-            190 => $this->verifyIdentityWithSafeHaven($request), //7000299948
+            90286 => $this->verifyIdentityWithSafeHaven($request), //7000299948
             default
                 => $this->debitCompanyWithSubscriptionBVN($request, $companyId),
         };
@@ -5869,7 +5869,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         $verifyMeterResult = match ($company_debit_bankcode) {
 
-            190 => $this->safeHavenControllerSercice('verifyMeterNumber', $request), //7000299948
+            90286 => $this->safeHavenControllerSercice('verifyMeterNumber', $request), //7000299948
             default
                 => $this->vtPassControllerSercice('verifyMeterNumber', $request),
         };
@@ -5897,7 +5897,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         $verifyCableTV = match ($company_debit_bankcode) {
 
-            190 => $this->safeHavenControllerSercice('verifyCableTV', $request), //7000299948
+            90286 => $this->safeHavenControllerSercice('verifyCableTV', $request), //7000299948
             default
                 => $this->vtPassControllerSercice('verifyCableTV', $request),
         };
@@ -6033,7 +6033,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         $dataBundles = match ($company_debit_bankcode) {
 
-            190 => $this->vtPassControllerSercice('getDataBundles', $networkProvider), //7000299948
+            90286=> $this->vtPassControllerSercice('getDataBundles', $networkProvider), //7000299948
             default
                 => $this->vtPassControllerSercice('getDataBundles', $networkProvider),
         };
@@ -6051,7 +6051,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         $dataBundles = match ($company_debit_bankcode) {
 
-            190 => $this->vtPassControllerSercice('getDataBundles', $networkProvider), //7000299948
+            90286 => $this->vtPassControllerSercice('getDataBundles', $networkProvider), //7000299948
             default
                 => $this->vtPassControllerSercice('getDataBundles', $networkProvider),
         };
@@ -6096,7 +6096,7 @@ logInfo($company_debit_bankcode, "company_debit_bankcode");
 
         $dataBundles = match ($company_debit_bankcode) {
 
-            190 => $this->safeHavenControllerSercice('getSubscriptions', $cableTV), //7000299948
+            90286 => $this->safeHavenControllerSercice('getSubscriptions', $cableTV), //7000299948
             default
                 => $this->vtPassControllerSercice('getSubscriptions', $cableTV),
         };

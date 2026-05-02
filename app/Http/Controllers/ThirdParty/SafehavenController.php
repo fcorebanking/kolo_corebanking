@@ -326,6 +326,8 @@ class SafehavenController extends WebhookController
 
         $results = $this->getServices($companyID);
 
+        logInfo($results, "Safehaven Get Services results Response");
+
         logInfo($action, "Safehaven Get Services map action Response");
 
         if ($results['status']) {

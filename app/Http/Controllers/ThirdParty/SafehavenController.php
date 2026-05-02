@@ -327,32 +327,32 @@ class SafehavenController extends WebhookController
         $results = $this->getServices($companyID);
         if ($results['status']) {
             $map = [
-                'buyAirTime'       => [
+                'buyAirTime'        => [
                     'name'       => 'Mobile Recharge',
                     'identifier' => 'AIRTIME',
                     'log'        => 'Safehaven Get Airtime Service Response',
                 ],
-                'buyData'          => [
+                'buyData'           => [
                     'name'       => 'DATA PURCHASE',
                     'identifier' => 'DATA',
                     'log'        => 'Safehaven Get Data Service Response',
                 ],
-                'buyElectricity'   => [
+                'buyElectricity'    => [
                     'name'       => 'UTILITY BILLS',
                     'identifier' => 'UTILITY',
                     'log'        => 'Safehaven Get UTILITY Service Response',
                 ],
-                'subscribeCableTV' => [
+                'subscribeCableTV'  => [
                     'name'       => 'CABLE TV',
                     'identifier' => 'CABLETV',
                     'log'        => 'Safehaven Get CABLE TV Service Response',
                 ],
-                'verifyMeterNumber'   => [
+                'verifyMeterNumber' => [
                     'name'       => 'UTILITY BILLS',
                     'identifier' => 'UTILITY',
                     'log'        => 'Safehaven Get UTILITY Service Response',
                 ],
-                'verifyCableTV' => [
+                'verifyCableTV'     => [
                     'name'       => 'CABLE TV',
                     'identifier' => 'CABLETV',
                     'log'        => 'Safehaven Get CABLE TV Service Response',
@@ -625,10 +625,10 @@ class SafehavenController extends WebhookController
                         'message' => "Cable TV Verified Successfully",
                         'data'    => [
                             'customer_name'   => trim($verifyCableResponse['data']['name']),
-                            'cable_tv'        =>  "",
+                            'cable_tv'        => "",
                             'current_bouquet' => "",
                             //   'current_bouquet_code' => trim($verifyCableResponse['content']['Current_Bouquet_Code']) ?? "",
-                            'renewal_amount'  =>  "",
+                            'renewal_amount'  => "",
                         ],
                     ];
                 } else {
@@ -1028,7 +1028,11 @@ class SafehavenController extends WebhookController
 
     public function safehavenGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->safehavenHeader())->get("{$this->baseUrl}{$endpoint}");
+        $response = Http::withHeaders($this->safehavenHeader())
+            ->withOptions([
+                'force_ip_resolve' => 'v4',
+            ])
+            ->get("{$this->baseUrl}{$endpoint}");
         return $response->json();
     }
 

@@ -7201,7 +7201,7 @@ class TransactionController extends Controller
 
         if ($request->network_provider != null) {
             $networkProvider    = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
-            $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_bank_id, $networkProvider);
+            $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_id, $networkProvider);
         } else {
             $getServiceCategory = $safeHavenController->getServiceCategory($getService['data'], $company_id);
         }

@@ -25,7 +25,7 @@ class EbankingCompanyService
 
     public function transferToBankAccount(BankTransferType $bankTransferType)
     {
-        $bankAccount = $this->verifyAccountNumberFull($bankTransferType->bankCode, $bankTransferType->accountNumber);
+        $bankAccount = $this->verifyAccountNumberFull($bankTransferType->bankCode, $bankTransferType->accountNumber, $bankTransferType->companyID);
         if (! $bankAccount['status']) {
             $bankAccount['status']  = "01";
             $bankAccount['message'] = "Failed to Complete Bank transfer. If you have been debited kindly contact support for reversal";
@@ -95,7 +95,7 @@ class EbankingCompanyService
         return $bankTransfer;
     }
 
-    public function verifyAccountNumberFull($bankCode, $accountNumber)
+    public function verifyAccountNumberFull($bankCode, $accountNumber, $companyID)
     {
         $bankAccount = [
             'status'  => false,
@@ -116,7 +116,7 @@ class EbankingCompanyService
             $bankAccount       = $monnifyController->verifyBankAccountNumberGuzzle($bankCode, $accountNumber);
         } else if ($this->accountVerificationPartner == 13) {
             $safeHavenController = new SafehavenController();
-            $bankAccount         = $safeHavenController->verifyAccount($bankCode, $accountNumber);
+            $bankAccount         = $safeHavenController->verifyAccount($bankCode, $accountNumber, $companyID);
         } else if ($this->accountVerificationPartner == 19) {
 
             $ninePSBController = new NinePSBController();

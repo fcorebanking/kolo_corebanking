@@ -876,7 +876,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function verifyAccount($bankCode, $accountNumber)
+    public function verifyAccount($bankCode, $accountNumber, $company_id = null)
     {
         $body = [
             "bankCode"      => $bankCode,
@@ -885,7 +885,7 @@ class SafehavenController extends WebhookController
 
         $url = "transfers/name-enquiry";
 
-        $loginResult = $this->getToken();
+        $loginResult = $this->getToken($company_id);
 
         if (! $loginResult['status']) {
             return ['status' => false, 'message' => 'Failed to complete transfer'];

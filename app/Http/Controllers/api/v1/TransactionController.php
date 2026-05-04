@@ -1203,13 +1203,12 @@ class TransactionController extends Controller
                                 $preferredEbankingPartner = PreferredEbankingPartner::all();
                                 $ebankingService          = new EbankingService($preferredEbankingPartner);
                                 $bankAccount              = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
-                                  if (! $bankAccount['status']) {
-                                $bankAccount['status'] = false;
-                                return response()->json($bankAccount);
-                            }
+                                if (! $bankAccount['status']) {
+                                    $bankAccount['status'] = false;
+                                    return response()->json($bankAccount);
+                                }
                             }
 
-                          
                             $bank               = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
                             $gatewayDescription = $currentUser->first_name . " " . $currentUser->last_name . " / " . $currentUser->company->company_name;
 

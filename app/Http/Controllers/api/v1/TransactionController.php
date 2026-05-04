@@ -1235,15 +1235,14 @@ class TransactionController extends Controller
                             //     "ledger_dr" => $ledger_dr
                             // ]);
 
-
-                           $checkDebitCustomer  = match ($company_debit_bankcode) {
+                            $checkDebitCustomer = match ($company_debit_bankcode) {
 
                                 90286 => checkCustomerAndCompanyWithChargeSafeHaven($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge), //7000299948
                                 default
                                       => checkCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge),
                             };
 
-                           // $checkDebitCustomer = checkCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
+                            // $checkDebitCustomer = checkCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
                             logInfo(json_encode($checkDebitCustomer), "checkDebitCustomer");
                             if (! $checkDebitCustomer['status']) {
 
@@ -5695,6 +5694,8 @@ class TransactionController extends Controller
         logInfo($companyId, "verifyBVN company id");
 
         $bankID = company_wallet::where('company_id', $companyId)->first()->bank_id;
+
+        logInfo($bankID, "verifyBVN bank id");
 
         $company_bank_id = (int) $bankID;
 

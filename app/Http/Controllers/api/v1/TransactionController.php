@@ -1197,15 +1197,13 @@ class TransactionController extends Controller
 
                                 logInfo(json_encode($preferredEbankingPartner), "PreferredEbankingPartnerCompany");
                                 $ebankingService = new EbankingCompanyService($preferredEbankingPartner);
-                                 $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
+                              //  $bankAccount     = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
 
                             } else {
                                 $preferredEbankingPartner = PreferredEbankingPartner::all();
                                 $ebankingService          = new EbankingService($preferredEbankingPartner);
-                                 $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
+                                $bankAccount              = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
                             }
-
-                           
 
                             if (! $bankAccount['status']) {
                                 $bankAccount['status'] = false;
@@ -1264,7 +1262,7 @@ class TransactionController extends Controller
                             $bankTransferType->amount               = $request->final_amount;
                             $bankTransferType->transactionReference = $transaction->transaction_reference;
                             $bankTransferType->sessionId            = $currentUser->virtual_account;
-                            $bankTransferType->companyID = $currentUser->company->id ?? "";
+                            $bankTransferType->companyID            = $currentUser->company->id ?? "";
 
                             $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
 
@@ -6080,7 +6078,7 @@ class TransactionController extends Controller
     {
         $company_debit_bankcode = $this->getCompanyBankCode();
 
-        $request=new Request();
+        $request = new Request();
 
         $dataBundles = match ($company_debit_bankcode) {
 

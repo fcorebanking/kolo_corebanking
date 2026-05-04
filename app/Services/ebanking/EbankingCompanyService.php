@@ -33,8 +33,6 @@ class EbankingCompanyService
             return $bankAccount;
         }
 
-        
-
         if ($this->bankTransferPartner == 1 || $this->bankTransferPartner == 15) {
 
             $kudaController = new KudaController();
@@ -67,7 +65,7 @@ class EbankingCompanyService
 
             $safeHavenController = new SafehavenController();
 
-            $bankTransfer = $safeHavenController->bankTransfer($bankTransferType->amount, $bankTransferType->transactionReference, $bankTransferType->description, $bankTransferType->bankCode, $bankTransferType->accountNumber, $bankAccount['data']['sessionId'], $bankTransferType->companyID);
+            $bankTransfer = $safeHavenController->bankTransfer($bankTransferType->amount, $bankTransferType->transactionReference, $bankTransferType->description, $bankTransferType->bankCode, $bankTransferType->accountNumber, $bankAccount['data']['session_id'], $bankTransferType->companyID);
         } else if ($this->bankTransferPartner == 14) {
 
             $accountName = $bankAccount["data"]["account_name"];

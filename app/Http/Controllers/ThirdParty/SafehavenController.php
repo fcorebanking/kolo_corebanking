@@ -30,6 +30,7 @@ class SafehavenController extends WebhookController
     private $baseSudoUrl;
     private $baseSudoKey;
     private $fundingSourceId;
+    private $owner;
 
     public function __construct()
     {
@@ -60,6 +61,7 @@ class SafehavenController extends WebhookController
         $this->clientAssertion     = $credentials['client_assertion_live'];
         $this->baseUrl             = $credentials['base_url_live'];
         $this->debitAccount        = $credentials['debitAccount'];
+        $this->owner               = $credentials['owner'];
 
         $body = [
             'grant_type'            => $this->grantType,
@@ -196,7 +198,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function bankTransfer($amount, $transactionReference, $description, $bankCode, $accountNumber, $sessionId, $companyID)
+    public function bankTransfer($amount, $transactionReference, $description, $bankCode, $accountNumber, $sessionId, $companyID, $senderAccountNumber)
     {
 
         try {
@@ -206,7 +208,7 @@ class SafehavenController extends WebhookController
             $body = [
                 "amount"                   => floatval($amount),
                 "nameEnquiryReference"     => $sessionId,
-                "debitAccountNumber"       => $this->sendingAccount,
+                "debitAccountNumber"       => $this->owner != "finova" ? $senderAccountNumber : $this->sendingAccount,
                 "narration"                => $description,
                 "beneficiaryBankCode"      => $bankCode,
                 "beneficiaryAccountNumber" => $accountNumber,

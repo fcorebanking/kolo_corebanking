@@ -12,4 +12,5 @@ class BankTransferType
     public $amount; // personal or coperate
     public $transactionReference;
     public $companyID;
+    public $senderAccountNumber;
 }

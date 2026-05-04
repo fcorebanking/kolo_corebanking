@@ -1263,6 +1263,7 @@ class TransactionController extends Controller
                             $bankTransferType->transactionReference = $transaction->transaction_reference;
                             $bankTransferType->sessionId            = $currentUser->virtual_account;
                             $bankTransferType->companyID            = $currentUser->company->id ?? "";
+                             $bankTransferType->senderAccountNumber          = $currentUser->accounts->first()->virtual_accnum ?? "";
 
                             $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
 

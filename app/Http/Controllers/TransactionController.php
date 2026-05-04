@@ -2848,6 +2848,8 @@ class TransactionController extends Controller
                         }
                     }
 
+                      $company_debit_bankcode = $this->getCompanyBankCode();
+
                     $checkCompanyBalance = $this->checkCompanyBalance($request->transactionId, $request->amount);
                     if (! $checkCompanyBalance['status']) {
                         return \response()->json($checkCompanyBalance, 400);
@@ -2900,7 +2902,14 @@ class TransactionController extends Controller
                         }
                     }
 
-                    $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->amount);
+                  $checkCompanyBalance = match ($company_debit_bankcode) {
+
+                                90286 => ['status' => true], //7000299948
+                                default
+                                      => $this->checkCompanyBalanceThresholdTransaction($request->amount),
+                            };
+
+             //       $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->amount);
 
                     if (! $checkCompanyBalance['status']) {
                         return response()->json($checkCompanyBalance, 400);
@@ -2940,14 +2949,15 @@ class TransactionController extends Controller
                     } else {
                         $preferredEbankingPartner = PreferredEbankingPartner::all();
                         $ebankingService          = new EbankingService($preferredEbankingPartner);
-                    }
-
-                    $bankAccount = $ebankingService->verifyAccountNumberFull($request->bankCode, $request->destinationAccount);
+                        $bankAccount = $ebankingService->verifyAccountNumberFull($request->bankCode, $request->destinationAccount);
 
                     if (! $bankAccount['status']) {
                         $bankAccount['status'] = 0;
                         return response()->json($bankAccount);
                     }
+                    }
+
+                    
 
                     $gatewayDescription = auth()->user()->first_name . " " . auth()->user()->last_name . " / " . auth()->user()->company->company_name;
                     $myDescription      = "You transferred funds to " . $bankAccount['data']['account_name'] . "/" . $request->destinationAccount . " / " . $bank->bank_name . " / " . auth()->user()->company->company_name;

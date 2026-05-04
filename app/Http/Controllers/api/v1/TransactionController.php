@@ -1197,14 +1197,16 @@ class TransactionController extends Controller
 
                                 logInfo(json_encode($preferredEbankingPartner), "PreferredEbankingPartnerCompany");
                                 $ebankingService = new EbankingCompanyService($preferredEbankingPartner);
-                                $bankAccount     = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
+                               
 
                             } else {
                                 $preferredEbankingPartner = PreferredEbankingPartner::all();
                                 $ebankingService          = new EbankingService($preferredEbankingPartner);
-                                $bankAccount              = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
+                           
                                 
                             }
+
+                             $bankAccount     = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account, $currentUser->company->id);
 
                             if (! $bankAccount['status']) {
                                     $bankAccount['status'] = false;

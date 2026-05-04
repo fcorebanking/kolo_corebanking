@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Services\ebanking;
 
 class BankTransferType
@@ -12,4 +11,5 @@ class BankTransferType
     public $description;
     public $amount; // personal or coperate
     public $transactionReference;
+    public $companyID;
 }

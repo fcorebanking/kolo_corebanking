@@ -1166,7 +1166,16 @@ class TransactionController extends Controller
                                 return response()->json($customerBalance, 400);
                             }
 
-                            $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->final_amount);
+                            $company_debit_bankcode = $this->getCompanyBankCode();
+
+                            $checkCompanyBalance = match ($company_debit_bankcode) {
+
+                                90286 => ['status' => true], //7000299948
+                                default
+                                      => $this->checkCompanyBalanceThresholdTransaction($request->final_amount),
+                            };
+
+                         //   $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->final_amount);
 
                             if (! $checkCompanyBalance['status']) {
                                 return response()->json($checkCompanyBalance, 400);
@@ -1267,7 +1276,15 @@ class TransactionController extends Controller
 
                                 return $bankTransfer;
                             } else {
-                                $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
+                                // debitCustomerAndCompanyWithChargeServiceWallet
+
+                                $debitCustomer = match ($company_debit_bankcode) {
+
+                                    90286 => \debitCustomerAndCompanyWithChargeServiceWallet($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge), //7000299948
+                                    default
+                                          => \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge),
+                                };
+                                //       $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
 
                                 $accountId                   = $debitCustomer['account_id'];
                                 $customerBalanceBefore       = $debitCustomer['balance_before'];

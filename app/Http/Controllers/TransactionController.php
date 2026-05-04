@@ -2952,7 +2952,7 @@ class TransactionController extends Controller
 
                     }
 
-                    $bankAccount = $ebankingService->verifyAccountNumberFull($request->bankCode, $request->destinationAccount);
+                    $bankAccount = $ebankingService->verifyAccountNumberFull($request->bankCode, $request->destinationAccount, auth()->user()->company->id);
 
                     if (! $bankAccount['status']) {
                         $bankAccount['status'] = 0;

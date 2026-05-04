@@ -2273,9 +2273,7 @@ function debitCustomerAndCompanyWithChargeServiceWallet($customerAccountId, $com
                     $BranchWallet->balance -= $paymentcash;
                     $BranchWallet->save();
                 }
-                $originalAmount = 0; // To not deduct from safehaven users
-                $companyCharge  = 0; // To not deduct from safehaven users
-
+              
                 $companyInitialBalance = $companyWallet->balance;
                 $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 

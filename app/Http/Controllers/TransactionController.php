@@ -2848,9 +2848,9 @@ class TransactionController extends Controller
                         }
                     }
 
-                      $company_debit_bankcode = $this->getCompanyBankCode();
+                    $company_debit_bankcode = $this->getCompanyBankCode();
 
-                    $checkCompanyBalance = $this->checkCompanyBalance($request->transactionId, $request->amount);
+                    $checkCompanyBalance  = $this->checkCompanyBalance($request->transactionId, $request->amount);
                     if (! $checkCompanyBalance['status']) {
                         return \response()->json($checkCompanyBalance, 400);
                     }
@@ -2902,14 +2902,14 @@ class TransactionController extends Controller
                         }
                     }
 
-                  $checkCompanyBalance = match ($company_debit_bankcode) {
+                    $checkCompanyBalance = match ($company_debit_bankcode) {
 
-                                90286 => ['status' => true], //7000299948
-                                default
-                                      => $this->checkCompanyBalanceThresholdTransaction($request->amount),
-                            };
+                        90286 => ['status' => true], //7000299948
+                        default
+                              => $this->checkCompanyBalanceThresholdTransaction($request->amount),
+                    };
 
-             //       $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->amount);
+                    //       $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->amount);
 
                     if (! $checkCompanyBalance['status']) {
                         return response()->json($checkCompanyBalance, 400);
@@ -2949,15 +2949,13 @@ class TransactionController extends Controller
                     } else {
                         $preferredEbankingPartner = PreferredEbankingPartner::all();
                         $ebankingService          = new EbankingService($preferredEbankingPartner);
-                        $bankAccount = $ebankingService->verifyAccountNumberFull($request->bankCode, $request->destinationAccount);
+                        $bankAccount              = $ebankingService->verifyAccountNumberFull($request->bankCode, $request->destinationAccount);
 
-                    if (! $bankAccount['status']) {
-                        $bankAccount['status'] = 0;
-                        return response()->json($bankAccount);
+                        if (! $bankAccount['status']) {
+                            $bankAccount['status'] = 0;
+                            return response()->json($bankAccount);
+                        }
                     }
-                    }
-
-                    
 
                     $gatewayDescription = auth()->user()->first_name . " " . auth()->user()->last_name . " / " . auth()->user()->company->company_name;
                     $myDescription      = "You transferred funds to " . $bankAccount['data']['account_name'] . "/" . $request->destinationAccount . " / " . $bank->bank_name . " / " . auth()->user()->company->company_name;
@@ -2969,6 +2967,7 @@ class TransactionController extends Controller
                     $bankTransferType->description          = $gatewayDescription;
                     $bankTransferType->amount               = $request->amount;
                     $bankTransferType->transactionReference = $transaction->transaction_reference;
+                    $bankTransferType->senderAccountNumber  = auth()->user()->accounts->first()->virtual_accnum ?? "";
 
                     $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
 
@@ -3001,7 +3000,15 @@ class TransactionController extends Controller
                                     $customerCharge = $request->chargeAmount;
                                 }
 
-                                $debitCustomerAndCompany = debitCustomerAndCompanyWithCharge($transaction->TXNBankDetails->account_id, auth()->user()->company_id, $request->amount, $customerCharge, $companyCharge);
+                                //  $debitCustomerAndCompany = debitCustomerAndCompanyWithCharge($transaction->TXNBankDetails->account_id, auth()->user()->company_id, $request->amount, $customerCharge, $companyCharge);
+
+                                $debitCustomerAndCompany = match ($company_debit_bankcode) {
+
+                                    90286 => \debitCustomerAndCompanyWithChargeServiceWallet($transaction->TXNBankDetails->account_id, auth()->user()->company_id, $request->amount, $customerCharge, $companyCharge), //7000299948
+                                    default
+                                          => \debitCustomerAndCompanyWithCharge($transaction->TXNBankDetails->account_id, auth()->user()->company_id, $request->amount, $customerCharge, $companyCharge),
+                                };
+
                                 logInfo(json_encode($debitCustomerAndCompany), "debitCustomerAndCompany Entity");
                                 if (! $debitCustomerAndCompany['status']) {
                                     $debitCustomerAndCompany['status'] = 0;
@@ -3035,7 +3042,14 @@ class TransactionController extends Controller
 
                             $chargeAmount = $request->amount > 1000000 ? 100 : $chargeAmount;
 
-                            $debitCompanyWithCharge = \debitCompanyWithCharge(\auth()->user()->company_id, $request->amount, $chargeAmount);
+                            //    $debitCompanyWithCharge = \debitCompanyWithCharge(\auth()->user()->company_id, $request->amount, $chargeAmount);
+
+                            $debitCompanyWithCharge = match ($company_debit_bankcode) {
+
+                                90286 => ['status' => true], //7000299948
+                                default
+                                      => \debitCompanyWithCharge(\auth()->user()->company_id, $request->amount, $chargeAmount),
+                            };
 
                             logInfo(json_encode($debitCompanyWithCharge), "debitCompanyWithCharg Entity");
                             if (! $debitCompanyWithCharge['status']) {

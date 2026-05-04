@@ -5703,7 +5703,7 @@ class TransactionController extends Controller
 
             190 => $this->verifyIdentityWithSafeHaven($request), //7000299948
             default
-                  => $this->debitCompanyWithSubscriptionBVN($request, $companyId),
+                => $this->debitCompanyWithSubscriptionBVN($request, $companyId),
         };
 
     }
@@ -6122,7 +6122,7 @@ class TransactionController extends Controller
 
         $dataBundles = match ($company_debit_bankcode) {
 
-            90286 => $this->safeHavenControllerSercice('getSubscriptions', $cableTV), //7000299948
+            90286 => $this->vtPassControllerSercice('getSubscriptions', $cableTV), //7000299948
             default
                   => $this->vtPassControllerSercice('getSubscriptions', $cableTV),
         };

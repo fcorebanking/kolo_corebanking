@@ -208,7 +208,7 @@ class SafehavenController extends WebhookController
             $body = [
                 "amount"                   => floatval($amount),
                 "nameEnquiryReference"     => $sessionId,
-                "debitAccountNumber"       => $this->owner != "finova" ? $senderAccountNumber : $this->sendingAccount,
+                "debitAccountNumber"       => $this->sendingAccount,
                 "narration"                => $description,
                 "beneficiaryBankCode"      => $bankCode,
                 "beneficiaryAccountNumber" => $accountNumber,

@@ -5701,7 +5701,7 @@ class TransactionController extends Controller
 
         return match ($company_bank_id) {
 
-            90286 => $this->verifyIdentityWithSafeHaven($request), //7000299948
+            190 => $this->verifyIdentityWithSafeHaven($request), //7000299948
             default
                   => $this->debitCompanyWithSubscriptionBVN($request, $companyId),
         };

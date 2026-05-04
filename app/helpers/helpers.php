@@ -2254,7 +2254,7 @@ function debitCustomerAndCompanyWithChargeServiceWallet($customerAccountId, $com
 
             $company = Company::find($companyId);
 
-           $companyWallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
+            $companyWallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
 
             logInfo(json_encode($companyWallet), "Company to be debitted");
 
@@ -2262,7 +2262,6 @@ function debitCustomerAndCompanyWithChargeServiceWallet($customerAccountId, $com
 
             logInfo(json_encode($companyAfterBalance), "Company after balance");
 
-           
             if ($companyWallet->subscription_balance > ($originalAmount + $customerCharge)) {
 
                 $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
@@ -2274,6 +2273,9 @@ function debitCustomerAndCompanyWithChargeServiceWallet($customerAccountId, $com
                     $BranchWallet->balance -= $paymentcash;
                     $BranchWallet->save();
                 }
+                $originalAmount = 0; // To not deduct from safehaven users
+                $companyCharge  = 0; // To not deduct from safehaven users
+
                 $companyInitialBalance = $companyWallet->subscription_balance;
                 $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 
@@ -2795,15 +2797,12 @@ function debitCustomerAndCompanyWithCompanyCashbackServiceWallet($customerAccoun
 
         if ($customerInitialBalance > ($originalAmount - $customerCashbackAmount)) {
 
-            $company    = Company::find($companyId);
-           
+            $company = Company::find($companyId);
+
             $companyAfterBalance = $company->wallet->subscription_balance - $originalAmount;
 
             logInfo($company->wallet->subscription_balance, "Company Service Wallet balance");
             logInfo(json_encode($companyAfterBalance), "Company after  Service Wallet balance for cash back");
-          
-
-           
 
             if ($company->wallet->subscription_balance > ($originalAmount - $companyCashbackAmount)) {
 

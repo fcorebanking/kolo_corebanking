@@ -1175,7 +1175,7 @@ class TransactionController extends Controller
                                       => $this->checkCompanyBalanceThresholdTransaction($request->final_amount),
                             };
 
-                         //   $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->final_amount);
+                            //   $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->final_amount);
 
                             if (! $checkCompanyBalance['status']) {
                                 return response()->json($checkCompanyBalance, 400);

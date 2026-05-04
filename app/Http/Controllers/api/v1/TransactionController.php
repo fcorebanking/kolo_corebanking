@@ -6058,13 +6058,15 @@ class TransactionController extends Controller
 
     public function getDataBundles($networkProvider)
     {
+        $request = new Request();
+
         $company_debit_bankcode = $this->getCompanyBankCode();
 
         $dataBundles = match ($company_debit_bankcode) {
 
-            90286 => $this->vtPassControllerSercice('getDataBundles', $networkProvider), //7000299948
+            90286 => $this->vtPassControllerSercice('getDataBundles', $networkProvider, $request), //7000299948
             default
-                  => $this->vtPassControllerSercice('getDataBundles', $networkProvider),
+                  => $this->vtPassControllerSercice('getDataBundles', $networkProvider, $request),
         };
 
         if ($dataBundles['status']) {
@@ -6078,11 +6080,13 @@ class TransactionController extends Controller
     {
         $company_debit_bankcode = $this->getCompanyBankCode();
 
+        $request=new Request();
+
         $dataBundles = match ($company_debit_bankcode) {
 
-            90286 => $this->vtPassControllerSercice('getDataBundles', $networkProvider), //7000299948
+            90286 => $this->vtPassControllerSercice('getDataBundles', $networkProvider, $request), //7000299948
             default
-                  => $this->vtPassControllerSercice('getDataBundles', $networkProvider),
+                  => $this->vtPassControllerSercice('getDataBundles', $networkProvider, $request),
         };
 
         if ($dataBundles['status']) {

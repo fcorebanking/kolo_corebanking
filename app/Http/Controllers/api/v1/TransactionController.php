@@ -1235,7 +1235,15 @@ class TransactionController extends Controller
                             //     "ledger_dr" => $ledger_dr
                             // ]);
 
-                            $checkDebitCustomer = checkCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
+
+                           $checkDebitCustomer  = match ($company_debit_bankcode) {
+
+                                90286 => checkCustomerAndCompanyWithChargeSafeHaven($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge), //7000299948
+                                default
+                                      => checkCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge),
+                            };
+
+                           // $checkDebitCustomer = checkCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
                             logInfo(json_encode($checkDebitCustomer), "checkDebitCustomer");
                             if (! $checkDebitCustomer['status']) {
 

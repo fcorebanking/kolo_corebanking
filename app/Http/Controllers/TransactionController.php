@@ -2949,12 +2949,14 @@ class TransactionController extends Controller
                     } else {
                         $preferredEbankingPartner = PreferredEbankingPartner::all();
                         $ebankingService          = new EbankingService($preferredEbankingPartner);
-                        $bankAccount              = $ebankingService->verifyAccountNumberFull($request->bankCode, $request->destinationAccount);
 
-                        if (! $bankAccount['status']) {
-                            $bankAccount['status'] = 0;
-                            return response()->json($bankAccount);
-                        }
+                    }
+
+                    $bankAccount = $ebankingService->verifyAccountNumberFull($request->bankCode, $request->destinationAccount);
+
+                    if (! $bankAccount['status']) {
+                        $bankAccount['status'] = 0;
+                        return response()->json($bankAccount);
                     }
 
                     $gatewayDescription = auth()->user()->first_name . " " . auth()->user()->last_name . " / " . auth()->user()->company->company_name;

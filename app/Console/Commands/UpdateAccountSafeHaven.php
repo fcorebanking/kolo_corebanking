@@ -34,7 +34,7 @@ class UpdateAccountSafeHaven extends Command
         $bvn                 = "22290745937";
         $companyID           = 97;
         // $safeHavenController->getAccounts($companyID);
-        return $safeHavenController->updateVirtualAccount($id, $email, $phone, $customerReference, $bvn, $companyID);
+        return $safeHavenController->updateVirtualAccount($id, $email, $phone, $bvn, $companyID);
 
     }
 

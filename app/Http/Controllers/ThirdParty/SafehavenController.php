@@ -405,7 +405,7 @@ class SafehavenController extends WebhookController
 
             $serviceID = $result['_id'];
 
-            $serviceCartegoryID = $this->getServiceCategoryProduct($serviceID, $companyID, );
+            
 
             $serviceResults = $this->safehavenGetRequest("vas/service/{$serviceID}/service-categories");
 
@@ -419,6 +419,7 @@ class SafehavenController extends WebhookController
                             ($serviceResult['identifier']) == $provider
                         ) {
                             logInfo($serviceResult['name'], "Safehaven Reslt Provider response");
+                            $serviceCartegoryID = $this->getServiceCategoryProduct($serviceResult['_id'], $companyID, );
                             return ['status' => true, 'message' => 'Get Services successfully', 'data' => $serviceResult];
                         }
                     }

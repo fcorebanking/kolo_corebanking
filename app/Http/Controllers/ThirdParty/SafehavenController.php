@@ -449,7 +449,7 @@ class SafehavenController extends WebhookController
                 "amount"             => $amount,
                 "phoneNumber"        => $phoneNumber,
                 "channel"            => "WEB",
-                "debitAccountNumber" => this->debitAccount,
+                "debitAccountNumber" => $this->debitAccount,
 
             ];
 

@@ -337,32 +337,32 @@ class SafehavenController extends WebhookController
                 'buyAirTime'        => [
                     'name'       => 'Mobile Recharge',
                     'identifier' => 'AIRTIME',
-                    'log'        => 'Safehaven Get Airtime Service Response',
+                    'log'        => 'Safehaven Get Airtime Service Response Log',
                 ],
                 'buyData'           => [
                     'name'       => 'DATA PURCHASE',
                     'identifier' => 'DATA',
-                    'log'        => 'Safehaven Get Data Service Response',
+                    'log'        => 'Safehaven Get Data Service Response Log',
                 ],
                 'buyElectricity'    => [
                     'name'       => 'UTILITY BILLS',
                     'identifier' => 'UTILITY',
-                    'log'        => 'Safehaven Get UTILITY Service Response',
+                    'log'        => 'Safehaven Get UTILITY Service Response Log',
                 ],
                 'subscribeCableTV'  => [
                     'name'       => 'CABLE TV',
                     'identifier' => 'CABLETV',
-                    'log'        => 'Safehaven Get CABLE TV Service Response',
+                    'log'        => 'Safehaven Get CABLE TV Service Response Log',
                 ],
                 'verifyMeterNumber' => [
                     'name'       => 'UTILITY BILLS',
                     'identifier' => 'UTILITY',
-                    'log'        => 'Safehaven Get UTILITY Service Response',
+                    'log'        => 'Safehaven Get UTILITY Service Response Log',
                 ],
                 'verifyCableTV'     => [
                     'name'       => 'CABLE TV',
                     'identifier' => 'CABLETV',
-                    'log'        => 'Safehaven Get CABLE TV Service Response',
+                    'log'        => 'Safehaven Get CABLE TV Service Response Log',
                 ],
                 // future actions can go here
             ];
@@ -373,7 +373,7 @@ class SafehavenController extends WebhookController
             }
 
             foreach ($results['data'] as $result) {
-                logInfo($result['name'], "Safehaven Get Services map action name  resuult");
+                logInfo($result['name'], "Safehaven Get Services map action name result");
                 logInfo($map[$action]['name'], "Safehaven Get Services map action name");
                 if (
                     ($result['name'] ?? null) == $map[$action]['name'] &&
@@ -391,6 +391,7 @@ class SafehavenController extends WebhookController
 
     public function getServiceCategory($result, $companyID, $provider)
     {
+        logInfo($result, "Safehaven getServiceCategory");
 
         try {
 

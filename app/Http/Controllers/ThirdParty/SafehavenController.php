@@ -198,6 +198,58 @@ class SafehavenController extends WebhookController
         }
     }
 
+    public function updateVirtualAccount($id, $email, $phone, $customerReference, $bvn, $companyID)
+    {
+
+        $endpoint = "accounts/{$id}";
+
+        try {
+
+            $loginResult = $this->getToken($companyID);
+
+            $body = [
+                "autoSweepDetails"  => [
+                    "schedule"      => "Instant",
+                    "accountNumber" => $this->debitAccount,
+                ],
+                "autoSweep"         => true,
+                "phoneNumber"       => $phone,
+                "emailAddress"      => $email,
+                "externalReference" => $customerReference,
+                "identityNumber"    => $bvn,
+                "identityType"      => "BVN",
+
+            ];
+
+            logInfo($body, "Safe Have request");
+
+            if (! $loginResult['status']) {
+                return ['status' => false, 'message' => 'Safe Haven Access createVirtualAccount Response'];
+            }
+
+            $updateAccount = Http::withHeaders($this->safehavenHeader())
+                ->withOptions([
+                    'force_ip_resolve' => 'v4',
+                ])
+                ->put("{$this->baseUrl}{$endpoint}", $body);
+
+            logInfo($updateAccount, "Safe Haven Access update account");
+
+            if (isset($createAccount['statusCode'])) {
+                if ($updateAccount['statusCode'] == "200") {
+                    return ['status' => true, 'message' => $updateAccount['message'], 'data' => $updateAccount['data']];
+                } else {
+                    return ['status' => false, 'message' => $updateAccount['message'], 'data' => $updateAccount];
+                }
+            } else {
+                return ['status' => false, 'message' => "Failed to Create Account... Please contact support", 'data' => $createAccount];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Safehaven Error");
+            return ['status' => false, 'message' => "Failed to Create Account... Please contact support"];
+        }
+    }
+
     public function bankTransfer($amount, $transactionReference, $description, $bankCode, $accountNumber, $sessionId, $companyID, $senderAccountNumber)
     {
 

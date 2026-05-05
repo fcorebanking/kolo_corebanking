@@ -559,8 +559,8 @@ class SafehavenController extends WebhookController
         }
 
         $body = [
-            "serviceCategoryId" => $meterNumber,
-            "entityNumber"      => $electrictyDisco,
+            "serviceCategoryId" => $electrictyDisco,
+            "entityNumber"      => $meterNumber,
 
         ];
 

@@ -411,7 +411,7 @@ class SafehavenController extends WebhookController
 
             if (isset($serviceResults["statusCode"])) {
                 if ($serviceResults["statusCode"] == 200) {
-                    foreach ($serviceResults as $serviceResult) {
+                    foreach ($serviceResults['data'] as $serviceResult) {
                         if (
                             ($serviceResult['name']) == $provider ||
                             ($serviceResult['identifier']) == $provider

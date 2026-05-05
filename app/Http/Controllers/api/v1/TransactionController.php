@@ -7281,8 +7281,8 @@ class TransactionController extends Controller
         }
 
         if ($action == "getDataBundlesList") {
- $networkProvider = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
-            $service = $vtPassController->getDataBundles($networkProvider);
+            $networkProvider = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
+            $service         = $vtPassController->getDataBundles($networkProvider);
         }
 
         if ($action == "getSubscriptions") {
@@ -7308,8 +7308,12 @@ class TransactionController extends Controller
         $getService = $safeHavenController->getService($action, $company_id);
 
         if ($request->network_provider != null) {
-            $networkProvider    = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
-            $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_id, $networkProvider);
+            $networkProvider = strtolower($request->network_provider);
+
+            $networkProvider = preg_replace('/-data$/', '', $networkProvider);
+
+            $networkProvider    = $networkProvider === '9mobile' ? 'etisalat' : $networkProvider;
+            $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_id, strtoupper($networkProvider));
         } else {
             $getServiceCategory = $safeHavenController->getServiceCategory($getService['data'], $company_id);
         }

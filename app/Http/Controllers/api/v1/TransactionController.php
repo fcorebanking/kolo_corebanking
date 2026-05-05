@@ -7281,7 +7281,7 @@ class TransactionController extends Controller
         }
 
         if ($action == "getDataBundlesList") {
-
+ $networkProvider = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
             $service = $vtPassController->getDataBundles($networkProvider);
         }
 

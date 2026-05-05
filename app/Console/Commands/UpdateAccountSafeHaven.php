@@ -31,10 +31,11 @@ class UpdateAccountSafeHaven extends Command
         $id                  = "69f8a83a8aa9320024d3d435";
         $email               = "digitalfinancialservices1@gmail.com";
         $phone               = "07062777542";
+        $customerReference   = generateTransactionReference();
         $bvn                 = "22290745937";
         $companyID           = 97;
         // $safeHavenController->getAccounts($companyID);
-        return $safeHavenController->updateVirtualAccount($id, $email, $phone, $bvn, $companyID);
+        return $safeHavenController->updateVirtualAccount($id, $email, $phone, $customerReference, $bvn, $companyID);
 
     }
 

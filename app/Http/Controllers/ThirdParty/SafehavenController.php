@@ -392,6 +392,7 @@ class SafehavenController extends WebhookController
     public function getServiceCategory($result, $companyID, $provider)
     {
         logInfo($result, "Safehaven getServiceCategory");
+        logInfo($provider, "Safehaven getServiceCategory Provider");
 
         try {
 
@@ -402,19 +403,21 @@ class SafehavenController extends WebhookController
                 return $loginSafehaven;
             }
 
-            $result = $this->safehavenGetRequest("vas/service/{$result['_id']}");
+            $serviceID = $result['_id'];
 
-            logInfo($result, "Safehaven Get Services Category Response");
+            $serviceResults = $this->safehavenGetRequest("vas/service/{$serviceID}");
 
-            if (isset($result["statusCode"])) {
-                if ($result["statusCode"] == 200) {
-                    foreach ($results as $result) {
+            logInfo($serviceResults, "Safehaven Get Services Category Response");
+
+            if (isset($serviceResults["statusCode"])) {
+                if ($serviceResults["statusCode"] == 200) {
+                    foreach ($serviceResults as $serviceResult) {
                         if (
-                            ($result['name']) == $provider ||
-                            ($result['identifier']) == $provider
+                            ($serviceResult['name']) == $provider ||
+                            ($serviceResult['identifier']) == $provider
                         ) {
-                            logInfo($result['name'], "Reslt Provider response");
-                            return ['status' => true, 'message' => 'Get Services successfully', 'data' => $result];
+                            logInfo($serviceResult['name'], "Reslt Provider response");
+                            return ['status' => true, 'message' => 'Get Services successfully', 'data' => $serviceResult];
                         }
                     }
 

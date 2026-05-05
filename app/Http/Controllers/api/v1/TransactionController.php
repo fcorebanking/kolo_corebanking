@@ -7316,7 +7316,24 @@ class TransactionController extends Controller
             $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_id, strtoupper($networkProvider));
         } else {
             if ($request->electricity_disco != null) {
-                $provider = $request->electricity_disco;
+                $disco = $request->electricity_disco;
+                $map   = [
+                    'abuja-electric'        => 'AEDC',
+                    'ibadan-electric'       => 'IBEDC',
+                    'eko-electric'          => 'EKEDC',
+                    'ikeja-electric'        => 'IKEDC',
+                    'portharcourt-electric' => 'PHEDC',
+                    'jos-electric'          => 'JEDC',
+                    'kano-electric'         => 'KEDCO',
+                    'enugu-electric'        => 'EEDC',
+                    'yola-electric'         => 'YEDC',
+                    'benin-electric'        => 'BEDC',
+                    'kaduna-electric'       => 'KAEDC',
+                    // future actions can go here
+                ];
+
+                $provider = $map[$disco];
+
             }
             $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_id, strtoupper($provider));
         }

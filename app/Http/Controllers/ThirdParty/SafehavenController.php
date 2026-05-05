@@ -198,7 +198,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function updateVirtualAccount($id, $email, $phone, $customerReference, $bvn, $companyID)
+    public function updateVirtualAccount($id, $email, $phone, $bvn, $companyID)
     {
 
         $endpoint = "accounts/{$id}/subaccount";
@@ -208,16 +208,16 @@ class SafehavenController extends WebhookController
             $loginResult = $this->getToken($companyID);
 
             $body = [
-                "autoSweepDetails"  => [
+                "autoSweepDetails" => [
                     "schedule"      => "Instant",
                     "accountNumber" => $this->debitAccount,
                 ],
-                "autoSweep"         => true,
-                "phoneNumber"       => $phone,
-                "emailAddress"      => $email,
-               // "externalReference" => $customerReference,
-                "identityNumber"    => $bvn,
-                "identityType"      => "BVN",
+                "autoSweep"        => true,
+                "phoneNumber"      => $phone,
+                "emailAddress"     => $email,
+                // "externalReference" => $customerReference,
+                "identityNumber"   => $bvn,
+                "identityType"     => "BVN",
 
             ];
 

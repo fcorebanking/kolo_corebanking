@@ -235,7 +235,7 @@ class SafehavenController extends WebhookController
 
             logInfo($updateAccount, "Safe Haven Access update account");
 
-            if (isset($createAccount['statusCode'])) {
+            if (isset($updateAccount['statusCode'])) {
                 if ($updateAccount['statusCode'] == "200") {
                     return ['status' => true, 'message' => $updateAccount['message'], 'data' => $updateAccount['data']];
                 } else {
@@ -368,6 +368,36 @@ class SafehavenController extends WebhookController
                 }
             } else {
                 return ['status' => "03", 'message' => 'Failed to Verify Transaction'];
+            }
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), "Safehaven Login serror log");
+            return ['status' => "05", 'message' => 'Server Error...'];
+        }
+    }
+
+    public function getAccounts($companyID)
+    {
+        try {
+
+            $loginSafehaven = $this->getToken($companyID);
+
+            if (! $loginSafehaven['status']) {
+                $loginSafehaven['status'] = "01";
+                return $loginSafehaven;
+            }
+
+            $result = $this->safehavenGetRequest("accounts");
+
+            logInfo($result, "Safehaven Get Account Response");
+
+            if (isset($result["statusCode"])) {
+                if ($result["statusCode"] == 200) {
+                    return ['status' => true, 'message' => 'Get Account successfully', 'data' => $result['data']];
+                } else {
+                    return ['status' => false, 'message' => 'Failed to Account'];
+                }
+            } else {
+                return ['status' => "03", 'message' => 'Failed to Account'];
             }
         } catch (Exception $e) {
             \logInfo($e->getMessage(), "Safehaven Login serror log");

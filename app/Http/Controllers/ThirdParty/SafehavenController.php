@@ -446,7 +446,7 @@ class SafehavenController extends WebhookController
             $body = [
                 "externalReference"  => $transactionId,
                 "serviceCategoryId"  => $network,
-                "amount"             => $amount,
+                "amount"             => floatval($amount),
                 "phoneNumber"        => $phoneNumber,
                 "channel"            => "WEB",
                 "debitAccountNumber" => $this->debitAccount,
@@ -482,7 +482,7 @@ class SafehavenController extends WebhookController
             $body = [
                 "serviceCategoryId"  => $network,
                 "bundleCode"         => $dataPlain,
-                "amount"             => $amount,
+                "amount"             => floatval($amount),
                 "phone"              => $phoneNumber,
                 "externalReference"  => $transactionId,
                 "channel"            => "WEB",
@@ -572,7 +572,7 @@ class SafehavenController extends WebhookController
             "serviceCategoryId"  => $electrictyDisco,
             "vendType"           => $meterType,
             "meterNumber"        => $meterNumber,
-            "amount"             => $amount,
+            "amount"             => floatval($amount),
             "channel"            => "WEB",
             "debitAccountNumber" => this->debitAccount,
         ];

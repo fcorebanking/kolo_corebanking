@@ -334,7 +334,7 @@ class SafehavenController extends WebhookController
 
         if ($results['status']) {
             $map = [
-                'buyAirTime'        => [
+                'buyAirtime'        => [
                     'name'       => 'Mobile Recharge',
                     'identifier' => 'AIRTIME',
                     'log'        => 'Safehaven Get Airtime Service Response',

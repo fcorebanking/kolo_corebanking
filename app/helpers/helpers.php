@@ -2273,7 +2273,7 @@ function debitCustomerAndCompanyWithChargeServiceWallet($customerAccountId, $com
                     $BranchWallet->balance -= $paymentcash;
                     $BranchWallet->save();
                 }
-              
+
                 $companyInitialBalance = $companyWallet->balance;
                 $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 
@@ -2950,7 +2950,7 @@ function debitCustomerAndCompanyWithCompanyCashbackServiceWallet($customerAccoun
                 $BranchWallet->balance -= $originalAmount;
                 $BranchWallet->save();
             }
-            $originalAmount =0;
+            $originalAmount        = 0;
             $companyInitialBalance = $company->wallet->balance;
             $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 

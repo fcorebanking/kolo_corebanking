@@ -4858,9 +4858,9 @@ class TransactionController extends Controller
 
         $buyAirtime = match ($company_debit_bankcode) {
 
-            90286 => $this->safeHavenControllerSercice('buyAirtime', $transactionId, $request), //7000299948
+            90286 => $this->safeHavenControllerSercice('buyAirTime', $transactionId, $request), //7000299948
             default
-                  => $this->vtPassControllerSercice('buyAirtime', $transactionId, $request),
+                  => $this->vtPassControllerSercice('buyAirTime', $transactionId, $request),
         };
 
         if ($buyAirtime["status"] != false) {

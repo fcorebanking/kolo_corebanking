@@ -433,6 +433,49 @@ class SafehavenController extends WebhookController
         }
     }
 
+    public function getServiceCategoryProduct($providerID, $companyID, )
+    {
+        logInfo($providerID, "Safehaven getServiceCategory providerID");
+
+        try {
+
+            $loginSafehaven = $this->getToken($companyID);
+
+            if (! $loginSafehaven['status']) {
+                $loginSafehaven['status'] = "01";
+                return $loginSafehaven;
+            }
+
+            $serviceID = $result['_id'];
+
+            $serviceResults = $this->safehavenGetRequest("vas/service/{$providerID}/service-categories/products");
+
+            logInfo($serviceResults, "Safehaven getServiceCategoryProduct Response");
+
+            if (isset($serviceResults["statusCode"])) {
+                if ($serviceResults["statusCode"] == 200) {
+                    foreach ($serviceResults['data'] as $serviceResult) {
+                        if (
+                            ($serviceResult['name']) == $provider ||
+                            ($serviceResult['identifier']) == $provider
+                        ) {
+                            logInfo($serviceResult['name'], "Safehaven Reslt Provider response");
+                            return ['status' => true, 'message' => 'Get Services successfully', 'data' => $serviceResult];
+                        }
+                    }
+
+                } else {
+                    return ['status' => false, 'message' => 'Failed to  Get Services Category'];
+                }
+            } else {
+                return ['status' => "03", 'message' => 'Failed to  Get Services Category'];
+            }
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), "Safehaven Login serror log");
+            return ['status' => "05", 'message' => 'Server Error...'];
+        }
+    }
+
     public function buyAirtime($transactionId, $network, $amount, $phoneNumber, $companyID)
     {
 

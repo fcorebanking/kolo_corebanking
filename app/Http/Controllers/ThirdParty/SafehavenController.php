@@ -405,8 +405,6 @@ class SafehavenController extends WebhookController
 
             $serviceID = $result['_id'];
 
-            
-
             $serviceResults = $this->safehavenGetRequest("vas/service/{$serviceID}/service-categories");
 
             logInfo($serviceResults, "Safehaven Get Services Category Response");
@@ -419,7 +417,7 @@ class SafehavenController extends WebhookController
                             ($serviceResult['identifier']) == $provider
                         ) {
                             logInfo($serviceResult['name'], "Safehaven Reslt Provider response");
-                            $serviceCartegoryID = $this->getServiceCategoryProduct($serviceResult['_id'], $companyID, );
+
                             return ['status' => true, 'message' => 'Get Services successfully', 'data' => $serviceResult];
                         }
                     }
@@ -436,7 +434,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function getServiceCategoryProduct($providerID, $companyID, )
+    public function getServiceCategoryProduct($providerID, $companyID, $amount)
     {
         logInfo($providerID, "Safehaven getServiceCategory providerID");
 
@@ -457,11 +455,10 @@ class SafehavenController extends WebhookController
                 if ($serviceResults["statusCode"] == 200) {
                     foreach ($serviceResults['data'] as $serviceResult) {
                         if (
-                            ($serviceResult['name']) == $provider ||
-                            ($serviceResult['identifier']) == $provider
+                            ($serviceResult['amount']) == (int) $amount
                         ) {
-                            logInfo($serviceResult['name'], "Safehaven Reslt Provider response");
-                            return ['status' => true, 'message' => 'Get Services successfully', 'data' => $serviceResult];
+                            logInfo($serviceResult['bundleCode'], "Safehaven Reslt Provider Service Category Product bundleCode response");
+                            return ['status' => true, 'message' => 'Get bundleCode successfully', 'data' => $serviceResult];
                         }
                     }
 
@@ -518,6 +515,9 @@ class SafehavenController extends WebhookController
     {
         try {
             $loginResult = $this->getToken($companyID);
+
+            $serviceCartegoryID = $this->getServiceCategoryProduct($network, $companyID, $amount);
+            $bundleCode         = $serviceCartegoryID['data']['bundleCode'];
 
             if (! $loginResult['status']) {
                 return ['status' => false, 'message' => 'Safe Haven Access buyData Response'];

@@ -201,7 +201,7 @@ class SafehavenController extends WebhookController
     public function updateVirtualAccount($id, $email, $phone, $customerReference, $bvn, $companyID)
     {
 
-        $endpoint = "accounts/{$id}";
+        $endpoint = "accounts/{$id}/subaccount";
 
         try {
 

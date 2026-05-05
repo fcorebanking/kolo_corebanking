@@ -215,7 +215,7 @@ class SafehavenController extends WebhookController
                 "autoSweep"         => true,
                 "phoneNumber"       => $phone,
                 "emailAddress"      => $email,
-                "externalReference" => $customerReference,
+               // "externalReference" => $customerReference,
                 "identityNumber"    => $bvn,
                 "identityType"      => "BVN",
 

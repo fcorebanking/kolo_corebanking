@@ -525,7 +525,7 @@ class SafehavenController extends WebhookController
 
             $body = [
                 "serviceCategoryId"  => $network,
-                "bundleCode"         => $dataPlain,
+                "bundleCode"         => $bundleCode,
                 "amount"             => floatval($amount),
                 "phone"              => $phoneNumber,
                 "externalReference"  => $transactionId,

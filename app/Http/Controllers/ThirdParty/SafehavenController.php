@@ -527,7 +527,7 @@ class SafehavenController extends WebhookController
                 "serviceCategoryId"  => $network,
                 "bundleCode"         => $bundleCode,
                 "amount"             => floatval($amount),
-                "phone"              => $phoneNumber,
+                "phoneNumber"        => $phoneNumber,
                 "externalReference"  => $transactionId,
                 "channel"            => "WEB",
                 "debitAccountNumber" => $this->debitAccount,
@@ -1075,7 +1075,6 @@ class SafehavenController extends WebhookController
     {
         logInfo("{$this->baseUrl}{$endpoint}", "Complete url");
         logInfo($this->safehavenHeader(), "Safe haven header");
-        logInfo(json_encode($body), "Safe haven Body Request");
         $response = Http::withHeaders($this->safehavenHeader())
             ->withOptions([
                 'force_ip_resolve' => 'v4',

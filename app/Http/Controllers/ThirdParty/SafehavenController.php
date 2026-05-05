@@ -416,7 +416,7 @@ class SafehavenController extends WebhookController
                             ($serviceResult['name']) == $provider ||
                             ($serviceResult['identifier']) == $provider
                         ) {
-                            logInfo($serviceResult['name'], "Reslt Provider response");
+                            logInfo($serviceResult['name'], "Safehaven Reslt Provider response");
                             return ['status' => true, 'message' => 'Get Services successfully', 'data' => $serviceResult];
                         }
                     }

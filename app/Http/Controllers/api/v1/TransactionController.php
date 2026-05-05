@@ -7280,6 +7280,14 @@ class TransactionController extends Controller
             $service = $vtPassController->getDataBundles($networkProvider);
         }
 
+        if ($action == " getDataBundlesList") {
+
+            $service = $vtPassController->getDataBundles($networkProvider);
+        }
+
+
+       
+
         if ($action == "getSubscriptions") {
 
             $service = $vtPassController->getSubscriptions($cableTV);

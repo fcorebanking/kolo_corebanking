@@ -376,7 +376,7 @@ class SafehavenController extends WebhookController
                 logInfo($result['name'], "Safehaven Get Services map action name result");
                 logInfo($map[$action]['name'], "Safehaven Get Services map action name");
                 if (
-                    ($result['name'] ?? null) == $map[$action]['name'] &&
+                    ($result['name'] ?? null) == $map[$action]['name'] ||
                     ($result['identifier'] ?? null) == $map[$action]['identifier']
                 ) {
                     logInfo($result['name'], $map[$action]['log']);

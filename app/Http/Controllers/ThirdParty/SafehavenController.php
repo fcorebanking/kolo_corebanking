@@ -486,7 +486,7 @@ class SafehavenController extends WebhookController
                 "phone"              => $phoneNumber,
                 "externalReference"  => $transactionId,
                 "channel"            => "WEB",
-                "debitAccountNumber" => this->debitAccount,
+                "debitAccountNumber" => $this->debitAccount,
             ];
 
             logInfo($body, "Safe Haven Data request");

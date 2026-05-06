@@ -55,6 +55,8 @@ class RemittaController
             $productCode = "313";
         }
 
+        $validate = $this->validateElectricity($meterNumber);
+
         $body = [
             "productCode"     => $productCode,
             "clientReference" => $transactionId,
@@ -65,9 +67,11 @@ class RemittaController
             ],
         ];
 
+        $endpoint = "/vending/transactions";
+
         logInfo($body, "Remita Buy Electricity Response Body");
 
-        $buyElectricity = $this->remitaPostRequest($body);
+        $buyElectricity = $this->remitaPostRequest($endpoint, $body);
 
         logInfo(json_encode($buyElectricity), "Remita Buy Electricity Response Log");
 
@@ -107,6 +111,51 @@ class RemittaController
         }
     }
 
+    public function validateElectricity($meterNumber)
+    {
+
+        if ($meterType == "prepaid") {
+            $productCode = "312";
+        } else {
+            $productCode = "313";
+        }
+
+        $body = [
+            "productCode"   => $productCode,
+            "accountNumber" => $meterNumber,
+        ];
+
+        $endpoint = "/vending/validate";
+
+        logInfo($body, "Remita Validate Electricity  Response Body");
+
+        $buyElectricity = $this->remitaPostRequest($endpoint, $body);
+
+        logInfo(json_encode($buyElectricity), "Remita Validate Electricity Response Log");
+
+        try {
+
+            if ($buyElectricity['status'] == 'pending') {
+                return [
+                    "status"  => true,
+                    'message' => "Transaction is Processing. you will receive a token shortly",
+                ];
+            }
+            if ($buyElectricity['status'] == "00") {
+                return [
+                    "status"  => true,
+                    'message' => "Electricity Unit verified Successful",
+                    'data'    => $buyElectricity['data'],
+                ];
+            } else {
+                return ["status" => false, 'message' => "Failed to Purchase Electricity"];
+            }
+        } catch (Exception $e) {
+            \logInfo(json_encode($e->getMessage()), "Remita Buy Electricity Error Response Log");
+            return ["status" => false, 'message' => "Sorry, Unable to get token. Kindly contact support"];
+        }
+    }
+
     public function getElectricityCategory()
     {
         // $endpoint = "https://api-gateway.remita.net/services/connect-gateway/api/v1/vending/products?page=0&pageSize=20&countryCode=NGA&categoryCode=electricity";
@@ -119,14 +168,14 @@ class RemittaController
         logInfo(json_encode($result), "Remita Get Electricity info");
     }
 
-    public function remitaBaseUrl()
+    public function remitaBaseUrl($endpoint)
     {
-        return env('APP_MODE') == 'test' ? "https://api-demo.systemspecsng.com/services/connect-gateway/api/v1/vending/transactions" : "https://api-gateway.remita.net/api/v1/vending/transactions";
+        return env('APP_MODE') == 'test' ? "https://api-demo.systemspecsng.com/services/connect-gateway/api/v1{$endpoint}" : "https://api-gateway.remita.net/api/v1{$endpoint}";
     }
 
-    public function remitaPostRequest($body)
+    public function remitaPostRequest($endpoint, $body)
     {
-        logInfo($this->remitaBaseUrl());
+        logInfo($this->remitaBaseUrl($endpoint));
         $response = Http::withHeaders($this->remitaHeader())
             ->withOptions([
                 'force_ip_resolve' => 'v4',

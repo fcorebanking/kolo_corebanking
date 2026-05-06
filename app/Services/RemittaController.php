@@ -55,7 +55,7 @@ class RemittaController
             $productCode = "313";
         }
 
-        $validate = $this->validateElectricity($meterNumber);
+        $validate = $this->validateElectricity($meterNumber, $productCode);
 
         $body = [
             "productCode"     => $productCode,
@@ -111,14 +111,8 @@ class RemittaController
         }
     }
 
-    public function validateElectricity($meterNumber)
+    public function validateElectricity($meterNumber, $productCode)
     {
-
-        if ($meterType == "prepaid") {
-            $productCode = "312";
-        } else {
-            $productCode = "313";
-        }
 
         $body = [
             "productCode"   => $productCode,

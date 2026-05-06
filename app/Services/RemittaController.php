@@ -160,6 +160,7 @@ class RemittaController
         $result = $this->remitaGetRequest($endpoint);
 
         logInfo(json_encode($result), "Remita Get Electricity info");
+        return $result;
     }
 
     public function remitaBaseUrl($endpoint)

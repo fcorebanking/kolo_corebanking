@@ -5302,6 +5302,8 @@ class TransactionController extends Controller
     public function buyElectricity(Request $request)
     {
         // $transactionId = $this->randomNumber(12);
+           logInfo(json_encode($request), "buyElectricity Response");
+
         $transactionId = $this->vtPassRequestId();
 
         $validation = Validator::make($request->all(), [
@@ -6695,7 +6697,7 @@ class TransactionController extends Controller
             ];
         }
 
-        $companyIDs       = [1, 29, 36, 63, 67,92, 97];
+        $companyIDs       = [1, 29, 36, 63, 67, 92, 97];
         $companyIDsStatus = in_array($company->id, $companyIDs);
 
         $companyAfterBalance = $company->wallet->balance - $originalAmount;
@@ -6805,7 +6807,7 @@ class TransactionController extends Controller
 
         logInfo(json_encode($companyWallet), "Company wallet to be debited");
 
-        $companyIDs       = [1, 29, 36, 63, 67,92, 97];
+        $companyIDs       = [1, 29, 36, 63, 67, 92, 97];
         $companyIDsStatus = in_array($company->id, $companyIDs);
 
         $companyAfterBalance = $companyWallet->balance - ($originalAmount + $companyCharge);

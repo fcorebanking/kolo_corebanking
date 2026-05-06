@@ -28,7 +28,7 @@ class UpdateAccountSafeHaven extends Command
     public function handle()
     {
         $safeHavenController = new SafehavenController();
-        $id                  = "69f8a83a8aa9320024d3d435";
+        $id                  = "69f5bd3dd83eab0024dd8525";
         $email               = "digitalfinancialservices1@gmail.com";
         $phone               = "07062777542";
         $customerReference   = generateTransactionReference();

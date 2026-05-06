@@ -65,9 +65,11 @@ class RemittaController
             ],
         ];
 
+        logInfo($body, "Remita Buy Electricity Response Body");
+
         $buyElectricity = $this->remitaPostRequest($body);
 
-        logInfo($buyElectricity, "Remita Buy Electricity Response Log");
+        logInfo(json_encode($buyElectricity), "Remita Buy Electricity Response Log");
 
         try {
 

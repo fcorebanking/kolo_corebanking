@@ -6503,7 +6503,14 @@ class TransactionController extends Controller
     {
         $remitaController = new RemittaController();
 
-        return $remitaController->getElectricityCategory();
+       // return $remitaController->getElectricityCategory();
+       $electrictyDisco = null;
+$transactionId =  generateTransactionReference();
+$meterType = null;
+ $meterNumber = "0207220527106";
+$amount = 500;
+$phoneNumber = "08067058555";
+       return $remitaController->buyElectricity($transactionId, $electrictyDisco, $meterType, $meterNumber, $amount, $phoneNumber);
     }
 
     public function finova4tsWebhook(Request $request)

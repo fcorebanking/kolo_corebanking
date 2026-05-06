@@ -5302,7 +5302,7 @@ class TransactionController extends Controller
     public function buyElectricity(Request $request)
     {
         // $transactionId = $this->randomNumber(12);
-           logInfo(json_encode($request), "buyElectricity Response");
+        logInfo(json_encode($request), "buyElectricity Response");
 
         $transactionId = $this->vtPassRequestId();
 

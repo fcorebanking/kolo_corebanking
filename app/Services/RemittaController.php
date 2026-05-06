@@ -69,7 +69,7 @@ class RemittaController
 
         $endpoint = "/vending/transactions";
 
-        logInfo($body, "Remita Buy Electricity Response Body");
+        logInfo(json_encode($body), "Remita Buy Electricity Response Body");
 
         $buyElectricity = $this->remitaPostRequest($endpoint, $body);
 
@@ -121,7 +121,7 @@ class RemittaController
 
         $endpoint = "/vending/validate";
 
-        logInfo($body, "Remita Validate Electricity  Response Body");
+        logInfo(json_encode($body), "Remita Validate Electricity  Response Body");
 
         $buyElectricity = $this->remitaPostRequest($endpoint, $body);
 

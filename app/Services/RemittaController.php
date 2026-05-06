@@ -50,7 +50,7 @@ class RemittaController
     {
 
         if ($meterType == "prepaid") {
-            $productCode = "312";
+            $productCode = "103";
         } else {
             $productCode = "313";
         }

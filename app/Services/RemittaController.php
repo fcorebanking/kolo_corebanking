@@ -136,7 +136,9 @@ class RemittaController
     public function remitaGetRequest($url)
     {
         $response = Http::withHeaders($this->remitaHeader())
-
+            ->withOptions([
+                'force_ip_resolve' => 'v4',
+            ])
             ->get("$url");
         return $response->json();
     }

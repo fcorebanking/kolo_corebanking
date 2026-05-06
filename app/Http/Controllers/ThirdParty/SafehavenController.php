@@ -754,7 +754,7 @@ class SafehavenController extends WebhookController
             "meterNumber"        => $meterNumber,
             "amount"             => floatval($amount),
             "channel"            => "WEB",
-            "debitAccountNumber" => this->debitAccount,
+            "debitAccountNumber" => $this->debitAccount,
         ];
 
         $buyElectricity = $this->safehavenPostRequest("vas/pay/utility", $body);

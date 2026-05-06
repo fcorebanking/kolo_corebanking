@@ -6507,7 +6507,7 @@ class TransactionController extends Controller
         $electrictyDisco = null;
         $transactionId   = generateTransactionReference();
         $meterType       = "prepaid";
-        $meterNumber     = "0207220527106";
+        $meterNumber     = "0207220453923";
         $amount          = 500;
         $phoneNumber     = "08067058555";
         return $remitaController->buyElectricity($transactionId, $electrictyDisco, $meterType, $meterNumber, $amount, $phoneNumber);

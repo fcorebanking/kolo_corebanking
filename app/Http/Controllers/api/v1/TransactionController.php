@@ -6510,7 +6510,24 @@ class TransactionController extends Controller
         $meterNumber     = "45702489712";
         $amount          = 500;
         $phoneNumber     = "08067058555";
-        return $remitaController->buyElectricity($transactionId, $electrictyDisco, $meterType, $meterNumber, $amount, $phoneNumber);
+        $remitaController->buyElectricity($transactionId, $electrictyDisco, $meterType, $meterNumber, $amount, $phoneNumber);
+
+        $bankTransferType                       = new BankTransferType();
+        $bankTransferType->bankCode             = "090286";
+        $bankTransferType->shortBankCode        = "";
+        $bankTransferType->accountNumber        = "0110858465";
+        $bankTransferType->description          = "Sub transfer";
+        $bankTransferType->amount               = 1490;
+        $bankTransferType->transactionReference = generateTransactionReference();
+        $bankTransferType->companyID            = 97;
+        $bankTransferType->senderAccountNumber  = "5018720246";
+        $preferredEbankingPartner               = PreferredEbankingPartnerCompany::where('company_id', 97)->first();
+
+        $ebankingService = new EbankingCompanyService($preferredEbankingPartner);
+
+        $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
+
+        return response()->json($bankTransfer);
     }
 
     public function finova4tsWebhook(Request $request)

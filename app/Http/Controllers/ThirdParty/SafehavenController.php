@@ -148,6 +148,58 @@ class SafehavenController extends WebhookController
         }
     }
 
+    public function createVirtualAccountMaintenance($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID)
+    {
+
+        $endpoint = "accounts/v2/subaccount";
+
+        try {
+
+            $loginResult = $this->getToken($companyID);
+
+            $body = [
+                "autoSweepDetails"  => [
+                    "schedule"      => "Instant",
+                    "bankCode"      => "090286",
+                    "accountNumber" => "0116906698",
+                ],
+                "autoSweep"         => true,
+                "phoneNumber"       => $phone,
+                "emailAddress"      => $email,
+                "externalReference" => $customerReference,
+                "identityId"        => $bvnId,
+                "identityNumber"    => $bvn,
+                "identityType"      => "BVN",
+                "otp"               => $otp,
+                "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
+
+            ];
+
+            logInfo($body, "Safe Have request");
+
+            if (! $loginResult['status']) {
+                return ['status' => false, 'message' => 'Safe Haven Access createVirtualAccount Response'];
+            }
+
+            $createAccount = $this->safehavenPostRequest($endpoint, $body);
+
+            logInfo($createAccount, "Exchange cliient assertion");
+
+            if (isset($createAccount['statusCode'])) {
+                if ($createAccount['statusCode'] == "200") {
+                    return ['status' => true, 'message' => $createAccount['message'], 'data' => $createAccount['data']];
+                } else {
+                    return ['status' => false, 'message' => $createAccount['message'], 'data' => $createAccount];
+                }
+            } else {
+                return ['status' => false, 'message' => "Failed to Create Account... Please contact support", 'data' => $createAccount];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Safehaven Error");
+            return ['status' => false, 'message' => "Failed to Create Account... Please contact support"];
+        }
+    }
+
     public function createVirtualAccountV2($firstName, $lastName, $email, $phone, $customerReference, $otp)
     {
 
@@ -262,7 +314,7 @@ class SafehavenController extends WebhookController
             $body = [
                 "amount"                   => floatval($amount),
                 "nameEnquiryReference"     => $sessionId,
-                "debitAccountNumber"       => $this->sendingAccount,
+                "debitAccountNumber"       => $senderAccountNumber ?? $this->sendingAccount,
                 "narration"                => $description,
                 "beneficiaryBankCode"      => $bankCode,
                 "beneficiaryAccountNumber" => $accountNumber,

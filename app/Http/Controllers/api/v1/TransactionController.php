@@ -6517,10 +6517,10 @@ class TransactionController extends Controller
         $bankTransferType->shortBankCode        = "";
         $bankTransferType->accountNumber        = "0110858465";
         $bankTransferType->description          = "Sub transfer";
-        $bankTransferType->amount               = 1490;
+        $bankTransferType->amount               = 1768;
         $bankTransferType->transactionReference = generateTransactionReference();
         $bankTransferType->companyID            = 97;
-        $bankTransferType->senderAccountNumber  = "5018720246";
+        $bankTransferType->senderAccountNumber  = "5010966394";
         $preferredEbankingPartner               = PreferredEbankingPartnerCompany::where('company_id', 97)->first();
 
         $ebankingService = new EbankingCompanyService($preferredEbankingPartner);

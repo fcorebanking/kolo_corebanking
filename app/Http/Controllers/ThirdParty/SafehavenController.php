@@ -210,14 +210,15 @@ class SafehavenController extends WebhookController
             $body = [
                 "autoSweepDetails"  => [
                     "schedule"      => "Instant",
+                    "bankCode"      => "090286",
                     "accountNumber" => $this->debitAccount,
                 ],
                 "autoSweep"         => true,
-                "phoneNumber"       => $phone,
-                "emailAddress"      => $email,
-                "externalReference" => $customerReference,
-                "identityNumber"    => $bvn,
-                "identityType"      => "BVN",
+            //    "phoneNumber"       => $phone,
+              //  "emailAddress"      => $email,
+               // "externalReference" => $customerReference,
+              //  "identityNumber"    => $bvn,
+              //  "identityType"      => "BVN",
 
             ];
 

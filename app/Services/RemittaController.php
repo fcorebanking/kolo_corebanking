@@ -121,7 +121,7 @@ class RemittaController
 
     public function remitaBaseUrl()
     {
-        return env('APP_MODE') == 'test' ? "https://api-demo.systemspecsng.com/services/connect-gateway/api/v1/vending/transactions" : "https://api-demo.systemspecsng.com/services/connect-gateway/api/v1/vending/transactions";
+        return env('APP_MODE') == 'test' ? "https://api-demo.systemspecsng.com/services/connect-gateway/api/v1/vending/transactions" : "https://api-gateway.remita.net/api/v1/vending/transactions";
     }
 
     public function remitaPostRequest($body)

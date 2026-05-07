@@ -211,11 +211,15 @@ class RegisterController extends Controller
 
             $virtualAccount->bankCode     = $customSelectedBank;
             $virtualAccount->currencyCode = $companyRecord->currency->code;
-            if ($companyRecord->id == 47) {
+
+            if (in_array($companyRecord->id, [47])) {
                 $virtualAccount->firstName = "$request->first_name " . "{$request->last_name}" . "/{$companyRecord->short_name}";
+            } else if (in_array($companyRecord->id, [59])) {
+                $virtualAccount->firstName = "$request->first_name " . "{$request->last_name}";
             } else {
                 $virtualAccount->firstName = "{$companyRecord->short_name}/" . $request->first_name . " {$request->last_name}";
             }
+
             //   $virtualAccount->firstName                    = $request->first_name;
             $virtualAccount->companyShortName             = $companyRecord->short_name;
             $virtualAccount->lastName                     = "";

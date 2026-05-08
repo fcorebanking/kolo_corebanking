@@ -2952,7 +2952,7 @@ class TransactionController extends Controller
 
                     }
 
-                    $bankAccount = $ebankingService->verifyAccountNumberFull($request->bankCode, $request->destinationAccount, auth()->user()->company->id);
+                    $bankAccount = $ebankingService->verifyAccountNumberFull($request->bankCode, $request->destinationAccount, auth()->user()->company->idf);
 
                     if (! $bankAccount['status']) {
                         $bankAccount['status'] = 0;
@@ -3764,5 +3764,13 @@ class TransactionController extends Controller
         }
         return $response;
 
+    }
+
+    public function getCompanyBankCode()
+    {
+        $company_bank_id         = company_wallet::where('company_id', auth()->user()->company_id)->first()->bank_id;
+        $bank                    = banks::find($company_bank_id);
+        $company_debit_bank_code = (int) $bank->bank_code;
+        return $company_debit_bank_code;
     }
 }

@@ -4831,7 +4831,17 @@ class TransactionController extends Controller
             return response()->json($customerBalance, 400);
         }
 
-        $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
+        //   $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
+
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
+        $checkVTPASSBalance = match ($company_debit_bankcode) {
+
+            90286 => true, //7000299948
+            default
+                  => $this->checkVTPASSBalance($request->final_amount),
+        };
+
         if (! $checkVTPASSBalance) {
             return response()->json("Service is not available at the moment . Please try again later", 400);
         }
@@ -4840,8 +4850,6 @@ class TransactionController extends Controller
 
         //($customerAccountId, $(int) $company_id;companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
         // $debitCustomer = \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015);
-
-        $company_debit_bankcode = $this->getCompanyBankCode();
 
         logInfo($company_debit_bankcode, "company_debit_bankcode");
 
@@ -5029,12 +5037,20 @@ class TransactionController extends Controller
             return response()->json($customerBalance, 400);
         }
 
-        $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
+        // $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
+
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
+        $checkVTPASSBalance = match ($company_debit_bankcode) {
+
+            90286 => true, //7000299948
+            default
+                  => $this->checkVTPASSBalance($request->final_amount),
+        };
+
         if (! $checkVTPASSBalance) {
             return response()->json("Service is not available at the moment . Please try again later", 400);
         }
-
-        $company_debit_bankcode = $this->getCompanyBankCode();
 
         $dataBundles = match ($company_debit_bankcode) {
 
@@ -5376,7 +5392,17 @@ class TransactionController extends Controller
             return response()->json($customerBalance, 400);
         }
 
-        $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
+        //  $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
+
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
+        $checkVTPASSBalance = match ($company_debit_bankcode) {
+
+            90286 => true, //7000299948
+            default
+                  => $this->checkVTPASSBalance($request->final_amount),
+        };
+
         if (! $checkVTPASSBalance) {
             return response()->json("Service is not available at the moment . Please try again later", 400);
         }
@@ -5391,8 +5417,6 @@ class TransactionController extends Controller
             "amount"         => $request->final_amount,
             "phone"          => $request->phone_number,
         ];
-
-        $company_debit_bankcode = $this->getCompanyBankCode();
 
         if (\auth()->user()->company_id == 80) {
             $remitaController = new RemittaController();
@@ -5591,7 +5615,16 @@ class TransactionController extends Controller
             return response()->json($customerBalance, 400);
         }
 
-        $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
+        $checkVTPASSBalance = match ($company_debit_bankcode) {
+
+            90286 => true, //7000299948
+            default
+                  => $this->checkVTPASSBalance($request->final_amount),
+        };
+
+        // $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
         if (! $checkVTPASSBalance) {
             return response()->json("Service is not available at the moment . Please try again later", 400);
         }
@@ -5599,8 +5632,6 @@ class TransactionController extends Controller
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 13, "Subscribe TV Initialized");
 
         //  $debitCustomer = \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], \auth()->user()->company_id, $request->final_amount, $companySettings->bills_payment_charge, $wbaCharge);
-
-        $company_debit_bankcode = $this->getCompanyBankCode();
 
         $debitCustomer = match ($company_debit_bankcode) {
 

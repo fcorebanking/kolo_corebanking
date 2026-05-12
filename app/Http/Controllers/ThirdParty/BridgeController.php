@@ -165,7 +165,7 @@ class BridgeController extends WebhookController
         $identifying_information_tin = [
             "type"            => "tin",
             "issuing_country" => "NGA",
-            "number"          => $request->number,
+            "number"          => $request->number ?? $request->nino,
 
         ];
 

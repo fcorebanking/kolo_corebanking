@@ -102,6 +102,40 @@ class SafehavenController extends WebhookController
 
         $endpoint = "accounts/v2/subaccount";
 
+        $bodyOTP = [
+            "autoSweepDetails"  => [
+                "schedule"      => "Instant",
+                "accountNumber" => $this->debitAccount,
+            ],
+            "autoSweep"         => true,
+            "phoneNumber"       => $phone,
+            "emailAddress"      => $email,
+            "externalReference" => $customerReference,
+            "identityId"        => $bvnId,
+            "identityNumber"    => $bvn,
+            "identityType"      => "BVN",
+            "otp"               => $otp,
+            "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
+
+        ];
+
+        $bodyNoOtp = [
+            "autoSweepDetails"  => [
+                "schedule"      => "Instant",
+                "accountNumber" => $this->debitAccount,
+            ],
+            "autoSweep"         => true,
+            "phoneNumber"       => $phone,
+            "emailAddress"      => $email,
+            "externalReference" => $customerReference,
+            "identityId"        => $bvnId,
+            "identityNumber"    => $bvn,
+            "identityType"      => "BVN",
+            "dateOfBirth"       => $otp,
+            "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
+
+        ];
+
         try {
 
             $loginResult = $this->getToken($companyID);

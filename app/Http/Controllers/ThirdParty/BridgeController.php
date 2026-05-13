@@ -95,7 +95,7 @@ class BridgeController extends WebhookController
 
         $jsonBody = json_encode($body);
 
-        $url = "{$this->baseUrl}customers/{$customerID}/virtual_accounts ";
+        $url = "{$this->baseUrl}customers/{$customerID}/virtual_accounts";
 
         \logInfo($url, "Bridge Request url");
         \logInfo($customerID, "Bridge Request customer id");
@@ -128,9 +128,9 @@ class BridgeController extends WebhookController
                             'virtual_account_number' => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
                             'account_reference'      => $customerID,
                             'currency_id'            => match ($currency_id) {
-                                'GBP'   => 4,
-                                'EUR'   => 7,
-                                'GHS'   => 8,
+                                4       => 'GBP',
+                                7       => 'EUR',
+                                8       => 'GHS',
 
                                 default => 2, // fallback
                             },
@@ -232,9 +232,9 @@ class BridgeController extends WebhookController
         }
     }
 
-    public function getBridgeCustomerInfo()
+    public function getBridgeCustomerInfo($user_id)
     {
-        $customer   = auth('api')->user();
+        $customer   = auth('api')->user() ?? User::where('id', $user_id)->first();
         $customerID = $customer->accounts()->where('currency_id', $customer->company->currency_id)->first()->acc_reference;
         $endpoint   = "$this->baseUrl/customers/$customer";
 

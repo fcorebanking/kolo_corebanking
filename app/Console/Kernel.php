@@ -16,10 +16,11 @@ use App\Console\Commands\DomCron;
 //use App\Console\Commands\SalaryPaymentCron;
 use App\Jobs\BankTranserCron;
 use App\Jobs\BirthdayCron;
+use App\Jobs\BridgeCustomerAccountReview;
 use App\Jobs\CardMaintenanceCron;
 use App\Jobs\CardNairaPartnerMaintenanceCron;
-use App\Jobs\CompanySettimentThreshold;
 //use App\Jobs\DailyHybridSummaryJob;
+use App\Jobs\CompanySettimentThreshold;
 use App\Jobs\InvestmentCron;
 use App\Jobs\LoanCron;
 use App\Jobs\LoanExtend;
@@ -136,10 +137,10 @@ class Kernel extends ConsoleKernel
 
         //  $schedule->command('loan:cron')->everyFiveMinutes();
         $schedule->job(new LoanCron)->everySixHours()->onSuccess(function () {
-            Log::info('Your LoanCro Job executed successfully.');
+            Log::info('Your LoanCron Job executed successfully.');
         })
             ->onFailure(function () {
-                Log::error('Your LoanCro Job failed');
+                Log::error('Your LoanCron Job failed');
             });
 
         //$schedule->command('LoanExtend:cron')->everyFiveMinutes();
@@ -225,6 +226,13 @@ class Kernel extends ConsoleKernel
         })
             ->onFailure(function () {
                 Log::error('Your CardNairaPartnerMaintenanceCron failed');
+            });
+
+        $schedule->job(new BridgeCustomerAccountReview)->everyFifteenMinutes()->onSuccess(function () {
+            Log::info('Your Maintenance Job executed successfully.');
+        })
+            ->onFailure(function () {
+                Log::error('Your Maintenances Job failed');
             });
 
     }

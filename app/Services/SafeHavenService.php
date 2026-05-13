@@ -91,8 +91,8 @@ class SafeHavenService
             'sendingAccount'             => "0113905054",
             'grant_type_live'            => env('SAFEHAVEN_GRANT_TYPE_LIVE', 'client_credentials'),
             'client_assertion_type_live' => env('SAFEHAVEN_CLIENT_ASSERTION_TYPE_LIVE', 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'),
-            'client_id_live'             => env('SAFEHAVEN_CLIENT_ID_LIVE', '922260eaf8dc46963abeb7675e4f2036'),
-            'client_assertion_live'      => env('SAFEHAVEN_CLIENT_ASSERTION_LIVE', 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb3JlLmZpbm92YS5uZyIsInN1YiI6IjkyMjI2MGVhZjhkYzQ2OTYzYWJlYjc2NzVlNGYyMDM2IiwiYXVkIjoiaHR0cHM6Ly9hcGkuc2FmZWhhdmVubWZiLmNvbSIsImlhdCI6MTc3NzI4NjM2OSwiZXhwIjoxODA0NzgzNTU0fQ.iyIog4fjzmop0QMqg4hZMdBFJoJ26PfU42_v_va5kVFQuBVRZ0pw4i4XpoI5K_hVz9A5vZo-sxVh660IQj1NYk_YQpe9f3ZcIjTzPlQHCXB-mEWjtQ1v_PsczXfEv1kvnpxy2sr_K8tty7t0ZUBj-r2LZHc3_s2iHFvnolAHhtk'),
+            'client_id_live'             => '922260eaf8dc46963abeb7675e4f2036',
+            'client_assertion_live'      => 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb3JlLmZpbm92YS5uZyIsInN1YiI6IjkyMjI2MGVhZjhkYzQ2OTYzYWJlYjc2NzVlNGYyMDM2IiwiYXVkIjoiaHR0cHM6Ly9hcGkuc2FmZWhhdmVubWZiLmNvbSIsImlhdCI6MTc3NzI4NjM2OSwiZXhwIjoxODA0NzgzNTU0fQ.iyIog4fjzmop0QMqg4hZMdBFJoJ26PfU42_v_va5kVFQuBVRZ0pw4i4XpoI5K_hVz9A5vZo-sxVh660IQj1NYk_YQpe9f3ZcIjTzPlQHCXB-mEWjtQ1v_PsczXfEv1kvnpxy2sr_K8tty7t0ZUBj-r2LZHc3_s2iHFvnolAHhtk',
             'base_url_live'              => env('SAFEHAVEN_BASE_URL_LIVE', 'https://api.safehavenmfb.com/'),
             'debitAccount'               => "0113905054",
 

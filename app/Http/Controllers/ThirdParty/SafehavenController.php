@@ -157,7 +157,7 @@ class SafehavenController extends WebhookController
 
             $createAccount = $this->safehavenPostRequest($endpoint, $body);
 
-            logInfo($createAccount, "Exchange cliient assertion");
+            logInfo($createAccount, "safehaven Response Log);
 
             if (isset($createAccount['statusCode'])) {
                 if ($createAccount['statusCode'] == "200") {
@@ -166,18 +166,18 @@ class SafehavenController extends WebhookController
                     return ['status' => false, 'message' => $createAccount['message'], 'data' => $createAccount];
                 }
             } else {
-                return ['status' => false, 'message' => "Failed to Create Account... Please contact support", 'data' => $createAccount];
+                return ['status' => false, 'message' => "Failed toCreateAccount ...Please contactsupport", 'data' => $createAccount];
             }
         } catch (Exception $e) {
             logInfo($e->getMessage(), "Safehaven Error");
-            return ['status' => false, 'message' => "Failed to Create Account... Please contact support"];
+            return ['status' => false, 'message' => "Failed toCreateAccount ...Please contactsupport"];
         }
     }
 
     public function createVirtualAccountMaintenance($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID)
     {
 
-        $endpoint = "accounts/v2/subaccount";
+        $endpoint = "accounts / v2 / subaccount";
 
         try {
 
@@ -197,7 +197,7 @@ class SafehavenController extends WebhookController
                 "identityNumber"    => $bvn,
                 "identityType"      => "BVN",
                 "otp"               => $otp,
-                "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
+                "callbackUrl"       => "https: //core.finova.ng/api/v1/transactions/safehaven-webhook",
 
             ];
 

@@ -2008,7 +2008,7 @@ class UserController extends Controller
         if ($bank->bank_code == '090286') {
             $virtualAccount->bvnId     = $request->id;
             $virtualAccount->otp       = $request->otp;
-            $virtualAccount->companyID = $request->company;
+            $virtualAccount->companyID = $request->company ?? $company->id;
 
         }
 

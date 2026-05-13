@@ -157,7 +157,7 @@ class SafehavenController extends WebhookController
 
             $createAccount = $this->safehavenPostRequest($endpoint, $body);
 
-            logInfo($createAccount, "safehaven Response Log);
+            logInfo($createAccount, "safehaven Response Log");
 
             if (isset($createAccount['statusCode'])) {
                 if ($createAccount['statusCode'] == "200") {

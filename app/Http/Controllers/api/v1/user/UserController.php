@@ -1902,6 +1902,9 @@ class UserController extends Controller
                 'id'         => $request->savings_product_type,
             ])->first();
 
+            \logInfo($request->savings_product_type, "api saving account uid");
+            \logInfo($saving, "api saving account product");
+
             if (! $saving) {
                 return response()->json([
                     'status'  => 0,

@@ -97,7 +97,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID)
+    public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID, $dob)
     {
 
         $endpoint = "accounts/v2/subaccount";
@@ -131,7 +131,8 @@ class SafehavenController extends WebhookController
             "identityId"        => $bvnId,
             "identityNumber"    => $bvn,
             "identityType"      => "BVN",
-            "dateOfBirth"       => $otp,
+            "dateOfBirth"       => $dob,
+            "booleanMatch"      => true,
             "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
 
         ];
@@ -140,22 +141,13 @@ class SafehavenController extends WebhookController
 
             $loginResult = $this->getToken($companyID);
 
-            $body = [
-                "autoSweepDetails"  => [
-                    "schedule"      => "Instant",
-                    "accountNumber" => $this->debitAccount,
-                ],
-                "autoSweep"         => true,
-                "phoneNumber"       => $phone,
-                "emailAddress"      => $email,
-                "externalReference" => $customerReference,
-                "identityId"        => $bvnId,
-                "identityNumber"    => $bvn,
-                "identityType"      => "BVN",
-                "otp"               => $otp,
-                "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
+            $companyID = (int) $companyID;
 
-            ];
+            $body = match ($companyID) {
+
+                92      => $bodyNoOtp,
+                default => $bodyOTP,
+            };
 
             logInfo($body, "Safe Have request");
 

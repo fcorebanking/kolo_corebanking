@@ -7005,94 +7005,96 @@ class TransactionController extends Controller
             }
         }
 
-        function verifyAndReverseTransactionAdmin(Request $request)
-        {
+    }
 
-            $validation = Validator::make($request->all(), [
-                "transaction_reference" => "required|string",
-            ]);
+    public function verifyAndReverseTransactionAdmin(Request $request)
+    {
 
-            $partnerType = "others";
+        $validation = Validator::make($request->all(), [
+            "transaction_reference" => "required|string",
+        ]);
 
-            if ($validation->fails()) {
-                return response()->json(['status' => 0, 'message' => $validation->errors()->all()[0]]);
-            }
+        $partnerType = "others";
 
-            return $this->processVerifyAndReverseTransaction($request);
-
+        if ($validation->fails()) {
+            return response()->json(['status' => 0, 'message' => $validation->errors()->all()[0]]);
         }
 
-        function createPhysicalCard(Request $request)
-        {
-            // Disable service (optional)
-            // return response()->json(['status' => 0, 'message' => 'This service has been disabled']);
+        return $this->processVerifyAndReverseTransaction($request);
 
-            $transactionId                   = generateTransactionReference();
-            $customer                        = null;
-            $userID                          = $request->user_id;
-            $first_name                      = $request->first_name;
-            $last_name                       = $request->last_name;
-            $customer_sudo_account_id        = $request->customerId;
-            $preferred_virtual_card_currency = 1;
-            $auth                            = User::where('id', $userID)->first();
+    }
 
-            try {
-                // Call Safehaven API for physical card creation
-                $safehaven    = new SafehavenController();
-                $cardResponse = $safehaven->createPhysicalCard(
-                    $request,
-                    $transactionId,
-                    $customer,
-                    $customer_sudo_account_id
-                );
+    public function createPhysicalCard(Request $request)
+    {
+        // Disable service (optional)
+        // return response()->json(['status' => 0, 'message' => 'This service has been disabled']);
 
-                if (! $cardResponse['status']) {
-                    //  DB::rollback();
-                    return response()->json(['status' => 0, 'message' => $cardResponse['message']]);
-                } else {
+        $transactionId                   = generateTransactionReference();
+        $customer                        = null;
+        $userID                          = $request->user_id;
+        $first_name                      = $request->first_name;
+        $last_name                       = $request->last_name;
+        $customer_sudo_account_id        = $request->customerId;
+        $preferred_virtual_card_currency = 1;
+        $auth                            = User::where('id', $userID)->first();
 
-                    $card2FAResponse = $safehaven->enrollcard2fa($cardResponse['result']['data']["_id"]);
-                    if ($card2FAResponse) {
-                        $cardDetailsResponse = $safehaven->getPhysicalCardDetials($cardResponse['result']['data']["_id"]);
-                    }
+        try {
+            // Call Safehaven API for physical card creation
+            $safehaven    = new SafehavenController();
+            $cardResponse = $safehaven->createPhysicalCard(
+                $request,
+                $transactionId,
+                $customer,
+                $customer_sudo_account_id
+            );
 
+            if (! $cardResponse['status']) {
+                //  DB::rollback();
+                return response()->json(['status' => 0, 'message' => $cardResponse['message']]);
+            } else {
+
+                $card2FAResponse = $safehaven->enrollcard2fa($cardResponse['result']['data']["_id"]);
+                if ($card2FAResponse) {
+                    $cardDetailsResponse = $safehaven->getPhysicalCardDetials($cardResponse['result']['data']["_id"]);
                 }
 
-                $cardTypeMap = [
-                    'visa'       => 1,
-                    'verve'      => 2,
-                    'mastercard' => 3,
-                    'afrigo'     => 4,
-                ];
+            }
+
+            $cardTypeMap = [
+                'visa'       => 1,
+                'verve'      => 2,
+                'mastercard' => 3,
+                'afrigo'     => 4,
+            ];
 
 // Normalize input to lowercase (to avoid case issues)
-                $inputCardType = strtolower($request->card_type);
+            $inputCardType = strtolower($request->card_type);
 
 // Get matching code (or null if not found)
-                $cardTypeCode = $cardTypeMap[$inputCardType] ?? null;
+            $cardTypeCode = $cardTypeMap[$inputCardType] ?? null;
 
-                UserCard::updateOrCreate(
-                    [
-                        "sudo_customer_id" => $cardResponse['customer_sudo_account_id'],
+            UserCard::updateOrCreate(
+                [
+                    "sudo_customer_id" => $cardResponse['customer_sudo_account_id'],
 
-                        "exp_date"         => $cardResponse['result']['data']["expiryYear"] ?? "",
-                    ],
-                    [
-                        "user_id"   => $userID,
-                        "card_name" => "{$first_name} {$last_name}",
-                        "card_number"      => $cardResponse['result']['data']["maskedPan"],
-                        "masked_pan"       => $cardResponse['result']['data']["maskedPan"],
-                        "card_category_id" => 2,
-                        "card_type_id"     => $cardTypeCode,
-                        "card_reference"   => $cardResponse['result']['data']["_id"],
-                        "currency_id"      => $preferred_virtual_card_currency,
-                        "cvv"              => "",
-                        "created_by"       => $userID,
+                    "exp_date"         => $cardResponse['result']['data']["expiryYear"] ?? "",
+                ],
+                [
+                    "user_id"   => $userID,
+                    "card_name" => "{$first_name} {$last_name}",
+                    "card_number"      => $cardResponse['result']['data']["maskedPan"],
+                    "masked_pan"       => $cardResponse['result']['data']["maskedPan"],
+                    "card_category_id" => 2,
+                    "card_type_id"     => $cardTypeCode,
+                    "card_reference"   => $cardResponse['result']['data']["_id"],
+                    "currency_id"      => $preferred_virtual_card_currency,
+                    "cvv"              => "",
+                    "created_by"       => $userID,
 
-                    ]);
+                ]);
 
-                // Save card details
-                /*   UserCard::create([
+            // Save card details
+            /*   UserCard::create([
                 "user_id"   => $customer->id,
                 "card_name" => "{$customer->first_name} {$customer->last_name}",
                 "card_type_id"     => $cardTypeCode,
@@ -7107,324 +7109,324 @@ class TransactionController extends Controller
                 "sudo_customer_id" => $cardResponse['sudo_customer_id'],
             ]);*/
 
-                CardRequestLog::create([
-                    "user_id"    => $userID,
-                    "company_id" => $auth->company_id,
-                ]);
-
-                $pin = $cardDetailsResponse['data']['defaultPin'];
-                return response()->json(['status' => 1, 'message' => "Card mapped successfully Deafult Pin is {$pin} ", 'data' => $cardResponse]);
-
-            } catch (\Exception $e) {
-                // DB::rollback();
-                return response()->json(['status' => 0, 'message' => $e->getMessage()]);
-            }
-        }
-
-        function getGiftCardSubCategories()
-        {
-            $neonDataApi = new NeonDataApiController();
-            return $neonDataApi->getGiftCardSubCategories();
-        }
-
-        function postGiftTransaction(Request $request)
-        {
-            $neonDataApi = new NeonDataApiController();
-            $response    = $neonDataApi->giftCardTransaction($request);
-            if ($response) {
-                return response()->json(['status' => 1, 'message' => "Gift Card Transaction Successful"], 200);
-            } else {
-                response()->json(['status' => 0, 'message' => "Gift Card Transaction failed"], 400);
-            }
-        }
-
-        function createVPayAccount(Request $request)
-        {
-            $vpay = new VPayController();
-
-            $companyRecord    = Company::where('id', $request->company)->first();
-            $userRecord       = User::where('company_id', $request->company)->where('user_type_id', 2)->first();
-            $businessname     = $companyRecord->short_name;
-            $email            = $userRecord->email;
-            $phone            = $userRecord->phone;
-            $contactfirstname = $businessname;
-            $contactlastname  = $companyRecord->first_name;
-            $bvn              = $userRecord->bvn;
-
-            return $vpay->createAccount($businessname, $email, $phone, $contactfirstname, $contactlastname, $bvn);
-
-        }
-
-        function initiateCreateSafehavenMaintenanceAccount(Request $request)
-        {
-
-            $company = Company::with('allStaff')->find($request->company);
-
-            $admin = $company->allStaff->first();
-
-            $companyIDforSafeHavenAccountCheck = 14; //finova account
-
-            $this->safeHavenIdentityCheckResponse($admin->bvn, $companyIDforSafeHavenAccountCheck);
-        }
-
-        function createSafehavenMaintenancAccount(Request $request)
-        {
-            $company = Company::with('allStaff')->find($request->company);
-
-            $admin = $company->allStaff->first();
-
-            if (! $admin) {
-                \logInfo(["company_id" => $company->id, "error" => "No admin found"], 'Create Safehaven Account');
-                response()->json(['status' => 0, 'message' => "No admin found"], 400);
-            }
-            $firstName = $company->short_name;
-
-            $lastName = "";
-
-            $email = $admin->email;
-
-            $phone = $admin->phone;
-
-            $customerReference = generateTransactionReference();
-
-            $bvn = $admin->bvn;
-
-            $otp = $request->otp;
-
-            $bvnId = $request->bvnId;
-
-            $companyIDforSafeHavenAccountCheck = 14; //finova account
-
-            $safeHavenController = new SafehavenController();
-
-            return $safeHavenController->createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyIDforSafeHavenAccountCheck);
-        }
-
-        function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)
-        {
-
-            $amount      = 0;
-            $totalAmount = 0;
-
-            $amount      = $request->final_amount;
-            $totalAmount = $request->final_amount;
-
-            $ledger_cr = null;
-            $ledger_dr = null;
-
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger($transaction_type, \auth()->user()->company_id);
-            if ($ledger_Settings) {
-                $ledger_cr = $ledger_Settings->ledger_cr;
-                $ledger_dr = $ledger_Settings->ledger_dr;
-            }
-
-            $transaction = transactions::create([
-                "balance_before"         => $customerBalance['balance'],
-                "amount"                 => $totalAmount,
-                "account_id"             => $customerBalance['account_id'],
-                "description"            => $description,
-                "transaction_reference"  => $transactionId,
-                "company_balance_before" => $customerBalance["company_balance"],
-                "company_amount"         => 0,
-                "company_id"             => auth()->user()->company_id,
-                "transaction_remarks_id" => 6,
-                "branch_id"              => \auth()->user()->branch_id,
-                "transaction_type_id"    => $transaction_type,
-                "credit_debit_type_id"   => 2,
-                "created_date"           => date('Y-m-d'),
-                "created_by"             => auth()->user()->id,
-                "ledger_cr"              => $ledger_cr,
-                "ledger_dr"              => $ledger_dr,
+            CardRequestLog::create([
+                "user_id"    => $userID,
+                "company_id" => $auth->company_id,
             ]);
-        }
 
-        function sendTransactionReportEmail($subtext, $msg, $reason, $user)
-        {
+            $pin = $cardDetailsResponse['data']['defaultPin'];
+            return response()->json(['status' => 1, 'message' => "Card mapped successfully Deafult Pin is {$pin} ", 'data' => $cardResponse]);
 
-            $data = [
-                'subtext'      => $subtext,
-                'reason'       => $reason,
-                'desc'         => $msg,
-                'company_name' => $user->company->company_name,
-                'user'         => $user->company->company_name,
-            ];
-
-            try {
-                Mail::to($user->email)->send(new TransactionReport($data));
-            } catch (\Throwable $e) {
-                \Log::error("Failed to send TransactionReport email: " . $e->getMessage());
-                // continue silently
-            }
-        }
-
-        function checkCompanyBalanceThresholdTransaction($amount)
-        {
-
-            $response   = [];
-            $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
-            $amountLeft = $userWallet->balance - $amount;
-
-            logInfo($amountLeft, "amountLeft for company");
-
-            if ($amount > 0) {
-
-                if ($amountLeft < 100001) {
-                    $response = ["status" => false, 'message' => "Issue with this service. Contact Support"];
-                } else {
-                    $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->company_id, 'balance' => $userWallet->balance];
-                }
-            } else {
-                $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
-            }
-            return $response;
-
-        }
-
-        function vtPassControllerSercice($action, array $data = [])
-        {
-
-            $transactionId      = $data['transactionId'] ?? null;
-            $networkProvider    = $data['networkProvider'] ?? null;
-            $request            = $data['request'] ?? null;
-            $selectedDataBundle = $data['selectedDataBundle'] ?? null;
-            $cableTV            = $data['cableTV'] ?? null;
-
-            $vtPassController = new VTPassController();
-
-            if ($action == "buyAirTime") {
-                $networkProvider = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
-
-                $service = $vtPassController->buyAirtime($transactionId, $networkProvider, $request->final_amount, $request->phone_number);
-            }
-            if ($action == "buyData") {
-                $service = $vtPassController->buyData($transactionId, $request->network_provider, $request->data_plan, $selectedDataBundle['variation_amount'], $request->phone_number);
-            }
-            if ($action == "buyElectricity") {
-                $service = $vtPassController->buyElectricity(
-                    $transactionId,
-                    $request->electricity_disco,
-                    $request->meter_type,
-                    $request->meter_number,
-                    $request->final_amount,
-                    $request->phone_number
-                );
-                logInfo($service, "VTPass Electricity Response");
-            }
-            if ($action == "subscribeCableTV") {
-                $subscribeCableTV = $vtPassController->subscribeCableTV($transactionId, $request->cable_tv_type, $request->subscription_plan, $request->smart_card_number, $request->final_amount, $request->phone_number);
-            }
-            if ($action == "verifyMeterNumber") {
-                $service = $vtPassController->verifyMeterNumber($request->meter_number, $request->electricity_disco, $request->type);
-            }
-            if ($action == "verifyCableTV") {
-                $service = $vtPassController->verifyCableTV($request->smart_card_number, $request->cable_tv_type);
-            }
-            if ($action == "getDataBundles") {
-
-                $service = $vtPassController->getDataBundles($networkProvider);
-            }
-
-            if ($action == "getDataBundlesList") {
-                $networkProvider = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
-                $service         = $vtPassController->getDataBundles($networkProvider);
-            }
-
-            if ($action == "getSubscriptions") {
-
-                $service = $vtPassController->getSubscriptions($cableTV);
-            }
-
-            return $service;
-        }
-        function safeHavenControllerSercice($action, array $data = [])
-        {
-
-            $transactionId      = $data['transactionId'] ?? null;
-            $networkProvider    = $data['networkProvider'] ?? null;
-            $request            = $data['request'] ?? null;
-            $selectedDataBundle = $data['selectedDataBundle'] ?? null;
-            $cableTV            = $data['cableTV'] ?? null;
-
-            $safeHavenController = new SafehavenController();
-            $company_id          = company_wallet::where('company_id', auth()->user()->company_id)->first()->company_id;
-            $company_id          = (int) $company_id;
-
-            $getService = $safeHavenController->getService($action, $company_id);
-
-            if ($request->network_provider != null) {
-                $networkProvider = strtolower($request->network_provider);
-
-                $networkProvider = preg_replace('/-data$/', '', $networkProvider);
-
-                $networkProvider    = $networkProvider === '9mobile' ? 'etisalat' : $networkProvider;
-                $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_id, strtoupper($networkProvider));
-            } else {
-                if ($request->electricity_disco != null) {
-                    $disco = $request->electricity_disco;
-                    $map   = [
-                        'abuja-electric'        => 'AEDC',
-                        'ibadan-electric'       => 'IBEDC',
-                        'eko-electric'          => 'EKEDC',
-                        'ikeja-electric'        => 'IKEDC',
-                        'portharcourt-electric' => 'PHEDC',
-                        'jos-electric'          => 'JEDC',
-                        'kano-electric'         => 'KEDCO',
-                        'enugu-electric'        => 'EEDC',
-                        'yola-electric'         => 'YEDC',
-                        'benin-electric'        => 'BEDC',
-                        'kaduna-electric'       => 'KAEDC',
-                        // future actions can go here
-                    ];
-
-                    $provider = $map[$disco];
-
-                }
-                $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_id, strtoupper($provider));
-            }
-
-            $getServiceCategoryID = $getServiceCategory['data']['_id'];
-
-            if ($action == "buyAirTime") {
-
-                $service = $safeHavenController->buyAirtime($transactionId, $getServiceCategoryID, $request->final_amount, $request->phone_number, $company_id);
-            }
-            if ($action == "buyData") {
-
-                $service = $safeHavenController->buyData($transactionId, $getServiceCategoryID, $getServiceCategory['data']['service'], $request->final_amount, $request->phone_number, $company_id);
-            }
-
-            if ($action == "buyElectricity") {
-
-                $service = $safeHavenController->buyElectricity(
-                    $transactionId,
-                    $request->electricity_disco,
-                    $request->meter_type,
-                    $request->meter_number,
-                    $request->final_amount,
-                    $request->phone_number,
-                    $company_id
-                );
-                logInfo($service, "VTPass Electricity Response");
-            }
-
-            if ($action == "subscribeCableTV") {
-
-                $service = $safeHavenController->subscribeCableTV($transactionId, $getServiceCategoryID, $request->subscription_plan, $request->smart_card_number, $request->final_amount, $request->phone_number, $company_id);
-            }
-
-            if ($action == "verifyMeterNumber") {
-                $service = $safeHavenController->verifyMeterNumber($request->meter_number, $getServiceCategoryID, $company_id);
-            }
-
-            if ($action == "verifyCableTV") {
-                $service = $safeHavenController->verifyCableTV($request->smart_card_number, $getServiceCategoryID, $company_id);
-            }
-
-            if ($action == "getDataBundles") {
-
-                $service = $safeHavenController->getDataBundles($networkProvider);
-            }
-
-            return $service;
+        } catch (\Exception $e) {
+            // DB::rollback();
+            return response()->json(['status' => 0, 'message' => $e->getMessage()]);
         }
     }
+
+    public function getGiftCardSubCategories()
+    {
+        $neonDataApi = new NeonDataApiController();
+        return $neonDataApi->getGiftCardSubCategories();
+    }
+
+    public function postGiftTransaction(Request $request)
+    {
+        $neonDataApi = new NeonDataApiController();
+        $response    = $neonDataApi->giftCardTransaction($request);
+        if ($response) {
+            return response()->json(['status' => 1, 'message' => "Gift Card Transaction Successful"], 200);
+        } else {
+            response()->json(['status' => 0, 'message' => "Gift Card Transaction failed"], 400);
+        }
+    }
+
+    public function createVPayAccount(Request $request)
+    {
+        $vpay = new VPayController();
+
+        $companyRecord    = Company::where('id', $request->company)->first();
+        $userRecord       = User::where('company_id', $request->company)->where('user_type_id', 2)->first();
+        $businessname     = $companyRecord->short_name;
+        $email            = $userRecord->email;
+        $phone            = $userRecord->phone;
+        $contactfirstname = $businessname;
+        $contactlastname  = $companyRecord->first_name;
+        $bvn              = $userRecord->bvn;
+
+        return $vpay->createAccount($businessname, $email, $phone, $contactfirstname, $contactlastname, $bvn);
+
+    }
+
+    public function initiateCreateSafehavenMaintenanceAccount(Request $request)
+    {
+
+        $company = Company::with('allStaff')->find($request->company);
+
+        $admin = $company->allStaff->first();
+
+        $companyIDforSafeHavenAccountCheck = 14; //finova account
+
+        $this->safeHavenIdentityCheckResponse($admin->bvn, $companyIDforSafeHavenAccountCheck);
+    }
+
+    public function createSafehavenMaintenancAccount(Request $request)
+    {
+        $company = Company::with('allStaff')->find($request->company);
+
+        $admin = $company->allStaff->first();
+
+        if (! $admin) {
+            \logInfo(["company_id" => $company->id, "error" => "No admin found"], 'Create Safehaven Account');
+            response()->json(['status' => 0, 'message' => "No admin found"], 400);
+        }
+        $firstName = $company->short_name;
+
+        $lastName = "";
+
+        $email = $admin->email;
+
+        $phone = $admin->phone;
+
+        $customerReference = generateTransactionReference();
+
+        $bvn = $admin->bvn;
+
+        $otp = $request->otp;
+
+        $bvnId = $request->bvnId;
+
+        $companyIDforSafeHavenAccountCheck = 14; //finova account
+
+        $safeHavenController = new SafehavenController();
+
+        return $safeHavenController->createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyIDforSafeHavenAccountCheck);
+    }
+
+    private function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)
+    {
+
+        $amount      = 0;
+        $totalAmount = 0;
+
+        $amount      = $request->final_amount;
+        $totalAmount = $request->final_amount;
+
+        $ledger_cr = null;
+        $ledger_dr = null;
+
+        $ledger_Settings = get_CR_DR_TXN_Type_Ledger($transaction_type, \auth()->user()->company_id);
+        if ($ledger_Settings) {
+            $ledger_cr = $ledger_Settings->ledger_cr;
+            $ledger_dr = $ledger_Settings->ledger_dr;
+        }
+
+        $transaction = transactions::create([
+            "balance_before"         => $customerBalance['balance'],
+            "amount"                 => $totalAmount,
+            "account_id"             => $customerBalance['account_id'],
+            "description"            => $description,
+            "transaction_reference"  => $transactionId,
+            "company_balance_before" => $customerBalance["company_balance"],
+            "company_amount"         => 0,
+            "company_id"             => auth()->user()->company_id,
+            "transaction_remarks_id" => 6,
+            "branch_id"              => \auth()->user()->branch_id,
+            "transaction_type_id"    => $transaction_type,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => auth()->user()->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
+        ]);
+    }
+
+    private function sendTransactionReportEmail($subtext, $msg, $reason, $user)
+    {
+
+        $data = [
+            'subtext'      => $subtext,
+            'reason'       => $reason,
+            'desc'         => $msg,
+            'company_name' => $user->company->company_name,
+            'user'         => $user->company->company_name,
+        ];
+
+        try {
+            Mail::to($user->email)->send(new TransactionReport($data));
+        } catch (\Throwable $e) {
+            \Log::error("Failed to send TransactionReport email: " . $e->getMessage());
+            // continue silently
+        }
+    }
+
+    private function checkCompanyBalanceThresholdTransaction($amount)
+    {
+
+        $response   = [];
+        $userWallet = company_wallet::where('company_id', auth()->user()->company_id)->first();
+        $amountLeft = $userWallet->balance - $amount;
+
+        logInfo($amountLeft, "amountLeft for company");
+
+        if ($amount > 0) {
+
+            if ($amountLeft < 100001) {
+                $response = ["status" => false, 'message' => "Issue with this service. Contact Support"];
+            } else {
+                $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->company_id, 'balance' => $userWallet->balance];
+            }
+        } else {
+            $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        }
+        return $response;
+
+    }
+
+    private function vtPassControllerSercice($action, array $data = [])
+    {
+
+        $transactionId      = $data['transactionId'] ?? null;
+        $networkProvider    = $data['networkProvider'] ?? null;
+        $request            = $data['request'] ?? null;
+        $selectedDataBundle = $data['selectedDataBundle'] ?? null;
+        $cableTV            = $data['cableTV'] ?? null;
+
+        $vtPassController = new VTPassController();
+
+        if ($action == "buyAirTime") {
+            $networkProvider = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
+
+            $service = $vtPassController->buyAirtime($transactionId, $networkProvider, $request->final_amount, $request->phone_number);
+        }
+        if ($action == "buyData") {
+            $service = $vtPassController->buyData($transactionId, $request->network_provider, $request->data_plan, $selectedDataBundle['variation_amount'], $request->phone_number);
+        }
+        if ($action == "buyElectricity") {
+            $service = $vtPassController->buyElectricity(
+                $transactionId,
+                $request->electricity_disco,
+                $request->meter_type,
+                $request->meter_number,
+                $request->final_amount,
+                $request->phone_number
+            );
+            logInfo($service, "VTPass Electricity Response");
+        }
+        if ($action == "subscribeCableTV") {
+            $subscribeCableTV = $vtPassController->subscribeCableTV($transactionId, $request->cable_tv_type, $request->subscription_plan, $request->smart_card_number, $request->final_amount, $request->phone_number);
+        }
+        if ($action == "verifyMeterNumber") {
+            $service = $vtPassController->verifyMeterNumber($request->meter_number, $request->electricity_disco, $request->type);
+        }
+        if ($action == "verifyCableTV") {
+            $service = $vtPassController->verifyCableTV($request->smart_card_number, $request->cable_tv_type);
+        }
+        if ($action == "getDataBundles") {
+
+            $service = $vtPassController->getDataBundles($networkProvider);
+        }
+
+        if ($action == "getDataBundlesList") {
+            $networkProvider = $request->network_provider == '9mobile' ? 'etisalat' : $request->network_provider;
+            $service         = $vtPassController->getDataBundles($networkProvider);
+        }
+
+        if ($action == "getSubscriptions") {
+
+            $service = $vtPassController->getSubscriptions($cableTV);
+        }
+
+        return $service;
+    }
+    private function safeHavenControllerSercice($action, array $data = [])
+    {
+
+        $transactionId      = $data['transactionId'] ?? null;
+        $networkProvider    = $data['networkProvider'] ?? null;
+        $request            = $data['request'] ?? null;
+        $selectedDataBundle = $data['selectedDataBundle'] ?? null;
+        $cableTV            = $data['cableTV'] ?? null;
+
+        $safeHavenController = new SafehavenController();
+        $company_id          = company_wallet::where('company_id', auth()->user()->company_id)->first()->company_id;
+        $company_id          = (int) $company_id;
+
+        $getService = $safeHavenController->getService($action, $company_id);
+
+        if ($request->network_provider != null) {
+            $networkProvider = strtolower($request->network_provider);
+
+            $networkProvider = preg_replace('/-data$/', '', $networkProvider);
+
+            $networkProvider    = $networkProvider === '9mobile' ? 'etisalat' : $networkProvider;
+            $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_id, strtoupper($networkProvider));
+        } else {
+            if ($request->electricity_disco != null) {
+                $disco = $request->electricity_disco;
+                $map   = [
+                    'abuja-electric'        => 'AEDC',
+                    'ibadan-electric'       => 'IBEDC',
+                    'eko-electric'          => 'EKEDC',
+                    'ikeja-electric'        => 'IKEDC',
+                    'portharcourt-electric' => 'PHEDC',
+                    'jos-electric'          => 'JEDC',
+                    'kano-electric'         => 'KEDCO',
+                    'enugu-electric'        => 'EEDC',
+                    'yola-electric'         => 'YEDC',
+                    'benin-electric'        => 'BEDC',
+                    'kaduna-electric'       => 'KAEDC',
+                    // future actions can go here
+                ];
+
+                $provider = $map[$disco];
+
+            }
+            $getServiceCategory = $safeHavenController->getServiceCategory($getService, $company_id, strtoupper($provider));
+        }
+
+        $getServiceCategoryID = $getServiceCategory['data']['_id'];
+
+        if ($action == "buyAirTime") {
+
+            $service = $safeHavenController->buyAirtime($transactionId, $getServiceCategoryID, $request->final_amount, $request->phone_number, $company_id);
+        }
+        if ($action == "buyData") {
+
+            $service = $safeHavenController->buyData($transactionId, $getServiceCategoryID, $getServiceCategory['data']['service'], $request->final_amount, $request->phone_number, $company_id);
+        }
+
+        if ($action == "buyElectricity") {
+
+            $service = $safeHavenController->buyElectricity(
+                $transactionId,
+                $request->electricity_disco,
+                $request->meter_type,
+                $request->meter_number,
+                $request->final_amount,
+                $request->phone_number,
+                $company_id
+            );
+            logInfo($service, "VTPass Electricity Response");
+        }
+
+        if ($action == "subscribeCableTV") {
+
+            $service = $safeHavenController->subscribeCableTV($transactionId, $getServiceCategoryID, $request->subscription_plan, $request->smart_card_number, $request->final_amount, $request->phone_number, $company_id);
+        }
+
+        if ($action == "verifyMeterNumber") {
+            $service = $safeHavenController->verifyMeterNumber($request->meter_number, $getServiceCategoryID, $company_id);
+        }
+
+        if ($action == "verifyCableTV") {
+            $service = $safeHavenController->verifyCableTV($request->smart_card_number, $getServiceCategoryID, $company_id);
+        }
+
+        if ($action == "getDataBundles") {
+
+            $service = $safeHavenController->getDataBundles($networkProvider);
+        }
+
+        return $service;
+    }
+}

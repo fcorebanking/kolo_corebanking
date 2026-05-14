@@ -6909,7 +6909,7 @@ class TransactionController extends Controller
             return response()->json(['status' => 0, 'message' => "This transaction is not a bank transfer"]);
         }
 
-        $startingDate    = Carbon::parse('2026-04-26 00:00:00');
+        $startingDate    = Carbon::parse('2026-05-12 00:00:00');
         $transactionDate = Carbon::parse($transaction->created_at);
 
         if ($startingDate->gt($transactionDate)) {

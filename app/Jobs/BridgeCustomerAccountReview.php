@@ -24,7 +24,7 @@ class BridgeCustomerAccountReview
 
     public function handle()
     {
-        \logInfo('pending Customer Saving Maintenance cron job', 'Maintenance');
+        \logInfo('Bridge CustomerAccountReview', 'Account Review');
 
         $today = now()->toDateString();
 

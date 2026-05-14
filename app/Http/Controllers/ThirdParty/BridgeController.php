@@ -238,6 +238,8 @@ class BridgeController extends WebhookController
         $customerID = $customer->remittar_customer_id;
         $endpoint   = "$this->baseUrl/customers/$customer";
 
+        logInfo(json_encode($endpoint), "Bride Customer Get endpoint");
+
         try {
             $result = $this->bridgeGetRequest($endpoint);
 

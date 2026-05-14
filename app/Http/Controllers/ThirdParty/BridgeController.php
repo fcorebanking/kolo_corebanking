@@ -235,7 +235,7 @@ class BridgeController extends WebhookController
     public function getBridgeCustomerInfo($user_id)
     {
         $customer   = auth('api')->user() ?? User::where('id', $user_id)->first();
-        $customerID = $customer->accounts()->where('currency_id', $customer->company->currency_id)->first()->acc_reference;
+        $customerID = $customer->remittar_customer_id;
         $endpoint   = "$this->baseUrl/customers/$customer";
 
         try {

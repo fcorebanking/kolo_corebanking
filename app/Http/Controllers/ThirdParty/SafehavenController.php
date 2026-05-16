@@ -137,7 +137,7 @@ class SafehavenController extends WebhookController
                 "identityId"        => $bvnId,
                 "identityNumber"    => $bvn,
                 "identityType"      => "BVN",
-                "dateOfBirth"       => $this->format_number($dob),
+                "dateOfBirth"       => $dob,
                 "booleanMatch"      => true,
                 "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
 

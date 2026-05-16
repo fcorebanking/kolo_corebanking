@@ -131,7 +131,7 @@ class SafehavenController extends WebhookController
                     "accountNumber" => $this->debitAccount,
                 ],
                 "autoSweep"         => true,
-                "phoneNumber"       => $phone,
+                "phoneNumber"       => $this->format_number($phone),
                 "emailAddress"      => $email,
                 "externalReference" => $customerReference,
                 "identityId"        => $bvnId,

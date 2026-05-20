@@ -68,7 +68,11 @@ class LoginController extends Controller
         if (Auth::user()->company->status_id != 1) {
             return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
         }
-        if (Auth::user()->company->id == 26 || Auth::user()->company->id == 37/*|| Auth::user()->company->id == 84*/) {
+        /*   if (Auth::user()->company->id == 26 || Auth::user()->company->id == 37/*|| Auth::user()->company->id == 84) {
+            return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
+        }*/
+
+        if (in_array(Auth::user()->company->id, [26, 32, 37, 51, 54])) {
             return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
         }
 

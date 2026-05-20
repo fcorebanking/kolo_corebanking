@@ -108,7 +108,7 @@ class IdentityPassController extends Controller
         ];
 
         try {
-            $verifyNIN = $$this->identitypassPostRequest($url, $body);
+            $verifyNIN = $this->identitypassPostRequest($url, $body);
 
             logInfo(json_encode($verifyNIN), "Verify NIN Rates");
 

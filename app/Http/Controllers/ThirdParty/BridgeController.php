@@ -185,6 +185,12 @@ class BridgeController extends WebhookController
             ];
         }
 
+        if ($request->issuing_country == "NGA") {
+            $identifying_information = [
+                $body_identifying_information, $identifying_information_tin,
+            ];
+        }
+
         $body = [
             "type"                    => "individual",
             "first_name"              => $firstName,

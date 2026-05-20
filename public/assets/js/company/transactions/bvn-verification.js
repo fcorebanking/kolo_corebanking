@@ -92,7 +92,7 @@ function verifyBVN() {
                     displayInfo('phone_number1_div', 'phone_number1', data.data.telephoneno)
                     displayInfo('gender_div', 'gender', data.data.gender == "M" ? "Male" : "Female")
                     $('#bvn_image').show();
-                    console.log(data.data.base64Image);
+                    console.log(data.data.photo);
                     $('#bvn_image').attr("src", "data:image/png;base64," + data.data.photo);
                 } else {
 

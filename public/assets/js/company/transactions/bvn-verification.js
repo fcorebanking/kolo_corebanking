@@ -85,11 +85,11 @@ function verifyBVN() {
                 } else if (verificationType == "nin") {
 
                     displayInfo('titleHeader_div', 'titleHeader', "NIN Details")
-                    displayInfo('first_name_div', 'first_name', data.data.firstName)
-                    displayInfo('middle_name_div', 'middle_name', data.data.middleName)
+                    displayInfo('first_name_div', 'first_name', data.data.firstname)
+                    displayInfo('middle_name_div', 'middle_name', data.data.middlename)
                     displayInfo('last_name_div', 'last_name', data.data.surname)
-                    displayInfo('date_of_birth_div', 'date_of_birth', data.data.dateOfBirth)
-                    displayInfo('phone_number1_div', 'phone_number1', data.data.phone)
+                    displayInfo('date_of_birth_div', 'date_of_birth', data.data.birthdate)
+                    displayInfo('phone_number1_div', 'phone_number1', data.data.telephoneno)
                     displayInfo('gender_div', 'gender', data.data.gender == "M" ? "Male" : "Female")
                     $('#bvn_image').show();
                     console.log(data.data.base64Image);

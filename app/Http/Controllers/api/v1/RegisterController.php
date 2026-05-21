@@ -382,7 +382,7 @@ class RegisterController extends Controller
 
             $accountNumber = $virtual_acccount_number;
 
-            $welcomeMessage = "Welcome $request->first_name. Account No: $accountNumber, Bank: $bank->bank_name. Kindly upload your Valid ID & Recent Utility bill. T&Cs apply";
+            $welcomeMessage = "Welcome $request->first_name. Account No: $accountNumber, Company: $companyRecord->short_name. Kindly upload your Valid ID & Recent Utility bill. T&Cs apply";
 
             // $welcomeMessage = "Welcome FirstName! Your account number is 5080135881. Bank Name: Asset Matrix MFB.  upload your Valid ID and link BVN. Have Access via USSD. Simply dial *7006*10#. T&Cs applyEnjoy 24/7.";
             //             sendSMS($userid, $msg, $type = true, $charge_customer already exists= true, $title = 'Create Account', $accno = '', $usesms = 0, $isApi = false, $all_sms_email = 1, $sms_logdata = [])

@@ -1887,14 +1887,14 @@ class UserController extends Controller
                 'company_id'   => $companyId,
             ])->first();
 
+            \logInfo($user, "api saving account user");
+
             if (! $user) {
                 return response()->json([
                     'status'  => 0,
                     'message' => 'User not found',
                 ], 404);
             }
-
-            \logInfo($user, "api saving account user");
 
             // ✅ Get saving product
             $saving = savings_product::where([

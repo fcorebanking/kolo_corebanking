@@ -1885,7 +1885,7 @@ class UserController extends Controller
                 'user_type_id' => 1,
                 'uuid'         => $request->uuid,
                 'company_id'   => $companyId,
-            ])->first();
+            ])->first() ?? $authUser;
 
             \logInfo($user, "api saving account user");
 

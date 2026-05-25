@@ -242,7 +242,7 @@ class BridgeController extends WebhookController
     {
         $customer   = auth('api')->user() ?? User::where('id', $user_id)->first();
         $customerID = $customer->remittar_customer_id;
-        $endpoint   = "$this->baseUrl/customers/$customer";
+        $endpoint   = "$this->baseUrl/customers/$customerID";
 
         logInfo(json_encode($endpoint), "Bride Customer Get endpoint");
 

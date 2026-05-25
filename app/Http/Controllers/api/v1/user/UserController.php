@@ -1976,7 +1976,12 @@ class UserController extends Controller
 
     private function shouldCreateLocalAccount($request, $company): bool
     {
-        return $company->currency_id == 1 || $request->has('bvn');
+        if ($reqest->has('currency_id')) {
+            return ($request->currency_id == 1 && $company->currency_id == 1) || $request->has('bvn');
+        } else {
+            return $company->currency_id == 1 || $request->has('bvn');
+        }
+
     }
 
     private function createLocalAccount($request, $user, $company, $bankId)

@@ -381,6 +381,7 @@ class CustomerController extends Controller
                     $virtualAccount->bvnId     = $bvnResponse['data']['_id'];
                     $virtualAccount->otp       = "0000";
                     $virtualAccount->companyID = $auth->company->id;
+                    $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
                 }
             }
 

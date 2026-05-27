@@ -13,12 +13,15 @@ class SafeHavenService
 
             63 => $this->roseBulgePayredentials(), //7000299948
             67 => $this->oneZoyaPayredentials(),   //7000320798
-            92 => $this->jethoPayredentials(),     // 7000528130
-            97 => $this->dfsPayredentials(),       // 7000671610
+            80 => $this->tomisinPayCredentials(),
+            92 => $this->jethoPayredentials(), // 7000528130
+            97 => $this->dfsPayredentials(),   // 7000671610
             default
                => $this->finovaCredentials(), //
         };
     }
+
+    //expires 2027-03-11T16:45:54Z - in 9 months
 
     public function finovaCredentials()
     {
@@ -36,6 +39,8 @@ class SafeHavenService
 
     }
 
+    //expires 2027-03-11T16:45:54Z - in 9 months
+
     public function jethoPayredentials()
     {
         return [
@@ -51,6 +56,8 @@ class SafeHavenService
         ];
 
     }
+
+    //expires 2027-03-11T16:45:54Z - in 9 months
 
     public function dfsPayredentials()
     {
@@ -68,6 +75,8 @@ class SafeHavenService
 
     }
 
+    //expires 2027-03-11T16:45:54Z - in 9 months
+
     public function oneZoyaPayredentials()
     {
         return [
@@ -84,6 +93,8 @@ class SafeHavenService
 
     }
 
+    //expires 2027-03-11T16:45:54Z - in 9 months
+
     public function roseBulgePayredentials()
     {
         return [
@@ -95,6 +106,22 @@ class SafeHavenService
             'client_assertion_live'      => 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb3JlLmZpbm92YS5uZyIsInN1YiI6IjkyMjI2MGVhZjhkYzQ2OTYzYWJlYjc2NzVlNGYyMDM2IiwiYXVkIjoiaHR0cHM6Ly9hcGkuc2FmZWhhdmVubWZiLmNvbSIsImlhdCI6MTc3NzI4NjM2OSwiZXhwIjoxODA0NzgzNTU0fQ.iyIog4fjzmop0QMqg4hZMdBFJoJ26PfU42_v_va5kVFQuBVRZ0pw4i4XpoI5K_hVz9A5vZo-sxVh660IQj1NYk_YQpe9f3ZcIjTzPlQHCXB-mEWjtQ1v_PsczXfEv1kvnpxy2sr_K8tty7t0ZUBj-r2LZHc3_s2iHFvnolAHhtk',
             'base_url_live'              => env('SAFEHAVEN_BASE_URL_LIVE', 'https://api.safehavenmfb.com/'),
             'debitAccount'               => "0113905054",
+
+        ];
+
+    }
+
+    public function tomisinPayCredentials()
+    {
+        return [
+            'owner'                      => 'RoseBulge',
+            'sendingAccount'             => "0114082640",
+            'grant_type_live'            => env('SAFEHAVEN_GRANT_TYPE_LIVE', 'client_credentials'),
+            'client_assertion_type_live' => env('SAFEHAVEN_CLIENT_ASSERTION_TYPE_LIVE', 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'),
+            'client_id_live'             => 'd3b6ed88797b77b01bd0a8c6e370130b',
+            'client_assertion_live'      => 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb3JlLmZpbm92YS5uZyIsInN1YiI6ImQzYjZlZDg4Nzk3Yjc3YjAxYmQwYThjNmUzNzAxMzBiIiwiYXVkIjoiaHR0cHM6Ly9hcGkuc2FmZWhhdmVubWZiLmNvbSIsImlhdCI6MTc3OTkwOTk0NiwiZXhwIjoxODExNDQ1Nzc1fQ.r7dhdx_9UW79HY0EVfmDFc69vpbzrg7-sOVcS3sM0uKTfTz5PyTW6Hn57GHBrA2qmhhF67uaKJ-jLbFJ19GXNqefm6dUnwNo0xp4qDaqxw5ruHSxIficMLl3HV41AJD2NNDDJhwBjS9AILcMj7F9PldA2X9yC-EorbNeTbeYSUA',
+            'base_url_live'              => env('SAFEHAVEN_BASE_URL_LIVE', 'https://api.safehavenmfb.com/'),
+            'debitAccount'               => "0114082640",
 
         ];
 

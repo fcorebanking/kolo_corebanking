@@ -237,7 +237,7 @@ class RegisterController extends Controller
                 $virtualAccount->bvnId     = $request->id;
                 $virtualAccount->otp       = $request->otp ?? "0000";
                 $virtualAccount->companyID = $request->company;
-
+                $virtualAccount->type = $request->has('nin') ? "NIN" : "BVN";
             }
             \logInfo(json_encode($virtualAccount), "virtualAccount Register Bank code ");
             $createAccountService = new AccountCreationService();

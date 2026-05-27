@@ -23,4 +23,5 @@ class VirtualAccountType
     public $otp;
     public $bvnId;
     public $country;
+    public $type;
 }

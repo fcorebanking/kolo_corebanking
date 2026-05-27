@@ -97,7 +97,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID, $dob)
+    public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID, $dob, $type)
     {
 
         $endpoint = "accounts/v2/subaccount";
@@ -119,7 +119,7 @@ class SafehavenController extends WebhookController
                 "externalReference" => $customerReference,
                 "identityId"        => $bvnId,
                 "identityNumber"    => $bvn,
-                "identityType"      => "BVN",
+                "identityType"      => $type ?? "BVN",
                 "otp"               => $otp,
                 "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
 
@@ -136,7 +136,7 @@ class SafehavenController extends WebhookController
                 "externalReference" => $customerReference,
                 "identityId"        => $bvnId,
                 "identityNumber"    => $bvn,
-                "identityType"      => "BVN",
+                "identityType"      => $type ?? "BVN",
                 "dateOfBirth"       => $dob,
                 "booleanMatch"      => true,
                 "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",

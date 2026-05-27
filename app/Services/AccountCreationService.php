@@ -128,7 +128,8 @@ class AccountCreationService
                 $virtualAccount->otp,
                 $virtualAccount->bvnId,
                 $virtualAccount->companyID,
-                $virtualAccount->dob
+                $virtualAccount->dob,
+                $virtualAccount->type,
 
             );
 

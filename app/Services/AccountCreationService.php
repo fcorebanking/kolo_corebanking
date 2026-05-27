@@ -125,6 +125,7 @@ class AccountCreationService
                 $virtualAccount->phone,
                 $requestReference,
                 $virtualAccount->bvn,
+                $virtualAccount->nin,
                 $virtualAccount->otp,
                 $virtualAccount->bvnId,
                 $virtualAccount->companyID,

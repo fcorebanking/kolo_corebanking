@@ -24,4 +24,5 @@ class VirtualAccountType
     public $bvnId;
     public $country;
     public $type;
+    public $nin;
 }

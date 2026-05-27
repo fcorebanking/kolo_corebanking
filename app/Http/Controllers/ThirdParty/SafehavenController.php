@@ -97,7 +97,7 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID, $dob, $type)
+    public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $nin, $otp, $bvnId, $companyID, $dob, $type)
     {
 
         $endpoint = "accounts/v2/subaccount";

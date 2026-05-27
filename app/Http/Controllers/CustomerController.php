@@ -373,6 +373,17 @@ class CustomerController extends Controller
             $virtualAccount->country                      = $auth->company->currency_id ?? "";
             $virtualAccount->companyAccountCreationStatus = $auth->company->setting->can_create_virtual_account;
 
+            if ($request->account_bank == '090286') {
+                $safehavenController = new SafehavenController();
+                $bvnResponse         = $safehavenController->verifyBVN($request->bvn, $request->company_id);
+
+                if ($bvnResponse['status']) {
+                    $virtualAccount->bvnId     = $bvnResponse['data']['_id'];
+                    $virtualAccount->otp       = "0000";
+                    $virtualAccount->companyID = $auth->company->id;
+                }
+            }
+
             $createAccountService = new AccountCreationService();
 
             $response = $createAccountService->createVirtualAccount($virtualAccount);

@@ -236,7 +236,7 @@ class RegisterController extends Controller
             if ($selectedBank->bank_code == '090286') {
                 $virtualAccount->bvnId     = $request->id;
                 $virtualAccount->otp       = $request->otp ?? "0000";
-                $virtualAccount->nin       = $request->nin ?? null;
+                $virtualAccount->nin       = $request->has('nin') ? $request->nin : $request->identityNumber;
                 $virtualAccount->companyID = $request->company;
                 $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
             }

@@ -11,15 +11,15 @@ class SafeHavenService
 
         return match ($company_id) {
 
-            46  => $this->myPayCredentials(),
+            46  => $this->myPayCredentials(), //7000219629
             63  => $this->roseBulgePayredentials(), //7000299948
             67  => $this->oneZoyaPayredentials(),   //7000320798
-            80  => $this->tomisinPayCredentials(),
+            80  => $this->tomisinPayCredentials(),//7000434624
             92  => $this->jethoPayredentials(), // 7000528130
-            96  => $this->benjafaPayCredentials(),
+            96  => $this->benjafaPayCredentials(),//7000645174
             97  => $this->dfsPayredentials(), // 7000671610
-            99  => $this->tsgPayCredentials(),
-            100 => $this->greenPayCredentials(),
+            99  => $this->tsgPayCredentials(), // 7000847167
+            100 => $this->greenPayCredentials(), //7000910744
             default
                 => $this->finovaCredentials(), //
         };

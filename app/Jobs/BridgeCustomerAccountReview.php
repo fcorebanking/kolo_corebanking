@@ -39,7 +39,7 @@ class BridgeCustomerAccountReview
                     if ($bridgeCustomerAccount['status'] == "incomplete") {
                         $currency_id = $customer->company->currency_id;
                         $body        = [
-                            "identifying_information" => [
+                            /*   "identifying_information" => [
                                 [
                                     "type"            => match ($currency_id) {
                                         4       => 'nino',
@@ -57,12 +57,18 @@ class BridgeCustomerAccountReview
                                     }, // fallback,
                                     "number"          => $userData->bvn,
                                 ],
-                            ],
+                            ],*/
+                            employment_status             => "self_employed",
+                            expected_monthly_payments_usd => "0_4999",
+                            "acting_as_intermediary"      => false,
+                            "most_recent_occupation"      => "CEO",
+                            "source_of_funds"             => savings,
+
                         ];
 
                         logInfo($body, "Bridge Cuustomer body");
 
-                        $baseUrl  = config('bridge.api_key_live');
+                        $baseUrl  = config('base_url_live');
                         $endpoint = "{$baseUrl}customers/{$userData->remittar_customer_id}";
 
                         logInfo($endpoint, "Bridge Cuustomer endpoint");
@@ -71,7 +77,7 @@ class BridgeCustomerAccountReview
 
                             ->put("{$baseUrl}{$endpoint}", $body);
 
-                        logInfo($updateAccount, "Bridge Cuustomer update account");
+                        logInfo($updateAccount, "Bridge Customer update account");
                     }
 
                     \logInfo('Message: Success BridgeCustomerAccountReview', 'Line: Success for ' . $userData->id);

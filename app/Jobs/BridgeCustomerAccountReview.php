@@ -38,7 +38,7 @@ class BridgeCustomerAccountReview
                     $bridgeCustomerAccount = $bridgeController->getBridgeCustomerInfo($userData->id);
                     logInfo(json_encode($bridgeCustomerAccount), "bridgeCustomerAccount Result");
                     if ($bridgeCustomerAccount['status'] == "incomplete") {
-                        $currency_id = $customer->company->currency_id;
+                        $currency_id = $userData->company->currency_id;
                         $body        = [
                             /*   "identifying_information" => [
                                 [

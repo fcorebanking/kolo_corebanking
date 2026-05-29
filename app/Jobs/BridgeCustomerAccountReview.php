@@ -59,7 +59,7 @@ class BridgeCustomerAccountReview
                                     "number"          => $userData->bvn,
                                 ],
                             ],*/
-                            employment_status             => "self_employed",
+                            "employment_status"           => "self_employed",
                             expected_monthly_payments_usd => "0_4999",
                             "acting_as_intermediary"      => false,
                             "most_recent_occupation"      => "CEO",

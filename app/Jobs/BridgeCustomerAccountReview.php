@@ -63,7 +63,7 @@ class BridgeCustomerAccountReview
                             "expected_monthly_payments_usd" => "0_4999",
                             "acting_as_intermediary"        => false,
                             "most_recent_occupation"        => "CEO",
-                            "source_of_funds"               => savings,
+                            "source_of_funds"               => "savings",
 
                         ];
 

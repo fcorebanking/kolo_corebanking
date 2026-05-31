@@ -69,7 +69,7 @@ class BridgeCustomerAccountReview
 
                         logInfo($body, "Bridge Cuustomer body");
 
-                        $baseUrl  = config('base_url_live');
+                        $baseUrl  = config('bridge.base_url_live');
                         $endpoint = "{$baseUrl}customers/{$userData->remittar_customer_id}";
 
                         logInfo($endpoint, "Bridge Cuustomer endpoint");

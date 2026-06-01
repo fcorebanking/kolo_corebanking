@@ -50,7 +50,7 @@ class BridgeCustomerAccountReview
                             'employment_status'             => 'self_employed',
                             'expected_monthly_payments_usd' => '0_4999',
                             'acting_as_intermediary'        => false,
-                            'most_recent_occupation'        => 'CEO',
+                            'most_recent_occupation'        => 111011,
                             'source_of_funds'               => 'savings',
                         ];
 
@@ -61,9 +61,7 @@ class BridgeCustomerAccountReview
 
                         logInfo($endpoint, "Bridge Cuustomer endpoint");
 
-                        $updateAccount = Http::withHeaders($this->bridgeHeader('ide'))
-
-                            ->put("{$baseUrl}{$endpoint}", $body);
+                        $updateAccount = Http::withHeaders($this->bridgeHeader('ide'))->put("{$baseUrl}{$endpoint}", $body);
                         // Check response
                         if ($response->successful()) {
                             $data = $response->json();

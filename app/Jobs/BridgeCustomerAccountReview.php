@@ -50,7 +50,7 @@ class BridgeCustomerAccountReview
                             'employment_status'             => 'self_employed',
                             'expected_monthly_payments_usd' => '0_4999',
                             'acting_as_intermediary'        => false,
-                            'most_recent_occupation'        => 111011,
+                            'most_recent_occupation'        => "111011",
                             'source_of_funds'               => 'savings',
                         ];
 

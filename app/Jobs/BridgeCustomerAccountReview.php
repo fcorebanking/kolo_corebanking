@@ -63,13 +63,13 @@ class BridgeCustomerAccountReview
 
                         $updateAccount = Http::withHeaders($this->bridgeHeader('ide'))->put("{$baseUrl}{$endpoint}", $body);
                         // Check response
-                        if ($response->successful()) {
-                            $data = $response->json();
+                        if ($updateAccount->successful()) {
+                            $data = $updateAccount->json();
                             logInfo(json_encode($data), "Bridge Customer update account");
                             // Handle success
                         } else {
                             // Handle error
-                            $error = $response->body();
+                            $error = $updateAccount->body();
                             logInfo(json_encode($error), "Bridge Customer update account error");
                         }
 

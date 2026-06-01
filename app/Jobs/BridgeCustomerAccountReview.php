@@ -59,6 +59,13 @@ class BridgeCustomerAccountReview
                                     "number"          => $userData->bvn,
                                 ],
                             ],*/
+                            "place_of_birth"                => [
+                                "country" => "NGA",
+                                "city"    => "Lagos",
+                            ],
+                            "nationalities"                 => ["NGA"],
+                            "account_purpose"               => "other",
+                            "account_purpose_other"         => "Consulting income",
                             "employment_status"             => "self_employed",
                             "expected_monthly_payments_usd" => "0_4999",
                             "acting_as_intermediary"        => false,

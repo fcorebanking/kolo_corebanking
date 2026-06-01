@@ -8,6 +8,6 @@ return [
 
     //Live Variables
 
-    'api_key_live'  => env('BRIDGE_API_KEY_LIVE', "sk-live-ab49d274063f4d749197d2cbbec7ca14"),
+    'api_key_live'  => env('BRIDGE_API_KEY_LIVE', " sk-live-ab49d274063f4d749197d2cbbec7ca14"),
     'base_url_live' => env('BRIDGE_BASE_URL_LIVE', 'https://api.bridge.xyz/v0/'),
 ];

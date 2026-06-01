@@ -40,41 +40,21 @@ class BridgeCustomerAccountReview
                     if ($bridgeCustomerAccount['status'] == "incomplete") {
                         $currency_id = $userData->company->currency_id;
                         $body        = [
-                            /*   "identifying_information" => [
-                                [
-                                    "type"            => match ($currency_id) {
-                                        4       => 'nino',
-                                        7       => 'nino',
-                                        8       => 'number',
-
-                                        default => 'number'
-                                    },
-                                    "issuing_country" => match ($currency_id) {
-                                        4       => 'GBP',
-                                        7       => 'EUR',
-                                        8       => 'GHS',
-
-                                        default => 'NGN'
-                                    }, // fallback,
-                                    "number"          => $userData->bvn,
-                                ],
-                            ],*/
-                            "place_of_birth"                => [
-                                "country" => "NGA",
-                                "city"    => "Lagos",
+                            'place_of_birth'                => [
+                                'country' => 'NGA',
+                                'city'    => 'Lagos',
                             ],
-                            "nationalities"                 => ["NGA"],
-                            "account_purpose"               => "other",
-                            "account_purpose_other"         => "Consulting income",
-                            "employment_status"             => "self_employed",
-                            "expected_monthly_payments_usd" => "0_4999",
-                            "acting_as_intermediary"        => false,
-                            "most_recent_occupation"        => "CEO",
-                            "source_of_funds"               => "savings",
-
+                            'nationalities'                 => ['NGA'],
+                            'account_purpose'               => 'other',
+                            'account_purpose_other'         => 'Consulting income',
+                            'employment_status'             => 'self_employed',
+                            'expected_monthly_payments_usd' => '0_4999',
+                            'acting_as_intermediary'        => false,
+                            'most_recent_occupation'        => 'CEO',
+                            'source_of_funds'               => 'savings',
                         ];
 
-                        logInfo($body, "Bridge Cuustomer body");
+                        logInfo($body, "Bridge Customer body");
 
                         $baseUrl  = config('bridge.base_url_live');
                         $endpoint = "{$baseUrl}customers/{$userData->remittar_customer_id}";
@@ -84,8 +64,17 @@ class BridgeCustomerAccountReview
                         $updateAccount = Http::withHeaders($this->bridgeHeader('ide'))
 
                             ->put("{$baseUrl}{$endpoint}", $body);
+                        // Check response
+                        if ($response->successful()) {
+                            $data = $response->json();
+                            logInfo(json_encode($data), "Bridge Customer update account");
+                            // Handle success
+                        } else {
+                            // Handle error
+                            $error = $response->body();
+                            logInfo(json_encode($error), "Bridge Customer update account error");
+                        }
 
-                        logInfo($updateAccount, "Bridge Customer update account");
                     }
 
                     \logInfo('Message: Success BridgeCustomerAccountReview', 'Line: Success for ' . $userData->id);

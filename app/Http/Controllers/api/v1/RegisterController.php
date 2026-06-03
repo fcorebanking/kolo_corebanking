@@ -401,12 +401,17 @@ class RegisterController extends Controller
                     \logInfo(json_encode($smsstate), "SMS response");
                 }
 
-                if (in_array($companyRecord->id, [87, 88, 89])) {
+                /*    if (in_array($companyRecord->id, [87, 88, 89])) {
                     $subtext = "Welcome Message";
                     $reason  = "";
                     $msg     = "Welcome to " . $companyRecord->company_name . ". Your OTP is $otp. ";
                     $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
-                }
+                }*/
+
+                $subtext = "Welcome Message";
+                $reason  = "";
+                $msg     = "Welcome to " . $companyRecord->company_name . ". Your OTP is $otp. ";
+                $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
 
             }
 

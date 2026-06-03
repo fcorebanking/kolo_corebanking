@@ -3905,4 +3905,20 @@ class CustomerController extends Controller
         return $customer_sudo_account_id;
     }
 
+    public function createCustomerAccountOptions()
+    {
+        $account_types   = savings_product::where('company_id', auth()->user()->company_id)->get();
+        $preferredBankId = auth()->user()->company->setting->preferred_bank_id;
+        $selectedBank    = banks::find($preferredBankId);
+        $banks           = banks::where('in_use', 1)->get();
+        $countries       = Contries::all();
+
+        return response()->json([
+            'account_types' => $account_types,
+            'selectedbank'  => $selectedBank,
+            'banks'         => $banks,
+            'countries'     => $countries,
+        ], 200);
+    }
+
 }

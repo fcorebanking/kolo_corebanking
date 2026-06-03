@@ -399,13 +399,12 @@ Route::group(['middleware' => 'auth:api'], function () {
     });
 });
 
-
 Route::group(['middleware' => 'auth:api'], function () {
 
     Route::prefix('/admin')->group(function () {
         Route::get('/customers', [UserController::class, 'getCustomers']);
         Route::post('/transaction/verify-bvn', [App\Http\Controllers\TransactionController::class, 'verifyBVN'])->middleware('log.route');
-        Route::post('/create-account-options', [App\Http\Controllers\CustomerController, 'createCustomerAccountOptions']);
+        Route::post('/create-account-options', [App\Http\Controllers\CustomerController::class, 'createCustomerAccountOptions']);
         Route::post('/transfer-funds', [InternationalTransaction::class, 'transferFunds']);
         Route::get('/list-memos', [InternationalTransaction::class, 'listMemo']);
         Route::post('/internation-transfer', [InternationalTransaction::class, 'saveInternationTransferRequest']);

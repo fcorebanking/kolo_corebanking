@@ -4732,7 +4732,11 @@ class TransactionController extends Controller
     {
         $wbaAccount = auth()->user()->accounts->first();
 
+        logInfo($wbaAccount->account_product_id, "wbaAccount accountProductCharges");
+
         $accoountProduct = savings_product::where('id', $wbaAccount->account_product_id)->first();
+
+        logInfo($accoountProduct->id, "wbaAccount accountProduct");
 
         if (! $accoountProduct) {
             return ["status" => false, 'message' => "Savings Product does not exist"];
@@ -4740,6 +4744,8 @@ class TransactionController extends Controller
 
         $userWallet = user_wallet::where('wb_account_detail_id', $wbaAccount->id)->first();
         $amountLeft = $userWallet->balance - $amount;
+
+        logInfo($accoountProduct->minimum_balance, "accountProduct minimum_balance");
 
         if ($amountLeft < $accoountProduct->minimum_balance) {
             return ["status" => false, 'message' => "Insufficient Customer balance"];

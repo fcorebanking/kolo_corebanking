@@ -4445,6 +4445,8 @@ class TransactionController extends Controller
             $selectedwb_wallet = $selectedwallet ?? auth()->user()->accounts->first()->id;
             $userWallet        = user_wallet::where('wb_account_detail_id', $selectedwb_wallet)->first();
 
+            \logInfo($userWallet->balance, "userWallet balance from $sel$selectedwb_wallet");
+
             if ($userWallet->balance >= $amount) {
                 $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => auth()->user()->accounts->first()->id, 'balance' => $userWallet->balance];
             } else {

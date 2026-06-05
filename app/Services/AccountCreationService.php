@@ -10,6 +10,7 @@ use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\ParkwayController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Http\Controllers\ThirdParty\SafehavenController;
+use App\Http\Controllers\ThirdParty\StroWalletController;
 use App\Http\Controllers\ThirdParty\VPayController;
 use App\Http\Controllers\ThirdParty\WovenController;
 use App\Models\User;
@@ -22,7 +23,7 @@ class AccountCreationService
         $accountReference      = "";
         $createAccountResponse = "";
 
-        $allBanks = ["000023", "090267", "090287", "060001", "090286", "000017", "100003", "120001", "090325", "000013", "090110", '090551', '000003', '000001', '000012', '090645', "000003"];
+        $allBanks = ["000023", "090267", "090287", "060001", "090286", "000017", "100003", "120001", "090325", "000013", "090110", '090551', '000003', '000001', '000012', '090645', "000003", "000007"];
 
         logInfo($virtualAccount->country, "Virtual Code for country");
 
@@ -260,10 +261,43 @@ class AccountCreationService
 
             $firstName = $virtualAccount->accountType == 'coperate' ? $virtualAccount->companyName : $virtualAccount->firstName;
 
-            $createAccountResponse = $fairmoneyController->createAccount($firstName, $virtualAccount->lastName, $virtualAccount->phone, $virtualAccount->address, $virtualAccount->bvn, $accountReference, $virtualAccount->accountType, $virtualAccount->companyShortName);
+            $createAccountResponse = $fairmoneyController->createAccount(
+                $firstName, $virtualAccount->lastName, $virtualAccount->phone, $virtualAccount->address, $virtualAccount->bvn, $accountReference, $virtualAccount->accountType, $virtualAccount->companyShortName);
 
             if ($createAccountResponse['status']) {
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['virtual_account_number']);
+            }
+        } else if ($virtualAccount->bankCode == "000007") {
+
+            logInfo($virtualAccount->bankCode, "StroWallet Fidelity Bank Code in accountcreationservicer");
+
+            $stroWalletController = new StroWalletController();
+
+            $requestReference  = generateTransactionReference();
+            $trackingReference = generateTransactionReference();
+
+            logInfo($virtualAccount->accountType, "Virtual Account Type");
+
+            if ($virtualAccount->accountType == "coperate") {
+                $virtualAccount->firstName = "";
+                $virtualAccount->lastName  = $virtualAccount->companyName;
+            }
+
+            //     logInfo($requestReference, "Kuda Bank Code in requestReference");
+            //      logInfo($trackingReference, "Kuda Bank Code in trackingReference");
+            //     logInfo(json_encode($virtualAccount), "Kuda Bank Virtual account");
+
+            $createAccountResponse = $stroWalletController->createVirtualAccount(
+                $virtualAccount->firstName,
+                $virtualAccount->lastName,
+                $virtualAccount->email,
+                $virtualAccount->phone,
+                $requestReference,
+                $virtualAccount->companyID,
+                $virtualAccount->type);
+
+            if ($createAccountResponse['status']) {
+                $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']);
             }
         } else {
 

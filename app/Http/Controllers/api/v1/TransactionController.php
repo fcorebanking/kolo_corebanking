@@ -4467,6 +4467,10 @@ class TransactionController extends Controller
 
             $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
 
+            \logInfo(auth()->user()->accounts->first()->id, "wb_account_detail_id");
+
+            \logInfo($userWallet->balance, "userWallet balance from checkCustomerAndCompanyBalance");
+
             if ($userWallet->balance >= $amount) {
 
                 $companyWallet = company_wallet::where('company_id', \auth()->user()->company_id)->first();

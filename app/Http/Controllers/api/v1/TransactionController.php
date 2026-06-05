@@ -4732,6 +4732,8 @@ class TransactionController extends Controller
     {
         $wbaAccount = auth()->user()->accounts->first();
 
+        logInfo(auth()->user()->id, "wbaAccount account id");
+
         logInfo($wbaAccount->account_product_id, "wbaAccount accountProductCharges");
 
         $accoountProduct = savings_product::where('id', $wbaAccount->account_product_id)->first();

@@ -4730,9 +4730,9 @@ class TransactionController extends Controller
 
     public function accountProductCharges($amount)
     {
-        $wbaAccount = auth()->user()->accounts->first();
+        $wbaAccount = auth('api')->user()->accounts->first();
 
-        logInfo(auth()->user()->id, "wbaAccount account id");
+        logInfo(auth('api')->user()->id, "wbaAccount account id");
 
         logInfo($wbaAccount->account_product_id, "wbaAccount accountProductCharges");
 

@@ -192,13 +192,13 @@ class BridgeController extends WebhookController
         }
 
         $body = [
-            "type"                    => "individual",
-            "first_name"              => $firstName,
-            "last_name"               => $lastName,
-            "phone"                   => $phone,
-            "email"                   => $email,
+            "type"                          => "individual",
+            "first_name"                    => $firstName,
+            "last_name"                     => $lastName,
+            "phone"                         => $phone,
+            "email"                         => $email,
 
-            "residential_address"     => [
+            "residential_address"           => [
                 "street_line_1" => $address ?? "test address",
                 "city"          => $request->city ?? "",
                 "country"       => $request->country ?? "",
@@ -207,13 +207,26 @@ class BridgeController extends WebhookController
 
             ],
 
-            "birth_date"              => $customer->dob,
-            "signed_agreement_id"     => $request->signed_agreement_id,
-            "endorsements"            => [
+            "birth_date"                    => $customer->dob,
+            "signed_agreement_id"           => $request->signed_agreement_id,
+            "endorsements"                  => [
                 "base", "sepa",
             ],
 
-            "identifying_information" => $identifying_information,
+            "identifying_information"       => $identifying_information,
+            "place_of_birth"                => [
+                "country" => $request->issuing_country,
+                "city"    => $request->city ?? "",
+            ],
+            "nationalities"                 => [[
+                $request->issuing_country,
+            ]],
+            "account_purpose"               => $request->issuing_country == "NGA" ? "receive_payment_for_freelancing" : $request->account_purpose,
+            "employment_status"             => $request->issuing_country == "NGA" ? "self_employed" : $request->employment_status,
+            "expected_monthly_payments_usd" => $request->issuing_country == "NGA" ? "0_4999" : $request->expected_monthly_payments_usd,
+            "acting_as_intermediary"        => false,
+            "most_recent_occupation"        => $request->issuing_country == "NGA" ? "111011" : $request->most_recent_occupation,
+            "source_of_funds"               => $request->issuing_country == "NGA" ? "salary" : $request->source_of_funds,
         ];
 
         logInfo($body, "Bridge Customer Register request body");

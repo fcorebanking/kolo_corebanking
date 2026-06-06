@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\CustomClasses;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ThirdParty\BridgeController;
 use App\Http\Controllers\ThirdParty\CgateController;
 use App\Http\Controllers\ThirdParty\FincraController;
 use App\Http\Controllers\ThirdParty\FlutterwaveController;
@@ -1187,6 +1188,19 @@ class WebhookController extends Controller
         logInfo(json_encode($requestResponse), "request Response");
 
         $fincraController = new FincraController();
+
+        if ($requestResponse['event'] == "virtualaccount.approved") {
+            return $fincraController->updateForeignVirtualAccount($requestResponset);
+        }
+
+    }
+
+    public function handleBridgeWebhook($request)
+    {
+        $requestResponse = $request->all();
+        logInfo(json_encode($requestResponse), "request Response");
+
+        $bridgeController = new BridgeController();
 
         if ($requestResponse['event'] == "virtualaccount.approved") {
             return $fincraController->updateForeignVirtualAccount($requestResponset);

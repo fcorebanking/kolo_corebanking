@@ -7,7 +7,6 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class BridgeCustomerAccountReview
@@ -38,40 +37,37 @@ class BridgeCustomerAccountReview
                     $bridgeCustomerAccount = $bridgeController->getBridgeCustomerInfo($userData->id);
                     logInfo(json_encode($bridgeCustomerAccount), "bridgeCustomerAccount Result");
                     if ($bridgeCustomerAccount['status'] == "incomplete") {
-                        $currency_id = $userData->company->currency_id;
-                        $body        = [
-                            'place_of_birth'                => [
-                                'country' => 'NGA',
-                                'city'    => 'Lagos',
-                            ],
-                            'nationalities'                 => ['NGA'],
-                            'account_purpose'               => 'other',
-                            'account_purpose_other'         => 'Consulting income',
-                            'employment_status'             => 'self_employed',
-                            'expected_monthly_payments_usd' => '0_4999',
-                            'acting_as_intermediary'        => false,
-                            'most_recent_occupation'        => "111011",
-                            'source_of_funds'               => 'savings',
-                        ];
 
-                        logInfo($body, "Bridge Customer body");
+                        logInfo(json_encode($bridgeCustomerAccount), "bridgeCustomerAccount Incomplete Status");
 
-                        $baseUrl  = config('bridge.base_url_live');
-                        $endpoint = "{$baseUrl}customers/{$userData->remittar_customer_id}";
+                    } else {
+                        $createAccount = $bridgeController->updateForeignVirtualAccount($userData);
+                        $userData->update([
+                            'remittar_customer_id' => $createAccount['data']['account_number'],
 
-                        logInfo($endpoint, "Bridge Cuustomer endpoint");
+                        ]);
 
-                        $updateAccount = Http::withHeaders($this->bridgeHeader('ide'))->put("{$baseUrl}{$endpoint}", $body);
-                        // Check response
-                        if ($updateAccount->successful()) {
-                            $data = $updateAccount->json();
-                            logInfo(json_encode($data), "Bridge Customer update account");
-                            // Handle success
-                        } else {
-                            // Handle error
-                            $error = $updateAccount->body();
-                            logInfo(json_encode($error), "Bridge Customer update account error");
-                        }
+                        $saving = savings_product::where([
+                            'company_id' => $userData->company_id,
+                            // 'id'         => $request->savings_product_type,
+                        ])->first();
+
+                        \logInfo(json_encode($saving), "api saving account product Bridge");
+
+                        $account = wb_account_details::create([
+                            'user_id'            => $userData->id,
+                            'account_product_id' => $saving->id,
+                            'bankid'             => $createAccount['data']['bank_routing_number'],
+                            'virtual_accnum'     => $createAccount['data']['account_number'],
+                            'acc_reference'      => $createAccount['data']['account_reference'],
+                            'has_atm_card'       => 0,
+                            'currency_id'        => $createAccount['data']['account_number']['currency_id'],
+                        ]);
+
+                        user_wallet::create([
+                            'wb_account_detail_id' => $account->id,
+                            'balance'              => 0,
+                        ]);
 
                     }
 

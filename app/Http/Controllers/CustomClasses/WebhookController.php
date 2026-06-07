@@ -1202,8 +1202,8 @@ class WebhookController extends Controller
 
         $bridgeController = new BridgeController();
 
-        if ($requestResponse['event'] == "virtualaccount.approved") {
-            return $fincraController->updateForeignVirtualAccount($requestResponset);
+        if ($requestResponse['event_category'] == "customer" && $requestResponse['event_object']['status'] == "active") {
+            return $bridgeController->updateForeignVirtualAccount($requestResponset);
         }
 
     }

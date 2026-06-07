@@ -56,9 +56,10 @@ class BridgeController extends WebhookController
 
     }
 
-    public function createVirtualAccount($customerBridgeID)
+    public function createVirtualAccount($customer)
     {
-        $customer    = User::where('remittar_customer_id', $customerBridgeID)->first();
+       $customerID = $customer->remittar_customer_id;
+
         $currency_id = $customer->company->currency_id;
         /* match ($currency_id) {
             4       => 'GBP',
@@ -127,6 +128,7 @@ class BridgeController extends WebhookController
                             'account_number'         => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
                             'virtual_account_number' => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
                             'account_reference'      => $customerID,
+                            'bank_routing_number' => $createAccountResponse['source_deposit_instructions']['bank_routing_number'],
                             'currency_id'            => match ($currency_id) {
                                 4       => 'GBP',
                                 7       => 'EUR',
@@ -273,6 +275,40 @@ class BridgeController extends WebhookController
             logInfo($e->getMessage(), "Bridge Customer Get Result Error");
 
             return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
+        }
+    }
+
+    public function updateForeignVirtualAccount($user)
+    {
+        try {
+           
+   $response = $this->createVirtualAccount($user);
+            if ($saving) {
+             
+                \logInfo(json_encode($response), "updateForeignVirtualAccount for Bridge ");
+
+                $companyRecord = Company::where(['id' => $user->company_id])->first();
+
+                $customer_reference      = $response['data']['accountInformation']['reference'];
+                $virtual_acccount_number = $response['data']['accountInformation']['accountNumber'];
+
+                $wb_account_details = wb_account_details::where('user_id', $user->id)->first();
+                $wb_account_details->update([
+                    'virtual_accnum' => $virtual_acccount_number,
+                    'acc_reference'  => $customer_reference,
+                    'bankid'         => $bankId,
+                    "currency_id"    => $user->company->currency_id,
+                ]);
+
+                $user->virtual_account   = $virtual_acccount_number;
+                $user->account_reference = $customer_reference;
+                $user->save();
+            } else {
+                return response()->json(['status' => 0, 'message' => 'Account Registration Failed!']);
+            }
+
+        } catch (Exception $e) {
+            return response()->json(['status' => 0, 'message' => "An error occured!"]);
         }
     }
 
@@ -593,45 +629,6 @@ class BridgeController extends WebhookController
         $action   = null;
         $response = Http::withHeaders($this->bridgeHeader($action))->get("$endpoint");
         return $response->json();
-    }
-
-    public function updateForeignVirtualAccount($response)
-    {
-        try {
-            $user = User::where('virtual_account', $response['data']['id'])->first();
-
-            \logInfo(json_encode($user), "api saving account user");
-            \logInfo(json_encode(auth()->user()->company_id), "api saving account company");
-
-            $bank_id = 126;
-            $saving  = savings_product::where('company_id', $user->company_id)->first();
-
-            if ($saving) {
-                \logInfo(json_encode($saving), "api saving account ");
-
-                $companyRecord = Company::where(['id' => $user->company_id])->first();
-
-                $customer_reference      = $response['data']['accountInformation']['reference'];
-                $virtual_acccount_number = $response['data']['accountInformation']['accountNumber'];
-
-                $wb_account_details = wb_account_details::where('user_id', $user->id)->first();
-                $wb_account_details->update([
-                    'virtual_accnum' => $virtual_acccount_number,
-                    'acc_reference'  => $customer_reference,
-                    'bankid'         => $bankId,
-                    "currency_id"    => $user->company->currency_id,
-                ]);
-
-                $user->virtual_account   = $virtual_acccount_number;
-                $user->account_reference = $customer_reference;
-                $user->save();
-            } else {
-                return response()->json(['status' => 0, 'message' => 'Account Registration Failed!']);
-            }
-
-        } catch (Exception $e) {
-            return response()->json(['status' => 0, 'message' => "An error occured!"]);
-        }
     }
 
 }

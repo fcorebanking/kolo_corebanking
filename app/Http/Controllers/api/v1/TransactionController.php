@@ -1008,7 +1008,7 @@ class TransactionController extends Controller
                         'first_name'  => $wbAccount->user->first_name,
                         'last_name'   => $wbAccount->user->last_name,
                         'bank_name'   => $wbAccount->bank->bank_name,
-                        'currency_id' => $wbAccount->currency_id,
+                        'currency_id' => $wbAccount->currency_id ?? 1,
                     ],
                 ]
             );

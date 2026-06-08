@@ -4,7 +4,6 @@ namespace App\Http\Controllers\ThirdParty;
 use App\Http\Controllers\CustomClasses\WebhookController;
 use App\Models\ApiKey;
 use App\Models\Company;
-use App\Models\savings_product;
 use App\Models\User;
 use App\Models\wb_account_details;
 use Exception;
@@ -58,7 +57,7 @@ class BridgeController extends WebhookController
 
     public function createVirtualAccount($customer)
     {
-       $customerID = $customer->remittar_customer_id;
+        $customerID = $customer->remittar_customer_id;
 
         $currency_id = $customer->company->currency_id;
         /* match ($currency_id) {
@@ -87,10 +86,7 @@ class BridgeController extends WebhookController
                     7       => 'solana',
                     default => 'base', // fallback
                 },
-                "address"      => match ($currency_id) {
-                    7       => 'DeAdBeEf',
-                    default => "0xdeadbeef", // fallback
-                },
+
             ],
         ];
 
@@ -128,7 +124,7 @@ class BridgeController extends WebhookController
                             'account_number'         => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
                             'virtual_account_number' => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
                             'account_reference'      => $customerID,
-                            'bank_routing_number' => $createAccountResponse['source_deposit_instructions']['bank_routing_number'],
+                            'bank_routing_number'    => $createAccountResponse['source_deposit_instructions']['bank_routing_number'],
                             'currency_id'            => match ($currency_id) {
                                 4       => 'GBP',
                                 7       => 'EUR',
@@ -281,10 +277,10 @@ class BridgeController extends WebhookController
     public function updateForeignVirtualAccount($user)
     {
         try {
-           
-   $response = $this->createVirtualAccount($user);
+
+            $response = $this->createVirtualAccount($user);
             if ($saving) {
-             
+
                 \logInfo(json_encode($response), "updateForeignVirtualAccount for Bridge ");
 
                 $companyRecord = Company::where(['id' => $user->company_id])->first();

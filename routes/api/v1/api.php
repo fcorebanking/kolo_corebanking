@@ -243,7 +243,7 @@ Route::prefix('/transactions')->group(function () {
     Route::group(['middleware' => 'auth:api'], function () {
 
         Route::post('/verify-wallet-account', [TransactionController::class, 'verifyWalletAccount']);
-        Route::post('/wallet-transfer', [TransactionController::class, 'walletTransfer']);
+        Route::post('/wallet-transfer', [TransactionController::class, 'walletTransfer'])->middleware('log.route');
         Route::get('/get-beneficiaries', [TransactionController::class, 'getBeneficiaries']);
         Route::get('/get-pos-balance', [TransactionController::class, 'getPOSBalance'])->name('pos-get-balance')->middleware('log.route');
 

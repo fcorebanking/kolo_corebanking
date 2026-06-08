@@ -1546,6 +1546,7 @@ class TransactionController extends Controller
             // $sourceWbAccount = wb_account_details::where('virtual_accnum', $request->source_account)->orWhere('virtual_accnum', ($request->source_account . "_"))->orWhere('user_id', auth()->user()->id)->first();
 
             $sourceWbAccount = wb_account_details::where('virtual_accnum', $request->source_account)->first() ?? wb_account_details::where('virtual_accnum', $request->source_account . "_")->first() ?? wb_account_details::where('user_id', auth()->user()->id)->first();
+              logInfo(json_encode($sourceWbAccount), "walletTransfer sourceWbAccoun");
             if (! $sourceWbAccount) {
                 $ra = ["status" => false, "message" => "Beneficiary currency doesn not match any of your wallet!"];
                 return response()->json($ra, 406);

@@ -3731,7 +3731,7 @@ class TransactionController extends Controller
                     $response = [
                         "status"          => true,
                         'message'         => "Amount is Valid",
-                        'account_id'      => auth()->user()->accounts->first()->id,
+                        'account_id'      => auth()->user()->accounts->first()->id ?? $wb_account_detail_id,
                         'balance'         => $userWallet->balance,
                         'company_balance' => $companyWallet->balance,
                     ];

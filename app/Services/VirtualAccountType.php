@@ -25,4 +25,5 @@ class VirtualAccountType
     public $country;
     public $type;
     public $nin;
+    public $bankId;
 }

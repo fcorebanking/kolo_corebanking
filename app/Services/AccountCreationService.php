@@ -6,6 +6,7 @@ use App\Http\Controllers\ThirdParty\AssetMatrixController;
 use App\Http\Controllers\ThirdParty\BaniController;
 use App\Http\Controllers\ThirdParty\FairMoneyController;
 use App\Http\Controllers\ThirdParty\FincraController;
+use App\Http\Controllers\ThirdParty\KudaBusinessController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\ParkwayController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
@@ -145,7 +146,13 @@ class AccountCreationService
 
             logInfo($virtualAccount->bankCode, "Kuda Bank Code in accountcreationservicer");
 
-            $kudaController = new KudaController();
+            if ($virtualAccount->bankId == "242") {
+                $kudaController = new KudaBusinessController();
+            } else {
+                $kudaController = new KudaController();
+            }
+
+            // $kudaController = new KudaController();
 
             $requestReference  = generateTransactionReference();
             $trackingReference = generateTransactionReference();

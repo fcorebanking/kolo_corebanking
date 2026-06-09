@@ -2009,7 +2009,8 @@ class UserController extends Controller
         $virtualAccount->address                      = $user->address;
         $virtualAccount->country                      = $company->currency_id;
         $virtualAccount->companyAccountCreationStatus = $company->setting->can_create_virtual_account;
-        $virtualAccount->bankId                       = $company->setting->preferred_bank_id;
+        logInfo($company->setting->preferred_bank_id, "User controller preffered bank");
+        $virtualAccount->bankId = $company->setting->preferred_bank_id;
 
         if ($bank->bank_code == '090286') {
             $virtualAccount->bvnId     = $request->id;

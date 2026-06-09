@@ -3720,7 +3720,7 @@ class TransactionController extends Controller
 
         if ($amount > 0) {
             $wb_account_detail_id = wb_account_details::where('user_id', $user_id)->orWhere('id', $user_id)->first()->id;
-            $userWallet           = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->orWhere('wb_account_detail_id', $wb_account_detail_id)->first();
+            $userWallet           = user_wallet::where('wb_account_detail_id', (auth()->user()->accounts->first()->id ?? $wb_account_detail_id))->orWhere('wb_account_detail_id', $wb_account_detail_id)->first();
 
             if ($userWallet->balance >= $amount) {
 

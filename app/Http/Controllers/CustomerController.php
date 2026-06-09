@@ -2447,6 +2447,7 @@ class CustomerController extends Controller
                 $virtualAccount->bvn                          = $user->bvn;
                 $virtualAccount->address                      = $user->address;
                 $virtualAccount->companyAccountCreationStatus = auth()->user()->company->setting->can_create_virtual_account;
+                $virtualAccount->bankID                       = auth()->user()->company->setting->preferred_bank_id;
 
                 $createAccountService = new AccountCreationService();
 

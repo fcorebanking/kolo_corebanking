@@ -232,7 +232,7 @@ class RegisterController extends Controller
             $virtualAccount->address                      = $request->address;
             $virtualAccount->country                      = $companyRecord->currency_id ?? "";
             $virtualAccount->companyAccountCreationStatus = $companyRecord->setting->can_create_virtual_account;
-            $virtualAccount->bankId                       = $bank_id;
+            $virtualAccount->bankID                       = $bank_id;
 
             if ($selectedBank->bank_code == '090286') {
                 $virtualAccount->bvnId     = $request->id;

@@ -146,7 +146,7 @@ class AccountCreationService
 
             logInfo($virtualAccount->bankCode, "Kuda Bank Code in accountcreationservicer");
 
-            logInfo($virtualAccount->bankId, "Kuda Bank id in accountcreationservicer");
+            logInfo($virtualAccount->bankID, "Kuda Bank id in accountcreationservicer");
 
             if ($virtualAccount->bankID == 242) {
                 $kudaController = new KudaBusinessController();

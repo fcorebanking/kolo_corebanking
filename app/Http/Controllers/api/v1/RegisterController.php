@@ -594,6 +594,8 @@ class RegisterController extends Controller
 
                     $regfee = $companyRecord->setting->registration_fee;
 
+                    logInfo($regfee, "registration_fee for {$companyRecord->id}");
+
                     $wb_account_details = wb_account_details::create([
 
                         'user_id'            => $user->id,
@@ -609,6 +611,8 @@ class RegisterController extends Controller
                         'wb_account_detail_id' => $wb_account_details->id,
                         'balance'              => (0 - $regfee),
                     ]);
+
+                    logInfo($user_wallet->balance, "user_wallet balance");
 
                     \restrictUserAccountAPI($user->id, 2, "New Account Restriction");
 

@@ -347,6 +347,10 @@ class RegisterController extends Controller
                 return response()->json(['status' => false, 'message' => 'Failed to complete Registration Err::09'], 400);
             }
 
+            $regfee = $companyRecord->setting->registration_fee ?? 0;
+
+            logInfo($regfee, "registration_fee for {$companyRecord->id}");
+
             $wb_account_details = wb_account_details::create([
                 'user_id'            => $user->id,
                 'account_product_id' => $selectedProduct->id,
@@ -363,7 +367,7 @@ class RegisterController extends Controller
 
             $user_wallet = user_wallet::create([
                 'wb_account_detail_id' => $wb_account_details->id,
-                'balance'              => 0,
+                'balance'              => (0 - $regfee),
             ]);
             if (! $user_wallet) {
                 DB::rollBack();

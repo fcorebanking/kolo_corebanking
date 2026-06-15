@@ -55,7 +55,21 @@ class BridgeController extends WebhookController
 
     }
 
-    public function createVirtualAccount($customer)
+    public function createCompanyAccount($customer, $data)
+    {
+        
+        $createCustomer = $this->createBridgeCustomer($request, $customer, $data);
+        return [
+            'status'  => true,
+            'data'    => [
+                'account_reference' => $createCustomer['id'],
+            ],
+            'message' => "Account Pending: Your Account is under review",
+        ];
+
+    }
+
+    public function createVirtualAccount($customer, $companyWalletaddress)
     {
         $customerID = $customer->remittar_customer_id;
 
@@ -82,10 +96,7 @@ class BridgeController extends WebhookController
                     7       => 'eurc',
                     default => 'usdc', // fallback
                 },
-                "payment_rail" => match ($currency_id) {
-                    7       => 'solana',
-                    default => 'base', // fallback
-                },
+                "payment_rail" => 'base',
 
             ],
         ];
@@ -145,36 +156,81 @@ class BridgeController extends WebhookController
         }
     }
 
-    public function createBridgeCustomer($request, $customer)
+    public function createCompanyCryptoWalletAccount($customer)
+    {
+        $customerID = $customer->bridge_company_id;
+
+        $body = [
+
+            "data" => [
+                "chain" => "base", // fallback
+            ],
+
+        ];
+
+        $jsonBody = json_encode($body);
+
+        $url = "{$this->baseUrl}customers/{$customerID}/wallets";
+
+        \logInfo($url, "Bridge Request url");
+        \logInfo($customerID, "Bridge Request createCompanyCryptoWalletAccount");
+
+        try {
+            \logInfo($jsonBody, "Bridge Request createCompanyCryptoWalletAccount body");
+
+            $action = 'idemkey';
+
+            $createAccountResponse = $this->bridgePostRequest($url, $body, $action);
+
+            logInfo($createAccountResponse, "bridge createCompanyCryptoWalletAccount Response");
+
+            if ($createAccountResponse->successful()) {
+
+                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
+                $customer->bridge_company_address = $createAccountResponse["address"];
+                $customer->bridge_company_chain   = $createAccountResponse["chain"];
+                return $customer->bridge_company_address;
+            } else {
+                return ['status' => false, 'message' => 'Account createCompanyCryptoWalletAccount Failed . Kindly contact support for assistance'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "createCompanyCryptoWalletAccount Error");
+
+            return ['status' => false, 'message' => 'Error Creating Account . Kindly contactsupportfor assistance'];
+        }
+    }
+
+    public function createBridgeCustomer($request, $customer, $data)
     {
         $firstName = $request->first_name ?? $customer->first_name;
         $lastName  = $request->last_name ?? $customer->last_name;
         $email     = $request->email ?? $customer->email;
         $phone     = $request->phone ?? $customer->phone;
         $address   = $request->address ?? $customer->address;
+        $country   = $request->issuing_country ?? $data['issuing_country'];
 
         $identifying_information_nino = [
             "type"            => "nino",
             "issuing_country" => "GBR",
-            "number"          => $request->nino ?? $request->number,
+            "number"          => $request->nino ?? $request->number ?? $data['number'],
 
         ];
 
         $identifying_information_tin = [
             "type"            => "tin",
             "issuing_country" => "NGA",
-            "number"          => $request->number,
+            "number"          => $request->number ?? $data['number'],
 
         ];
 
         $body_identifying_information = [
-            "type"            => $request->type,
-            "issuing_country" => $request->issuing_country,
-            "number"          => $request->number,
-            "description"     => $request->description,
-            "expiration"      => $request->expiration,
-            "image_front"     => $request->image_front,
-            "image_back"      => $request->image_back,
+            "type"            => $request->type ?? $data['type'],
+            "issuing_country" => $country,
+            "number"          => $request->number ?? $data['number'],
+            "description"     => $request->description ?? $data['description'],
+            "expiration"      => $request->expiration ?? $data['expiration'],
+            "image_front"     => $request->image_front ?? $data['image_front'],
+            "image_back"      => $request->image_back ?? $data['image_back'],
         ];
 
         if ($request->issuing_country == "GBR") {
@@ -197,34 +253,34 @@ class BridgeController extends WebhookController
             "email"                         => $email,
 
             "residential_address"           => [
-                "street_line_1" => $address ?? "test address",
-                "city"          => $request->city ?? "",
-                "country"       => $request->country ?? "",
+                "street_line_1" => $address ?? $data['address'] ?? "test address",
+                "city"          => $request->city ?? $data['city'] ?? "",
+                "country"       => $country,
                 "street_line_2" => "",
-                "postal_code"   => $request->postal_code,
+                "postal_code"   => $request->postal_code ?? $data['city'] ?? "",
 
             ],
 
             "birth_date"                    => $customer->dob,
-            "signed_agreement_id"           => $request->signed_agreement_id,
+            "signed_agreement_id"           => $request->signed_agreement_id ?? $data['signed_agreement_id'],
             "endorsements"                  => [
                 "base", "sepa",
             ],
 
             "identifying_information"       => $identifying_information,
             "place_of_birth"                => [
-                "country" => $request->issuing_country,
-                "city"    => $request->city ?? "",
+                "country" => $country,
+                "city"    => $request->city ?? $data['city'] ?? "",
             ],
             "nationalities"                 => [[
                 $request->issuing_country,
             ]],
-            "account_purpose"               => $request->issuing_country == "NGA" ? "receive_payment_for_freelancing" : $request->account_purpose,
-            "employment_status"             => $request->issuing_country == "NGA" ? "self_employed" : $request->employment_status,
-            "expected_monthly_payments_usd" => $request->issuing_country == "NGA" ? "0_4999" : $request->expected_monthly_payments_usd,
+            "account_purpose"               => $country == "NGA" ? "receive_payment_for_freelancing" : $request->account_purpose,
+            "employment_status"             => $country == "NGA" ? "self_employed" : $request->employment_status,
+            "expected_monthly_payments_usd" => $country == "NGA" ? "0_4999" : $request->expected_monthly_payments_usd,
             "acting_as_intermediary"        => false,
-            "most_recent_occupation"        => $request->issuing_country == "NGA" ? "111011" : $request->most_recent_occupation,
-            "source_of_funds"               => $request->issuing_country == "NGA" ? "salary" : $request->source_of_funds,
+            "most_recent_occupation"        => $country == "NGA" ? "111011" : $request->most_recent_occupation,
+            "source_of_funds"               => $country == "NGA" ? "salary" : $request->source_of_funds,
         ];
 
         logInfo($body, "Bridge Customer Register request body");
@@ -277,13 +333,17 @@ class BridgeController extends WebhookController
     public function updateForeignVirtualAccount($user)
     {
         try {
+            $companyRecord        = Company::where(['id' => $user->company_id])->first();
+            $companyWalletaddress = $companyRecord->wallet->bridge_wallet_address;
 
-            $response = $this->createVirtualAccount($user);
+            if ($companyWalletaddress != null) {
+                $companyWalletaddress = $this->createCompanyCryptoWalletAccount($companyRecord);
+            }
+
+            $response = $this->createVirtualAccount($user, $companyWalletaddress);
             if ($saving) {
 
                 \logInfo(json_encode($response), "updateForeignVirtualAccount for Bridge ");
-
-                $companyRecord = Company::where(['id' => $user->company_id])->first();
 
                 $customer_reference      = $response['data']['accountInformation']['reference'];
                 $virtual_acccount_number = $response['data']['accountInformation']['accountNumber'];

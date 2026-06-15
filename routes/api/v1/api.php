@@ -177,7 +177,7 @@ Route::post('/transactions/unassign-terminal', [TransactionController::class, 'u
 Route::post('/transactions/amucha-webhook', [TransactionController::class, 'amuchaWebhook'])->name('amucha-webhook');
 Route::post('/transactions/process-card-order', [TransactionController::class, 'processOrder'])->name('process-amucha-order')->middleware('log.route');
 Route::post('/transactions/verify-card-otp', [TransactionController::class, 'verifyCardOtp'])->name('verify-amucha-cardpin')->middleware('log.route');
-Route::post('/transactions/amucha-webhook', [TransactionController::class, 'amuchaWebhook'])->name('amucha-webhook')->middleware('log.route');
+Route::post('/transactions/strowallet-webhook', [TransactionController::class, 'strowalletWebhook'])->name('amucha-webhook')->middleware('log.route');
 Route::get('/transactions/verify-card-order-transaction/{transactionReference}', [TransactionController::class, 'verifyCardOrderTransaction'])->name('verify-card-order-transaction')->middleware('log.route');
 
 Route::get('/companies/create-company-gtb-accounts', [CompanyController::class, 'createCompanyGtbAccounts'])->name('create-company-gtb-accounts')->middleware('log.route');

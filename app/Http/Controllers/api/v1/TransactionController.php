@@ -20,6 +20,7 @@ use App\Http\Controllers\ThirdParty\NeonDataApiController;
 use App\Http\Controllers\ThirdParty\NinePSBController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Http\Controllers\ThirdParty\SafehavenController;
+use App\Http\Controllers\ThirdParty\StroWalletController;
 use App\Http\Controllers\ThirdParty\TryluxController;
 use App\Http\Controllers\ThirdParty\Trylux\TryluxPayload;
 use App\Http\Controllers\ThirdParty\TwilioWhatsapp;
@@ -2630,6 +2631,25 @@ class TransactionController extends Controller
         $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
 
         logInfo(json_encode($handleWebhook), "Handle web hook fincra result");
+        logInfo("$httpCode", "httpCode");
+
+        return response()->json($handleWebhook, $httpCode);
+    }
+
+    public function strowalletWebhook()
+    {
+        $stroWalletController = new StroWalletController();
+        // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
+
+        if (! $request['type'] != "transfer") {
+            response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
+        }
+
+        $handleWebhook = $stroWalletController->handleStroWebhook($request);
+
+        $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
+
+        logInfo(json_encode($handleWebhook), "Handle web hook StroWallet result");
         logInfo("$httpCode", "httpCode");
 
         return response()->json($handleWebhook, $httpCode);

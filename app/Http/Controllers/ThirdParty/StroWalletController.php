@@ -2,7 +2,6 @@
 namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\CustomClasses\WebhookController;
-use App\Services\SafeHavenService;
 use Exception;
 use Illuminate\Support\Facades\Http;
 
@@ -20,61 +19,6 @@ class StroWalletController extends WebhookController
 
     }
 
-    public function getToken($company_id = null)
-    {
-
-        $safeHavenService = new SafeHavenService();
-
-        $credentials = $safeHavenService->initCredentials($company_id);
-
-        logInfo(json_encode($credentials), "Safe Haven credentials");
-
-        $this->token               = "";
-        $this->ibsClientId         = "";
-        $this->sessionId           = "";
-        $this->sendingAccount      = $credentials['sendingAccount'];
-        $this->grantType           = $credentials['grant_type_live'];
-        $this->clientAssertionType = $credentials['client_assertion_type_live'];
-        $this->clientId            = $credentials['client_id_live'];
-        $this->clientAssertion     = $credentials['client_assertion_live'];
-        $this->baseUrl             = $credentials['base_url_live'];
-        $this->debitAccount        = $credentials['debitAccount'];
-        $this->owner               = $credentials['owner'];
-
-        $body = [
-            'grant_type'            => $this->grantType,
-            'client_assertion_type' => $this->clientAssertionType,
-            'client_id'             => $this->clientId,
-            'client_assertion'      => $this->clientAssertion,
-        ];
-
-        logInfo($body, "Exchange cliient assertion");
-
-        logInfo($body, "Exchange cliient assertion");
-
-        try {
-            $response = $this->strowalletPostRequest("oauth2/token", $body);
-
-            logInfo(json_encode($response), "Safe Haven Access Token Response");
-
-            if (isset($response["access_token"])) {
-                $this->token = $response["access_token"];
-
-                logInfo($this->token, "Safe Haven Access Token");
-
-                $this->ibsClientId = $response["ibs_client_id"];
-                return ['status' => true, 'message' => 'Token obtained successfully', 'data' => ['token' => $this->token]];
-            } else {
-                return ['status' => false, 'message' => 'Failed to login to safehaven'];
-            }
-        } catch (Exception $e) {
-
-            \logInfo($e->getMessage(), "Safehaven Login serror log");
-
-            return ['status' => false, 'message' => 'Server Error...'];
-        }
-    }
-
     public function createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $companyID, $type)
     {
 
@@ -88,7 +32,7 @@ class StroWalletController extends WebhookController
                 "email"        => $email,
                 "account_name" => "{$firstName} {$lastName}",
                 "phone"       => $phone,
-                "webhook_url" => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
+                "webhook_url" => "https://core.finova.ng/api/v1/transactions/strowallet-webhook",
 
             ];
 

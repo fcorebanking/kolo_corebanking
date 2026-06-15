@@ -1195,6 +1195,12 @@ class WebhookController extends Controller
 
     }
 
+    public function handleStroWebhook($request)
+    {
+        $requestResponse = $request->all();
+        logInfo(json_encode($requestResponse), "request Response");
+    }
+
     public function handleBridgeWebhook($request)
     {
         $requestResponse = $request->all();

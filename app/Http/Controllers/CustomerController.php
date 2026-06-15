@@ -5,6 +5,7 @@ use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Http\Controllers\ThirdParty\WovenController;
+use App\Http\Controllers\ThirdParty\StroWalletController;
 use App\Http\Controllers\TransactionController;
 use App\Imports\UsersImport;
 use App\Mail\TransactionReport;
@@ -383,6 +384,11 @@ class CustomerController extends Controller
                     $virtualAccount->companyID = $auth->company->id;
                     $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
                 }
+            }
+            if ($request->account_bank == '090286') {
+                $stroWalletController = new StroWalletController();
+                $virtualAccount->companyID = $auth->company->id;
+                    $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
             }
 
             $createAccountService = new AccountCreationService();

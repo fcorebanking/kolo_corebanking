@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('company_wallets', function (Blueprint $table) {
-            //
+            $table->string('bridge_company_id')->nullable();
+            $table->string('bridge_company_address')->nullable();
+            $table->string('bridge_company_chain')->nullable();
         });
     }
 

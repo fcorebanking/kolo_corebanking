@@ -4,6 +4,7 @@ use App\Mail\AccountCreated;
 use App\Models\AgentTerminal;
 use App\Models\banks;
 use App\Models\BankTransferInformation;
+use App\Models\branch;
 use App\Models\BranchValut;
 use App\Models\BranchWallet;
 use App\Models\ClosingBalance;
@@ -27,6 +28,7 @@ use App\Models\OtherIncome;
 use App\Models\PendingSaving;
 use App\Models\PreferredEbankingPartner;
 use App\Models\smsapi;
+use App\Models\SpendSave;
 use App\Models\StaffpermissionTable;
 use App\Models\Temp_Charges;
 use App\Models\transactions;
@@ -2028,8 +2030,9 @@ function debitCustomerWithCharge($customerAccountId, $originalAmount, $charge, $
 
         $userWallet             = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
         $customerInitialBalance = $userWallet->balance;
+        $spendSaveCash          = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
 
-        $debitAmount = $originalAmount + $charge;
+        $debitAmount = $originalAmount + $charge + $spendSaveCash;
 
         $minBalance = $user->company->setting->min_withdraw_charge;
 
@@ -2169,11 +2172,12 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
                 $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
                 $paymentcash           = ($originalAmount + $customerCharge);
-                $customerFinalBalance  = $userWallet->balance -= $paymentcash;
+                $spendSaveCash         = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
+                $customerFinalBalance  = $userWallet->balance -= ($paymentcash + $spendSaveCash);
 
                 if ($userWallet->save()) {
                     $BranchWallet           = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
-                    $BranchWallet->balance -= $paymentcash;
+                    $BranchWallet->balance -= ($paymentcash + $spendSaveCash);
                     $BranchWallet->save();
                 }
                 $companyInitialBalance = $companyWallet->balance;
@@ -2184,6 +2188,8 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
                 $currentUser->balance_fails = 0;
                 $currentUser->save();
+
+                $this->spendSaveRecordTransaction($debitCustomer, $amount, $transaction, $adminUser, $cash, $account_id);
 
                 $response = [
                     "status"                        => true,
@@ -2198,6 +2204,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
                     'company_balance_after'         => $companyBalanceAfter,
                     'company_charge_balance_before' => $companyBalanceAfter,
                     'company_charge_balance_after'  => $companyFinalBalance,
+                    'spend_save_cash'               => $spendSaveCash,
                 ];
 
                 logInfo(json_encode($response), "debitCustomerAndCompanyWithCharge");
@@ -2266,11 +2273,12 @@ function debitCustomerAndCompanyWithChargeServiceWallet($customerAccountId, $com
 
                 $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
                 $paymentcash           = ($originalAmount + $customerCharge);
-                $customerFinalBalance  = $userWallet->balance -= $paymentcash;
+                $spendSaveCash         = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
+                $customerFinalBalance  = $userWallet->balance -= ($paymentcash + $spendSaveCash);
 
                 if ($userWallet->save()) {
                     $BranchWallet           = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
-                    $BranchWallet->balance -= $paymentcash;
+                    $BranchWallet->balance -= ($paymentcash + $spendSaveCash);
                     $BranchWallet->save();
                 }
 
@@ -2296,6 +2304,7 @@ function debitCustomerAndCompanyWithChargeServiceWallet($customerAccountId, $com
                     'company_balance_after'         => $companyBalanceAfter,
                     'company_charge_balance_before' => $companyBalanceAfter,
                     'company_charge_balance_after'  => $companyFinalBalance,
+                    'spend_save_cash'               => $spendSaveCash,
                 ];
 
                 logInfo(json_encode($response), "debitCustomerAndCompanyWithCharge");
@@ -2473,11 +2482,12 @@ function checkCustomerAndCompanyWithChargeSafeHaven($customerAccountId, $company
 
                 $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
                 $paymentcash           = ($originalAmount + $customerCharge);
-                $customerFinalBalance  = $userWallet->balance -= $paymentcash;
+                $spendSaveCash         = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
+                $customerFinalBalance  = $userWallet->balance -= ($paymentcash + $spendSaveCash);
 
                 if ($userWallet) {
                     $BranchWallet           = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
-                    $BranchWallet->balance -= $paymentcash;
+                    $BranchWallet->balance -= ($paymentcash + $spendSaveCash);
                     //      $BranchWallet->save();
                 }
                 $companyInitialBalance  = $companyWallet->balance;
@@ -2502,6 +2512,7 @@ function checkCustomerAndCompanyWithChargeSafeHaven($customerAccountId, $company
                     'company_balance_after'         => $companyBalanceAfter,
                     'company_charge_balance_before' => $companyBalanceAfter,
                     'company_charge_balance_after'  => $companyFinalBalance,
+                    'spend_save_cash'               => $spendSaveCash,
                 ];
 
                 logInfo(json_encode($response), "debitCustomerAndCompanyWithCharge");
@@ -2811,13 +2822,13 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
 
             if (($company->wallet->balance > ($originalAmount - $companyCashbackAmount)) && ($companyIDsStatus)) {
 
-                $customerBalanceAfter = $customerInitialBalance - $originalAmount;
-
-                $customerFinalBalance  = $userWallet->balance -= ($originalAmount - $customerCashbackAmount);
+                $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
+                $spendSaveCash         = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
+                $customerFinalBalance  = $userWallet->balance -= (($originalAmount - $customerCashbackAmount) - $spendSaveCash);
                 $userWallet->save();
                 if (isset($userWallet->wb_account_details->user->branch_id)) {
                     $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
-                    $BranchWallet->balance -= $originalAmount;
+                    $BranchWallet->balance -= ($originalAmount + $spendSaveCash);
                     $BranchWallet->save();
                 }
                 $companyInitialBalance = $company->wallet->balance;
@@ -2844,6 +2855,7 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
                     'company_balance_after'           => $companyBalanceAfter,
                     'company_cashback_balance_before' => $companyBalanceAfter,
                     'company_cashback_balance_after'  => $companyFinalBalance,
+                    'spend_save_cash'                 => $spendSaveCash,
                 ];
             } else {
                 $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
@@ -2941,13 +2953,13 @@ function debitCustomerAndCompanyWithCompanyCashbackServiceWallet($customerAccoun
                 $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
             }*/
 
-            $customerBalanceAfter = $customerInitialBalance - $originalAmount;
-
-            $customerFinalBalance  = $userWallet->balance -= ($originalAmount - $customerCashbackAmount);
+            $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
+            $spendSaveCash         = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
+            $customerFinalBalance  = $userWallet->balance -= (($originalAmount - $customerCashbackAmount) - $spendSaveCash);
             $userWallet->save();
             if (isset($userWallet->wb_account_details->user->branch_id)) {
                 $BranchWallet           = BranchWallet::where('branch_id', $userWallet->wb_account_details->user->branch_id)->first();
-                $BranchWallet->balance -= $originalAmount;
+                $BranchWallet->balance -= ($originalAmount + $spendSaveCash);
                 $BranchWallet->save();
             }
             $originalAmount        = 0;
@@ -2975,6 +2987,7 @@ function debitCustomerAndCompanyWithCompanyCashbackServiceWallet($customerAccoun
                 'company_balance_after'           => $companyBalanceAfter,
                 'company_cashback_balance_before' => $companyBalanceAfter,
                 'company_cashback_balance_after'  => $companyFinalBalance,
+                'spend_save_cash'                 => $spendSaveCash,
             ];
         } else {
             if ($currentUser->balance_fails < 4) {
@@ -5422,4 +5435,82 @@ function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
     // dd($revenue);
 
     return $revenue;
+
+    function spendSaveRecordTransaction($debitCustomer, $transaction, )
+    {
+        $user_id   = wb_account_details::where('id', $transaction->account_id)->first()->user_id;
+        $branch_id = branch::where('company_id', $transaction->company_id)
+            ->where('status_id', '!=', 14)
+            ->value('id');
+        if ($debitCustomer['spend_save_cash'] == 0) {
+            $data = [
+                "balance_before"         => $debitCustomer['balance_before'],
+                "amount"                 => $debitCustomer['spend_save_cash'],
+                "balance_after"          => $debitCustomer["balance_after"],
+                "account_id"             => $transaction->account_id,
+                "company_id"             => $transaction->company_id,
+                "branch_id"              => $branch_id,
+                "company_balance_before" => $debitCustomer["company_balance_before"],
+                "company_amount"         => $debitCustomer["company_amount"],
+                "company_balance_after"  => $debitCustomer["company_balance_after"],
+                "description"            => "Spend  / Save Transaction",
+                "transaction_reference"  => generateTransactionReference(),
+                "transaction_remarks_id" => 2,
+                "transaction_type_id"    => 104,
+                "credit_debit_type_id"   => 2,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => $user_id,
+            ];
+            logInfo(json_encode($data), "SpendSave for $transaction->account_id");
+        } else {
+            transactions::create([
+                "balance_before"         => $debitCustomer['balance_before'],
+                "amount"                 => $debitCustomer['spend_save_cash'],
+                "balance_after"          => $debitCustomer["balance_after"],
+                "account_id"             => $transaction->account_id,
+                "company_id"             => $transaction->company_id,
+                "branch_id"              => $branch_id,
+                "company_balance_before" => $debitCustomer["company_balance_before"],
+                "company_amount"         => $debitCustomer["company_amount"],
+                "company_balance_after"  => $debitCustomer["company_balance_after"],
+                "description"            => "Spend  / Save Transaction",
+                "transaction_reference"  => generateTransactionReference(),
+                "transaction_remarks_id" => 2,
+                "transaction_type_id"    => 104,
+                "credit_debit_type_id"   => 2,
+                "created_date"           => date('Y-m-d'),
+                "created_by"             => $user_id,
+            ]);
+        }
+
+        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(27, $transaction->company_id);
+        if ($ledger_Settings) {
+            $ledger_cr = $ledger_Settings->ledger_cr;
+            $ledger_dr = $ledger_Settings->ledger_dr;
+        } else {
+            return ['status' => false, 'message' => 'Transaction failed, set Debit for customer savings ledger for this transaction type in ledger settings !'];
+        }
+    }
+
+    function debitCustomerSpendSave($customerAccountId, $originalAmount)
+    {
+
+        $user_id           = wb_account_details::where('id', $customerAccountId)->first()->user_id;
+        $spendSaveSettings = SpendSave::where('user_id', $user_id)->first();
+        if ($spendSaveSettings != null) {
+            if (isset($spendSaveSettings->status_id) && $spendSaveSettings->status_id == 1) {
+                $cash = ($spendSaveSettings->spend_save_charge_or_percentage) * $originalAmount;
+
+            } else {
+                $cash = 0;
+            }
+        } else {
+            $cash = 0;
+        }
+
+        logInfo($cash, "SpendSave for $user_id");
+        $cash = 0;
+        return $cash;
+
+    }
 }

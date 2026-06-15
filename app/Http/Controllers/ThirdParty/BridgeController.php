@@ -57,7 +57,7 @@ class BridgeController extends WebhookController
 
     public function createCompanyAccount($customer, $data)
     {
-        
+
         $createCustomer = $this->createBridgeCustomer($request, $customer, $data);
         return [
             'status'  => true,
@@ -158,7 +158,7 @@ class BridgeController extends WebhookController
 
     public function createCompanyCryptoWalletAccount($customer)
     {
-        $customerID = $customer->bridge_company_id;
+        $customerID = $customer->wallet->bridge_company_id;
 
         $body = [
 
@@ -187,8 +187,8 @@ class BridgeController extends WebhookController
             if ($createAccountResponse->successful()) {
 
                 //    $response = $this->sanitizeResponse($createAccountResponse['data']);
-                $customer->bridge_company_address = $createAccountResponse["address"];
-                $customer->bridge_company_chain   = $createAccountResponse["chain"];
+                $customer->wallet->bridge_company_address = $createAccountResponse["address"];
+                $customer->wallet->bridge_company_chain   = $createAccountResponse["chain"];
                 return $customer->bridge_company_address;
             } else {
                 return ['status' => false, 'message' => 'Account createCompanyCryptoWalletAccount Failed . Kindly contact support for assistance'];

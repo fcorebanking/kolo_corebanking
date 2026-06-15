@@ -1372,8 +1372,10 @@ class TransactionController extends Controller
                             $subtext = "Debit Transaction";
                             $reason  = "";
                             $msg     = "Debit Amt:$request->final_amount,<br><br> Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . "<br><br> Avail Bal:" . $debitCustomer['charge_balance_after'] . "<br><br>Date:" . date('Y-m-d') . " <br><br>Ref: " . $request->transaction_reference;
+                          
                             $this->sendTransactionReportEmail($subtext, $msg, $reason, $currentUser);
-
+                            spendSaveRecordTransaction($debitCustomer, $transaction);
+                           
                             return response()->json([
                                 "status"  => true,
                                 'message' => "Wallet to Bank Transfer Successful",
@@ -4988,6 +4990,7 @@ class TransactionController extends Controller
                     $msg     = "Purchase of Airtime worth $request->final_amount for $request->phone_number";
                     $user    = auth()->user();
                     $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
+                    spendSaveRecordTransaction($debitCustomer, $transaction);
 
                     return response()->json(
                         [
@@ -5248,6 +5251,7 @@ class TransactionController extends Controller
                     $msg     = "Purchase of Data worth " . $selectedDataBundle['variation_amount'] . " for $request->phone_number";
                     $user    = auth()->user();
                     $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
+                    spendSaveRecordTransaction($debitCustomer, $transaction);
 
                     return response()->json(
                         [
@@ -5575,7 +5579,7 @@ class TransactionController extends Controller
                     $buyElectricity['data']['balance'] = $debitCustomer["charge_balance_after"];
 
                     sendSMS(auth()->user()->id, "Purchased Electricity Token $electricityToken, Amount: $request->final_amount, Avail Bal: " . $debitCustomer["charge_balance_after"], true, true, 'Electricity Token');
-
+spendSaveRecordTransaction($debitCustomer, $transaction);
                     return response()->json($buyElectricity);
                 }
             }
@@ -5768,6 +5772,8 @@ class TransactionController extends Controller
                     $this->updateTransactionAsSuccessful($transactionId, $debitCustomer['balance_before'], false);
 
                     $subscribeCableTV['data']['balance'] = $debitCustomer['charge_balance_after'];
+
+                    spendSaveRecordTransaction($debitCustomer, $transaction);
 
                     return response()->json($subscribeCableTV);
                 }

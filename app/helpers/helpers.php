@@ -5438,7 +5438,7 @@ function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
 }
 function spendSaveRecordTransaction($debitCustomer, $transaction)
 {
-    $user_id   = wb_account_details::where('id', $transaction->account_id)->first()->user_id;
+   // $user_id   = wb_account_details::where('id', $transaction->account_id)->first()->user_id;
     $branch_id = branch::where('company_id', $transaction->company_id)
         ->where('status_id', '!=', 14)
         ->value('id');
@@ -5459,7 +5459,7 @@ function spendSaveRecordTransaction($debitCustomer, $transaction)
             "transaction_type_id"    => 104,
             "credit_debit_type_id"   => 2,
             "created_date"           => date('Y-m-d'),
-            "created_by"             => $user_id,
+            "created_by"             => $transaction->account_id,
         ];
         logInfo(json_encode($data), "SpendSave for $transaction->account_id");
     } else {

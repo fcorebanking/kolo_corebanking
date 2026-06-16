@@ -51,6 +51,9 @@ class CreateBridgeCompanyAccount extends Command
             $bridgeController      = new BridgeController();
             $bridgeCustomerAccount = $bridgeController->createCompanyAccount($customer, $data);
             logInfo(json_encode($bridgeCustomerAccount), "bridgeCompanyAccount Result");
+            $customer->update([
+                'remittar_customer_id' => $bridgeCustomerAccount['data']['account_reference'] ?? null,
+            ]);
         } catch (\Throwable $e) {
             \logInfo([
                 "company_id" => $company->id,

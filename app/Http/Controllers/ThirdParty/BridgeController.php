@@ -97,6 +97,7 @@ class BridgeController extends WebhookController
                     default => 'usdc', // fallback
                 },
                 "payment_rail" => 'base',
+                "address"      => $companyWalletaddress,
 
             ],
         ];

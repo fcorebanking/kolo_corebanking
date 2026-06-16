@@ -3113,6 +3113,7 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
                 'amount'                => $debitAmount,
                 'charge_balance_before' => $companyBalanceAfter,
                 'charge_balance_after'  => $companyFinalBalance,
+                "spend_save_cash" => 0
             ];
         } else {
             if ($currentUser->balance_fails < 4) {
@@ -5436,7 +5437,7 @@ function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
 }
 function spendSaveRecordTransaction($debitCustomer, $transaction)
 {
-   // $user_id   = wb_account_details::where('id', $transaction->account_id)->value('user_id');
+    // $user_id   = wb_account_details::where('id', $transaction->account_id)->value('user_id');
     $branch_id = branch::where('company_id', $transaction->company_id)
         ->where('status_id', '!=', 14)
         ->value('id');

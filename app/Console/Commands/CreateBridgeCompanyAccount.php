@@ -54,6 +54,10 @@ class CreateBridgeCompanyAccount extends Command
             $customer->update([
                 'remittar_customer_id' => $bridgeCustomerAccount['data']['account_reference'] ?? null,
             ]);
+            $company->wallet->update([
+                'bridge_company_id' => $bridgeCustomerAccount['data']['account_reference'] ?? null,
+            ]);
+
         } catch (\Throwable $e) {
             \logInfo([
                 "company_id" => $company->id,

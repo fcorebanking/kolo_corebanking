@@ -330,7 +330,7 @@ class BridgeController extends WebhookController
     {
         try {
             $companyRecord        = Company::where(['id' => $user->company_id])->first();
-            $companyWalletaddress = $companyRecord->wallet->bridge_wallet_address;
+            $companyWalletaddress = $companyRecord->wallet->bridge_company_address;
 
             if ($companyWalletaddress == null) {
                 $companyWalletaddress = $this->createCompanyCryptoWalletAccount($companyRecord);

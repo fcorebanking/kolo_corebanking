@@ -272,9 +272,7 @@ class BridgeController extends WebhookController
                 "country" => $country,
                 "city"    => $request->city ?? $data['city'] ?? "",
             ],
-            "nationalities"                 => [[
-                "$country",
-            ]],
+            "nationalities"                 => [$country],
             "account_purpose"               => $country == "NGA" ? "receive_payment_for_freelancing" : $request->account_purpose,
             "employment_status"             => $country == "NGA" ? "self_employed" : $request->employment_status,
             "expected_monthly_payments_usd" => $country == "NGA" ? "0_4999" : $request->expected_monthly_payments_usd,

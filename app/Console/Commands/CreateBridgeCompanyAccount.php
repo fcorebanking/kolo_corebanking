@@ -39,6 +39,7 @@ class CreateBridgeCompanyAccount extends Command
             "issuing_country"     => "NGA",
             "type"                => "national_id",
             "description"         => "",
+            "city"                => "Lagos",
             "signed_agreement_id" => "b1c2fd11-006f-4406-8039-aa5debda6d61",
             "postal_code"         => "100212",
             "expiration"          => "2027-01-31",

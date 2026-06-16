@@ -5,7 +5,6 @@ use App\Http\Controllers\CustomClasses\WebhookController;
 use App\Models\ApiKey;
 use App\Models\Company;
 use App\Models\User;
-use App\Models\wb_account_details;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -67,94 +66,6 @@ class BridgeController extends WebhookController
             'message' => "Account Pending: Your Account is under review",
         ];
 
-    }
-
-    public function createVirtualAccount($customer, $companyWalletaddress)
-    {
-        $customerID = $customer->remittar_customer_id;
-
-        $currency_id = $customer->company->currency_id;
-        /* match ($currency_id) {
-            4       => 'GBP',
-            7       => 'EUR',
-            8       => 'GHS',
-
-            default => 'USD', // fallback
-        };*/
-
-        $body = [
-            "developer_fee_percent" => "0.1",
-            "source"                => [
-                "currency" => match ($currency_id) {
-                    4       => 'gbp',
-                    7       => 'eu',
-                    default => 'usd', // fallback
-                },
-            ],
-            "destination"           => [
-                "currency"     => match ($currency_id) {
-                    7       => 'eurc',
-                    default => 'usdc', // fallback
-                },
-                "payment_rail" => 'base',
-                "address"      => $companyWalletaddress,
-
-            ],
-        ];
-
-        $jsonBody = json_encode($body);
-
-        $url = "{$this->baseUrl}customers/{$customerID}/virtual_accounts";
-
-        \logInfo($url, "Bridge Request url");
-        \logInfo($customerID, "Bridge Request customer id");
-
-        try {
-            \logInfo($jsonBody, "Bridge Request body");
-
-            $action = 'idemkey';
-
-            $createAccountResponse = $this->bridgePostRequest($url, $body, $action);
-
-            logInfo($createAccountResponse, "bridge Create Account Response");
-
-            if (isset($createAccountResponse['status'])) {
-
-                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
-
-                if ($createAccountResponse["status"] != "activated") {
-                    return [
-                        'status'  => false,
-                        'message' => $createAccountResponse["message"],
-                    ];
-                } else {
-                    return [
-                        'status'  => true,
-                        'message' => "Account Successful",
-                        'data'    => [
-
-                            'account_number'         => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
-                            'virtual_account_number' => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
-                            'account_reference'      => $customerID,
-                            'bank_routing_number'    => $createAccountResponse['source_deposit_instructions']['bank_routing_number'],
-                            'currency_id'            => match ($currency_id) {
-                                4       => 'GBP',
-                                7       => 'EUR',
-                                8       => 'GHS',
-
-                                default => 2, // fallback
-                            },
-                        ],
-                    ];
-                }
-            } else {
-                return ['status' => false, 'message' => 'Account CreationFailed . Kindly contactsupportfor assistance'];
-            }
-        } catch (Exception $e) {
-            logInfo($e->getMessage(), "Laravel Kuda Error");
-
-            return ['status' => false, 'message' => 'Error CreatingAccount . Kindly contactsupportfor assistance'];
-        }
     }
 
     public function createCompanyCryptoWalletAccount($customer)
@@ -327,41 +238,143 @@ class BridgeController extends WebhookController
         }
     }
 
-    public function updateForeignVirtualAccount($user)
+    public function getForeignVirtualAccount($user)
     {
+        $customer    = $user;
+        $customerID  = $customer->remittar_customer_id;
+        $endpoint    = "$this->baseUrl/customers/$customerID/virtual_accounts";
+        $currency_id = $customer->company->currency_id;
+
+        logInfo(json_encode($endpoint), "Bride Customer Get Virtual Account endpoint");
+
         try {
-            $companyRecord        = Company::where(['id' => $user->company_id])->first();
-            $companyWalletaddress = $companyRecord->wallet->bridge_company_address;
+            $result = $this->bridgeGetRequest($endpoint);
 
-            if ($companyWalletaddress == null) {
-                $companyWalletaddress = $this->createCompanyCryptoWalletAccount($companyRecord);
-            }
+            logInfo(json_encode($result), "Bride Customer Get Virtual Account Result");
 
-            $response = $this->createVirtualAccount($user, $companyWalletaddress);
-            if ($response['status']) {
+            if (isset($result['count'])) {
+                if ($result['count'] > 0) {
+                    $firstAccount = $result['data'][0] ?? null;
 
-                \logInfo(json_encode($response), "updateForeignVirtualAccount for Bridge ");
+                    if ($firstAccount != null) {
+                        return [
+                            'status'  => true,
+                            'message' => "Account Successful",
+                            'data'    => [
 
-                $customer_reference      = $response['data']['accountInformation']['reference'];
-                $virtual_acccount_number = $response['data']['accountInformation']['accountNumber'];
+                                'account_number'         => $firstAccount['source_deposit_instructions']['bank_account_number'],
+                                'virtual_account_number' => $firstAccount['source_deposit_instructions']['bank_account_number'],
+                                'account_reference'      => $customerID,
+                                'bank_routing_number'    => $firstAccount['source_deposit_instructions']['bank_routing_number'],
+                                'currency_id'            => match ($currency_id) {
+                                    4       => 'GBP',
+                                    7       => 'EUR',
+                                    8       => 'GHS',
 
-                $wb_account_details = wb_account_details::where('user_id', $user->id)->first();
-                $wb_account_details->update([
-                    'virtual_accnum' => $virtual_acccount_number,
-                    'acc_reference'  => $customer_reference,
-                    'bankid'         => $bankId,
-                    "currency_id"    => $user->company->currency_id,
-                ]);
+                                    default => 2, // fallback
+                                },
+                            ],
+                        ];
+                    } else {
+                        return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
+                    }
+                }
 
-                $user->virtual_account   = $virtual_acccount_number;
-                $user->account_reference = $customer_reference;
-                $user->save();
             } else {
-                return response()->json(['status' => 0, 'message' => 'Account Registration Failed!']);
+                return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
             }
-
         } catch (Exception $e) {
-            return response()->json(['status' => 0, 'message' => "An error occured!"]);
+            logInfo($e->getMessage(), "Bridge Customer Get Result Error");
+
+            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
+        }
+    }
+
+    public function createVirtualAccount($customer, $companyWalletaddress)
+    {
+        $customerID = $customer->remittar_customer_id;
+
+        $currency_id = $customer->company->currency_id;
+        /* match ($currency_id) {
+            4       => 'GBP',
+            7       => 'EUR',
+            8       => 'GHS',
+
+            default => 'USD', // fallback
+        };*/
+
+        $body = [
+            "developer_fee_percent" => "0.1",
+            "source"                => [
+                "currency" => match ($currency_id) {
+                    4       => 'gbp',
+                    7       => 'eu',
+                    default => 'usd', // fallback
+                },
+            ],
+            "destination"           => [
+                "currency"     => match ($currency_id) {
+                    7       => 'eurc',
+                    default => 'usdc', // fallback
+                },
+                "payment_rail" => 'base',
+                "address"      => $companyWalletaddress,
+
+            ],
+        ];
+
+        $jsonBody = json_encode($body);
+
+        $url = "{$this->baseUrl}customers/{$customerID}/virtual_accounts";
+
+        \logInfo($url, "Bridge Request url");
+        \logInfo($customerID, "Bridge Request Create Virtual Account customer id");
+
+        try {
+            \logInfo($jsonBody, "Bridge Request Create Virtual Account body");
+
+            $action = 'idemkey';
+
+            $createAccountResponse = $this->bridgePostRequest($url, $body, $action);
+
+            logInfo($createAccountResponse, "bridge Create Account Response");
+
+            if (isset($createAccountResponse['status'])) {
+
+                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
+
+                if ($createAccountResponse["status"] != "activated") {
+                    return [
+                        'status'  => false,
+                        'message' => $createAccountResponse["message"],
+                    ];
+                } else {
+                    return [
+                        'status'  => true,
+                        'message' => "Account Successful",
+                        'data'    => [
+
+                            'account_number'         => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
+                            'virtual_account_number' => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
+                            'account_reference'      => $customerID,
+                            'bank_routing_number'    => $createAccountResponse['source_deposit_instructions']['bank_routing_number'],
+                            'currency_id'            => match ($currency_id) {
+                                4       => 'GBP',
+                                7       => 'EUR',
+                                8       => 'GHS',
+
+                                default => 2, // fallback
+                            },
+                        ],
+                    ];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Account Creation Failed . Kindly contactsupportfor assistance'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Laravel Kuda Error");
+
+            return ['status' => false, 'message' => 'Error Creating Account . Kindly contactsupportfor assistance'];
         }
     }
 

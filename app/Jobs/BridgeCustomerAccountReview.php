@@ -41,36 +41,12 @@ class BridgeCustomerAccountReview
                         logInfo(json_encode($bridgeCustomerAccount), "bridgeCustomerAccount Incomplete Status");
 
                     } else {
-                        $createAccount = $bridgeController->updateForeignVirtualAccount($userData);
-                        $userData->update([
-                            'remittar_customer_id' => $createAccount['data']['account_number'],
-
-                        ]);
-
-                        $saving = savings_product::where([
-                            'company_id' => $userData->company_id,
-                            // 'id'         => $request->savings_product_type,
-                        ])->first();
-
-                        \logInfo(json_encode($saving), "api saving account product Bridge");
-
-                        $account = wb_account_details::create([
-                            'user_id'            => $userData->id,
-                            'account_product_id' => $saving->id,
-                            'bankid'             => $createAccount['data']['bank_routing_number'],
-                            'virtual_accnum'     => $createAccount['data']['account_number'],
-                            'acc_reference'      => $createAccount['data']['account_reference'],
-                            'has_atm_card'       => 0,
-                            'currency_id'        => $createAccount['data']['account_number']['currency_id'],
-                        ]);
-
-                        user_wallet::create([
-                            'wb_account_detail_id' => $account->id,
-                            'balance'              => 0,
-                        ]);
-
+                        $account = $this->getForeignVirtualAccount($userData);
+                        if (! $account['status']) {
+                            $account = $this->createForeignVirtualAccount($userData);
+                        }
+                        $this->updateForeignVirtualAccount($userData, $account);
                     }
-
                     \logInfo('Message: Success BridgeCustomerAccountReview', 'Line: Success for ' . $userData->id);
 
                 } catch (\Throwable $e) {
@@ -105,6 +81,50 @@ class BridgeCustomerAccountReview
         logInfo(json_encode($header), "Bridge Header");
 
         return $header;
+    }
+
+    public function createForeignVirtualAccount($userData)
+    {
+        $createAccount = $bridgeController->updateForeignVirtualAccount($userData);
+        return $createAccount;
+    }
+
+    public function getForeignVirtualAccount($userData)
+    {
+        $account = $bridgeController->getForeignVirtualAccount($userData);
+        return $account;
+    }
+
+    public function updateForeignVirtualAccount($userData, $account)
+    {
+
+        $userData->update([
+            'remittar_customer_id' => $account['data']['account_number'],
+
+        ]);
+
+        $saving = savings_product::where([
+            'company_id' => $userData->company_id,
+            // 'id'         => $request->savings_product_type,
+        ])->first();
+
+        \logInfo(json_encode($saving), "api saving account product Bridge");
+
+        $accountWBDetail = wb_account_details::create([
+            'user_id'            => $userData->id,
+            'account_product_id' => $saving->id,
+            'bankid'             => $account['data']['bank_routing_number'],
+            'virtual_accnum'     => $account['data']['account_number'],
+            'acc_reference'      => $account['data']['account_reference'],
+            'has_atm_card'       => 0,
+            'currency_id'        => $account['data']['account_number']['currency_id'],
+        ]);
+
+        user_wallet::create([
+            'wb_account_detail_id' => $accountWBDetail->id,
+            'balance'              => 0,
+        ]);
+
     }
 
 }

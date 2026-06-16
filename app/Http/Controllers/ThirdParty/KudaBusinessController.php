@@ -252,7 +252,7 @@ class KudaBusinessController extends WebhookController
 
                 //  $response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if (! $createAccountResponse["Status"]) {
+                if (! $createAccountResponse["status"]) {
                     return [
                         'status'  => false,
                         'message' => $createAccountResponse["message"],

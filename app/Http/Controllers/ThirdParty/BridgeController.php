@@ -117,7 +117,7 @@ class BridgeController extends WebhookController
 
             logInfo($createAccountResponse, "bridge Create Account Response");
 
-            if ($createAccountResponse->successful()) {
+            if (isset($createAccountResponse['status'])) {
 
                 //    $response = $this->sanitizeResponse($createAccountResponse['data']);
 
@@ -129,7 +129,7 @@ class BridgeController extends WebhookController
                 } else {
                     return [
                         'status'  => true,
-                        'message' => "Account Pending",
+                        'message' => "Account Successful",
                         'data'    => [
 
                             'account_number'         => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
@@ -182,7 +182,7 @@ class BridgeController extends WebhookController
 
             logInfo($createAccountResponse, "bridge createCompanyCryptoWalletAccount Response");
 
-            if ($createAccountResponse->successful()) {
+            if (isset($createAccountResponse['address'])) {
 
                 //    $response = $this->sanitizeResponse($createAccountResponse['data']);
                 $customer->wallet->bridge_company_address = $createAccountResponse["address"];

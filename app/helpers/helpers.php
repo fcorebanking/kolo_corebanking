@@ -5435,8 +5435,8 @@ function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
     // dd($revenue);
 
     return $revenue;
-
-    function spendSaveRecordTransaction($debitCustomer, $transaction, )
+}
+    function spendSaveRecordTransaction($debitCustomer, $transaction)
     {
         $user_id   = wb_account_details::where('id', $transaction->account_id)->first()->user_id;
         $branch_id = branch::where('company_id', $transaction->company_id)
@@ -5513,4 +5513,4 @@ function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
         return $cash;
 
     }
-}
+

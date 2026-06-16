@@ -5436,81 +5436,80 @@ function loadLoss($from = null, $to = null, $branchID = null, $officer = null)
 
     return $revenue;
 }
-    function spendSaveRecordTransaction($debitCustomer, $transaction)
-    {
-        $user_id   = wb_account_details::where('id', $transaction->account_id)->first()->user_id;
-        $branch_id = branch::where('company_id', $transaction->company_id)
-            ->where('status_id', '!=', 14)
-            ->value('id');
-        if ($debitCustomer['spend_save_cash'] == 0) {
-            $data = [
-                "balance_before"         => $debitCustomer['balance_before'],
-                "amount"                 => $debitCustomer['spend_save_cash'],
-                "balance_after"          => $debitCustomer["balance_after"],
-                "account_id"             => $transaction->account_id,
-                "company_id"             => $transaction->company_id,
-                "branch_id"              => $branch_id,
-                "company_balance_before" => $debitCustomer["company_balance_before"],
-                "company_amount"         => $debitCustomer["company_amount"],
-                "company_balance_after"  => $debitCustomer["company_balance_after"],
-                "description"            => "Spend  / Save Transaction",
-                "transaction_reference"  => generateTransactionReference(),
-                "transaction_remarks_id" => 2,
-                "transaction_type_id"    => 104,
-                "credit_debit_type_id"   => 2,
-                "created_date"           => date('Y-m-d'),
-                "created_by"             => $user_id,
-            ];
-            logInfo(json_encode($data), "SpendSave for $transaction->account_id");
-        } else {
-            transactions::create([
-                "balance_before"         => $debitCustomer['balance_before'],
-                "amount"                 => $debitCustomer['spend_save_cash'],
-                "balance_after"          => $debitCustomer["balance_after"],
-                "account_id"             => $transaction->account_id,
-                "company_id"             => $transaction->company_id,
-                "branch_id"              => $branch_id,
-                "company_balance_before" => $debitCustomer["company_balance_before"],
-                "company_amount"         => $debitCustomer["company_amount"],
-                "company_balance_after"  => $debitCustomer["company_balance_after"],
-                "description"            => "Spend  / Save Transaction",
-                "transaction_reference"  => generateTransactionReference(),
-                "transaction_remarks_id" => 2,
-                "transaction_type_id"    => 104,
-                "credit_debit_type_id"   => 2,
-                "created_date"           => date('Y-m-d'),
-                "created_by"             => $user_id,
-            ]);
-        }
-
-        $ledger_Settings = get_CR_DR_TXN_Type_Ledger(27, $transaction->company_id);
-        if ($ledger_Settings) {
-            $ledger_cr = $ledger_Settings->ledger_cr;
-            $ledger_dr = $ledger_Settings->ledger_dr;
-        } else {
-            return ['status' => false, 'message' => 'Transaction failed, set Debit for customer savings ledger for this transaction type in ledger settings !'];
-        }
+function spendSaveRecordTransaction($debitCustomer, $transaction)
+{
+    $user_id   = wb_account_details::where('id', $transaction->account_id)->first()->user_id;
+    $branch_id = branch::where('company_id', $transaction->company_id)
+        ->where('status_id', '!=', 14)
+        ->value('id');
+    if ($debitCustomer['spend_save_cash'] == 0) {
+        $data = [
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $debitCustomer['spend_save_cash'],
+            "balance_after"          => $debitCustomer["balance_after"],
+            "account_id"             => $transaction->account_id,
+            "company_id"             => $transaction->company_id,
+            "branch_id"              => $branch_id,
+            "company_balance_before" => $debitCustomer["company_balance_before"],
+            "company_amount"         => $debitCustomer["company_amount"],
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "description"            => "Spend  / Save Transaction",
+            "transaction_reference"  => generateTransactionReference(),
+            "transaction_remarks_id" => 2,
+            "transaction_type_id"    => 104,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $user_id,
+        ];
+        logInfo(json_encode($data), "SpendSave for $transaction->account_id");
+    } else {
+        transactions::create([
+            "balance_before"         => $debitCustomer['balance_before'],
+            "amount"                 => $debitCustomer['spend_save_cash'],
+            "balance_after"          => $debitCustomer["balance_after"],
+            "account_id"             => $transaction->account_id,
+            "company_id"             => $transaction->company_id,
+            "branch_id"              => $branch_id,
+            "company_balance_before" => $debitCustomer["company_balance_before"],
+            "company_amount"         => $debitCustomer["company_amount"],
+            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "description"            => "Spend  / Save Transaction",
+            "transaction_reference"  => generateTransactionReference(),
+            "transaction_remarks_id" => 2,
+            "transaction_type_id"    => 104,
+            "credit_debit_type_id"   => 2,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             => $user_id,
+        ]);
     }
 
-    function debitCustomerSpendSave($customerAccountId, $originalAmount)
-    {
+    $ledger_Settings = get_CR_DR_TXN_Type_Ledger(27, $transaction->company_id);
+    if ($ledger_Settings) {
+        $ledger_cr = $ledger_Settings->ledger_cr;
+        $ledger_dr = $ledger_Settings->ledger_dr;
+    } else {
+        return ['status' => false, 'message' => 'Transaction failed, set Debit for customer savings ledger for this transaction type in ledger settings !'];
+    }
+}
 
-        $user_id           = wb_account_details::where('id', $customerAccountId)->first()->user_id;
-        $spendSaveSettings = SpendSave::where('user_id', $user_id)->first();
-        if ($spendSaveSettings != null) {
-            if (isset($spendSaveSettings->status_id) && $spendSaveSettings->status_id == 1) {
-                $cash = ($spendSaveSettings->spend_save_charge_or_percentage) * $originalAmount;
+function debitCustomerSpendSave($customerAccountId, $originalAmount)
+{
 
-            } else {
-                $cash = 0;
-            }
+    $user_id           = wb_account_details::where('id', $customerAccountId)->first()->user_id;
+    $spendSaveSettings = SpendSave::where('user_id', $user_id)->first();
+    if ($spendSaveSettings != null) {
+        if (isset($spendSaveSettings->status_id) && $spendSaveSettings->status_id == 1) {
+            $cash = ($spendSaveSettings->spend_save_charge_or_percentage) * $originalAmount;
+
         } else {
             $cash = 0;
         }
-
-        logInfo($cash, "SpendSave for $user_id");
+    } else {
         $cash = 0;
-        return $cash;
-
     }
 
+    logInfo($cash, "SpendSave for $user_id");
+    $cash = 0;
+    return $cash;
+
+}

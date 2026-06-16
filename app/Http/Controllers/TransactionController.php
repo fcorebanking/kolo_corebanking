@@ -3088,7 +3088,7 @@ class TransactionController extends Controller
                     //    $transaction->description            = $myDescription;
                     //      $transaction->transaction_remarks_id = 2;
                     //     $transaction->save();
-                    \spendSaveRecordTransaction($debitCustomerAndCompany, $transaction);
+                    \spendSaveRecordTransaction($debitCompanyWithCharge, $transaction);
                     return [
                         "status"  => 1,
                         'message' => "Wallet to Bank Transfer Successful",

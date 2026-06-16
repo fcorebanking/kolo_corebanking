@@ -233,13 +233,13 @@ class BridgeController extends WebhookController
             "image_back"      => $request->image_back ?? $data['image_back'],
         ];
 
-        if ($request->issuing_country == "GBR") {
+        if ($country == "GBR") {
             $identifying_information = [
                 $body_identifying_information, $identifying_information_nino,
             ];
         }
 
-        if ($request->issuing_country == "NGA") {
+        if ($country == "NGA") {
             $identifying_information = [
                 $body_identifying_information, $identifying_information_tin,
             ];

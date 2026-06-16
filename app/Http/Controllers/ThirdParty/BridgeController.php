@@ -57,7 +57,7 @@ class BridgeController extends WebhookController
 
     public function createCompanyAccount($customer, $data)
     {
-
+        $reqest         = new Request();
         $createCustomer = $this->createBridgeCustomer($request, $customer, $data);
         return [
             'status'  => true,
@@ -405,7 +405,7 @@ class BridgeController extends WebhookController
 
     public function getTOSLinkCompany($companyID)
     {
-        $company   = Company::where('id', $companyID)->first();
+        $company    = Company::where('id', $companyID)->first();
         $customerID = $company->wallet?->bridge_company_id;
 
         logInfo(json_encode($customerID), "Bride Customer Result companyID)");

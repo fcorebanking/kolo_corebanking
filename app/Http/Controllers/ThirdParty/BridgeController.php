@@ -122,7 +122,7 @@ class BridgeController extends WebhookController
 
                 //    $response = $this->sanitizeResponse($createAccountResponse['data']);
 
-                if (! $createAccountResponse["status"] != "activated") {
+                if ($createAccountResponse["status"] != "activated") {
                     return [
                         'status'  => false,
                         'message' => $createAccountResponse["message"],

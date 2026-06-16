@@ -1204,14 +1204,10 @@ class WebhookController extends Controller
     public function handleBridgeWebhook($request)
     {
         $requestResponse = $request->all();
-        logInfo(json_encode($requestResponse), "request Response");
+        logInfo(json_encode($requestResponse), "Bridge Webhook request Response");
 
         $bridgeController = new BridgeController();
-
-        if ($requestResponse['event_category'] == "customer" && $requestResponse['event_object']['status'] == "active") {
-            return $bridgeController->updateForeignVirtualAccount($requestResponset);
-        }
-
+        return $this->respondSuccess();
     }
 
     public function handleVPayWebhook()

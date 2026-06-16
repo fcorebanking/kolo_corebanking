@@ -162,9 +162,7 @@ class BridgeController extends WebhookController
 
         $body = [
 
-            "data" => [
-                "chain" => "base", // fallback
-            ],
+            "chain" => "base",
 
         ];
 

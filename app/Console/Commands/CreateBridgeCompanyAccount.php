@@ -36,12 +36,12 @@ class CreateBridgeCompanyAccount extends Command
         // "image_back":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJADveax8o1AAAAAElFTkSuQmCC",
         $customer = $company->allStaff->first();
         $data     = [
-            "number"          => "",
+            "number"          => "22460591185",
             "issuing_country" => "NGA",
             "type"            => "national_id",
             "description"     => "",
             "postal_code"     => "100212",
-            "expiration"      => "",
+            "expiration"      => "2027-01-31",
             "image_front"     => "",
             "image_back"      => "",
         ];

@@ -403,6 +403,39 @@ class BridgeController extends WebhookController
         }
     }
 
+    public function getTOSLinkCompany($companyID)
+    {
+        $company   = Company::where('id', $companyID)->first();
+        $customerID = $company->wallet?->bridge_company_id;
+
+        logInfo(json_encode($customerID), "Bride Customer Result companyID)");
+
+        $customerBridgeID = null;
+        try {
+            if ($customerBridgeID != null) {
+                $endpoint = "https://api.bridge.xyz/v0/customers/$customerID/tos_acceptance_link";
+                $result   = $this->bridgeGetRequest($endpoint);
+            } else {
+                $endpoint = "https://api.bridge.xyz/v0/customers/tos_links";
+                $body     = [];
+                $action   = 'idemkey';
+                $result   = $this->bridgePostRequest($endpoint, $body, $action);
+            }
+
+            logInfo(json_encode($result), "Bride Customer Result");
+
+            if (isset($result['url'])) {
+                return $result;
+            } else {
+                return ['status' => false, 'message' => "Failed to get bridge customer... Please contact support"];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Bridge Customer Get Result Error");
+
+            return ['status' => false, 'message' => "Failed to create ccustomer ... Please contact support"];
+        }
+    }
+
     public function createVirtualCard($request, $customer, $customer_account_id)
     {
         /**

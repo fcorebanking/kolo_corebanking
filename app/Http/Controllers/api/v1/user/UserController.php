@@ -2084,6 +2084,13 @@ class UserController extends Controller
 
     }
 
+    public function getTOSLinkCompany(Request $request)
+    {
+        $bridgeController = new BridgeController();
+        return $bridgeController->getTOSLinkCompany($request->company_id);
+
+    }
+
     public function getCustomers(Request $request)
     {
         $users = User::where('company_id', auth()->user()->company_id)->where('user_type_id', 1)->orderBy('created_at', 'DESC')->paginate(100);

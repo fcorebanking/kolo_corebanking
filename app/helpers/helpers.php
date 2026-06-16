@@ -2030,7 +2030,7 @@ function debitCustomerWithCharge($customerAccountId, $originalAmount, $charge, $
 
         $userWallet             = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
         $customerInitialBalance = $userWallet->balance;
-        $spendSaveCash          = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
+        $spendSaveCash          = debitCustomerSpendSave($customerAccountId, $originalAmount);
 
         $debitAmount = $originalAmount + $charge + $spendSaveCash;
 
@@ -2172,7 +2172,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
                 $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
                 $paymentcash           = ($originalAmount + $customerCharge);
-                $spendSaveCash         = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
+                $spendSaveCash         = debitCustomerSpendSave($customerAccountId, $originalAmount);
                 $customerFinalBalance  = $userWallet->balance -= ($paymentcash + $spendSaveCash);
 
                 if ($userWallet->save()) {
@@ -2273,7 +2273,7 @@ function debitCustomerAndCompanyWithChargeServiceWallet($customerAccountId, $com
 
                 $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
                 $paymentcash           = ($originalAmount + $customerCharge);
-                $spendSaveCash         = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
+                $spendSaveCash         = debitCustomerSpendSave($customerAccountId, $originalAmount);
                 $customerFinalBalance  = $userWallet->balance -= ($paymentcash + $spendSaveCash);
 
                 if ($userWallet->save()) {
@@ -2482,7 +2482,7 @@ function checkCustomerAndCompanyWithChargeSafeHaven($customerAccountId, $company
 
                 $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
                 $paymentcash           = ($originalAmount + $customerCharge);
-                $spendSaveCash         = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
+                $spendSaveCash         = debitCustomerSpendSave($customerAccountId, $originalAmount);
                 $customerFinalBalance  = $userWallet->balance -= ($paymentcash + $spendSaveCash);
 
                 if ($userWallet) {
@@ -2823,7 +2823,7 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
             if (($company->wallet->balance > ($originalAmount - $companyCashbackAmount)) && ($companyIDsStatus)) {
 
                 $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
-                $spendSaveCash         = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
+                $spendSaveCash         = debitCustomerSpendSave($customerAccountId, $originalAmount);
                 $customerFinalBalance  = $userWallet->balance -= (($originalAmount - $customerCashbackAmount) - $spendSaveCash);
                 $userWallet->save();
                 if (isset($userWallet->wb_account_details->user->branch_id)) {
@@ -2954,7 +2954,7 @@ function debitCustomerAndCompanyWithCompanyCashbackServiceWallet($customerAccoun
             }*/
 
             $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
-            $spendSaveCash         = $this->debitCustomerSpendSave($customerAccountId, $originalAmount);
+            $spendSaveCash         = debitCustomerSpendSave($customerAccountId, $originalAmount);
             $customerFinalBalance  = $userWallet->balance -= (($originalAmount - $customerCashbackAmount) - $spendSaveCash);
             $userWallet->save();
             if (isset($userWallet->wb_account_details->user->branch_id)) {

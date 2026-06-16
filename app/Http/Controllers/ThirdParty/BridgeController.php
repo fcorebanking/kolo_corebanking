@@ -338,7 +338,7 @@ class BridgeController extends WebhookController
             }
 
             $response = $this->createVirtualAccount($user, $companyWalletaddress);
-            if ($saving) {
+            if ($response['status']) {
 
                 \logInfo(json_encode($response), "updateForeignVirtualAccount for Bridge ");
 

@@ -2189,8 +2189,6 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
                 $currentUser->balance_fails = 0;
                 $currentUser->save();
 
-                $this->spendSaveRecordTransaction($debitCustomer, $amount, $transaction, $adminUser, $cash, $account_id);
-
                 $response = [
                     "status"                        => true,
                     'message'                       => "Amount is Valid",

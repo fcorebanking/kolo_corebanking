@@ -2,7 +2,6 @@
 namespace App\Console\Commands;
 
 use App\Http\Controllers\ThirdParty\BridgeController;
-use App\Http\Controllers\ThirdParty\KudaController;
 use App\Models\Company;
 use Illuminate\Console\Command;
 
@@ -36,18 +35,20 @@ class CreateBridgeCompanyAccount extends Command
         // "image_back":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJADveax8o1AAAAAElFTkSuQmCC",
         $customer = $company->allStaff->first();
         $data     = [
-            "number"          => "22460591185",
-            "issuing_country" => "NGA",
-            "type"            => "national_id",
-            "description"     => "",
-            "postal_code"     => "100212",
-            "expiration"      => "2027-01-31",
-            "image_front"     => "",
-            "image_back"      => "",
+            "number"              => "22460591185",
+            "issuing_country"     => "NGA",
+            "type"                => "national_id",
+            "description"         => "",
+            "signed_agreement_id" => "b1c2fd11-006f-4406-8039-aa5debda6d61",
+            "postal_code"         => "100212",
+            "expiration"          => "2027-01-31",
+            "image_front"         => "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAoHBwgHBgoICAkLCgkLDhgQDg0NDh0VFhEYIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5OjcBCgoKDg0OGhAQGi0lHyYtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAWgB4AMBIgACEQEDEQH/xAAbAAACAgMBAAAAAAAAAAAAAAAFBgMEAAIHB//EAD8QAAEDAgMFBQYEBQUBAAAAAAECAwQFEQASIQYxQVEHEyJhcYGRFDKhsdHwBxRCUmJy8RUjYnLxFf/EABkBAAMBAQEAAAAAAAAAAAAAAAABAgMEBf/EACURAQEAAgICAgMBAAAAAAAAAAABAhEDIRIxBBMiQVEUcf/aAAwDAQACEQMRAD8A9WiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//Z",
+            "image_back"          => "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAoHBwgHBgoICAkLCgkLDhgQDg0NDh0VFhEYIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5OjcBCgoKDg0OGhAQGi0lHyYtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAWgB4AMBIgACEQEDEQH/xAAbAAACAgMBAAAAAAAAAAAAAAAFBgMEAAIHB//EAD8QAAEDAgMFBQYEBQUBAAAAAAECAwQFEQASIQYxQVEHEyJhcYGRFDKhsdHwBxRCUmJy8RUjYnLxFf/EABkBAAMBAQEAAAAAAAAAAAAAAAABAgMEBf/EACURAQEAAgICAgMBAAAAAAAAAAABAhEDIRIxBBMiQVEUcf/aAAwDAQACEQMRAD8A9WiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//Z",
         ];
         try {
             $bridgeController      = new BridgeController();
             $bridgeCustomerAccount = $bridgeController->createCompanyAccount($customer, $data);
+            logInfo(json_encode($bridgeCustomerAccount), "bridgeCompanyAccount Result");
         } catch (\Throwable $e) {
             \logInfo([
                 "company_id" => $company->id,
@@ -55,51 +56,6 @@ class CreateBridgeCompanyAccount extends Command
                 "line"       => $e->getLine(),
             ], 'createCompanyAccount account error');
         }
-
-    }
-    public function getCompanies()
-    {
-
-        return Company::select('id') // ✅ optimized
-            ->cursor();
-    }
-
-    public function createMaintenanceAccount($company)
-    {
-        $company = Company::with('allStaff')->find($company->id);
-
-        $admin = $company->allStaff->first();
-
-        if (! $admin) {
-            \logInfo(["company_id" => $company->id, "error" => "No admin found"], 'maintenance account');
-            return;
-        }
-
-        $requestReference  = generateAccountReference();
-        $trackingReference = generateAccountReference();
-
-        $kudaService = app(KudaController::class); // better than new
-
-        $response = $kudaService->createMaintenanceAccount(
-            $requestReference,
-            $admin->email,
-            $admin->phone ?? $admin->email,
-            $company->short_name,
-            "",
-            $trackingReference
-        );
-
-        if (! ($response['status'] ?? false)) {
-            \logInfo($response, "Maintenance account failed");
-            return;
-        }
-
-        $wallet = $company->wallet;
-
-        $wallet->subscription_vaccount = $response["data"]["account_number"];
-        $wallet->save();
-
-        \logInfo($response, "Maintenance account created successfully");
 
     }
 

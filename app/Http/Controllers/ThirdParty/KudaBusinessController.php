@@ -36,6 +36,8 @@ class KudaBusinessController extends WebhookController
             "apiKey" => $this->apiKey,
         ];
 
+        \logInfo(json_encode($body), "Kuda Login body");
+
         $header = ['Content-Type' => 'application/json'];
         try {
             $response = Http::post($this->baseUrl . "v2/Account/GetToken", $body);

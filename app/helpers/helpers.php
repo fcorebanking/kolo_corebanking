@@ -3113,7 +3113,7 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
                 'amount'                => $debitAmount,
                 'charge_balance_before' => $companyBalanceAfter,
                 'charge_balance_after'  => $companyFinalBalance,
-                "spend_save_cash" => 0
+                "spend_save_cash"       => 0,
             ];
         } else {
             if ($currentUser->balance_fails < 4) {
@@ -5449,9 +5449,9 @@ function spendSaveRecordTransaction($debitCustomer, $transaction)
             "account_id"             => $transaction->account_id,
             "company_id"             => $transaction->company_id,
             "branch_id"              => $branch_id,
-            "company_balance_before" => $debitCustomer["company_balance_before"],
-            "company_amount"         => $debitCustomer["company_amount"],
-            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "company_balance_before" => $debitCustomer["company_balance_before"] ?? 0,
+            "company_amount"         => $debitCustomer["company_amount"] ?? 0,
+            "company_balance_after"  => $debitCustomer["company_balance_after"] ?? 0,
             "description"            => "Spend  / Save Transaction",
             "transaction_reference"  => generateTransactionReference(),
             "transaction_remarks_id" => 2,
@@ -5463,15 +5463,15 @@ function spendSaveRecordTransaction($debitCustomer, $transaction)
         logInfo(json_encode($data), "SpendSave for $transaction->account_id");
     } else {
         transactions::create([
-            "balance_before"         => $debitCustomer['balance_before'],
+          "balance_before"         => $debitCustomer['balance_before'],
             "amount"                 => $debitCustomer['spend_save_cash'],
             "balance_after"          => $debitCustomer["balance_after"],
             "account_id"             => $transaction->account_id,
             "company_id"             => $transaction->company_id,
             "branch_id"              => $branch_id,
-            "company_balance_before" => $debitCustomer["company_balance_before"],
-            "company_amount"         => $debitCustomer["company_amount"],
-            "company_balance_after"  => $debitCustomer["company_balance_after"],
+            "company_balance_before" => $debitCustomer["company_balance_before"] ?? 0,
+            "company_amount"         => $debitCustomer["company_amount"] ?? 0,
+            "company_balance_after"  => $debitCustomer["company_balance_after"] ?? 0,
             "description"            => "Spend  / Save Transaction",
             "transaction_reference"  => generateTransactionReference(),
             "transaction_remarks_id" => 2,

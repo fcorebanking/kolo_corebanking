@@ -57,7 +57,7 @@ class BridgeController extends WebhookController
 
     public function createCompanyAccount($customer, $data)
     {
-        $reqest         = new Request();
+        $request        = new Request();
         $createCustomer = $this->createBridgeCustomer($request, $customer, $data);
         return [
             'status'  => true,

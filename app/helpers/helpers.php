@@ -5463,7 +5463,7 @@ function spendSaveRecordTransaction($debitCustomer, $transaction)
         logInfo(json_encode($data), "SpendSave for $transaction->account_id");
     } else {
         transactions::create([
-          "balance_before"         => $debitCustomer['balance_before'],
+            "balance_before"         => $debitCustomer['balance_before'],
             "amount"                 => $debitCustomer['spend_save_cash'],
             "balance_after"          => $debitCustomer["balance_after"],
             "account_id"             => $transaction->account_id,

@@ -91,7 +91,8 @@ class BridgeCustomerAccountReview
 
     public function getForeignVirtualAccount($userData)
     {
-        $account = $bridgeController->getForeignVirtualAccount($userData);
+        $bridgeController = new BridgeController();
+        $account          = $bridgeController->getForeignVirtualAccount($userData);
         return $account;
     }
 

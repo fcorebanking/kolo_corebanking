@@ -266,13 +266,7 @@ class BridgeController extends WebhookController
                                 'virtual_account_number' => $firstAccount['source_deposit_instructions']['bank_account_number'],
                                 'account_reference'      => $customerID,
                                 'bank_routing_number'    => $firstAccount['source_deposit_instructions']['bank_routing_number'],
-                                'currency_id'            => match ($currency_id) {
-                                    4       => 'GBP',
-                                    7       => 'EUR',
-                                    8       => 'GHS',
-
-                                    default => 2, // fallback
-                                },
+                                'currency_id'            => $currency_id,
                             ],
                         ];
                     } else {

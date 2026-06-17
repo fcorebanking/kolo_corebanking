@@ -55,6 +55,7 @@ class BridgeCustomerAccountReview
 
                     \Log::error('BridgeCustomerAccountReview failed for user ' . $userData->id, [
                         'error' => $e->getMessage(),
+                        'line'  => $e->getLine(),
                     ]);
 
                 }
@@ -101,11 +102,6 @@ class BridgeCustomerAccountReview
     public function updateForeignVirtualAccount($userData, $account)
     {
 
-        $userData->update([
-            'remittar_customer_id' => $account['data']['account_number'],
-
-        ]);
-
         $saving = savings_product::where([
             'company_id' => $userData->company_id,
             // 'id'         => $request->savings_product_type,
@@ -126,6 +122,11 @@ class BridgeCustomerAccountReview
         user_wallet::create([
             'wb_account_detail_id' => $accountWBDetail->id,
             'balance'              => 0,
+        ]);
+
+        $userData->update([
+            'remittar_customer_id' => $account['data']['account_number'],
+
         ]);
 
     }

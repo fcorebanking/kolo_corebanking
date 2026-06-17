@@ -4,6 +4,7 @@ namespace App\Jobs;
 use App\Http\Controllers\ThirdParty\BridgeController;
 use App\Models\savings_product;
 use App\Models\User;
+use App\Models\wb_account_details;
 use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;

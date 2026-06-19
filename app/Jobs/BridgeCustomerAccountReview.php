@@ -112,7 +112,7 @@ class BridgeCustomerAccountReview
         $accountWBDetail = wb_account_details::create([
             'user_id'            => $userData->id,
             'account_product_id' => $saving->id,
-            'bankid'             => $account['data']['bank_routing_number'],
+            'bankid'             => 243,
             'virtual_accnum'     => $account['data']['account_number'],
             'acc_reference'      => $account['data']['account_reference'],
             'has_atm_card'       => 0,

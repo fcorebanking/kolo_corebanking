@@ -111,12 +111,12 @@ class CreateAccountMaintenance extends Command
             return;
         }
 
-        $transaction = $this->safeHavenIdentityCheckResponse($admin->bvn, 14);
-        $bvnId       = $transaction['data']['id'];
-
-        $userInfo = $this->safeHavenIdentityCheckResponse($admin->bvn);
+        $userInfo = $this->verifyWithIdentityPass($admin->bvn);
         $dob      = $userInfo['data']['dob'];
         $phone    = $userInfo['data']['phone'];
+
+        $transaction = $this->safeHavenIdentityCheckResponse($admin->bvn, 14);
+        $bvnId       = $transaction['data']['id'];
 
         $requestReference = generateAccountReference();
 
@@ -201,7 +201,7 @@ class CreateAccountMaintenance extends Command
                 'data'    => [
                     'first_name' => trim($firstName),
                     "last_name"  => trim($lastName),
-                    "dob"        => $newformat,
+                    "dob"        => $dob,
                     "bvn"        => trim($bvnFromResponse),
                     "phone"      => trim($phone),
                     "address"    => trim($address),

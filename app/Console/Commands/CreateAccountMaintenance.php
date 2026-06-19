@@ -100,6 +100,16 @@ class CreateAccountMaintenance extends Command
             return;
         }
 
+        if ($admin->bvn == null || $admin->bvn == " ") {
+            \logInfo(["company_id" => $company->id, "error" => "No BVN found"], 'maintenance account');
+            return;
+        }
+
+        if ($company->id == 14) {
+            \logInfo(["company_id" => $company->id, "error" => "cant do this "], 'maintenance account');
+            return;
+        }
+
         $transaction = $this->safeHavenIdentityCheckResponse($admin->bvn, 14);
         $bvnId       = $transaction['data']['id'];
 

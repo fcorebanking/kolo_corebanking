@@ -923,6 +923,8 @@ class SafehavenController extends WebhookController
             "debitAccountNumber" => $this->debitAccount,
         ];
 
+        logInfo(json_encode($body), "Safehaven verify bvn body request");
+
         if (! $loginResult['status']) {
             return ['status' => false, 'message' => 'Failed to connect to Server. Please contact support'];
         }

@@ -116,7 +116,7 @@ class BridgeCustomerAccountReview
             'virtual_accnum'     => $account['data']['account_number'],
             'acc_reference'      => $account['data']['account_reference'],
             'has_atm_card'       => 0,
-            'currency_id'        => $account['data']['account_number']['currency_id'],
+            'currency_id'        => $account['data']['currency_id'],
         ]);
 
         user_wallet::create([

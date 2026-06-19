@@ -91,12 +91,12 @@ class CreateAccountMaintenance extends Command
 
     public function createSudoMaintenanceAccountSafeHaven($company)
     {
-        $company = Company::with('allStaff')->find($company);
+        $company = Company::with('allStaff')->find($company->id);
 
         $admin = $company->allStaff->first();
 
         if (! $admin) {
-            \logInfo(["company_id" => $company, "error" => "No admin found"], 'maintenance account');
+            \logInfo(["company_id" => $company->id, "error" => "No admin found"], 'maintenance account');
             return;
         }
 

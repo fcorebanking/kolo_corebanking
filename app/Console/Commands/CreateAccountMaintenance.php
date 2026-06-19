@@ -2,6 +2,7 @@
 namespace App\Console\Commands;
 
 use App\Http\Controllers\ThirdParty\KudaController;
+use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Models\Company;
 use Illuminate\Console\Command;
 
@@ -30,7 +31,8 @@ class CreateAccountMaintenance extends Command
     {
         $this->getCompanies()->each(function ($company) {
             try {
-                $this->createMaintenanceAccount($company);
+                //  $this->createMaintenanceAccount($company);
+                $this->createSudoMaintenanceAccountSafeHaven($company);
             } catch (\Throwable $e) {
                 \logInfo([
                     "company_id" => $company->id,
@@ -85,6 +87,83 @@ class CreateAccountMaintenance extends Command
 
         \logInfo($response, "Maintenance account created successfully");
 
+    }
+
+    public function createSudoMaintenanceAccountSafeHaven($company)
+    {
+        $company = Company::with('allStaff')->find($company);
+
+        $admin = $company->allStaff->first();
+
+        if (! $admin) {
+            \logInfo(["company_id" => $company, "error" => "No admin found"], 'maintenance account');
+            return;
+        }
+
+        $transaction = $this->safeHavenIdentityCheckResponse($admin->bvn, 14);
+        $bvnId       = $transaction['data']['id'];
+
+        $requestReference = generateAccountReference();
+
+        $safeHavenService = app(SafehavenController::class); // better than new
+
+        $response = $safeHavenService->createVirtualAccountMaintenance(
+            $admin->first_name, //firstName
+            $admin->last_name,  //lastName
+            $admin->email,
+            $admin->phone,
+            $requestReference,
+            $admin->bvn,
+            $admin->dob,
+            $bvnId,
+            14);
+
+        if (! ($response['status'] ?? false)) {
+            \logInfo($response, "Maintenance account failed");
+            return;
+        }
+
+        $wallet = $company->wallet;
+
+        $wallet->card_vaccount = $response["data"]["account_number"];
+        $wallet->save();
+
+        \logInfo($response, "Maintenance Sudo account created successfully");
+
+    }
+
+    public function safeHavenIdentityCheckResponse($bvn, $company_id)
+    {
+
+        $safehavenController = new SafehavenController();
+        $bvnResponse         = $safehavenController->verifyBVN($bvn, $company_id);
+
+        if ($bvnResponse['status']) {
+            return
+                [
+                'status'  => true,
+                'message' => "Account Verified Successfully",
+                'data'    => [
+                    'id'             => $bvnResponse['data']['_id'],
+                    'clientId'       => $bvnResponse['data']['clientId'],
+                    "identityNumber" => $bvnResponse['data']['identityNumber'],
+                    "type"           => $bvnResponse['data']['type'],
+                    'otpId'          => trim($bvnResponse['data']['otpId']),
+                    "message"        => trim($bvnResponse['message']),
+
+                ],
+
+            ];
+        } else {
+
+            return response()->json(
+                [
+                    'status'  => false,
+                    'message' => "Failed to verify BVN",
+                ],
+                400
+            );
+        }
     }
 
 }

@@ -174,10 +174,10 @@ class SafehavenController extends WebhookController
         }
     }
 
-    public function createVirtualAccountMaintenance($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyID)
+    public function createVirtualAccountMaintenance($firstName, $lastName, $email, $phone, $customerReference, $bvn, $dob, $bvnId, $companyID)
     {
 
-        $endpoint = "accounts / v2 / subaccount";
+        $endpoint = "accounts/v2/subaccount";
 
         try {
 
@@ -186,18 +186,18 @@ class SafehavenController extends WebhookController
             $body = [
                 "autoSweepDetails"  => [
                     "schedule"      => "Instant",
-                    "bankCode"      => "090286",
                     "accountNumber" => "0116906698",
                 ],
                 "autoSweep"         => true,
-                "phoneNumber"       => $phone,
+                "phoneNumber"       => $this->format_number($phone),
                 "emailAddress"      => $email,
                 "externalReference" => $customerReference,
                 "identityId"        => $bvnId,
                 "identityNumber"    => $bvn,
                 "identityType"      => "BVN",
-                "otp"               => $otp,
-                "callbackUrl"       => "https: //core.finova.ng/api/v1/transactions/safehaven-webhook",
+                "dateOfBirth"       => $dob,
+                "booleanMatch"      => true,
+                "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
 
             ];
 
@@ -209,7 +209,7 @@ class SafehavenController extends WebhookController
 
             $createAccount = $this->safehavenPostRequest($endpoint, $body);
 
-            logInfo($createAccount, "Exchange cliient assertion");
+            logInfo($createAccount, "safehaven Response Log");
 
             if (isset($createAccount['statusCode'])) {
                 if ($createAccount['statusCode'] == "200") {

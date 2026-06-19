@@ -1,6 +1,7 @@
 <?php
 namespace App\Console\Commands;
 
+use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Models\Company;
@@ -113,6 +114,10 @@ class CreateAccountMaintenance extends Command
         $transaction = $this->safeHavenIdentityCheckResponse($admin->bvn, 14);
         $bvnId       = $transaction['data']['id'];
 
+        $userInfo = $this->safeHavenIdentityCheckResponse($admin->bvn);
+        $dob      = $userInfo['data']['dob'];
+        $phone    = $userInfo['data']['phone'];
+
         $requestReference = generateAccountReference();
 
         $safeHavenService = app(SafehavenController::class); // better than new
@@ -121,10 +126,10 @@ class CreateAccountMaintenance extends Command
             $company->short_name, //firstName
             "",                   //lastName
             $admin->email,
-            $admin->phone,
+            $phone,
             $requestReference,
             $admin->bvn,
-            $admin->dob,
+            $dob,
             $bvnId,
             14);
 
@@ -145,7 +150,7 @@ class CreateAccountMaintenance extends Command
     public function safeHavenIdentityCheckResponse($bvn, $company_id)
     {
 
-        $safehavenController = new SafehavenController();
+        $safehavenController = app(SafehavenController::class);
         $bvnResponse         = $safehavenController->verifyBVN($bvn, $company_id);
 
         if ($bvnResponse['status']) {
@@ -164,6 +169,45 @@ class CreateAccountMaintenance extends Command
                 ],
 
             ];
+        } else {
+
+            return response()->json(
+                [
+                    'status'  => false,
+                    'message' => "Failed to verify BVN",
+                ],
+                400
+            );
+        }
+    }
+
+    public function verifyWithIdentityPass($bvn)
+    {
+        $identityPassController = app(IdentityPassController::class);
+
+        $bvnResponse = $identityPassController->verifyBVNMobile($bvn);
+
+        if (isset($bvnResponse['data']['verification']['status']) && $bvnResponse['data']['verification']['status'] == "VERIFIED") {
+            $firstName       = $bvnResponse['data']['data']["firstName"];
+            $lastName        = $bvnResponse['data']['data']["lastName"];
+            $dob             = $bvnResponse['data']['data']["dateOfBirth"] ?? $bvnResponse['data']['data']["dob"];
+            $bvnFromResponse = $request->bvn;
+            $phone           = $bvnResponse['data']['data']["phoneNumber"] ?? null;
+            $address         = $bvnResponse['data']['data']["residentialAddress"] ?? null;
+
+            return [
+                'status'  => true,
+                'message' => "Account Verified Successfully",
+                'data'    => [
+                    'first_name' => trim($firstName),
+                    "last_name"  => trim($lastName),
+                    "dob"        => $newformat,
+                    "bvn"        => trim($bvnFromResponse),
+                    "phone"      => trim($phone),
+                    "address"    => trim($address),
+                ],
+            ];
+
         } else {
 
             return response()->json(

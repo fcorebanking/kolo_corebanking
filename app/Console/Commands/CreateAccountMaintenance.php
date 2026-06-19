@@ -111,6 +111,17 @@ class CreateAccountMaintenance extends Command
             return;
         }
 
+        if ($company->wallet->card_vaccount != null) {
+            \logInfo(["company_id" => $company->id, "error" => "Account already created "], 'maintenance account');
+            return;
+        }
+
+        $len = strlen($admin->bvn);
+        if ($len < 11) {
+            \logInfo(["company_id" => $company->id, "error" => "BVN Wrong format "], 'maintenance account');
+            return;
+        }
+
         $userInfo = $this->verifyWithIdentityPass($admin->bvn);
         $dob      = $userInfo['data']['dob'];
         $phone    = $userInfo['data']['phone'];

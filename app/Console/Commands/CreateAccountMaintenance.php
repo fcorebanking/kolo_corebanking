@@ -191,7 +191,7 @@ class CreateAccountMaintenance extends Command
             $firstName       = $bvnResponse['data']['data']["firstName"];
             $lastName        = $bvnResponse['data']['data']["lastName"];
             $dob             = $bvnResponse['data']['data']["dateOfBirth"] ?? $bvnResponse['data']['data']["dob"];
-            $bvnFromResponse = $request->bvn;
+            $bvnFromResponse = $bvn;
             $phone           = $bvnResponse['data']['data']["phoneNumber"] ?? null;
             $address         = $bvnResponse['data']['data']["residentialAddress"] ?? null;
 

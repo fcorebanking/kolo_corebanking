@@ -118,8 +118,8 @@ class CreateAccountMaintenance extends Command
         $safeHavenService = app(SafehavenController::class); // better than new
 
         $response = $safeHavenService->createVirtualAccountMaintenance(
-            $admin->first_name, //firstName
-            $admin->last_name,  //lastName
+            $company->short_name, //firstName
+            "",                   //lastName
             $admin->email,
             $admin->phone,
             $requestReference,

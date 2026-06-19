@@ -2579,6 +2579,41 @@ class TransactionController extends Controller
         return response()->json($handleWebhook, $httpCode);
     }
 
+    public function safeHavenCardMaintenanceWebhook(Request $request)
+    {
+
+               
+        $safeHavenController = new SafehavenController();
+        // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
+
+        logInfo($request->all(), "SafehavenWeb Hook Request body");
+
+        $currentRequest = $request->all();
+
+        if ($currentRequest['type'] != "transfer") {
+            return response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
+        }
+
+        $safeHavenController->transactionReference = $currentRequest['data']['paymentReference'];
+        $safeHavenController->wbaCharge            = getWbaTransferCharges(38, $currentRequest['data']['amount']);
+        $safeHavenController->virtualAccount       = $currentRequest['data']['creditAccountNumber'];
+        $safeHavenController->amount               = $currentRequest['data']['amount'];
+        $safeHavenController->webhookType          = 'safehaven';
+        $safeHavenController->senderName           = $currentRequest['data']['debitAccountName'];
+        $safeHavenController->description          = "You received Funds from" . $currentRequest['data']['debitAccountName'];
+        $safeHavenController->transactionDate      = $currentRequest['data']['createdAt'];
+        $safeHavenController->request              = $request;
+        $safeHavenController->fromTempWebhook      = 'false';
+
+        $handleWebhook = $safeHavenController->processCompanyCardSudoMaintenanceWebhook();
+
+        $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
+
+        return response()->json($handleWebhook, $httpCode);
+    }
+
+    
+
     public function safeHavenSudoWebhook(Request $request)
     {
 

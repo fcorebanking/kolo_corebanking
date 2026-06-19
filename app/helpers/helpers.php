@@ -3059,6 +3059,33 @@ function creditCompanyWithChargeforMaintenance($companyId, $originalAmount, $com
     return $response;
 }
 
+function creditCompanyWithChargeforSudoCardMaintenance($companyId, $originalAmount, $companyCharge)
+{
+
+    $response = [];
+
+    if ($originalAmount > 0) {
+
+        $company                = Company::find($companyId);
+        $companyInitialBalance  = $company->wallet->card_balance;
+        $companyBalanceAfter    = $companyInitialBalance + $originalAmount;
+        $companyFinalBalance    = $company->wallet->card_balance   += ($originalAmount - $companyCharge);
+        $company->wallet->save();
+
+        $response = [
+            "status"                => true,
+            'message'               => "Amount is Valid",
+            'balance_before'        => $companyInitialBalance,
+            'balance_after'         => $companyBalanceAfter,
+            'charge_balance_before' => $companyBalanceAfter,
+            'charge_balance_after'  => $companyFinalBalance,
+        ];
+    } else {
+        $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+    }
+    return $response;
+}
+
 function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $user = null)
 {
 

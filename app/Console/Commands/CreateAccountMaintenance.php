@@ -140,7 +140,7 @@ class CreateAccountMaintenance extends Command
 
         $wallet = $company->wallet;
 
-        $wallet->card_vaccount = $response["data"]["account_number"];
+        $wallet->card_vaccount = $response["data"]["accountNumber"];
         $wallet->save();
 
         \logInfo($response, "Maintenance Sudo account created successfully");

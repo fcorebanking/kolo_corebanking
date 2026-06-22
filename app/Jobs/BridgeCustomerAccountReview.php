@@ -89,7 +89,8 @@ class BridgeCustomerAccountReview
 
     public function createForeignVirtualAccount($userData)
     {
-        $createAccount = $bridgeController->updateForeignVirtualAccount($userData);
+        $bridgeController = new BridgeController();
+        $createAccount    = $bridgeController->updateForeignVirtualAccount($userData);
         return $createAccount;
     }
 
@@ -119,7 +120,7 @@ class BridgeCustomerAccountReview
             'has_atm_card'       => 0,
             'currency_id'        => $account['data']['currency_id'],
         ]);
-
+        \logInfo(json_encode($accountWBDetail), "accountWBDetail Bridge");
         user_wallet::create([
             'wb_account_detail_id' => $accountWBDetail->id,
             'balance'              => 0,

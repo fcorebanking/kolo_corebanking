@@ -9,6 +9,7 @@ use App\Http\Controllers\api\v1\LoginController;
 use App\Http\Controllers\api\v1\MeetingController;
 use App\Http\Controllers\api\v1\OrderController;
 use App\Http\Controllers\api\v1\RegisterController;
+use App\Http\Controllers\api\v1\SalaryController;
 use App\Http\Controllers\api\v1\TransactionController;
 use App\Http\Controllers\api\v1\user\UserController;
 use App\Http\Controllers\api\v1\UtilityController;
@@ -285,6 +286,14 @@ Route::prefix('/transactions')->group(function () {
 
     Route::middleware('checkApiKey')->post('/credit-debit-customer-account', [TransactionController::class, 'creditDebitCustomerAccount'])->middleware('log.route');
     Route::post('/report-transaction', [TransactionController::class, 'reportTransaction']);
+
+    Route::post('/set-spend-save', [TransactionController::class, 'setSpendSave'])->middleware('log.route');
+    Route::post('/update-setting-spend-save', [TransactionController::class, 'updateSpendSave'])->middleware('log.route');
+
+    Route::get('/get-staff-payroll-detail', [SalaryController::class, ' getStaffPayrolDetails']);
+    Route::get('/staff-payroll', [SalaryController::class, 'staffPayroll'])->middleware('log.route');
+    Route::post('/setup-payroll', [SalaryController::class, 'ajax_setup_payroll'])->middleware('log.route');
+
 });
 
 Route::middleware('checkApiKey')->post('company/update-user-kyc-info', [TransactionController::class, 'updateKycInfo'])->middleware('log.route');

@@ -44,6 +44,7 @@ use App\Models\MandateLog;
 use App\Models\PreferredEbankingPartner;
 use App\Models\PreferredEbankingPartnerCompany;
 use App\Models\savings_product;
+use App\Models\SpendSave;
 use App\Models\transactions;
 use App\Models\transaction_remarks;
 use App\Models\UnusedProvidusAccounts;
@@ -1372,10 +1373,10 @@ class TransactionController extends Controller
                             $subtext = "Debit Transaction";
                             $reason  = "";
                             $msg     = "Debit Amt:$request->final_amount,<br><br> Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . "<br><br> Avail Bal:" . $debitCustomer['charge_balance_after'] . "<br><br>Date:" . date('Y-m-d') . " <br><br>Ref: " . $request->transaction_reference;
-                          
+
                             $this->sendTransactionReportEmail($subtext, $msg, $reason, $currentUser);
-                         //   spendSaveRecordTransaction($debitCustomer, $transaction);
-                           
+                            //   spendSaveRecordTransaction($debitCustomer, $transaction);
+
                             return response()->json([
                                 "status"  => true,
                                 'message' => "Wallet to Bank Transfer Successful",
@@ -2582,7 +2583,6 @@ class TransactionController extends Controller
     public function safeHavenCardMaintenanceWebhook(Request $request)
     {
 
-               
         $safeHavenController = new SafehavenController();
         // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
 
@@ -2611,8 +2611,6 @@ class TransactionController extends Controller
 
         return response()->json($handleWebhook, $httpCode);
     }
-
-    
 
     public function safeHavenSudoWebhook(Request $request)
     {
@@ -5025,7 +5023,7 @@ class TransactionController extends Controller
                     $msg     = "Purchase of Airtime worth $request->final_amount for $request->phone_number";
                     $user    = auth()->user();
                     $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
-                 //   spendSaveRecordTransaction($debitCustomer, $transaction);
+                    //   spendSaveRecordTransaction($debitCustomer, $transaction);
 
                     return response()->json(
                         [
@@ -5286,7 +5284,7 @@ class TransactionController extends Controller
                     $msg     = "Purchase of Data worth " . $selectedDataBundle['variation_amount'] . " for $request->phone_number";
                     $user    = auth()->user();
                     $this->sendTransactionReportEmail($subtext, $msg, $reason, $user);
-                   // spendSaveRecordTransaction($debitCustomer, $transaction);
+                    // spendSaveRecordTransaction($debitCustomer, $transaction);
 
                     return response()->json(
                         [
@@ -7230,6 +7228,44 @@ class TransactionController extends Controller
         $bvn              = $userRecord->bvn;
 
         return $vpay->createAccount($businessname, $email, $phone, $contactfirstname, $contactlastname, $bvn);
+
+    }
+
+    public function setSpendSave(Request $request)
+    {
+        $user       = auth('api')->user();
+        $company_id = $user->company_id;
+        $charge     = $request->spend_save_charge_or_percentage / 100;
+        $settings   = SpendSave::create([
+            "user_id"                         => $user->id,
+            "company_id"                      => $company_id,
+            "spend_save_charge_or_percentage" => $charge,
+            "balance"                         => 0,
+            status_id                         => 1,
+
+        ]);
+
+        return response()->json(["status" => 1, "message" => "Spend Save settings is saved"]);
+
+    }
+
+    public function updateSpendSave(Request $request)
+    {
+        $user       = auth('api')->user();
+        $company_id = $user->company_id;
+        $settings   = SpendSave::where('user_id', $user->id)->first();
+        if ($request->spend_save_charge_or_percentage != null) {
+            $charge = ($request->spend_save_charge_or_percentage / 100);
+        } else {
+            $charge = $settings->spend_save_charge_or_percentage;
+        }
+
+        $settings->update([
+            'status_id '                      => $request->status,
+            'spend_save_charge_or_percentage' => $charge,
+        ]);
+
+        return response()->json(["status" => 1, "message" => "Spend Save settings is updated"]);
 
     }
 

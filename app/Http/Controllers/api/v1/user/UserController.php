@@ -1915,6 +1915,8 @@ class UserController extends Controller
             $company = $authUser->company;
             $bankId  = company_wallet::where('company_id', $companyId)->first()->bank_id;
 
+            \logInfo($bankId, "api saving account bankId");
+
             // ✅ Decide account type
             if ($this->shouldCreateLocalAccount($request, $company)) {
 

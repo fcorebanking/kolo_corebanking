@@ -1967,7 +1967,11 @@ class UserController extends Controller
             );
 
         } catch (\Exception $e) {
-            \logInfo($e->getMessage(), "Laravel Account Error");
+            //   \logInfo($e->getMessage(), "Laravel Account Error");
+            \Log::error('Laravel Usercontroller Account Error', [
+                'error' => $e->getMessage(),
+                'line'  => $e->getLine(),
+            ]);
 
             return response()->json([
                 'status'  => 0,

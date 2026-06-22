@@ -66,8 +66,8 @@ Route::prefix('/users')->group(function () {
     Route::post('/forgot-password-send-otp', [UserController::class, 'forgotPasswordSendOTP']);
     Route::post('/reset-password', [UserController::class, 'resetPassword']); //users/change-pin
     Route::post('/confirm-otp', [UserController::class, 'confirmOTP']);
-    Route::middleware('auth:api')->post('/add-account', [UserController::class, 'addAccount']);
-    Route::middleware('auth:api')->get('/get-tos-link', [UserController::class, 'getTOSLink']);
+    Route::middleware('auth:api')->post('/add-account', [UserController::class, 'addAccount'])->middleware('log.route');
+    Route::middleware('auth:api')->get('/get-tos-link', [UserController::class, 'getTOSLink'])->middleware('log.route');
 
     Route::middleware("checkApiKey")->get('/get-balance/{accountNumber}', [UserController::class, 'getAccountBalance']);
 

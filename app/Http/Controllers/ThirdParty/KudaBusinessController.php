@@ -373,7 +373,7 @@ class KudaBusinessController extends WebhookController
                     "BeneficiaryAccount"  => $accountNumber,
                     "beneficiaryBankCode" => $bankCode,
                     "amount"              => $amount * 100,
-                    "ClientAccountNumber" => "3002284739",
+                    "ClientAccountNumber" => "3003759852",
                     "beneficiaryName"     => $accountName,
                     "SenderName"          => $description,
                     "narration"           => $description,

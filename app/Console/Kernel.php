@@ -228,7 +228,7 @@ class Kernel extends ConsoleKernel
                 Log::error('Your CardNairaPartnerMaintenanceCron failed');
             });
 
-        $schedule->job(new BridgeCustomerAccountReview)->everyFifteenMinutes()->onSuccess(function () {
+        $schedule->job(new BridgeCustomerAccountReview)->everySixHours()->onSuccess(function () {
             Log::info('Your Maintenance Job executed successfully.');
         })
             ->onFailure(function () {

@@ -31,7 +31,7 @@ class BridgeCustomerAccountReview
         $today = now()->toDateString();
 
         User::whereNotNull('remittar_customer_id')
-            ->whereRaw('CHAR_LENGTH(remittar_customer_id) > ?', [11])
+            ->whereRaw('CHAR_LENGTH(remittar_customer_id) > ?', [13])
             ->cursor() // generator
             ->each(function ($userData) use ($today) {
 

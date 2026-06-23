@@ -7241,7 +7241,7 @@ class TransactionController extends Controller
             "company_id"                      => $company_id,
             "spend_save_charge_or_percentage" => $charge,
             "balance"                         => 0,
-            "status_id"                        => 1,
+            "status_id"                       => 1,
 
         ]);
 
@@ -7261,11 +7261,23 @@ class TransactionController extends Controller
         }
 
         $settings->update([
-            "status_id"                      => $request->status,
+            "status_id"                       => $request->status,
             "spend_save_charge_or_percentage" => $charge,
         ]);
 
         return response()->json(["status" => 1, "message" => "Spend Save settings is updated"]);
+
+    }
+
+    public function getSpendSave(Request $request)
+    {
+        $user       = auth('api')->user();
+        $company_id = $user->company_id;
+        $settings   = SpendSave::where('user_id', $user->id)->first();
+       
+
+        return response()->json(["status" => 1, "message" => "Spend Save settings", "spend_save_status" => $settings->status_id ]);
+
 
     }
 

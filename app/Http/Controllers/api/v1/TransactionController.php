@@ -7252,7 +7252,7 @@ class TransactionController extends Controller
 
         ]);
 
-        return response()->json(["status" => 1, "message" => "Spend Save settings is saved"]);
+        return response()->json(["status" => 1, "message" => "Spend Save settings is saved", "spend_save_charge" => $newSettings->spend_save_charge_or_percentage]);
 
     }
 

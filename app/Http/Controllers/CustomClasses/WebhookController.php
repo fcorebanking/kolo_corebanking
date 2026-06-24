@@ -806,6 +806,8 @@ class WebhookController extends Controller
             if ($companyBankID == 242) {
                 $this->wbaCharge = getWbaTransferCharges(40, $originalAmount / 100);
             }
+            logInfo($companyBankID, "company id webhook things");
+            logInfo($this->wbaCharge, "wbaCharge webhook");
             $creditCustomer = creditCustomerAndCompanyWithCharge($accountId, $companyId, $originalAmount, $customerCharge, $this->wbaCharge);
         }
         return $creditCustomer;

@@ -846,6 +846,8 @@ class WebhookController extends Controller
         $branchId,
         $accountId
     ) {
+        logInfo($charge, "createChargeTransaction webhook charge");
+        logInfo($this->wbaCharge, "createChargeTransaction webhook wbacharge");
         if ($charge <= 0) {
             return;
         }

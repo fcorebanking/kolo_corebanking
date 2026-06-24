@@ -902,7 +902,7 @@ class WebhookController extends Controller
             }
         }
 
-        $balanceAfter = $creditCustomer['charge_balance_after'];
+        $balanceAfter = $credit['charge_balance_after'];
         $desc         = $newdescription;
         $currentDate  = Carbon::now();
     }

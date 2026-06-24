@@ -7246,12 +7246,12 @@ class TransactionController extends Controller
         $newSettings = SpendSave::updateOrCreate(
             [
                 "user_id"                         => $user->id,
-                "spend_save_charge_or_percentage" => $charge,
+               
             ],
             [
 
                 "company_id" => $company_id,
-
+ "spend_save_charge_or_percentage" => $charge,
                 "balance"    => $settings->balance ?? 0,
                 "status_id"  => $request->status ?? 1,
 

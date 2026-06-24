@@ -849,7 +849,7 @@ class WebhookController extends Controller
         logInfo($charge, "createChargeTransaction webhook charge");
         logInfo($this->wbaCharge, "createChargeTransaction webhook wbacharge");
         logInfo(json_encode($parentTransaction), "createChargeTransaction webhook parentTransaction");
-        if ($charge <= 0) {
+        if ($charge <= 0 && $this->wbaCharge <= 0) {
             return;
         }
 

@@ -668,6 +668,11 @@ class WebhookController extends Controller
 
         $newdescription = str_replace("TO WOBILO AFRICA LIMITED", "", $this->description);
 
+        $companyBankID = $companyWallet->bank_id;
+        if ($companyBankID == 242) {
+            $this->wbaCharge = getWbaTransferCharges(40, $originalAmount / 100);
+        }
+
         $credit = creditCompanyWithCharge(
             $companyId,
             $originalAmount,

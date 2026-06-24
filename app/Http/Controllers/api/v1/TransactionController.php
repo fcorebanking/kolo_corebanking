@@ -7236,12 +7236,19 @@ class TransactionController extends Controller
         $user       = auth('api')->user();
         $company_id = $user->company_id;
         $charge     = $request->spend_save_charge_or_percentage / 100;
-        $settings   = SpendSave::create([
+        $settings   = SpendSave::where('user_id', $user->id)->first();
+        if ($request->spend_save_charge_or_percentage != null) {
+            $charge = ($request->spend_save_charge_or_percentage / 100);
+        } else {
+            $charge = $settings->spend_save_charge_or_percentage;
+        }
+
+        $newSettings = SpendSave::create([
             "user_id"                         => $user->id,
             "company_id"                      => $company_id,
             "spend_save_charge_or_percentage" => $charge,
-            "balance"                         => 0,
-            "status_id"                       => 1,
+            "balance"                         => $settings->balance ?? 0,
+            "status_id"                       => $request->status ?? 1,
 
         ]);
 
@@ -7274,10 +7281,8 @@ class TransactionController extends Controller
         $user       = auth('api')->user();
         $company_id = $user->company_id;
         $settings   = SpendSave::where('user_id', $user->id)->first();
-       
 
-        return response()->json(["status" => 1, "message" => "Spend Save settings", "spend_save_status" => $settings->status_id ]);
-
+        return response()->json(["status" => 1, "message" => "Spend Save settings", "spend_save_charge" => $settings->spend_save_charge_or_percentage, "spend_save_status" => $settings->status_id]);
 
     }
 

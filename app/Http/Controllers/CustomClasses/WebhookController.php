@@ -797,6 +797,10 @@ class WebhookController extends Controller
                 $creditCustomer = \creditCustomerAndCompanyWithCharge($accountId, $companyId, $originalAmount, $customerCharge, $this->wbaCharge);
             }
         } else {
+            $companyBankID = company_wallet::where('company_id', $companyId)->first()->bank_id;
+            if ($companyBankID == 242) {
+                $this->wbaCharge = getWbaTransferCharges(40, $originalAmount / 100);
+            }
             $creditCustomer = creditCustomerAndCompanyWithCharge($accountId, $companyId, $originalAmount, $customerCharge, $this->wbaCharge);
         }
         return $creditCustomer;

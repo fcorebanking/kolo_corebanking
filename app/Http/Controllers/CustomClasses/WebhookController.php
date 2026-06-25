@@ -804,7 +804,7 @@ class WebhookController extends Controller
         } else {
             $companyBankID = company_wallet::where('company_id', $companyId)->first()->bank_id;
             if ($companyBankID == 242) {
-                $this->wbaCharge = getWbaTransferCharges(40, $originalAmount / 100);
+                $this->wbaCharge = getWbaTransferCharges(40, $originalAmount);
             }
             logInfo($companyBankID, "company id webhook things");
             logInfo($this->wbaCharge, "wbaCharge webhook");

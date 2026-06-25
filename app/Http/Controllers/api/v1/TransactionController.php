@@ -7261,7 +7261,7 @@ class TransactionController extends Controller
 
     }
 
-    public function updateSpendSave(Request $request)
+    public function withdrawSpendSave(Request $request)
     {
         $user       = auth('api')->user();
         $company_id = $user->company_id;

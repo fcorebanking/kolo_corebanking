@@ -2794,8 +2794,9 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
 
         $customerInitialBalance = $userWallet->balance;
 
-        $customerCashbackAmount = $customerCashback * $originalAmount;
+        //  $customerCashbackAmount = $customerCashback * $originalAmount;
         $companyCashbackAmount  = $companyCashback * $originalAmount;
+        $customerCashbackAmount = 0;
 
         if ($customerInitialBalance > ($originalAmount - $customerCashbackAmount)) {
 
@@ -5499,7 +5500,7 @@ function spendSaveRecordTransaction($debitCustomer, $transaction)
             "company_balance_before" => $debitCustomer["company_balance_before"] ?? 0,
             "company_amount"         => $debitCustomer["company_amount"] ?? 0,
             "company_balance_after"  => $debitCustomer["company_balance_after"] ?? 0,
-            "description"            => "Spend  / Save Transaction",
+            "description"            => "Spend / Save Transaction",
             "transaction_reference"  => generateTransactionReference(),
             "transaction_remarks_id" => 2,
             "transaction_type_id"    => 104,
@@ -5525,8 +5526,13 @@ function debitCustomerSpendSave($customerAccountId, $originalAmount)
     $spendSaveSettings = SpendSave::where('user_id', $user_id)->first();
     if ($spendSaveSettings != null) {
         if (isset($spendSaveSettings->status_id) && $spendSaveSettings->status_id == 1) {
-            $cash = ($spendSaveSettings->spend_save_charge_or_percentage) * $originalAmount;
-
+            $cash       = ($spendSaveSettings->spend_save_charge_or_percentage) * $originalAmount;
+            $oldBalance = $spendSaveSettings->balance;
+            logInfo($oldBalance, "oldBalance SpendSave for $user_id");
+            $newBalance = $oldBalance + $cash;
+            logInfo($newBalance, " newBalance SpendSave for $user_id");
+            $spendSaveSettings->balance = $newBalance;
+            $spendSaveSettings->save();
         } else {
             $cash = 0;
         }
@@ -5535,7 +5541,44 @@ function debitCustomerSpendSave($customerAccountId, $originalAmount)
     }
 
     logInfo($cash, "SpendSave for $user_id");
-    $cash = 0;
+
     return $cash;
+
+}
+
+function debitCustomerWithdrawSpendSave($user_id, $originalAmount)
+{
+
+    $wb_id             = wb_account_details::where('user_id', $user_id)->first()->id;
+    $userWallet        = user_wallet::where('wb_account_detail_id', $wb_id)->first();
+    $spendSaveSettings = SpendSave::where('user_id', $user_id)->first();
+    if ($spendSaveSettings != null) {
+        if (isset($spendSaveSettings->status_id) && $spendSaveSettings->status_id == 1) {
+
+            $oldBalance  = $spendSaveSettings->balance;
+            logInfo($oldBalance, "oldBalance SpendSave for $user_id");
+            $newBalance  = $oldBalance - $originalAmount;
+            logInfo($newBalance, " newBalance SpendSave for $user_id");
+            $spendSaveSettings->balance  = $newBalance;
+            $spendSaveSettings->save();
+            $currentBalance  = $userWallet->balance;
+            logInfo($currentBalance, " currentBalance wallet for $user_id");
+            $newCurrentBalance  = $userWallet->balance += $originalAmount;
+
+            $userWallet->save();
+
+        } else {
+            $newCurrentBalance = 0;
+        }
+    } else {
+        $newCurrentBalance = 0;
+    }
+
+    logInfo($newCurrentBalance, " new currentBalance wallet for $user_id");
+    return [
+        "balance_before" => $currentBalance,
+
+        "balance_after"  => $newCurrentBalance,
+    ];
 
 }

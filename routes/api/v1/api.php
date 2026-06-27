@@ -288,7 +288,7 @@ Route::prefix('/transactions')->group(function () {
     Route::post('/report-transaction', [TransactionController::class, 'reportTransaction']);
 
     Route::post('/set-spend-save', [TransactionController::class, 'setSpendSave'])->middleware('log.route');
-    Route::post('/update-setting-spend-save', [TransactionController::class, 'updateSpendSave'])->middleware('log.route');
+    Route::post('/withdraw-spend-save', [TransactionController::class, 'withdrawSpendSave'])->middleware('log.route');
     Route::get('/get-setting-spend-save', [TransactionController::class, 'getSpendSave']);
 
     Route::get('/get-staff-payroll-detail', [SalaryController::class, ' getStaffPayrolDetails']);

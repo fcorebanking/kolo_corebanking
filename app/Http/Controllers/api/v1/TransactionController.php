@@ -5490,7 +5490,7 @@ class TransactionController extends Controller
             "phone"          => $request->phone_number,
         ];
 
-        if (\auth()->user()->company_id == 80) {
+        /*   if (\auth()->user()->company_id == 80) {
             $remitaController = new RemittaController();
 
             $buyElectricity = $remitaController->buyElectricity(
@@ -5519,7 +5519,20 @@ class TransactionController extends Controller
                 ]),
             };
 
-        }
+        }*/
+
+        $buyElectricity = match ($company_debit_bankcode) {
+
+            90286 => $this->safeHavenControllerSercice('buyElectricity', [
+                'request'       => $request,
+                'transactionId' => $transactionId,
+            ]), //7000299948
+            default
+                  => $this->vtPassControllerSercice('buyElectricity', [
+                'request'       => $request,
+                'transactionId' => $transactionId,
+            ]),
+        };
 
         if (! $buyElectricity['status']) {
             return response()->json($buyElectricity, 400);
@@ -7263,21 +7276,41 @@ class TransactionController extends Controller
 
     public function withdrawSpendSave(Request $request)
     {
-        $user       = auth('api')->user();
-        $company_id = $user->company_id;
-        $settings   = SpendSave::where('user_id', $user->id)->first();
-        if ($request->spend_save_charge_or_percentage != null) {
-            $charge = ($request->spend_save_charge_or_percentage / 100);
-        } else {
-            $charge = $settings->spend_save_charge_or_percentage;
-        }
+        $user                   = auth('api')->user();
+        $company_id             = $user->company_id;
+        $amount                 = $request->amount;
+        $debitCustomerSpendSave = debitCustomerWithdrawSpendSave($user->id, $$amount);
 
-        $settings->update([
-            "status_id"                       => $request->status,
-            "spend_save_charge_or_percentage" => $charge,
+        $spendSaveTransactionId = \generate_txnID();
+        $ledger_cr              = null;
+        $ledger_dr              = null;
+        $ledger_Settings        = get_CR_DR_TXN_Type_Ledger(104, auth()->user()->company_id);
+        if ($ledger_Settings) {
+            $ledger_cr = $ledger_Settings->ledger_cr;
+            $ledger_dr = $ledger_Settings->ledger_dr;
+        }
+        $transaction = transactions::create([
+            "balance_before"         => $debitCustomerSpendSave['balance_before'],
+            "amount"                 => $amount    ,
+            "account_id"             => $user->id,
+            "balance_after"          => $debitCustomerSpendSave["balance_after"],
+            "company_balance_before" => 0,
+            "company_balance_after"  => 0,
+            "company_amount"         => 0,
+            "description"            => "Withdraw from Spend/Save",
+            "branch_id"              => $user->branch_id,
+            "company_id"             => $user->company_id,
+            "transaction_reference"  => $cashbackTransactionId,
+            "transaction_remarks_id" => 2,
+            "transaction_type_id"    => 104,
+            "credit_debit_type_id"   => 1,
+            "created_date"           => date('Y-m-d'),
+            "created_by"             =>  $user->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
         ]);
 
-        return response()->json(["status" => 1, "message" => "Spend Save settings is updated"]);
+        return response()->json(["status" => 1, "message" => "Withdraw  is successfull"]);
 
     }
 

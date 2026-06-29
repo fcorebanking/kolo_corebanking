@@ -7001,6 +7001,8 @@ class TransactionController extends Controller
         $startingDate    = Carbon::parse('2026-05-12 00:00:00');
         $transactionDate = Carbon::parse($transaction->created_at);
 
+          logInfo($transactionDate, "transaction_reference reverse mobile transactionDate");
+
         if ($startingDate->gt($transactionDate)) {
             return response()->json(['status' => 0, 'message' => "This transaction cannot be reversed"]);
         }

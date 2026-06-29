@@ -3456,6 +3456,7 @@ function validatePinCheckCustomerBalance($transactionPin, $amount, $selectedwall
         $user = auth()->user();
 
         if ($amount > 0) {
+            
             $validatePin = User::where(['id' => $user->id, 'pin' => $transactionPin])->orWhere(['id' => $user->id, 'otp' => $transactionPin])->first();
 
             if ($validatePin) {

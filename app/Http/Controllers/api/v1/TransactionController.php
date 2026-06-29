@@ -6984,6 +6984,8 @@ class TransactionController extends Controller
 
         $transaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
 
+          logInfo($transaction, "transaction_reference reverse mobile");
+
         if (! $transaction) {
             return response()->json(['status' => 0, 'message' => "Invalid Transaction reference"]);
         }

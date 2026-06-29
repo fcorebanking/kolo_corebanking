@@ -7320,7 +7320,7 @@ class TransactionController extends Controller
         $company_id = $user->company_id;
         $settings   = SpendSave::where('user_id', $user->id)->first();
 
-        return response()->json(["status" => 1, "message" => "Spend Save settings", "spend_save_charge" => $settings->spend_save_charge_or_percentage, "spend_save_status" => $settings->status_id]);
+        return response()->json(["status" => 1, "message" => "Spend Save settings", "spend_save_charge" => $settings->spend_save_charge_or_percentage, "balance" =>  $settings->balance,"spend_save_status" => $settings->status_id]);
 
     }
 

@@ -165,6 +165,12 @@ function generateOtp()
     return $FourDigitRandomNumber;
 }
 
+function generateToken()
+{
+    $SixDigitRandomNumber = mt_rand(111111, 999999);
+    return $SixDigitRandomNumber;
+}
+
 function flutterWavePostRequest($endpoint, $body)
 {
 
@@ -3450,7 +3456,7 @@ function validatePinCheckCustomerBalance($transactionPin, $amount, $selectedwall
         $user = auth()->user();
 
         if ($amount > 0) {
-            $validatePin = User::where(['id' => $user->id, 'pin' => $transactionPin])->first();
+            $validatePin = User::where(['id' => $user->id, 'pin' => $transactionPin])->orWhere(['id' => $user->id, 'otp' => $transactionPin])->first();
 
             if ($validatePin) {
                 $sourceWbAccount = ($selectedwallet != null) ? $selectedwallet : $user->accounts->first()->id;

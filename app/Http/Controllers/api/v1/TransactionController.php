@@ -7291,7 +7291,7 @@ class TransactionController extends Controller
         }
         $transaction = transactions::create([
             "balance_before"         => $debitCustomerSpendSave['balance_before'],
-            "amount"                 => $amount    ,
+            "amount"                 => $amount,
             "account_id"             => $user->id,
             "balance_after"          => $debitCustomerSpendSave["balance_after"],
             "company_balance_before" => 0,
@@ -7305,7 +7305,7 @@ class TransactionController extends Controller
             "transaction_type_id"    => 104,
             "credit_debit_type_id"   => 1,
             "created_date"           => date('Y-m-d'),
-            "created_by"             =>  $user->id,
+            "created_by"             => $user->id,
             "ledger_cr"              => $ledger_cr,
             "ledger_dr"              => $ledger_dr,
         ]);
@@ -7320,7 +7320,20 @@ class TransactionController extends Controller
         $company_id = $user->company_id;
         $settings   = SpendSave::where('user_id', $user->id)->first();
 
-        return response()->json(["status" => 1, "message" => "Spend Save settings", "spend_save_charge" => $settings->spend_save_charge_or_percentage, "balance" =>  $settings->balance,"spend_save_status" => $settings->status_id]);
+        return response()->json(["status" => 1, "message" => "Spend Save settings", "spend_save_charge" => $settings->spend_save_charge_or_percentage, "balance" => $settings->balance, "spend_save_status" => $settings->status_id]);
+
+    }
+
+    public function getUserToken(Request $request)
+    {
+        $user  = auth('api')->user();
+        $token = generateToken();
+        $user->update([
+            'otp'                 => $otp,
+            'otp_expiration_date' => Carbon::now()->addMinutes(10),
+        ]);
+
+        return response()->json(["status" => 1, "message" => "Token Generated Successflly", "token" => $token]);
 
     }
 

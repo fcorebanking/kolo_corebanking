@@ -7329,7 +7329,7 @@ class TransactionController extends Controller
         $user  = auth('api')->user();
         $token = generateToken();
         $user->update([
-            'otp'                 => $otp,
+            'otp'                 => $token,
             'otp_expiration_date' => Carbon::now()->addMinutes(10),
         ]);
 

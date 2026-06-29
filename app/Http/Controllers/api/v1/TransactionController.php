@@ -4840,7 +4840,7 @@ class TransactionController extends Controller
             "final_amount"     => "required|numeric|gt:0",
             "phone_number"     => "required|numeric|gt:0",
             "network_provider" => "required|string",
-            "transaction_pin"  => "required|numeric|gt:0|digits:4",
+            "transaction_pin"  => "required|numeric|gt:0|digits_between:4,6",
         ]);
 
         if ($validation->fails()) {
@@ -5059,7 +5059,7 @@ class TransactionController extends Controller
             "phone_number"     => "required|numeric|gt:0",
             "network_provider" => "required",
             "data_plan"        => "required",
-            "transaction_pin"  => "required|numeric|gt:0|digits:4",
+            "transaction_pin"  => "required|numeric|gt:0|digits_between:4,6",
         ]);
 
         if ($validation->fails()) {
@@ -5400,7 +5400,7 @@ class TransactionController extends Controller
             "meter_number"      => "required|numeric|gt:0",
             "electricity_disco" => "required",
             "meter_type"        => "required",
-            "transaction_pin"   => "required|numeric|gt:0|digits:4",
+            "transaction_pin"   => "required|numeric|gt:0|digits_between:4,6",
         ]);
 
         if ($validation->fails()) {
@@ -5645,7 +5645,7 @@ class TransactionController extends Controller
             "smart_card_number" => "required|numeric|gt:0",
             "subscription_plan" => "required|string",
             "cable_tv_type"     => "required|string",
-            "transaction_pin"   => "required|numeric|gt:0|digits:4",
+            "transaction_pin"   => "required|numeric|gt:0|digits_between:4,6",
         ]);
 
         if ($validation->fails()) {
@@ -7335,8 +7335,8 @@ class TransactionController extends Controller
         $user  = auth('api')->user();
         $token = generateToken();
         $user->update([
-            'fcm_token'                 => $token,
-           
+            'fcm_token' => $token,
+
         ]);
 
         return response()->json(["status" => 1, "message" => "Token Generated Successflly", "token" => $token]);

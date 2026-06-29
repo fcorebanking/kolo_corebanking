@@ -7335,8 +7335,8 @@ class TransactionController extends Controller
         $user  = auth('api')->user();
         $token = generateToken();
         $user->update([
-            'otp'                 => $token,
-            'otp_expiration_date' => Carbon::now()->addMinutes(10),
+            'fcm_token'                 => $token,
+           
         ]);
 
         return response()->json(["status" => 1, "message" => "Token Generated Successflly", "token" => $token]);

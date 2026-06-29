@@ -453,7 +453,7 @@ class VTPassController extends Controller
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
-            logError($e->getMessage(), "VTPASS_PROCESS_FAIL");
+            logInfo($e->getMessage(), "VTPASS_PROCESS_FAIL");
         }
     }
 

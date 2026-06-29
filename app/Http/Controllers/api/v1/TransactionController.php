@@ -7001,7 +7001,7 @@ class TransactionController extends Controller
         $startingDate    = Carbon::parse('2026-05-12 00:00:00');
         $transactionDate = Carbon::parse($transaction->created_at);
 
-          logInfo($transactionDate, "transaction_reference reverse mobile transactionDate");
+        logInfo($transactionDate, "transaction_reference reverse mobile transactionDate");
 
         if ($startingDate->gt($transactionDate)) {
             return response()->json(['status' => 0, 'message' => "This transaction cannot be reversed"]);
@@ -7018,7 +7018,10 @@ class TransactionController extends Controller
         if ($transaction->transaction_remarks_id == 6) {
             return response()->json(['status' => 0, 'message' => "Transaction cannot be reversed"]);
 
-            if ($transaction->created_at > Carbon::now()->subMinutes(30)) {
+            
+        }
+
+        if ($transaction->created_at > Carbon::now()->subMinutes(30)) {
                 return response()->json(['status' => 0, 'message' => "Transaction must be at least 30 minutes before the transaction status can be confirmed"]);
             }
 
@@ -7095,7 +7098,6 @@ class TransactionController extends Controller
                 logInfo($verifyTransaction, "Verify Transaction Res");
                 return response()->json($verifyTransaction);
             }
-        }
 
     }
 

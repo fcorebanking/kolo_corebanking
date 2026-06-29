@@ -14,12 +14,13 @@ class SafeHavenService
             46  => $this->myPayCredentials(),       //7000219629
             63  => $this->roseBulgePayredentials(), //7000299948
             67  => $this->oneZoyaPayredentials(),   //7000320798
-            80  => $this->tomisinPayCredentials(),  //7000434624
-            92  => $this->jethoPayredentials(),     // 7000528130
-            96  => $this->benjafaPayCredentials(),  //7000645174
-            97  => $this->dfsPayredentials(),       // 7000671610
-            99  => $this->tsgPayCredentials(),      // 7000847167
-            100 => $this->greenPayCredentials(),    //7000910744
+            74  => $this->kokakashCredentials(),
+            80  => $this->tomisinPayCredentials(), //7000434624
+            92  => $this->jethoPayredentials(),    // 7000528130
+            96  => $this->benjafaPayCredentials(), //7000645174
+            97  => $this->dfsPayredentials(),      // 7000671610
+            99  => $this->tsgPayCredentials(),     // 7000847167
+            100 => $this->greenPayCredentials(),   //7000910744
             101 => curtisCredentials(),
             default
                 => $this->finovaCredentials(), //
@@ -212,6 +213,22 @@ class SafeHavenService
             'client_assertion_live'      => 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb3JlLmZpbm92YS5uZyIsInN1YiI6ImI0YzJhN2UxNDM5NzMzNGI2Y2NkNzE3Mzc1ZTdlNjNhIiwiYXVkIjoiaHR0cHM6Ly9hcGkuc2FmZWhhdmVubWZiLmNvbSIsImlhdCI6MTc4MTg3MDY0MywiZXhwIjoxODEzNDA2MzY0fQ.SYmpmfQiWA8Lek3a6VlMIlKHVmgYDhz0DBWlb2ImQK7xD3TvmQ9qErF7LqLvW7dXLcVXB6Uvw8ox9io1cZpQa3fAlYfkhYoGT6Jl2ngQrKhf2KoSZ_OlEvkZqthLEXQgM1mL0pBF4qzVJUJm_mNFx05mVgN2zFlS5KdwJeGug9k',
             'base_url_live'              => env('SAFEHAVEN_BASE_URL_LIVE', 'https://api.safehavenmfb.com/'),
             'debitAccount'               => "0118534446",
+
+        ];
+
+    }
+
+    public function kokakashCredentials()
+    {
+        return [
+            'owner'                      => 'Kokakash',
+            'sendingAccount'             => "0114888048",
+            'grant_type_live'            => env('SAFEHAVEN_GRANT_TYPE_LIVE', 'client_credentials'),
+            'client_assertion_type_live' => env('SAFEHAVEN_CLIENT_ASSERTION_TYPE_LIVE', 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'),
+            'client_id_live'             => '55b0070068588a82ce236d8ea737c407',
+            'client_assertion_live'      => 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb3JlLmZpbm92YS5uZyIsInN1YiI6IjU1YjAwNzAwNjg1ODhhODJjZTIzNmQ4ZWE3MzdjNDA3IiwiYXVkIjoiaHR0cHM6Ly9hcGkuc2FmZWhhdmVubWZiLmNvbSIsImlhdCI6MTc4Mjc0MjgwMiwiZXhwIjoxODEzNDA2MzY0fQ.GYg5jKC-wRW-sFHTOeF-GsT6hf5fLTZmD-p5DBNwuD0UMBinU7k_e0tocqA58BBzh236R5HaQzb-2bGgUYRCyIk6czjqyQsPMo8xsuIfNJ-QLVWtU_SeAWaAeyJAnjpTH9VxSba8Fwlv15dkR7bnyod7SkBZDeoRixVy08sHgzY',
+            'base_url_live'              => env('SAFEHAVEN_BASE_URL_LIVE', 'https://api.safehavenmfb.com/'),
+            'debitAccount'               => "0114888048",
 
         ];
 

@@ -102,7 +102,7 @@ class RegisterController extends Controller
             }),
         };*/
 
-        $skipCompanies    = [14, 31, 37, 49, 59, 63, 87, 88, 89, 96];
+        $skipCompanies    = [14, 31, 37, 49, 59, 63, 87, 88, 89, 96, 101];
         $selected_bank_id = company_wallet::where('company_id', $request->company)->first()->bank_id;
 
         if (! in_array((int) $request->company, $skipCompanies)) {

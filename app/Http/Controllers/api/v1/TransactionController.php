@@ -6984,13 +6984,13 @@ class TransactionController extends Controller
 
         $transaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
 
-          logInfo($transaction, "transaction_reference reverse mobile");
+        logInfo($transaction, "transaction_reference reverse mobile");
 
         if (! $transaction) {
             return response()->json(['status' => 0, 'message' => "Invalid Transaction reference"]);
         }
 
-        if (! $transaction->company_id == 61) {
+        if ($transaction->company_id == 61) {
             return response()->json(['status' => 0, 'message' => "Blocked Reversal"]);
         }
 
@@ -7034,6 +7034,7 @@ class TransactionController extends Controller
             $kudaController = new KudaController();
 
             $verifyTransaction = $kudaController->verifyTransaction($request->transaction_reference);
+            logInfo(json_encode($verifyTransaction), "transaction_reference reverse verifyTransaction mobile");
 
             if ($verifyTransaction['status'] == "03") {
                 $partnerType            = "kuda_business";

@@ -7290,7 +7290,7 @@ class TransactionController extends Controller
         $spendSaveTransactionId = \generate_txnID();
         $ledger_cr              = null;
         $ledger_dr              = null;
-        $ledger_Settings        = get_CR_DR_TXN_Type_Ledger(104, auth()->user()->company_id);
+        $ledger_Settings        = get_CR_DR_TXN_Type_Ledger(104, $user->company_id);
         if ($ledger_Settings) {
             $ledger_cr = $ledger_Settings->ledger_cr;
             $ledger_dr = $ledger_Settings->ledger_dr;

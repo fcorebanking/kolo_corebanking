@@ -7306,7 +7306,7 @@ class TransactionController extends Controller
             "description"            => "Withdraw from Spend/Save",
             "branch_id"              => $user->branch_id,
             "company_id"             => $user->company_id,
-            "transaction_reference"  => $cashbackTransactionId,
+            "transaction_reference"  => $spendSaveTransactionId,
             "transaction_remarks_id" => 2,
             "transaction_type_id"    => 104,
             "credit_debit_type_id"   => 1,

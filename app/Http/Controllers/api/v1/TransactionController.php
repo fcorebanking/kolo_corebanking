@@ -6815,7 +6815,7 @@ class TransactionController extends Controller
             ];
         }
 
-        $companyIDs       = [1, 29, 36, 63, 67, 92, 97];
+        $companyIDs       = [1, 29, 36, 63, 67, 80, 92, 97];
         $companyIDsStatus = in_array($company->id, $companyIDs);
 
         $companyAfterBalance = $company->wallet->balance - $originalAmount;

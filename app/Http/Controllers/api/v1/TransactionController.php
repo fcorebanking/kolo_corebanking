@@ -7285,7 +7285,7 @@ class TransactionController extends Controller
         $user                   = auth('api')->user();
         $company_id             = $user->company_id;
         $amount                 = $request->amount;
-        $debitCustomerSpendSave = debitCustomerWithdrawSpendSave($user->id, $$amount);
+        $debitCustomerSpendSave = debitCustomerWithdrawSpendSave($user->id, $amount);
 
         $spendSaveTransactionId = \generate_txnID();
         $ledger_cr              = null;

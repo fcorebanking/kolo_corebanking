@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Http\Controllers\GTBController;
 use App\Http\Controllers\ThirdParty\AmuchaController;
 use App\Http\Controllers\ThirdParty\AssetMatrixController;
 use App\Http\Controllers\ThirdParty\BaniController;
@@ -177,7 +178,7 @@ class AccountCreationService
             if ($createAccountResponse['status']) {
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['virtual_account_number']);
             }
-        } else if ($virtualAccount->bankCode == "000013" || $virtualAccount->bankCode == "000003" || $virtualAccount->bankCode == "120001" || $virtualAccount->bankCode == "000012" || $virtualAccount->bankCode == "000003" || $virtualAccount->bankCode == "000017") {
+        } else if ($virtualAccount->bankCode == "000013" || $virtualAccount->bankCode == "120001" || $virtualAccount->bankCode == "000012" || $virtualAccount->bankCode == "000003" || $virtualAccount->bankCode == "000017") {
 
             // $gtbController = new GTBController();
 
@@ -226,6 +227,21 @@ class AccountCreationService
                 $accountReference     = $requestReference;
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['virtual_account_number']);
             }
+        } else if ($virtualAccount->bankCode == "000003") {
+
+            $gtbController = new GTBController();
+
+            $requestReference = generateAccountReference();
+
+            $createAccountResponse = $virtualAccount->accountType == 'coperate' ?
+            $gtbController->createCompanyVirtualAccount($virtualAccount->companyName, $virtualAccount->bvn, $virtualAccount->phone, $virtualAccount->firstName, $virtualAccount->companyID, ) :
+            $gtbController->createVirtualAccount($virtualAccount->firstName, $virtualAccount->lastName, $virtualAccount->dob, $virtualAccount->gender, $virtualAccount->bvn, $virtualAccount->email, $virtualAccount->phone, $virtualAccount->address, $requestReference, $virtualAccount->companyID, );
+
+            $accountReference = $requestReference;
+            if ($createAccountResponse['status']) {
+                $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['virtual_account_number']);
+            }
+
         } else if ($virtualAccount->bankCode == "090110") {
 
             $vpayController = new VPayController();

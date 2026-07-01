@@ -2,6 +2,7 @@
 namespace App\Services\ebanking;
 
 use App\Http\Controllers\ThirdParty\FairMoneyController;
+use App\Http\Controllers\ThirdParty\GTBController;
 use App\Http\Controllers\ThirdParty\KudaBusinessController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\MonnifyController;
@@ -76,14 +77,18 @@ class EbankingCompanyService
 
             $firstName = strlen($myAccountName[0]) < 3 ? $myAccountName[1] : $myAccountName[0];
 
-            $safeHavenController = new FairMoneyController();
+            $fairMoneyController = new FairMoneyController();
 
-            $bankTransfer = $safeHavenController->bankTransfer($bankTransferType->accountNumber, $bankTransferType->shortBankCode, $accountName, $bankTransferType->amount, $bankTransferType->description, $bankTransferType->transactionReference, );
+            $bankTransfer = $fairMoneyController->bankTransfer($bankTransferType->accountNumber, $bankTransferType->shortBankCode, $accountName, $bankTransferType->amount, $bankTransferType->description, $bankTransferType->transactionReference, );
         } else if ($this->bankTransferPartner == 19) {
 
             $ninePSBController = new NinePSBController();
 
             $bankTransfer = $ninePSBController->bankTransfer($bankTransferType->transactionReference, $bankTransferType->accountNumber, $bankTransferType->bankCode, $bankTransferType->sessionId, $bankTransferType->amount, $bankAccount['data']['account_name'], $bankTransferType->description, $this->bankTransferPartner);
+        } else if ($this->bankTransferPartner == 6) {
+
+            $gtbController = new GTBController();
+            $bankTransfer  = $gtbController->bankTransfer($bankTransferType->amount, $bankTransferType->transactionReference, $bankTransferType->description, $bankTransferType->bankCode, $bankTransferType->accountNumber, $bankTransferType->companyID);
         }
 
         if (! $bankTransfer['status']) {
@@ -122,6 +127,11 @@ class EbankingCompanyService
             $ninePSBController = new NinePSBController();
 
             $bankTransfer = $ninePSBController->verifyBankAccount($bankCode, $accountNumber);
+        } else if ($this->accountVerificationPartner == 6) {
+
+            $gtbController = new GTBController();
+
+            $bankTransfer = gtbController->verifyBankAccount($bankCode, $accountNumber);
         }
         return $bankAccount;
     }

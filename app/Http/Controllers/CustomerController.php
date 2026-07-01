@@ -391,6 +391,11 @@ class CustomerController extends Controller
                     $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
             }
 
+             if ($request->account_bank == '000013') {
+                $virtualAccount->companyID = $auth->company->id;
+                $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
+            }
+
             $createAccountService = new AccountCreationService();
 
             $response = $createAccountService->createVirtualAccount($virtualAccount);

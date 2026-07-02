@@ -3456,7 +3456,7 @@ function validatePinCheckCustomerBalance($transactionPin, $amount, $selectedwall
         $user = auth()->user();
 
         if ($amount > 0) {
-            
+
             $validatePin = User::where(['id' => $user->id, 'pin' => $transactionPin])->orWhere(['id' => $user->id, 'fcm_token' => $transactionPin])->first();
 
             if ($validatePin) {
@@ -5555,24 +5555,36 @@ function debitCustomerSpendSave($customerAccountId, $originalAmount)
 
 function debitCustomerWithdrawSpendSave($user_id, $originalAmount)
 {
-
+    $response          = [];
     $wb_id             = wb_account_details::where('user_id', $user_id)->first()->id;
     $userWallet        = user_wallet::where('wb_account_detail_id', $wb_id)->first();
     $spendSaveSettings = SpendSave::where('user_id', $user_id)->first();
+    $currentBalance    = $userWallet->balance;
+
     if ($spendSaveSettings != null) {
         if (isset($spendSaveSettings->status_id) && $spendSaveSettings->status_id == 1) {
+            if ($originalAmount > 0) {
+                if ($spendSaveSettings->balance >= $amount) {
 
-            $oldBalance  = $spendSaveSettings->balance;
-            logInfo($oldBalance, "oldBalance SpendSave for $user_id");
-            $newBalance  = $oldBalance - $originalAmount;
-            logInfo($newBalance, " newBalance SpendSave for $user_id");
-            $spendSaveSettings->balance  = $newBalance;
-            $spendSaveSettings->save();
-            $currentBalance  = $userWallet->balance;
-            logInfo($currentBalance, " currentBalance wallet for $user_id");
-            $newCurrentBalance  = $userWallet->balance += $originalAmount;
+                    $oldBalance = $spendSaveSettings->balance;
+                    logInfo($oldBalance, "oldBalance SpendSave for $user_id");
+                    $newBalance = $oldBalance - $originalAmount;
+                    logInfo($newBalance, " newBalance SpendSave for $user_id");
+                    $spendSaveSettings->balance = $newBalance;
+                    $spendSaveSettings->save();
 
-            $userWallet->save();
+                    logInfo($currentBalance, " currentBalance wallet for $user_id");
+                    $newCurrentBalance  = $userWallet->balance += $originalAmount;
+
+                    $userWallet->save();
+                    logInfo($newCurrentBalance, " new currentBalance wallet for $user_id");
+
+                } else {
+                    $response = ["status" => false, 'message' => "Insufficient Funds"];
+                }
+            } else {
+                return ["status" => false, 'message' => "Invalid Transaction Amount"];
+            }
 
         } else {
             $newCurrentBalance = 0;
@@ -5581,11 +5593,30 @@ function debitCustomerWithdrawSpendSave($user_id, $originalAmount)
         $newCurrentBalance = 0;
     }
 
-    logInfo($newCurrentBalance, " new currentBalance wallet for $user_id");
     return [
         "balance_before" => $currentBalance,
 
         "balance_after"  => $newCurrentBalance,
     ];
 
+}
+
+function checkCustomerSpendSaveBalance($accountId, $amount)
+{
+
+    $response = [];
+
+    if ($amount > 0) {
+
+        $userWallet = user_wallet::where('wb_account_detail_id', $accountId)->first();
+
+        if ($userWallet->balance >= $amount) {
+            $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => $accountId, 'balance' => $userWallet->balance];
+        } else {
+            $response = ["status" => false, 'message' => "Insufficient Funds"];
+        }
+    } else {
+        $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+    }
+    return $response;
 }

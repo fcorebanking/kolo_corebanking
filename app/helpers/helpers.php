@@ -5601,22 +5601,3 @@ function debitCustomerWithdrawSpendSave($user_id, $originalAmount)
 
 }
 
-function checkCustomerSpendSaveBalance($accountId, $amount)
-{
-
-    $response = [];
-
-    if ($amount > 0) {
-
-        $userWallet = user_wallet::where('wb_account_detail_id', $accountId)->first();
-
-        if ($userWallet->balance >= $amount) {
-            $response = ["status" => true, 'message' => "Amount is Valid", 'account_id' => $accountId, 'balance' => $userWallet->balance];
-        } else {
-            $response = ["status" => false, 'message' => "Insufficient Funds"];
-        }
-    } else {
-        $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
-    }
-    return $response;
-}

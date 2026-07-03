@@ -261,18 +261,18 @@ Route::prefix('/transactions')->group(function () {
         Route::post('/filter-history', [TransactionController::class, 'transactionHistoryMobile']);
         Route::get('/pos-history', [TransactionController::class, 'posTransactionHistory']);
 
-        //    Route::middleware('checkAccountStatus')->post('/buy-airtime', [TransactionController::class, 'buyAirtime'])->middleware('log.route');
-        Route::post('/buy-airtime', [TransactionController::class, 'buyAirtime'])->middleware('log.route');
+        Route::middleware('checkAccountStatus')->post('/buy-airtime', [TransactionController::class, 'buyAirtime'])->middleware('log.route');
+        //Route::post('/buy-airtime', [TransactionController::class, 'buyAirtime'])->middleware('log.route');
 
         Route::middleware('checkAccountStatus')->post('/buy-airtime-test', [TransactionController::class, 'buyAirtimeTest'])->middleware('log.route');
 
-//        Route::middleware('checkAccountStatus')->post('/buy-data-bundle', [TransactionController::class, 'buyDataBundle'])->middleware('log.route');
-        Route::post('/buy-data-bundle', [TransactionController::class, 'buyDataBundle'])->middleware('log.route');
+        Route::middleware('checkAccountStatus')->post('/buy-data-bundle', [TransactionController::class, 'buyDataBundle'])->middleware('log.route');
+//        Route::post('/buy-data-bundle', [TransactionController::class, 'buyDataBundle'])->middleware('log.route');
         Route::post('/verify-meter-number', [TransactionController::class, 'verifyMeterNumber']);
-        // Route::middleware('checkAccountStatus')->post('/buy-electricity', [TransactionController::class, 'buyElectricity'])->middleware('log.route');
-        //  Route::middleware('checkAccountStatus')->post('/subscribe-cable-tv', [TransactionController::class, 'subscribeCableTV'])->middleware('log.route');
-        Route::post('/buy-electricity', [TransactionController::class, 'buyElectricity'])->middleware('log.route');
-        Route::post('/subscribe-cable-tv', [TransactionController::class, 'subscribeCableTV'])->middleware('log.route');
+        Route::middleware('checkAccountStatus')->post('/buy-electricity', [TransactionController::class, 'buyElectricity'])->middleware('log.route');
+        Route::middleware('checkAccountStatus')->post('/subscribe-cable-tv', [TransactionController::class, 'subscribeCableTV'])->middleware('log.route');
+        // Route::post('/buy-electricity', [TransactionController::class, 'buyElectricity'])->middleware('log.route');
+        //Route::post('/subscribe-cable-tv', [TransactionController::class, 'subscribeCableTV'])->middleware('log.route');
         Route::get('/get-subscriptions', [TransactionController::class, 'getSubscriptions']);
         Route::post('/verify-smart-card', [TransactionController::class, 'verifySmartCard'])->middleware('log.route');
         Route::get('/get-data-bundles/{networkProvider}', [TransactionController::class, 'getDataBundles']);

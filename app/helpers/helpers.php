@@ -5564,7 +5564,7 @@ function debitCustomerWithdrawSpendSave($user_id, $originalAmount)
     if ($spendSaveSettings != null) {
         if (isset($spendSaveSettings->status_id) && $spendSaveSettings->status_id == 1) {
             if ($originalAmount > 0) {
-                if ($spendSaveSettings->balance >= $amount) {
+                if ($spendSaveSettings->balance >= $originalAmount) {
 
                     $oldBalance = $spendSaveSettings->balance;
                     logInfo($oldBalance, "oldBalance SpendSave for $user_id");
@@ -5600,4 +5600,3 @@ function debitCustomerWithdrawSpendSave($user_id, $originalAmount)
     ];
 
 }
-

@@ -44,6 +44,7 @@ use App\Models\MandateLog;
 use App\Models\PreferredEbankingPartner;
 use App\Models\PreferredEbankingPartnerCompany;
 use App\Models\savings_product;
+use App\Models\ScheduledPayment;
 use App\Models\SpendSave;
 use App\Models\transactions;
 use App\Models\transaction_remarks;
@@ -7282,42 +7283,152 @@ class TransactionController extends Controller
 
     public function withdrawSpendSave(Request $request)
     {
-        $user                   = auth('api')->user();
-        $company_id             = $user->company_id;
-        $amount                 = $request->amount;
-        $debitCustomerSpendSave = debitCustomerWithdrawSpendSave($user->id, $amount);
+        $user = auth('api')->user();
 
-        $spendSaveTransactionId = \generate_txnID();
-        $ledger_cr              = null;
-        $ledger_dr              = null;
-        $ledger_Settings        = get_CR_DR_TXN_Type_Ledger(104, $user->company_id);
-        if ($ledger_Settings) {
-            $ledger_cr = $ledger_Settings->ledger_cr;
-            $ledger_dr = $ledger_Settings->ledger_dr;
+        // Validate account product charges
+        $chargeValidation = $this->validateAccountProductCharges($request->final_amount);
+        if (! $chargeValidation['status']) {
+            return response()->json($chargeValidation, 400);
         }
-        $transaction = transactions::create([
-            "balance_before"         => $debitCustomerSpendSave['balance_before'],
-            "amount"                 => $amount,
-            "account_id"             => $user->id,
-            "balance_after"          => $debitCustomerSpendSave["balance_after"],
-            "company_balance_before" => 0,
-            "company_balance_after"  => 0,
-            "company_amount"         => 0,
-            "description"            => "Withdraw from Spend/Save",
-            "branch_id"              => $user->branch_id,
-            "company_id"             => $user->company_id,
-            "transaction_reference"  => $spendSaveTransactionId,
-            "transaction_remarks_id" => 2,
-            "transaction_type_id"    => 104,
-            "credit_debit_type_id"   => 1,
-            "created_date"           => date('Y-m-d'),
-            "created_by"             => $user->id,
-            "ledger_cr"              => $ledger_cr,
-            "ledger_dr"              => $ledger_dr,
+
+        // Calculate total amount (withdrawal + charges)
+        $charge      = $this->getChargeAmount($chargeValidation, $user);
+        $totalAmount = $charge + $request->amount;
+
+        // Process Spend/Save debit
+        $debitResult = debitCustomerWithdrawSpendSave($user->id, $totalAmount);
+
+        if (! $debitResult['status']) {
+            return response()->json([
+                'status'  => false,
+                'message' => $debitResult['message'] ?? 'Withdrawal failed',
+            ], 400);
+        }
+
+        // Perform database transaction
+        try {
+            DB::transaction(function () use ($user, $request, $charge, $totalAmount, $debitResult) {
+                $this->createWithdrawalTransactions($user, $request, $charge, $totalAmount, $debitResult);
+            });
+        } catch (\Exception $e) {
+            \Log::error('Withdrawal transaction failed', [
+                'user_id' => $user->id,
+                'amount'  => $request->amount,
+                'error'   => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Transaction failed. Please try again.',
+            ], 500);
+        }
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Withdrawal completed successfully',
+            'data'    => [
+                'amount_withdrawn' => $request->amount,
+                'charge'           => $charge,
+                'total_debited'    => $totalAmount,
+                'balance_after'    => $debitResult['balance_after'],
+            ],
+        ]);
+    }
+
+/**
+ * Validate account product charges
+ *
+ * @param float $finalAmount
+ * @return array
+ */
+    private function validateAccountProductCharges(float $finalAmount): array
+    {
+        $validationResult = $this->accountProductCharges($finalAmount);
+
+        if (! $validationResult['status']) {
+            return [
+                'status'  => false,
+                'message' => $validationResult['message'] ?? 'Invalid product charges',
+            ];
+        }
+
+        return $validationResult;
+    }
+
+/**
+ * Get charge amount
+ *
+ * @param array $chargeValidation
+ * @param mixed $user
+ * @return float
+ */
+    private function getChargeAmount(array $chargeValidation, $user): float
+    {
+        if (isset($chargeValidation['data']['charge'])) {
+            return $chargeValidation['data']['charge'];
+        }
+
+        return $user->company->setting->min_withdraw_charge ?? 0;
+    }
+
+/**
+ * Create withdrawal transactions
+ *
+ * @param mixed $user
+ * @param Request $request
+ * @param float $charge
+ * @param float $totalAmount
+ * @param array $debitResult
+ * @return void
+ */
+    private function createWithdrawalTransactions($user, Request $request, float $charge, float $totalAmount, array $debitResult): void
+    {
+        // Get ledger settings
+        $ledgerSettings = get_CR_DR_TXN_Type_Ledger(104, $user->company_id);
+
+        // Create primary withdrawal transaction
+        $primaryTransaction = transactions::create([
+            'balance_before'         => $debitResult['balance_before'],
+            'amount'                 => $request->amount,
+            'account_id'             => $user->id,
+            'balance_after'          => $debitResult['balance_after'],
+            'company_balance_before' => 0,
+            'company_balance_after'  => 0,
+            'company_amount'         => 0,
+            'description'            => 'Withdrawal from Spend/Save',
+            'branch_id'              => $user->branch_id,
+            'company_id'             => $user->company_id,
+            'transaction_reference'  => generate_txnID(),
+            'transaction_remarks_id' => 2,
+            'transaction_type_id'    => 104,
+            'credit_debit_type_id'   => 1,
+            'created_date'           => now()->toDateString(),
+            'created_by'             => $user->id,
+            'ledger_cr'              => $ledgerSettings->ledger_cr ?? null,
+            'ledger_dr'              => $ledgerSettings->ledger_dr ?? null,
         ]);
 
-        return response()->json(["status" => 1, "message" => "Withdraw  is successfull"]);
-
+        // Create charge transaction if applicable
+        if ($charge > 0) {
+            transactions::create([
+                'balance_before'         => $debitResult['balance_before'],
+                'company_balance_before' => 0,
+                'amount'                 => $charge,
+                'company_amount'         => 0,
+                'balance_after'          => $debitResult['balance_before'],
+                'company_balance_after'  => 0,
+                'description'            => 'Charge from Spend/Save withdrawal',
+                'company_id'             => $user->company_id,
+                'branch_id'              => $user->branch_id,
+                'parent_transaction_id'  => $primaryTransaction->id,
+                'transaction_reference'  => generateTransactionReference(),
+                'transaction_remarks_id' => 2,
+                'transaction_type_id'    => 27,
+                'credit_debit_type_id'   => 2,
+                'created_date'           => now()->toDateString(),
+                'created_by'             => 1, // System user
+            ]);
+        }
     }
 
     public function getSpendSave(Request $request)
@@ -7335,12 +7446,71 @@ class TransactionController extends Controller
         $user  = auth('api')->user();
         $token = generateToken();
         $user->update([
-            'fcm_token' => $token,
+            'transfer_token' => $token,
 
         ]);
 
         return response()->json(["status" => 1, "message" => "Token Generated Successflly", "token" => $token]);
 
+    }
+
+    public function getUserTokenSchedule(Request $request)
+    {
+        $user  = auth('api')->user();
+        $token = generateToken();
+        $user->update([
+            'transfer_schedule_token' => $token,
+
+        ]);
+
+        return response()->json(["status" => 1, "message" => "Token Generated Successflly", "token" => $token]);
+
+    }
+
+    public function scheduleTransfer(Request $request)
+    {
+
+        $currentRequest = $request->all();
+
+        try {
+
+            foreach ($currentRequest['data'] as $data) {
+                ScheduledPayment::create([
+
+                    'user_id'           => $data['user_id'],
+
+                    'recipient_name'    => $data['recipient_name'],
+
+                    'recipient_account' => $data['recipient_account'],
+
+                    'recipient_bank'    => $data['recipient_bank'],
+
+                    'bank_code'         => $data['bank_code'],
+
+                    'amount'            => $data['amount'],
+
+                    'transaction_pin'   => $data['token'],
+
+                    'scheduled_date'    => $data['scheduled_date'],
+
+                    'scheduled_time'    => $data['scheduled_time'],
+
+                ]);
+            }
+
+            return back()->with(
+                'success',
+                'Payment scheduled successfully.'
+            );
+        } catch (\Exception $e) {
+
+            Log::error($e);
+
+            return back()->with(
+                'error',
+                $e->getMessage()
+            );
+        }
     }
 
     public function initiateCreateSafehavenMaintenanceAccount(Request $request)

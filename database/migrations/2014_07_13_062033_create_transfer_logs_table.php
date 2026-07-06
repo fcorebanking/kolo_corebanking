@@ -15,12 +15,11 @@ class CreateTransferLogsTable extends Migration
     {
         Schema::create('transfer_logs', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('account_id'); // initiator user wb_account_details table           
-            
-            $table->string('acct_name'); // benefeciary name
-            $table->string('acct_no'); // benefeciary accountno
-            $table->string('bank'); // benefeciary bank
-            $table->unsignedBigInteger('transaction_id');  // transaction ID constrain to transactions table 
+            $table->unsignedBigInteger('account_id');     // initiator user wb_account_details table
+            $table->string('acct_name');                  // benefeciary name
+            $table->string('acct_no');                    // benefeciary accountno
+            $table->string('bank');                       // benefeciary bank
+            $table->unsignedBigInteger('transaction_id'); // transaction ID constrain to transactions table
             $table->timestamps();
         });
     }

@@ -18,6 +18,7 @@ class CardTypeTableSeeder extends Seeder
             ['card_type' => 'VISA', 'created_at' => now(), 'updated_at' => now()],
             ['card_type' => 'Verve', 'created_at' => now(), 'updated_at' => now()],
             ['card_type' => 'Master', 'created_at' => now(), 'updated_at' => now()],
+            
         ];
 
         DB::table('card_types')->insert($cards);

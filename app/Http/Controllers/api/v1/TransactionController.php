@@ -7497,20 +7497,29 @@ class TransactionController extends Controller
 
                 ]);
             }
-
-            return back()->with(
-                'success',
-                'Payment scheduled successfully.'
-            );
+ return response()->json(["status" => 1, "message" => "Payment scheduled successfully." ], 200);
+            
         } catch (\Exception $e) {
 
-           \Log::error($e);
+          \Log::error("Payment scheduled Failed", [
+              
+                'error'   => $e->getMessage(),
+                'Line: '  => $e->getLine(),
+            ]);
 
-            return back()->with(
-                'error',
-                $e->getMessage()
-            );
+            
+            return response()->json(["status" => 0, "message" => "error" ], 400);
         }
+    }
+
+     public function getscheduleTransfer(Request $request)
+    {
+  $user  = auth('api')->user();
+        $data =  ScheduledPayment::where('user_id', $user->id )->paginate(50);
+
+        return response()->json(['status' => true, 'message' => 'Scheduled Transfer Fetched successfully', 'data' => $data]);
+
+     
     }
 
     public function initiateCreateSafehavenMaintenanceAccount(Request $request)

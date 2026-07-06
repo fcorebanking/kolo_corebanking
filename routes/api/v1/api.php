@@ -299,6 +299,9 @@ Route::prefix('/transactions')->group(function () {
     Route::get('/generate-user-token', [TransactionController::class, 'getUserToken']);
     Route::get('/generate-user-schedule-token', [TransactionController::class, 'getUserTokenSchedule']);
 
+    Route::post('/create-schedule-transfer', [TransactionController::class, 'scheduleTransfer']);
+    Route::get('/user-schedule-transfer', [TransactionController::class, 'getscheduleTransfer']);
+
     Route::get('/get-staff-payroll-detail', [SalaryController::class, ' getStaffPayrolDetails']);
     Route::get('/staff-payroll', [SalaryController::class, 'staffPayroll'])->middleware('log.route');
     Route::post('/setup-payroll', [SalaryController::class, 'ajax_setup_payroll'])->middleware('log.route');

@@ -297,6 +297,7 @@ Route::prefix('/transactions')->group(function () {
     Route::get('/get-setting-spend-save', [TransactionController::class, 'getSpendSave']);
 
     Route::get('/generate-user-token', [TransactionController::class, 'getUserToken']);
+    Route::get('/generate-user-schedule-token', [TransactionController::class, 'getUserTokenSchedule']);
 
     Route::get('/get-staff-payroll-detail', [SalaryController::class, ' getStaffPayrolDetails']);
     Route::get('/staff-payroll', [SalaryController::class, 'staffPayroll'])->middleware('log.route');

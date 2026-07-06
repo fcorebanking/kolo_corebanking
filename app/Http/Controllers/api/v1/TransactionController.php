@@ -7504,7 +7504,7 @@ class TransactionController extends Controller
             );
         } catch (\Exception $e) {
 
-            Log::error($e);
+           \Log::error($e);
 
             return back()->with(
                 'error',

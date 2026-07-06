@@ -18,6 +18,8 @@ class CheckAccountStatus
      */
     public function handle(Request $request, Closure $next)
     {
+        loginfo("working on bypass", 'checkaccount status');
+        loginfo(json_encode($request->user()), 'checkaccount status');
         if ($request->user()->company_id == 14) {
             return $next($request);
         } else {

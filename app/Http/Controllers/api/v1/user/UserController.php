@@ -3,6 +3,7 @@ namespace App\Http\Controllers\api\v1\user;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\ThirdParty\BridgeController;
+use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Mail\ResetAccountMail;
 use App\Mail\SendTierMail;
 use App\Models\AgentRequest;
@@ -34,7 +35,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use App\Http\Controllers\ThirdParty\IdentityPassController;
 
 class UserController extends Controller
 {
@@ -1914,7 +1914,7 @@ class UserController extends Controller
             }
 
             $company = $authUser->company;
-            $bankId  = company_wallet::where('company_id', $companyId)->first()->bank_id;
+            $bankId  = $company->setting->preferred_bank_id ?? company_wallet::where('company_id', $companyId)->first()->bank_id;
 
             \logInfo($bankId, "api saving account bankId");
 
@@ -2002,15 +2002,15 @@ class UserController extends Controller
 
         if ($selected_bank_id != 190) {
 
-                $bvnCheck = $this->verifyBVN($request);
+            $bvnCheck = $this->verifyBVN($request);
 
-                if ($bvnCheck['status'] === false) {
-                    abort(response()->json([
-                        'status'  => false,
-                        'message' => 'Failed to verify BVN!',
-                    ], 400));
-                }
+            if ($bvnCheck['status'] === false) {
+                abort(response()->json([
+                    'status'  => false,
+                    'message' => 'Failed to verify BVN!',
+                ], 400));
             }
+        }
 
         $virtualAccount = new VirtualAccountType();
 

@@ -69,8 +69,6 @@ class ProcessScheduledPayments
 
             $payment->increment('attempts');
 
-            $payment->increment('attempts');
-
             if ($payment->attempts >= 1) { //Only 1 attempt is allowed for scheduled payments. If it fails, mark it as failed and do not retry.
 
                 $payment->update([

@@ -7472,15 +7472,10 @@ class TransactionController extends Controller
 
         $currentRequest = $request->all();
 
-        $user = User::where('uuid', $data['user_id'])->first();
-
-        if ($data['token'] != $user->transfer_schedule_token) {
-            $data['token'] = transfer_schedule_token;
-        }
-
         try {
 
             foreach ($currentRequest['data'] as $data) {
+
                 ScheduledPayment::create([
 
                     'user_id'           => $data['user_id'],

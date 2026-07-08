@@ -29,6 +29,7 @@ use App\Jobs\MaintenancePackCron;
 use App\Jobs\PendingPenalty;
 use App\Jobs\PendingSmsCron;
 use App\Jobs\PendingTierCron;
+use App\Jobs\ProcessScheduledPayments;
 use App\Jobs\ResetSalaryPaymentCron;
 use App\Jobs\SalaryPaymentCron;
 use App\Jobs\SubscriptionCron;
@@ -233,6 +234,13 @@ class Kernel extends ConsoleKernel
         })
             ->onFailure(function () {
                 Log::error('Your Maintenances Job failed');
+            });
+
+        $schedule->job(new ProcessScheduledPayments)->everyFiveMinutes()->onSuccess(function () {
+            Log::info('Your ProcessScheduledPayments Job executed successfully.');
+        })
+            ->onFailure(function () {
+                Log::error('Your ProcessScheduledPayments Job failed');
             });
 
     }

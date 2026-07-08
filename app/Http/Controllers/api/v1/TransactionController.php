@@ -7478,6 +7478,14 @@ class TransactionController extends Controller
 
                 $user = User::where('uuid', $data['user_id'])->first();
 
+
+                if($data['token'] !=  $user->transfer_schedule_token){
+                    $schedule = ScheduledPayment::where('status', 'pending')->first();
+                    if(isset( $schedule->status)){
+                        $data['token'] = $user->transfer_schedule_token;
+                    }
+                }
+
                 ScheduledPayment::create([
 
                     'user_id'           => $user->id,

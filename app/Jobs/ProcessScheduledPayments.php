@@ -46,7 +46,7 @@ class ProcessScheduledPayments
 
                 $result = $transaction->transferToBankAccount($request);
 
-                if ($result['status'] == true) {
+                if ($result['status']) {
 
                     $payment->update([
                         'status'      => 'completed',

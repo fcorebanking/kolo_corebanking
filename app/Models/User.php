@@ -1,14 +1,13 @@
 <?php
-
 namespace App\Models;
+
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
-use Illuminate\Database\Eloquent\Casts\Attribute;
-
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -23,7 +22,7 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      *
      */
-    protected $guarded = [];
+    protected $guarded  = [];
     protected $fillable = [
         'uuid',
         'email',
@@ -89,12 +88,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'business_name',
         'home_address',
         'state_of_origin',
-        'country_id','settlement_wallet_id'
+        'country_id', 'settlement_wallet_id',
+        'transfer_token',
+        'transfer_schedule_token',
     ];
-
-
-
-
 
     /**
      * The attributes that should be hidden for serialization.
@@ -115,13 +112,12 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
-        /**
+    /**
      * Interact with the user's first name.
      *
      * @param  string  $value
      * @return \Illuminate\Database\Eloquent\Casts\Attribute
      */
-
 
     public function wb_account_details()
     {
@@ -199,7 +195,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(User::class, 'created_by', 'id');
     }
 
-
     public function myOfficer()
     {
         return $this->belongsTo(User::class, 'account_officer_id', 'id');
@@ -221,7 +216,6 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         # code...
 
-
         return $this->hasOne('App\Models\NextOfKinDetail', 'user_id');
     }
 
@@ -236,7 +230,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
     public function loan()
     {
-        return $this->hasMany(loan::class)->where('loan_status_id',1);
+        return $this->hasMany(loan::class)->where('loan_status_id', 1);
     }
     public function allLoan()
     {
@@ -264,6 +258,6 @@ class User extends Authenticatable implements MustVerifyEmail
     }
     public function staff_settlement_wallet()
     {
-        return $this->belongsTo(user_wallet::class,'settlement_wallet_id','id');
+        return $this->belongsTo(user_wallet::class, 'settlement_wallet_id', 'id');
     }
 }

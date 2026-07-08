@@ -7476,7 +7476,7 @@ class TransactionController extends Controller
 
             foreach ($currentRequest['data'] as $data) {
 
-            $user = User::where('uuid', $data['user_id'])->first();
+                $user = User::where('uuid', $data['user_id'])->first();
 
                 ScheduledPayment::create([
 
@@ -7492,7 +7492,7 @@ class TransactionController extends Controller
 
                     'amount'            => $data['amount'],
 
-                    'transaction_pin'   => $data['token'],
+                    'transaction_pin'   => $user-> $data['token'],
 
                     'scheduled_date'    => $data['scheduled_date'],
 

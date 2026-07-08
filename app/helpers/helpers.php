@@ -3457,7 +3457,7 @@ function validatePinCheckCustomerBalance($transactionPin, $amount, $selectedwall
 
         if ($amount > 0) {
 
-            $validatePin = User::where(['id' => $user->id, 'pin' => $transactionPin])->orWhere(['id' => $user->id, 'fcm_token' => $transactionPin])->first();
+            $validatePin = User::where(['id' => $user->id, 'pin' => $transactionPin])->orWhere(['id' => $user->id, 'transfer_token' => $transactionPin])->orWhere(['id' => $user->id, 'transfer_schedule_token' => $transactionPin])->first();
 
             if ($validatePin) {
                 $sourceWbAccount = ($selectedwallet != null) ? $selectedwallet : $user->accounts->first()->id;
@@ -5565,46 +5565,46 @@ function debitCustomerWithdrawSpendSave(int $userId, float $originalAmount): arr
     // Validate transaction amount
     if ($originalAmount <= 0) {
         return [
-            'status' => false,
-            'message' => 'Invalid Transaction Amount'
+            'status'  => false,
+            'message' => 'Invalid Transaction Amount',
         ];
     }
 
     // Fetch required data
     $walletAccount = wb_account_details::where('user_id', $userId)->first();
-    if (!$walletAccount) {
+    if (! $walletAccount) {
         return [
-            'status' => false,
-            'message' => 'Wallet account not found'
+            'status'  => false,
+            'message' => 'Wallet account not found',
         ];
     }
 
     $userWallet = user_wallet::where('wb_account_detail_id', $walletAccount->id)->first();
-    if (!$userWallet) {
+    if (! $userWallet) {
         return [
-            'status' => false,
-            'message' => 'User wallet not found'
+            'status'  => false,
+            'message' => 'User wallet not found',
         ];
     }
 
     $spendSaveSettings = SpendSave::where('user_id', $userId)->first();
-    $currentBalance = $userWallet->balance;
-    $newBalance = $currentBalance;
+    $currentBalance    = $userWallet->balance;
+    $newBalance        = $currentBalance;
 
     // Process SpendSave if enabled
     if ($spendSaveSettings && isset($spendSaveSettings->status_id) && $spendSaveSettings->status_id == 1) {
         // Check sufficient funds in SpendSave
         if ($spendSaveSettings->balance < $originalAmount) {
             return [
-                'status' => false,
-                'message' => 'Insufficient Funds in SpendSave'
+                'status'  => false,
+                'message' => 'Insufficient Funds in SpendSave',
             ];
         }
 
         // Process SpendSave debit
         $oldSpendSaveBalance = $spendSaveSettings->balance;
         $newSpendSaveBalance = $oldSpendSaveBalance - $originalAmount;
-        
+
         logInfo($oldSpendSaveBalance, "oldBalance SpendSave for $userId");
         logInfo($newSpendSaveBalance, "newBalance SpendSave for $userId");
 
@@ -5612,7 +5612,7 @@ function debitCustomerWithdrawSpendSave(int $userId, float $originalAmount): arr
         $spendSaveSettings->save();
 
         // Credit wallet
-        $newBalance = $currentBalance + $originalAmount;
+        $newBalance          = $currentBalance + $originalAmount;
         $userWallet->balance = $newBalance;
         $userWallet->save();
 
@@ -5620,19 +5620,19 @@ function debitCustomerWithdrawSpendSave(int $userId, float $originalAmount): arr
         logInfo($newBalance, "new currentBalance wallet for $userId");
 
         return [
-            'status' => true,
-            'balance_before' => $currentBalance,
-            'balance_after' => $newBalance,
-            'spend_save_deducted' => $originalAmount,
-            'spend_save_remaining' => $newSpendSaveBalance
+            'status'               => true,
+            'balance_before'       => $currentBalance,
+            'balance_after'        => $newBalance,
+            'spend_save_deducted'  => $originalAmount,
+            'spend_save_remaining' => $newSpendSaveBalance,
         ];
     }
 
     // SpendSave not enabled or not found
     return [
-        'status' => true,
+        'status'         => true,
         'balance_before' => $currentBalance,
-        'balance_after' => $newBalance,
-        'message' => 'SpendSave is not enabled'
+        'balance_after'  => $newBalance,
+        'message'        => 'SpendSave is not enabled',
     ];
 }

@@ -34,6 +34,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\ThirdParty\IdentityPassController;
 
 class UserController extends Controller
 {
@@ -1999,6 +2000,18 @@ class UserController extends Controller
             $user->update(['bvn' => $request->bvn]);
         }
 
+        if ($selected_bank_id != 190) {
+
+                $bvnCheck = $this->verifyBVN($request);
+
+                if ($bvnCheck['status'] === false) {
+                    abort(response()->json([
+                        'status'  => false,
+                        'message' => 'Failed to verify BVN!',
+                    ], 400));
+                }
+            }
+
         $virtualAccount = new VirtualAccountType();
 
         $virtualAccount->bankCode                     = $bank->bank_code;
@@ -2071,7 +2084,7 @@ class UserController extends Controller
 
         return response()->json([
             'status'         => 1,
-            'message'        => 'Account Added!',
+            'message'        => 'Account created successfully',
             'virtual_accnum' => $accountNumber,
         ]);
     }
@@ -2120,6 +2133,16 @@ class UserController extends Controller
             \Log::error("Failed to send TierReport email: " . $e->getMessage());
             // continue silently
         }
+    }
+
+    public function verifyBVN(Request $request)
+    {
+        $identityPassController = new IdentityPassController();
+
+        $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
+
+        return $bvnResponse;
+
     }
 
 }

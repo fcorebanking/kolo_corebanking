@@ -3457,7 +3457,15 @@ function validatePinCheckCustomerBalance($transactionPin, $amount, $selectedwall
 
         if ($amount > 0) {
 
-            $validatePin = User::where(['id' => $user->id, 'pin' => $transactionPin])->orWhere(['id' => $user->id, 'transfer_token' => $transactionPin])->orWhere(['id' => $user->id, 'transfer_schedule_token' => $transactionPin])->first();
+            //   $validatePin = User::where(['id' => $user->id, 'pin' => $transactionPin])->orWhere(['id' => $user->id, 'transfer_token' => $transactionPin])->orWhere(['id' => $user->id, 'transfer_schedule_token' => $transactionPin])->first();
+
+            $validatePin = User::where('id', $user->id)
+                ->where(function ($query) use ($transactionPin) {
+                    $query->where('pin', $transactionPin)
+                        ->orWhere('transfer_token', $transactionPin)
+                        ->orWhere('transfer_schedule_token', $transactionPin);
+                })
+                ->first();
 
             if ($validatePin) {
                 $sourceWbAccount = ($selectedwallet != null) ? $selectedwallet : $user->accounts->first()->id;

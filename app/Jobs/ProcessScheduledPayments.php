@@ -37,6 +37,7 @@ class ProcessScheduledPayments
 
                 $request = app(Request::class);
 
+                $request->id                    = $payment->user_id;
                 $request->final_amount          = $payment->amount;
                 $request->transaction_reference =
                 $request->destination_account   = $payment->recipient_account;

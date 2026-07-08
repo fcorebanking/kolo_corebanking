@@ -1045,7 +1045,7 @@ class TransactionController extends Controller
 
     public function transferToBankAccount(Request $request)
     {
-        $userId  = auth()->user()->id;
+        $userId  = auth()->user()->id ?? $request->id;
         $lockKey = "user:last_request:{$userId}";
         $lock    = Cache::lock($lockKey, 20); // 10-second lock
         if ($lock->get()) {
@@ -7478,10 +7478,9 @@ class TransactionController extends Controller
 
                 $user = User::where('uuid', $data['user_id'])->first();
 
-
-                if($data['token'] !=  $user->transfer_schedule_token){
+                if ($data['token'] != $user->transfer_schedule_token) {
                     $schedule = ScheduledPayment::where('status', 'pending')->first();
-                    if(isset( $schedule->status)){
+                    if (isset($schedule->status)) {
                         $data['token'] = $user->transfer_schedule_token;
                     }
                 }

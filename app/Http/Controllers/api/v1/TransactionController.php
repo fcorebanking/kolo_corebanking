@@ -7284,10 +7284,11 @@ class TransactionController extends Controller
 
     public function withdrawSpendSave(Request $request)
     {
-        $user = auth('api')->user();
+        $user   = auth('api')->user();
+        $amount = (double) $request->final_amount;
 
         // Validate account product charges
-        $chargeValidation = $this->validateAccountProductCharges($request->final_amount);
+        $chargeValidation = $this->validateAccountProductCharges($amount);
         if (! $chargeValidation['status']) {
             return response()->json($chargeValidation, 400);
         }
@@ -7305,6 +7306,9 @@ class TransactionController extends Controller
                 'message' => $debitResult['message'] ?? 'Withdrawal failed',
             ], 400);
         }
+
+        $charge      = (double) $charge;
+        $totalAmount = (double) $totalAmount;
 
         // Perform database transaction
         try {

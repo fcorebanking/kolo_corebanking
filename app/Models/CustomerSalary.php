@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -15,12 +14,7 @@ class CustomerSalary extends Model
         'amount',
         'scheduled_date',
         'scheduled_time',
-        'transaction_pin',
-        'status',
-        'attempts',
-        'executed_at',
-        'failure_reason',
-        'token',
+
     ];
 
     public function user()

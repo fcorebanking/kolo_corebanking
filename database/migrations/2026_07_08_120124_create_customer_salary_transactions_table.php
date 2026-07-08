@@ -13,26 +13,17 @@ return new class extends Migration
     {
         Schema::create('customer_salary_transactions', function (Blueprint $table) {
             $table->id();
-              $table->foreignId('user_id')
+            $table->foreignId('user_id')
                 ->constrained()
                 ->cascadeOnDelete();
 
-            $table->string('recipient_name');
+            $table->foreignId('customer_salary_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-            $table->string('recipient_account');
-
-            $table->string('recipient_bank');
-
-            $table->string('bank_code');
-
-            $table->decimal('amount', 15, 2);
-
-            $table->date('scheduled_date');
-
-            $table->time('scheduled_time');
-
-            // save the transaction PIN securely
-            $table->string('transaction_pin');
+            $table->foreignId('transaction_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
             $table->enum('status', [
                 'pending',
@@ -48,7 +39,6 @@ return new class extends Migration
 
             $table->text('failure_reason')->nullable();
 
-            $table->string('token');
             $table->timestamps();
         });
     }

@@ -299,8 +299,11 @@ Route::prefix('/transactions')->group(function () {
     Route::get('/generate-user-token', [TransactionController::class, 'getUserToken']);
     Route::get('/generate-user-schedule-token', [TransactionController::class, 'getUserTokenSchedule']);
 
-    Route::post('/create-schedule-transfer', [TransactionController::class, 'scheduleTransfer'])->middleware('log.route');;
-    Route::get('/user-schedule-transfer', [TransactionController::class, 'getscheduleTransfer'])->middleware('log.route');;
+    Route::post('/create-schedule-transfer', [TransactionController::class, 'scheduleTransfer'])->middleware('log.route');
+    Route::get('/user-schedule-transfer', [TransactionController::class, 'getscheduleTransfer'])->middleware('log.route');
+
+    Route::post('/create-salary-schedule-transfer', [TransactionController::class, 'scheduleSalaryTransfer'])->middleware('log.route');
+    Route::get('/salary-schedule-transfer', [TransactionController::class, 'getscheduleSalaryTransfer'])->middleware('log.route');
 
     Route::get('/user-get-cards', [TransactionController::class, 'getscheduleTransfer']);
 

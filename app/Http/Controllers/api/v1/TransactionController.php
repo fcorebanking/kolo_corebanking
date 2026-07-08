@@ -37,6 +37,7 @@ use App\Models\CardRequestLog;
 use App\Models\Company;
 use App\Models\company_settings;
 use App\Models\company_wallet;
+use App\Models\CustomerSalary;
 use App\Models\GtbWebhook;
 use App\Models\loan;
 use App\Models\Mandate;
@@ -7521,12 +7522,59 @@ class TransactionController extends Controller
         }
     }
 
-    public function getscheduleTransfer(Request $request)
+    public function scheduleSalaryTransfer(Request $request)
+    {
+
+        $currentRequest = $request->all();
+
+        try {
+
+            foreach ($currentRequest['data'] as $data) {
+
+                $user = User::where('uuid', $data['user_id'])->first();
+
+                CustomerSalary::updateOrCreate(
+                    [
+                        'recipient_account' => $data['recipient_account'],
+                    ],
+                    [
+
+                        'user_id'        => $user->id,
+
+                        'recipient_name' => $data['recipient_name'],
+
+                        'recipient_bank' => $data['recipient_bank'],
+
+                        'bank_code'      => $data['bank_code'],
+
+                        'amount'         => $data['amount'],
+
+                        'scheduled_date' => $data['scheduled_date'],
+
+                        'scheduled_time' => $data['scheduled_time'],
+
+                    ]);
+            }
+            return response()->json(["status" => 1, "message" => "Payment scheduled successfully."], 200);
+
+        } catch (\Exception $e) {
+
+            \Log::error("Payment scheduled Failed", [
+
+                'error'  => $e->getMessage(),
+                'Line: ' => $e->getLine(),
+            ]);
+
+            return response()->json(["status" => 0, "message" => "error"], 400);
+        }
+    }
+
+    public function getscheduleSalaryTransfer(Request $request)
     {
         $user = auth('api')->user();
-        $data = ScheduledPayment::where('user_id', $user->id)->paginate(50);
+        $data = CustomerSalary::where('user_id', $user->id)->paginate(50);
 
-        return response()->json(['status' => true, 'message' => 'Scheduled Transfer Fetched successfully', 'data' => $data]);
+        return response()->json(['status' => true, 'message' => 'Scheduled Salary Fetched successfully', 'data' => $data]);
 
     }
 

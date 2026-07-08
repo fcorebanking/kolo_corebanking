@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('customer_salaries', function (Blueprint $table) {
             $table->id();
+
             $table->foreignId('user_id')
                 ->constrained()
                 ->cascadeOnDelete();
@@ -32,6 +33,8 @@ return new class extends Migration
             $table->time('scheduled_time');
 
             $table->timestamps();
+
+            $table->index('user_id');
         });
 
         Schema::table('scheduled_payments', function (Blueprint $table) {

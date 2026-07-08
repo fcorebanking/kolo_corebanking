@@ -7472,7 +7472,7 @@ class TransactionController extends Controller
 
         $currentRequest = $request->all();
 
-        $user = User::where('id', $data['user_id'])->first();
+        $user = User::where('uuid', $data['user_id'])->first();
 
         if ($data['token'] != $user->transfer_schedule_token) {
             $data['token'] = transfer_schedule_token;

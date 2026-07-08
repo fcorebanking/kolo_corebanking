@@ -7500,7 +7500,7 @@ class TransactionController extends Controller
 
                     'amount'            => $data['amount'],
 
-                    'transaction_pin'   => $user-> $data['token'],
+                    'transaction_pin'   => $data['token'],
 
                     'scheduled_date'    => $data['scheduled_date'],
 

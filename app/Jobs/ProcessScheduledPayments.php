@@ -35,7 +35,8 @@ class ProcessScheduledPayments
 
                 $transaction = app(TransactionController::class);
 
-                $request = app(Request::class);
+                $transactionReference = $this->getReference();
+                $request              = app(Request::class);
 
                 $request->id                    = $payment->user_id;
                 $request->final_amount          = $payment->amount;
@@ -44,10 +45,12 @@ class ProcessScheduledPayments
                 $request->receipient_name       = $payment->recipient_name;
                 $request->bank_code             = $payment->bank_code;
                 $request->transaction_pin       = $payment->transaction_pin;
+                $request->transaction_reference = $transactionReference;
 
                 $result = $transaction->transferToBankAccount($request);
 
-                $data = $result->getData(true); // true = associative array
+                $data = $result->getData(true);
+                loginfo(json_encode($data), "Response Schedule transfer"); // true = associative array
 
 // Now you can access status
                 $status = $data['status'] ?? null;
@@ -104,4 +107,21 @@ class ProcessScheduledPayments
         }
     }
 
+    private function getReference()
+    {
+        $transaction = app(TransactionController::class);
+        $request     = app(Request::class);
+
+        $request->final_amount     = $payment->amount;
+        $request->transaction_type = "8";
+        $request->description      = "Schedule Transfer";
+
+        $result = $transaction->initiateTransaction($request);
+
+        $data = $result->getData(true);
+        loginfo(json_encode($data), "Get Reference Schedule transfer"); // true = associative array
+
+// Now you can access status
+        return $data['data']['transaction_reference'] ?? null;
+    }
 }

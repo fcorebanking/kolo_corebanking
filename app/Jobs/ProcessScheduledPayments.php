@@ -47,14 +47,19 @@ class ProcessScheduledPayments
 
                 $result = $transaction->transferToBankAccount($request);
 
-                if ($result['status']) {
+                $data = $result->getData(true); // true = associative array
+
+// Now you can access status
+                $status = $data['status'] ?? null;
+
+                if ($status && $status != null) {
 
                     $payment->update([
                         'status'      => 'completed',
                         'executed_at' => now(),
                     ]);
 
-                    $payment->delete();
+                    //    $payment->delete();
 
                 }
             }

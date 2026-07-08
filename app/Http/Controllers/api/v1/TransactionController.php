@@ -7476,9 +7476,11 @@ class TransactionController extends Controller
 
             foreach ($currentRequest['data'] as $data) {
 
+            $user = User::where('uuid', $data['user_id'])->first();
+
                 ScheduledPayment::create([
 
-                    'user_id'           => $data['user_id'],
+                    'user_id'           => $user->id,
 
                     'recipient_name'    => $data['recipient_name'],
 

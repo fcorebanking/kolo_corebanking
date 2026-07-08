@@ -35,7 +35,7 @@ class ProcessScheduledPayments
 
                 $transaction = app(TransactionController::class);
 
-                $transactionReference = $this->getReference();
+                $transactionReference = $this->getReference($payment);
                 $request              = app(Request::class);
 
                 $request->id                    = $payment->user_id;
@@ -107,7 +107,7 @@ class ProcessScheduledPayments
         }
     }
 
-    private function getReference()
+    private function getReference($payment)
     {
         $transaction = app(TransactionController::class);
         $request     = app(Request::class);

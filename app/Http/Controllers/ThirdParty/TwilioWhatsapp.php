@@ -29,6 +29,9 @@ class TwilioWhatsapp extends Controller
         } else {
 
             //    $twilio = new Client(env('TWILIO_ACCOUNT_SID'), env('TWILIO_AUTH_TOKEN'));
+            \logInfo(json_encode($request->To), "Twilio Response request->To");
+            \logInfo(env('TWILIO_ACCOUNT_SID_KOREPAY'), "Twilio Response sid");
+            \logInfo(env('TWILIO_AUTH_TOKEN_KOREPAY'), "Twilio Response token");
 
             $twilio =
 

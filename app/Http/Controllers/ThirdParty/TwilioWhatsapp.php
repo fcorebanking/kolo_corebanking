@@ -33,15 +33,16 @@ class TwilioWhatsapp extends Controller
             \logInfo(env('TWILIO_ACCOUNT_SID_KOREPAY'), "Twilio Response sid");
             \logInfo(env('TWILIO_AUTH_TOKEN_KOREPAY'), "Twilio Response token");
 
+            $whatsappPhone = $request->To;
+
             $twilio =
 
-            match ($request->To) {
+            match ((string) $whatsappPhone) {
                 "whatsapp:+15559103607" => new Client(env('TWILIO_ACCOUNT_SID_KOREPAY'), env('TWILIO_AUTH_TOKEN_KOREPAY')),
 
                 default                 => new Client(env('TWILIO_ACCOUNT_SID'), env('TWILIO_AUTH_TOKEN')),
             };
 
-            $whatsappPhone = $request->To;
         }
 
         try {

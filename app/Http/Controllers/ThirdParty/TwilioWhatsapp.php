@@ -46,8 +46,16 @@ class TwilioWhatsapp extends Controller
         }
 
         try {
+            // Try to fetch account info (this will verify credentials)
+            $account = $twilio->api->v2010->accounts->read([], 1);
+
+            \Log::info('Twilio client verified - API call successful', [
+                'phone'          => $whatsappPhone,
+                'account_exists' => ! empty($account),
+            ]);
+
             //$twilio = new Client(env('TWILIO_ACCOUNT_SID'), env('TWILIO_AUTH_TOKEN'));
-            \logInfo(json_encode($twilio), "Twilio Response");
+
             if ($type == "response") {
                 $message = $twilio->messages->create($phone, [
                     'from' => $whatsappPhone,

@@ -295,6 +295,9 @@ class RegisterController extends Controller
                     $virtual_acccount_number  = substr_replace($virtual_acccount_number, $branchData->code, -$branchCodeLength);
                 }
             }
+
+            $bank_id  = 232;
+
         }
 
         $accountOfficer = User::where('company_id', $companyRecord->id)->first();
@@ -316,7 +319,7 @@ class RegisterController extends Controller
                 'phone'                        => $userPhone,
                 'otp'                          => $otp,
                 'nin'                          => $request->nin ?? null,
-                'bank_id'                      => $bank_id ?? 232,
+                'bank_id'                      => $bank_id,
                 'pin'                          => $request->pin,
                 'address'                      => $request->address,
                 'dob'                          => $request->dob,

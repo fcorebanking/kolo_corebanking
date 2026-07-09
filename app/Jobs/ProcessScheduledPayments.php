@@ -38,14 +38,16 @@ class ProcessScheduledPayments
                 $transactionReference = $this->getReference($payment);
                 $request              = app(Request::class);
 
-                $request->id                    = $payment->user_id;
-                $request->final_amount          = $payment->amount;
-                $request->transaction_reference =
-                $request->destination_account   = $payment->recipient_account;
-                $request->receipient_name       = $payment->recipient_name;
-                $request->bank_code             = $payment->bank_code;
-                $request->transaction_pin       = $payment->transaction_pin;
-                $request->transaction_reference = $transactionReference;
+                $request->merge([
+                    'id'                    => $payment->user_id,
+                    'final_amount'          => $payment->amount,
+                    'transaction_reference' => $transactionReference,
+                    'destination_account'   => $payment->recipient_account,
+                    'receipient_name '      => $payment->recipient_name,
+                    'bank_code'             => $payment->bank_code,
+                    'transaction_pin'       => $payment->transaction_pin,
+
+                ]);
 
                 $result = $transaction->transferToBankAccount($request);
 
@@ -112,9 +114,11 @@ class ProcessScheduledPayments
         $transaction = app(TransactionController::class);
         $request     = app(Request::class);
 
-        $request->final_amount     = $payment->amount;
-        $request->transaction_type = 8;
-        $request->description      = "Schedule Transfer";
+        $request->merge([
+            'final_amount'     => $payment->amount,
+            'transaction_type' => 8,
+            'description'      => "Schedule Transfer",
+        ]);
 
         $result = $transaction->initiateTransaction($request);
 

@@ -1244,8 +1244,8 @@ class TwilioWhatsapp extends Controller
         $phone = str_replace('whatsapp:', '', $request->To);
 
         $companyID = [
-            "+14155238886"   => 14,
-            "+2348051233112" => 14,
+            "+14155238886" => 14,
+            "+15559103607" => 100, //korepay
         ];
 
         return $companyID["{$phone}"];

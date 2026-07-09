@@ -17,7 +17,7 @@ use Twilio\Rest\Client;
 class TwilioWhatsapp extends Controller
 {
 
-    public function send($message, $phone, $type)
+    public function send($message, $phone, $type, $request)
     {
         \logInfo(env('APP_MODE'), "Twilio Response env");
         if (env('APP_MODE') == "test") {
@@ -81,7 +81,7 @@ class TwilioWhatsapp extends Controller
         $phone = $request->From;
         $type  = "response";
 
-        $this->send($message, $phone, $type);
+        $this->send($message, $phone, $type, $request);
     }
 
     public function getAccountBalance(Request $request, $stringArray)

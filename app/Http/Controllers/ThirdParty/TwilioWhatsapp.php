@@ -36,7 +36,7 @@ class TwilioWhatsapp extends Controller
             $twilio =
 
             match ($request->To) {
-                'whatsapp:+15559103607' => new Client(env('TWILIO_ACCOUNT_SID_KOREPAY'), env('TWILIO_AUTH_TOKEN_KOREPAY')),
+                "whatsapp:+15559103607" => new Client(env('TWILIO_ACCOUNT_SID_KOREPAY'), env('TWILIO_AUTH_TOKEN_KOREPAY')),
 
                 default                 => new Client(env('TWILIO_ACCOUNT_SID'), env('TWILIO_AUTH_TOKEN')),
             };

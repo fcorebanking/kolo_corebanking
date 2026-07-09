@@ -3,6 +3,7 @@ namespace App\Jobs;
 
 use App\Http\Controllers\api\v1\TransactionController;
 use App\Models\ScheduledPayment;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Http\Request;
@@ -113,11 +114,14 @@ class ProcessScheduledPayments
     {
         $transaction = app(TransactionController::class);
         $request     = app(Request::class);
+        $user        = User::where('id', $payment->user_id)->first();
 
         $request->merge([
             'final_amount'     => $payment->amount,
             'transaction_type' => 8,
             'description'      => "Schedule Transfer",
+            'company_id'       => $user->company_id,
+            'company_name'     => $user->company->company_name,
         ]);
 
         $result = $transaction->initiateTransaction($request);

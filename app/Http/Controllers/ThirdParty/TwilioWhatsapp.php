@@ -45,7 +45,7 @@ class TwilioWhatsapp extends Controller
         }
 
         try {
-            $twilio = new Client(env('TWILIO_ACCOUNT_SID'), env('TWILIO_AUTH_TOKEN'));
+            //$twilio = new Client(env('TWILIO_ACCOUNT_SID'), env('TWILIO_AUTH_TOKEN'));
 
             if ($type == "response") {
                 $message = $twilio->messages->create($phone, [

@@ -113,7 +113,7 @@ class ProcessScheduledPayments
         $request     = app(Request::class);
 
         $request->final_amount     = $payment->amount;
-        $request->transaction_type = "8";
+        $request->transaction_type = 8;
         $request->description      = "Schedule Transfer";
 
         $result = $transaction->initiateTransaction($request);

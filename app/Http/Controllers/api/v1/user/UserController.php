@@ -2000,7 +2000,7 @@ class UserController extends Controller
             $user->update(['bvn' => $request->bvn]);
         }
 
-        if ($selected_bank_id != 190) {
+        if ($bankId != 190) {
 
             $bvnCheck = $this->verifyBVN($request);
 

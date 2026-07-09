@@ -28,7 +28,15 @@ class TwilioWhatsapp extends Controller
 
         } else {
 
-            $twilio = new Client(env('TWILIO_ACCOUNT_SID'), env('TWILIO_AUTH_TOKEN'));
+            //    $twilio = new Client(env('TWILIO_ACCOUNT_SID'), env('TWILIO_AUTH_TOKEN'));
+
+            $twilio =
+
+            match ($request->To) {
+                'whatsapp:+15559103607' => new Client(env('TWILIO_ACCOUNT_SID_KOREPAY'), env('TWILIO_AUTH_TOKEN_KOREPAY')),
+
+                default                 => new Client(env('TWILIO_ACCOUNT_SID'), env('TWILIO_AUTH_TOKEN')),
+            };
 
             $whatsappPhone = $request->To;
         }
@@ -111,7 +119,7 @@ class TwilioWhatsapp extends Controller
 
     public function openAccountMessage(Request $request, $stringArray)
     {
-        $message = "";
+        $message  = "";
         $message .= "*Open Account*.\n\n*Follow the example below to open an Account*\n\n *Example* - open-account, BVN, phone, username, email, password, pin \n\n open-account, 345678909, 090867586758,  yuikl, test@example.com, kghkg, 4565 \n";
         return $message;
     }
@@ -121,7 +129,7 @@ class TwilioWhatsapp extends Controller
         $user    = $this->getUser($request);
         $message = "";
         if ($user != null) {
-            $otp = $this->otpCode($user);
+            $otp      = $this->otpCode($user);
             $message .= $otp;
             $message .= "*Type Transaction Pin. (changepin, newpin, otpcode).*\n\n*Follow the example below to change your Pin*\n\n *Example* - changepin, 1234, 5678 \n";
             return $message;
@@ -140,7 +148,7 @@ class TwilioWhatsapp extends Controller
         if ($user != null) {
             $checkOTP = $this->validateOTP($user, $otp);
             if ($checkOTP != false) {
-                $user->pin = $newPin;
+                $user->pin  = $newPin;
                 $user->save();
                 $message .= "*Pin has been changed successfully*\n";
             } else {
@@ -159,7 +167,7 @@ class TwilioWhatsapp extends Controller
         $user    = $this->getUser($request);
         $message = "";
         if ($user != null) {
-            $otp = $this->otpCode($user);
+            $otp      = $this->otpCode($user);
             $message .= $otp;
             $message .= "*Type Transaction Pin. (changepassword, newpassword, otpcode, transactionpin).*\n\n*Follow the example below to change yor password*\n\n *Example* - changepassword, 1234, 5678, 1234\n";
             return $message;
@@ -180,9 +188,9 @@ class TwilioWhatsapp extends Controller
             $checkOTP    = $this->validateOTP($user, $otp);
             $validatePin = $this->validatePin($user, $transactionPin);
             if (($checkOTP != false) && ($validatePin != false)) {
-                $user->password    = Hash::make($newPassword);
-                $user->login_fails = 0;
-                $user->status_id   = 1;
+                $user->password     = Hash::make($newPassword);
+                $user->login_fails  = 0;
+                $user->status_id    = 1;
                 $user->save();
                 $message .= "*Password has been changed successfully*\n";
             } else {
@@ -198,7 +206,7 @@ class TwilioWhatsapp extends Controller
 
     public function getTransferMessage($request, $stringArray)
     {
-        $message = "";
+        $message  = "";
         $message .= "*Choose Type of Transfer*.\n\n*Follow the example below to pick the options*\n\n *Example* - transfer, A \n\n*A* - Transfer to Bank\n*B* - Transfer to Wallet\n";
         return $message;
     }
@@ -323,7 +331,7 @@ class TwilioWhatsapp extends Controller
 
     public function transferTransactionMessage()
     {
-        $message = "";
+        $message  = "";
         $message .= "\n\n*Follow the example below to confirm transfer shown above*\n\n *Example* - confirm-transfer, transaction_pin\n\nconfirm-transfer, 1234";
         return $message;
 
@@ -331,15 +339,15 @@ class TwilioWhatsapp extends Controller
 
     public function getBuyDataMessage($request, $stringArray)
     {
-        $message = "";
+        $message  = "";
         $message .= "*Choose Network Provider*.\n\n*Follow the example below to pick the options*\n\n *Example* - data, A \n\n*A* - MTN\n*B* - Airtel\n*C* - 9Mobile\n*D* - Glo\n";
         return $message;
     }
 
     public function getListDataMessage($request, $stringArray, $plans, $networkProvider)
     {
-        $user    = $this->getUser($request);
-        $message = "";
+        $user     = $this->getUser($request);
+        $message  = "";
         $message .= "*Choose Data Plan*.\n\n";
         if ($networkProvider == "glo-data" || $networkProvider == "airtel-data") {
             for ($x = 0; $x < count($plans['data']); $x += 2) {
@@ -372,15 +380,15 @@ class TwilioWhatsapp extends Controller
 
     public function getPayBillMessage($request, $stringArray)
     {
-        $message = ""; //
+        $message  = ""; //
         $message .= "*Choose Bill Payment*.\n\n*Follow the example below to pick the options*\n\n *Example* - bill, A \n\n*A* - Electricity Bill\n*B* - Cable TV\n";
         return $message;
     }
 
     public function getElectricityMessage($request)
     {
-        $user    = $this->getUser($request);
-        $message = "";
+        $user     = $this->getUser($request);
+        $message  = "";
         $message .= "*Electricity Bill Payment*.\n\n";
         $message .= "*Electric Disco*.\n\nabuja-electric(Prepaid)\nibadan-electric(Prepaid)\neko-electric(Prepaid)\nikeja-electric(Prepaid)\nportharcourt-electric(Prepaid)\njos-electric(Prepaid)\nkano-electric(Prepaid)\nenugu-electric(Prepaid)\n\n";
         $message .= "*Follow the example below to purchase bill payment*\n\n *Example* - buy-electricity, meter number, electric-disco, phone number, amount \n\n buy-electricity, 54567676, ikeja-electric, 08076890890, 750 \n";
@@ -390,8 +398,8 @@ class TwilioWhatsapp extends Controller
 
     public function getCableMessage($request)
     {
-        $user    = $this->getUser($request);
-        $message = "";
+        $user     = $this->getUser($request);
+        $message  = "";
         $message .= "*Cable Bill Payment*.\n\n";
         $message .= "*Cable TV Type*.\n\ndstv\ngotv\nstartimes\nshowmax\n\n";
         $message .= "*Follow the example below to purchase cable tv*\n\n *Example* - buy-cable, smart_card_number, cable_tv_type, phone number \n\n buy-cable, 097876376, dstv, 08076890890\n";
@@ -401,7 +409,7 @@ class TwilioWhatsapp extends Controller
 
     public function initializeTransactionBankMessage()
     {
-        $message = "";
+        $message  = "";
         $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, amount, description, destination bank name, destination account number \n\n transfer, 5000, send to ola, zenith bank, 2001362794 \n";
         return $message;
 
@@ -409,7 +417,7 @@ class TwilioWhatsapp extends Controller
 
     public function initializeTransactionWalletMessage()
     {
-        $message = "";
+        $message  = "";
         $message .= "*Initialise Transfer Trasaction*.\n\n*Follow the example below to initialize transfer*\n\n *Example* - transfer, amount, description, destination bank name, destination account number \n\n transfer, 5000, send to ola, zenith bank, 2001362794 \n";
         return $message;
 
@@ -919,7 +927,7 @@ class TwilioWhatsapp extends Controller
         $user    = $this->getUser($request);
         $message = "";
         if ($user != null) {
-            $otp = $this->otpCode($user);
+            $otp      = $this->otpCode($user);
             $message .= $otp;
             return $message;
         } else {

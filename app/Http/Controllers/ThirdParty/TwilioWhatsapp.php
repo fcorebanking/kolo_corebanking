@@ -19,8 +19,8 @@ class TwilioWhatsapp extends Controller
 
     public function send($message, $phone, $type)
     {
-        \logInfo(env('APP_ENV'), "Twilio Response env");
-        if (env('APP_ENV') == "local") {
+        \logInfo(env('APP_MODE'), "Twilio Response env");
+        if (env('APP_MODE') == "test") {
 
             $twilio = new Client(env('TWILIO_ACCOUNT_SID_TEST'), env('TWILIO_AUTH_TOKEN_TEST'));
 

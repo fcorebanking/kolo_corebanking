@@ -50,7 +50,7 @@ class TwilioWhatsapp extends Controller
             $account = $twilio->api->v2010->accounts->read([], 1);
 
             \Log::info('Twilio client verified - API call successful', [
-                'phone'          => $whatsappPhone,
+                'phone'          => $phone,
                 'account_exists' => ! empty($account),
             ]);
 

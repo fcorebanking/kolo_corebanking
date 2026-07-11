@@ -1,9 +1,9 @@
 <?php
 namespace App\Jobs;
 
-use App\Http\Controllers\api\v1\TransactionController;
 use App\Models\ScheduledPayment;
 use App\Models\User;
+use App\Services\TransactionService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Http\Request;
@@ -34,14 +34,15 @@ class ProcessScheduledPayments
                     'status' => 'processing',
                 ]);
 
-                $transaction = app(TransactionController::class);
+                $transaction = app(TransactionService::class);
+                $user        = User::where('id', $payment->user_id)->first();
 
-                $transactionReference = $this->getReference($payment);
+                $transactionReference = $this->getReference($payment, $user);
                 $request              = app(Request::class);
 
                 $request->merge([
                     'id'                    => $payment->user_id,
-                    'final_amount'          => $payment->amount,
+                    'final_amount'          => (float) $payment->amount,
                     'transaction_reference' => $transactionReference,
                     'destination_account'   => $payment->recipient_account,
                     'receipient_name '      => $payment->recipient_name,
@@ -50,15 +51,14 @@ class ProcessScheduledPayments
 
                 ]);
 
-                $result = $transaction->transferToBankAccount($request);
+                $result = $transaction->transferToBankAccount($request, $user);
 
                 $data = $result->getData(true);
                 loginfo(json_encode($data), "Response Schedule transfer"); // true = associative array
 
 // Now you can access status
-                $status = $data['status'] ?? null;
 
-                if ($status && $status != null) {
+                if ($data['status']) {
 
                     $payment->update([
                         'status'      => 'completed',
@@ -67,6 +67,8 @@ class ProcessScheduledPayments
 
                     //    $payment->delete();
 
+                } else {
+                    loginfo(json_encode($data), "Response Schedule transfer"); // true = associative array
                 }
             }
 
@@ -110,26 +112,31 @@ class ProcessScheduledPayments
         }
     }
 
-    private function getReference($payment)
+    private function getReference($payment, $user)
     {
-        $transaction = app(TransactionController::class);
+        $transaction = app(TransactionService::class);
         $request     = app(Request::class);
-        $user        = User::where('id', $payment->user_id)->first();
 
         $request->merge([
-            'final_amount'     => $payment->amount,
+            'final_amount'     => (float) $payment->amount,
             'transaction_type' => 8,
             'description'      => "Schedule Transfer",
-            'company_id'       => $user->company_id,
-            'company_name'     => $user->company->company_name,
+
         ]);
 
-        $result = $transaction->initiateTransaction($request);
+        $result = $transaction->initiateTransaction($request, $user);
 
         $data = $result->getData(true);
         loginfo(json_encode($data), "Get Reference Schedule transfer"); // true = associative array
 
+        if ($data['status']) {
+
+            return $data['data']['transaction_reference'] ?? null;
+
+        } else {
+            loginfo(json_encode($data), "Get Reference Schedule transfer");
+        }
 // Now you can access status
-        return $data['data']['transaction_reference'] ?? null;
+
     }
 }

@@ -1766,7 +1766,7 @@ class TransactionController extends Controller
             return response()->json($ra, 406);
         }
 
-        $checkAllowedTransaction = checkCompanyAllowedTransactionStatus(auth()->user()->company_id ?? $request->company_id ); // adding for schedule transfer
+        $checkAllowedTransaction = checkCompanyAllowedTransactionStatus(auth()->user()->company_id); // adding for schedule transfer
 
         if ($checkAllowedTransaction['status'] != 1) {
             $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
@@ -1778,16 +1778,16 @@ class TransactionController extends Controller
         if ($request->final_amount > 0) {
 
             if ($request->transaction_type == 3) {
-                $companyName     = auth()->user()->company->company_name ?? $request->company_name;
+                $companyName     = auth()->user()->company->company_name ;
                 $ledger_cr       = null;
                 $ledger_dr       = null;
-                $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, (\auth()->user()->company_id ?? $request->company_id ));
+                $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
                 if ($ledger_Settings) {
                     $ledger_cr = $ledger_Settings->ledger_cr;
                     $ledger_dr = $ledger_Settings->ledger_dr;
                 }
                 $transaction = transactions::create([
-                    "balance_before"         => auth()->user()->company->wallet->balance ?? $request->balance,
+                    "balance_before"         => auth()->user()->company->wallet->balance,
                     "amount"                 => $request->amount,
                     "description"            => "Funding Admin Wallet",
                     "transaction_reference"  => $transactionId,

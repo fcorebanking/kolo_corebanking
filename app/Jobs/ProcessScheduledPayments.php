@@ -30,6 +30,8 @@ class ProcessScheduledPayments
 
             foreach ($this->schedulePaymentStream() as $payment) {
 
+                loginfo(json_encode($payment), "payment transfer");
+
                 $payment->update([
                     'status' => 'processing',
                 ]);
@@ -38,21 +40,26 @@ class ProcessScheduledPayments
                 $user        = User::where('id', $payment->user_id)->first();
 
                 $transactionReference = $this->getReference($payment, $user);
-                $request              = app(Request::class);
 
-                $request->merge([
-                    'id'                    => $payment->user_id,
-                    'final_amount'          => (float) $payment->amount,
-                    'transaction_reference' => $transactionReference,
-                    'destination_account'   => $payment->recipient_account,
-                    'receipient_name '      => $payment->recipient_name,
-                    'bank_code'             => $payment->bank_code,
-                    'transaction_pin'       => $payment->transaction_pin,
+                $description          = "Scheduled Transfer";
+                $amount               = (float) $payment->amount;
+                $transactionReference = $transactionReference;
+                $destinationAccount   = $payment->recipient_account;
+                $bankCode             = $payment->bank_code;
+                $transactionPin       = $payment->transaction_pin;
+                $recipientName        = $payment->recipient_name;
 
-                ]);
-
-                $result = $transaction->transferToBankAccount($request, $user);
-
+                $result = $transaction->transferToBankAccount(
+                    $description,
+                    $amount,
+                    $transactionReference,
+                    $destinationAccount,
+                    $bankCode,
+                    $transactionPin,
+                    $user,
+                    $recipientName
+                );
+                loginfo(json_encode($result), "Process Schedule transfer result ");
                 $data = $result->getData(true);
                 loginfo(json_encode($data), "Response Schedule transfer"); // true = associative array
 
@@ -102,10 +109,27 @@ class ProcessScheduledPayments
 
     private function schedulePaymentStream(): \Generator
     {
+        $now = Carbon::now();
+
+        /*  $paymentscron = ScheduledPayment::where('status', 'pending')
+            ->where(function ($query) use ($now) {
+                $query->whereDate('scheduled_date', '<', $now->toDateString())
+                    ->orWhere(function ($q) use ($now) {
+                        $q->whereDate('scheduled_date', '=', $now->toDateString())
+                            ->whereTime('scheduled_time', '<=', $now->format('H:i:s'));
+                    });
+            })
+            ->get();
+        loginfo(json_encode($paymentscron), "paymentscron");*/
         foreach (
             $payments = ScheduledPayment::where('status', 'pending')
-            ->whereDate('scheduled_date', '<=', today())
-            ->whereTime('scheduled_time', '<=', now()->format('H:i:s'))
+            ->where(function ($query) use ($now) {
+                $query->whereDate('scheduled_date', '<', $now->toDateString())
+                ->orWhere(function ($q) use ($now) {
+                    $q->whereDate('scheduled_date', '=', $now->toDateString())
+                    ->whereTime('scheduled_time', '<=', $now->format('H:i:s'));
+                });
+            })
             ->cursor() as $payment
         ) {
             yield $payment;
@@ -124,8 +148,8 @@ class ProcessScheduledPayments
 
         ]);
 
-        $result = $transaction->initiateTransaction($request, $user);
-
+        $result = $transaction->initiateTransfer($request, $user);
+        loginfo(json_encode($result), "Process get reference result ");
         $data = $result->getData(true);
         loginfo(json_encode($data), "Get Reference Schedule transfer"); // true = associative array
 

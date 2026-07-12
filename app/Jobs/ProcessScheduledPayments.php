@@ -82,9 +82,9 @@ class ProcessScheduledPayments
         } catch (\Throwable $e) {
 
             \Log::error("ProcessScheduledPayments Cron Failed", [
-                'loan_id' => $payment->id,
-                'error'   => $e->getMessage(),
-                'Line: '  => $e->getLine(),
+                //   'loan_id' => $payment->id,
+                'error'  => $e->getMessage(),
+                'Line: ' => $e->getLine(),
             ]);
 
             $payment->increment('attempts');

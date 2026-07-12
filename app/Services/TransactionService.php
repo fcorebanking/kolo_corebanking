@@ -749,7 +749,8 @@ class TransactionService
             $user->company_id,
             $amount,
             $charge,
-            $wbaCharge
+            $wbaCharge,
+            $user
         );
 
         // Extract debit results
@@ -804,7 +805,8 @@ class TransactionService
         int $companyId,
         float $amount,
         float $charge,
-        float $wbaCharge
+        float $wbaCharge,
+        User $user
     ): array {
         if ($companyDebitCode == self::BANK_CODE_SAFE_HAVEN) {
             return debitCustomerAndCompanyWithChargeServiceWallet(
@@ -812,7 +814,8 @@ class TransactionService
                 $companyId,
                 $amount,
                 $charge,
-                $wbaCharge
+                $wbaCharge,
+                $user
             );
         }
 
@@ -821,7 +824,8 @@ class TransactionService
             $companyId,
             $amount,
             $charge,
-            $wbaCharge
+            $wbaCharge,
+            $user
         );
     }
 

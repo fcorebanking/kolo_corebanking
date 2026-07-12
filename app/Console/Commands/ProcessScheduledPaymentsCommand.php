@@ -36,6 +36,8 @@ class ProcessScheduledPaymentsCommand extends Command
 
             foreach ($this->schedulePaymentStream() as $payment) {
 
+                loginfo(json_encode($payment), "payment transfer");
+            
                 $payment->update([
                     'status' => 'processing',
                 ]);

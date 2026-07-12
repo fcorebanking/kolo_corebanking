@@ -37,7 +37,7 @@ class ProcessScheduledPaymentsCommand extends Command
             foreach ($this->schedulePaymentStream() as $payment) {
 
                 loginfo(json_encode($payment), "payment transfer");
-            
+
                 $payment->update([
                     'status' => 'processing',
                 ]);
@@ -111,6 +111,11 @@ class ProcessScheduledPaymentsCommand extends Command
 
     private function schedulePaymentStream(): \Generator
     {
+        $paymentscron = ScheduledPayment::where('status', 'pending')
+            ->whereDate('scheduled_date', '<=', today())
+            ->whereTime('scheduled_time', '<=', now()->format('H:i:s'))
+            ->get();
+        loginfo(json_encode($paymentscron), "paymentscron");
         foreach (
             $payments = ScheduledPayment::where('status', 'pending')
             ->whereDate('scheduled_date', '<=', today())

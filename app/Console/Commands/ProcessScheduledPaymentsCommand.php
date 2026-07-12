@@ -47,20 +47,25 @@ class ProcessScheduledPaymentsCommand extends Command
                 $user        = User::where('id', $payment->user_id)->first();
 
                 $transactionReference = $this->getReference($payment, $user);
-                $request              = app(Request::class);
 
-                $request->merge([
-                    'id'                    => $payment->user_id,
-                    'final_amount'          => (float) $payment->amount,
-                    'transaction_reference' => $transactionReference,
-                    'destination_account'   => $payment->recipient_account,
-                    'receipient_name '      => $payment->recipient_name,
-                    'bank_code'             => $payment->bank_code,
-                    'transaction_pin'       => $payment->transaction_pin,
+                $description          = "Scheduled Transfer";
+                $amount               = (float) $payment->amount;
+                $transactionReference = $transactionReference;
+                $destinationAccount   = $payment->recipient_account;
+                $bankCode             = $payment->bank_code;
+                $transactionPin       = $payment->transaction_pin;
+                $recipientName        = $payment->recipient_name;
 
-                ]);
-
-                $result = $transaction->transferToBankAccount($request, $user);
+                $result = $transaction->transferToBankAccount(
+                    $description,
+                    $amount,
+                    $transactionReference,
+                    $destinationAccount,
+                    $bankCode,
+                    $transactionPin,
+                    $user,
+                    $recipientName
+                );
                 loginfo(json_encode($result), "Process Schedule transfer result ");
                 $data = $result->getData(true);
                 loginfo(json_encode($data), "Response Schedule transfer"); // true = associative array

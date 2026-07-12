@@ -151,7 +151,7 @@ class ProcessScheduledPaymentsCommand extends Command
 
         ]);
 
-        $result = $transaction->initiateTransaction($request, $user);
+        $result = $transaction->initiateTransfer($request, $user);
 
         $data = $result->getData(true);
         loginfo(json_encode($data), "Get Reference Schedule transfer"); // true = associative array

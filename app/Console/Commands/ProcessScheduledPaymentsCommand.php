@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 use App\Models\ScheduledPayment;
 use App\Models\User;
 use App\Services\TransactionService;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Http\Request;
 
@@ -111,9 +112,16 @@ class ProcessScheduledPaymentsCommand extends Command
 
     private function schedulePaymentStream(): \Generator
     {
+        $now = Carbon::now();
+
         $paymentscron = ScheduledPayment::where('status', 'pending')
-            ->whereDate('scheduled_date', '<=', today())
-            ->whereTime('scheduled_time', '<=', now()->format('H:i:s'))
+            ->where(function ($query) use ($now) {
+                $query->whereDate('scheduled_date', '<', $now->toDateString())
+                    ->orWhere(function ($q) use ($now) {
+                        $q->whereDate('scheduled_date', '=', $now->toDateString())
+                            ->whereTime('scheduled_time', '<=', $now->format('H:i:s'));
+                    });
+            })
             ->get();
         loginfo(json_encode($paymentscron), "paymentscron");
         foreach (

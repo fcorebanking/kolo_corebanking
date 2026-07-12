@@ -612,7 +612,8 @@ class TransactionService
                 $user->company_id,
                 $amount,
                 $charge,
-                $wbaCharge
+                $wbaCharge,
+                $user
             );
             if (! $debitCheck['status']) {
                 DB::rollBack();
@@ -2591,7 +2592,8 @@ class TransactionService
         int $companyId,
         float $amount,
         float $charge,
-        float $wbaCharge
+        float $wbaCharge,
+        User $user
     ): array {
         if ($companyDebitCode == self::BANK_CODE_SAFE_HAVEN) {
             return checkCustomerAndCompanyWithChargeSafeHaven(
@@ -2599,7 +2601,8 @@ class TransactionService
                 $companyId,
                 $amount,
                 $charge,
-                $wbaCharge
+                $wbaCharge,
+                $user
             );
         }
 
@@ -2608,7 +2611,8 @@ class TransactionService
             $companyId,
             $amount,
             $charge,
-            $wbaCharge
+            $wbaCharge,
+            $user
         );
     }
     /**

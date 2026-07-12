@@ -25,7 +25,7 @@ class ProcessScheduledPayments
     {
         \logInfo("Dispatch ProcessScheduledPayments Cron");
 
-        foreach ($this->schedulePaymentStream() as $payment) {
+        foreach ($this->schedulePaymentStream() as $index => $payment) {
 
             loginfo(json_encode($payment), "Dispatch payment transfer {$payment->id}");
             $delay = now()->addSeconds(($index + 1) * 120);

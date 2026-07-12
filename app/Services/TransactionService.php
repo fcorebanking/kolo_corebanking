@@ -190,7 +190,7 @@ class TransactionService
             'ledger_dr'              => $ledgerSettings['ledger_dr'] ?? null,
         ]);
 
-        return [
+        return response()->json([
             'status'  => true,
             'message' => 'Transaction initialized',
             'data'    => [
@@ -200,7 +200,7 @@ class TransactionService
                 'exchangeAmount'    => $finalAmount,
                 'total'             => $finalAmount,
             ],
-        ];
+        ]);
     }
 
     /**
@@ -264,7 +264,7 @@ class TransactionService
             'ledger_dr'              => $ledgerSettings['ledger_dr'] ?? null,
         ]);
 
-        return [
+        return response()->json([
             'status'  => true,
             'message' => 'Transaction initialized',
             'data'    => [
@@ -274,7 +274,7 @@ class TransactionService
                 'transfer_amount'       => $amount,
                 'total'                 => $totalAmount,
             ],
-        ];
+        ]);
     }
 
     /**
@@ -341,7 +341,7 @@ class TransactionService
             'ledger_dr'              => $ledgerSettings['ledger_dr'] ?? null,
         ]);
 
-        return [
+        return response()->json([
             'status'  => true,
             'message' => 'Transaction initialized',
             'data'    => [
@@ -351,7 +351,7 @@ class TransactionService
                 'transfer_amount'       => $amount,
                 'total'                 => $totalAmount,
             ],
-        ];
+        ]);
     }
 
     public function checkCustomerAndCompanyBalance($amount, $user)

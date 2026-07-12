@@ -61,7 +61,7 @@ class ProcessScheduledPaymentsCommand extends Command
                 ]);
 
                 $result = $transaction->transferToBankAccount($request, $user);
-
+                loginfo(json_encode($result), "Process Schedule transfer result ");
                 $data = $result->getData(true);
                 loginfo(json_encode($data), "Response Schedule transfer"); // true = associative array
 
@@ -152,7 +152,7 @@ class ProcessScheduledPaymentsCommand extends Command
         ]);
 
         $result = $transaction->initiateTransfer($request, $user);
-
+        loginfo(json_encode($result), "Process get reference result ");
         $data = $result->getData(true);
         loginfo(json_encode($data), "Get Reference Schedule transfer"); // true = associative array
 

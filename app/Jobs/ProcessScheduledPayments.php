@@ -28,7 +28,8 @@ class ProcessScheduledPayments
         foreach ($this->schedulePaymentStream() as $index => $payment) {
 
             loginfo(json_encode($payment), "Dispatch payment transfer {$payment->id}");
-            $delay = now()->addSeconds(($index + 1) * 360);
+            $index = random_int(1, 100);
+            $delay = now()->addSeconds(($index + 1) * 120);
             ProcessScheduledSinglePayment::dispatch($payment)->delay($delay);
 
         }

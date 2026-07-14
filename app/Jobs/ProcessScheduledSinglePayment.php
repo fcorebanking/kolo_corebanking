@@ -33,10 +33,7 @@ class ProcessScheduledSinglePayment implements ShouldQueue
 
             loginfo(json_encode($payment), "payment transfer for {$payment->id}");
 
-            $payment->update([
-                'status' => 'processing',
-            ]);
-
+           
             $transaction = app(TransactionService::class);
             $user        = User::where('id', $payment->user_id)->first();
 

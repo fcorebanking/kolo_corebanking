@@ -1064,7 +1064,7 @@ class TwilioWhatsapp extends Controller
 
     public function checkMessage($request)
     {
-        $message = "*Quick Options*\n*1* - Open Account\n*2* - Transfer\n*3* - Check Account Balance\n*4* - POS Balance\n*5* - Change Pin\n*6* - Change Pasword\n*7* - Buy Data\n*8* - Pay Bills\n*9* - Get OTP\n";
+        $message = "*Quick Options*\n*2* - Transfer\n*3* - Check Account Balance\n*4* - POS Balance\n*5* - Change Pin\n*6* - Change Pasword\n*7* - Buy Data\n*8* - Pay Bills\n*9* - Get OTP\n";
 
         \logInfo(json_encode($request->Body), "Twilio Response Body Message");
 

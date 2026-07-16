@@ -45,6 +45,7 @@ class BridgeCustomerAccountReview
 
                     } else {
                         $account = $this->getForeignVirtualAccount($userData);
+                        logInfo(json_encode($account), "getForeignVirtualAccount Result");
                         if (! $account['status']) {
                             $account = $this->createForeignVirtualAccount($userData);
                         }

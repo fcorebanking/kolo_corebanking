@@ -7526,6 +7526,15 @@ class TransactionController extends Controller
         }
     }
 
+    public function getscheduleTransfer(Request $request)
+    {
+        $user = auth('api')->user();
+        $data = ScheduledPayment::where('user_id', $user->id)->paginate(50);
+
+        return response()->json(['status' => true, 'message' => 'ScheduledTransfer Fetched successfully', 'data' => $data]);
+
+    }
+
     public function scheduleSalaryTransfer(Request $request)
     {
 

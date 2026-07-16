@@ -1778,7 +1778,7 @@ class TransactionController extends Controller
         if ($request->final_amount > 0) {
 
             if ($request->transaction_type == 3) {
-                $companyName     = auth()->user()->company->company_name ;
+                $companyName     = auth()->user()->company->company_name;
                 $ledger_cr       = null;
                 $ledger_dr       = null;
                 $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);

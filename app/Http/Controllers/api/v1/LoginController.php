@@ -271,6 +271,121 @@ class LoginController extends Controller
 
     }
 
+    public function loginPin()
+    {
+        logInfo($request->all());
+        $validate = Validator::make($request->all(), [
+            'username' => ['required', 'string'],
+            'password' => ['required', 'string'],
+        ]);
+        if ($validate->fails()) {
+            $ra = ["status" => false, "message" => "Username and password fields are required"];
+            return response()->json($ra, 406);
+        }
+
+        $user = User::where('username', $request->username)->where('pin', $request->password)->first(); //13 is deleted
+        if ($user) {
+            if ($user->login_fails == 4) {
+                $user->status_id = 6;
+            } else {
+                $user->login_fails += 1;
+            }
+
+            $user->save();
+            if ($user->status_id == 6) {
+                return response()->json(['status' => false, 'message' => 'User Account has been blocked. Please contact admin to unlock Account'], 401);
+            }
+
+            $attemptTxt = $user->login_fails == 3 ? 'attempt' : 'attempts';
+            return response()->json(['status' => false, 'message' => 'Invalid Login credentials. Your account will be deactivated after ' . (5 - $user->login_fails) . " wrong $attemptTxt"], 401);
+        } else {
+            return response()->json(['status' => false, 'message' => 'Invalid Login Credentials'], 401);
+        }
+
+        if (Auth::user()->company->status_id == 13) {
+            return response()->json(['status' => false, 'message' => 'Invalid Login Credentials'], 404);
+        }
+        if (Auth::user()->company->status_id != 1) {
+            return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
+        }
+        /*   if (Auth::user()->company->id == 26 || Auth::user()->company->id == 37/*|| Auth::user()->company->id == 84) {
+            return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
+        }*/
+
+        if (in_array(Auth::user()->company->id, [26, 32, 33, 37, 51, 52, 54, 57, 83])) {
+            return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
+        }
+
+        if (Auth::user()->user_type_id == 2) {
+            return response()->json(['status' => false, 'message' => 'This Account is not a Customer Account'], 401);
+        }
+
+        if (Auth::user()->status_id == 7) {
+            return response()->json(['status' => false, 'message' => 'Your Account is currently being reviewed and will be approved soon', 'user' => Auth::user()], 401);
+        }
+
+        if (Auth::user()->status_id == 5) {
+            return response()->json(['status' => false, 'message' => 'Your account has been blocked. Kindly contact support to unblock.'], 401);
+        }
+
+        if (Auth::user()->status_id == 6) {
+            return response()->json(['status' => false, 'message' => 'Your account has been blocked. Kindly Reset Password'], 401);
+        }
+
+        if (Auth::user()->company->sub->end_date < Date('Y-m-d')) {
+            $ra = ["status" => false, "message" => "Please hold on we are carrying out a quick maintenance on our system"];
+            return response()->json($ra, 400);
+        }
+
+        if (Auth::user()->phone_verification_status_id == 2) {
+
+            $mUser              = Auth::user();
+            $mUser->login_fails = 0;
+            $mUser->save();
+
+            //   \logInfo(json_encode($myUserWallets), "User Wallets");
+
+            $adminUser = User::where('company_id', $request->user()->company_id)->first();
+
+            $userDetails = [
+                "first_name"                   => $request->user()->first_name,
+                "last_name"                    => $request->user()->last_name,
+                "uuid"                         => $request->user()->uuid,
+                "phone"                        => $request->user()->phone,
+                "profile_pic"                  => $request->user()->profile_pic ?? "",
+                "username"                     => $request->user()->username,
+                "bvn"                          => $request->user()->bvn,
+                "bvn_status_id"                => $request->user()->bvn_status_id,
+                "nin"                          => $request->user()->nin,
+                "email"                        => $request->user()->email,
+                "address"                      => $request->user()->address,
+                "sex"                          => $request->user()->sex,
+                "is_agent"                     => $request->user()->is_agent,
+                // "otp" => $request->user()->otp,
+                "virtual_account"              => $request->user()->virtual_account,
+                "account_reference"            => $request->user()->account_reference,
+                "bank_id"                      => $request->user()->bank_id,
+                "validID_file"                 => $request->user()->validID_file,
+                "otherID_file"                 => $request->user()->otherID_file,
+                "company_id"                   => $request->user()->company_id,
+                "status_id"                    => $request->user()->status_id,
+                "phone_verification_status_id" => $request->user()->phone_verification_status_id,
+                "account_officer_id"           => $request->user()->account_officer_id,
+                "branch_id"                    => $request->user()->branch_id,
+                "tier"                         => $request->user()->kyc_level_id,
+                "company"                      => ["phone" => $adminUser->company->company_phone, "email" => $adminUser->company->company_email],
+                "is_card_available"            => count($virtualCard) > 0,
+
+            ];
+
+            $accessToken = auth()->user()->createToken('authToken')->accessToken;
+
+            // $accessToken = $this->getTokenAndRefreshToken($request->username, $request->password);
+
+            return response(['status' => true, 'message' => 'Login Successful', 'data' => ['user' => $userDetails, 'access_token' => $accessToken]]);
+        }
+    }
+
     private function matchCurrency($currency_id)
     {
         return match ($currency_id) {

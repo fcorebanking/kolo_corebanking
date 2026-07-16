@@ -55,6 +55,8 @@ Route::get('/get-company-setting-with-version/{id}', [UtilityController::class, 
 
 Route::prefix('/users')->group(function () {
     Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/pin-login', [LoginController::class, 'loginPin']);
+
     Route::post('/register', [RegisterController::class, 'register']);
     Route::get('/branchs', [RegisterController::class, 'branch']);
     Route::get('/company-product', [RegisterController::class, 'product']);

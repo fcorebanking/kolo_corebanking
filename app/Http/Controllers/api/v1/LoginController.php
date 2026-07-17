@@ -300,42 +300,42 @@ class LoginController extends Controller
             return response()->json(['status' => false, 'message' => 'Invalid Login Credentials'], 401);
         }
 
-        if (Auth::user()->company->status_id == 13) {
+        if ($user->company->status_id == 13) {
             return response()->json(['status' => false, 'message' => 'Invalid Login Credentials'], 404);
         }
-        if (Auth::user()->company->status_id != 1) {
+        if ($user->company->status_id != 1) {
             return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
         }
         /*   if (Auth::user()->company->id == 26 || Auth::user()->company->id == 37/*|| Auth::user()->company->id == 84) {
             return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
         }*/
 
-        if (in_array(Auth::user()->company->id, [26, 32, 33, 37, 51, 52, 54, 57, 83])) {
+        if (in_array($user->company->id, [26, 32, 33, 37, 51, 52, 54, 57, 83])) {
             return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
         }
 
-        if (Auth::user()->user_type_id == 2) {
+        if ($user->user_type_id == 2) {
             return response()->json(['status' => false, 'message' => 'This Account is not a Customer Account'], 401);
         }
 
-        if (Auth::user()->status_id == 7) {
+        if ($user->status_id == 7) {
             return response()->json(['status' => false, 'message' => 'Your Account is currently being reviewed and will be approved soon', 'user' => Auth::user()], 401);
         }
 
-        if (Auth::user()->status_id == 5) {
+        if ($user->status_id == 5) {
             return response()->json(['status' => false, 'message' => 'Your account has been blocked. Kindly contact support to unblock.'], 401);
         }
 
-        if (Auth::user()->status_id == 6) {
+        if ($user->status_id == 6) {
             return response()->json(['status' => false, 'message' => 'Your account has been blocked. Kindly Reset Password'], 401);
         }
 
-        if (Auth::user()->company->sub->end_date < Date('Y-m-d')) {
+        if ($user->company->sub->end_date < Date('Y-m-d')) {
             $ra = ["status" => false, "message" => "Please hold on we are carrying out a quick maintenance on our system"];
             return response()->json($ra, 400);
         }
 
-        if (Auth::user()->phone_verification_status_id == 2) {
+        if ($user->phone_verification_status_id == 2) {
 
             $mUser              = Auth::user();
             $mUser->login_fails = 0;
@@ -343,12 +343,12 @@ class LoginController extends Controller
 
             //   \logInfo(json_encode($myUserWallets), "User Wallets");
 
-            $adminUser = User::where('company_id', $request->user()->company_id)->first();
+            $adminUser = User::where('company_id', $user->company_id)->first();
 
             $userDetails = [
-                "first_name"                   => $request->user()->first_name,
-                "last_name"                    => $request->user()->last_name,
-                "uuid"                         => $request->user()->uuid,
+                "first_name"                   => $user->first_name,
+                "last_name"                    => $user->last_name,
+                "uuid"                         => $user->uuid,
                 "phone"                        => $request->user()->phone,
                 "profile_pic"                  => $request->user()->profile_pic ?? "",
                 "username"                     => $request->user()->username,

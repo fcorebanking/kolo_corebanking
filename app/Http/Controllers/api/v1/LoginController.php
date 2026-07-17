@@ -375,7 +375,7 @@ class LoginController extends Controller
 
             ];
 
-            $accessToken = auth()->user()->createToken('authToken')->accessToken;
+            $accessToken = $user->createToken('authToken')->accessToken;
 
             // $accessToken = $this->getTokenAndRefreshToken($request->username, $request->password);
 

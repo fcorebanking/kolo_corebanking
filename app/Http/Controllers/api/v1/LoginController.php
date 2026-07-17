@@ -171,6 +171,7 @@ class LoginController extends Controller
                 "is_card_available"             => count($virtualCard) > 0,
                 "currency"                      => $request->user()->company->currency->code,
                 "total_wallet_balance_currency" => $total_wallet_balance_currency,
+                "international_account"=> $request->user()->remittar_customer_id
 
             ];
 

@@ -271,7 +271,7 @@ class LoginController extends Controller
 
     }
 
-    public function loginPin()
+    public function loginPin(Request $request)
     {
         logInfo($request->all());
         $validate = Validator::make($request->all(), [

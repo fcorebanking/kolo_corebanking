@@ -296,8 +296,6 @@ class LoginController extends Controller
                 return response()->json(['status' => false, 'message' => 'User Account has been blocked. Please contact admin to unlock Account'], 401);
             }
 
-            $attemptTxt = $user->login_fails == 3 ? 'attempt' : 'attempts';
-            return response()->json(['status' => false, 'message' => 'Invalid Login credentials. Your account will be deactivated after ' . (5 - $user->login_fails) . " wrong $attemptTxt"], 401);
         } else {
             return response()->json(['status' => false, 'message' => 'Invalid Login Credentials'], 401);
         }

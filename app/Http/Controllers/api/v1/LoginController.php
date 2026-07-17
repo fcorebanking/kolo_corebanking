@@ -337,7 +337,7 @@ class LoginController extends Controller
 
         if ($user->phone_verification_status_id == 2) {
 
-            $mUser              = $user;
+            $mUser              = $user; //
             $mUser->login_fails = 0;
             $mUser->save();
 

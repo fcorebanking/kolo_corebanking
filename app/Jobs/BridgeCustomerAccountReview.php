@@ -91,7 +91,8 @@ class BridgeCustomerAccountReview
     public function createForeignVirtualAccount($userData)
     {
         $bridgeController = new BridgeController();
-        $createAccount    = $bridgeController->createVirtualAccount($userData);
+        $createAccount    = $bridgeController->createVirtualAccount($userData); //create
+
         return $createAccount;
     }
 

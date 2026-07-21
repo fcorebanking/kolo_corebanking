@@ -255,6 +255,7 @@ class BridgeController extends WebhookController
             logInfo(json_encode($result), "Bride Customer Get Virtual Account Result");
 
             if (isset($result['count'])) {
+                logInfo(json_encode($result['count']), "Bride Customer Virtual Account Result count");
                 if ($result['count'] > 0) {
                     $firstAccount = $result['data'][0] ?? null;
 
@@ -271,9 +272,9 @@ class BridgeController extends WebhookController
                                 'currency_id'            => $currency_id,
                             ],
                         ];
-                    } else {
-                        return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
                     }
+                } else {
+                    return ['status' => false, 'message' => "Failed to get customer... Please contact support"];
                 }
 
             } else {
@@ -286,11 +287,13 @@ class BridgeController extends WebhookController
         }
     }
 
-    public function createVirtualAccount($customer, $companyWalletaddress)
+    public function createVirtualAccount($customer)
     {
         $customerID = $customer->remittar_customer_id;
 
         $currency_id = $customer->company->currency_id;
+
+        $companyWalletaddress = $customer->company->wallet->bridge_company_address;
         /* match ($currency_id) {
             4       => 'GBP',
             7       => 'EUR',

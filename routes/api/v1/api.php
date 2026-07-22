@@ -55,7 +55,7 @@ Route::get('/get-company-setting-with-version/{id}', [UtilityController::class, 
 
 Route::prefix('/users')->group(function () {
     Route::post('/login', [LoginController::class, 'login']);
-    Route::post('/pin-login', [LoginController::class, 'loginPin']);
+    Route::post('/pin-login', [LoginController::class, 'loginPin'])->middleware('log.route');
 
     Route::post('/register', [RegisterController::class, 'register']);
     Route::get('/branchs', [RegisterController::class, 'branch']);
@@ -298,8 +298,8 @@ Route::prefix('/transactions')->group(function () {
     Route::post('/withdraw-spend-save', [TransactionController::class, 'withdrawSpendSave'])->middleware('log.route');
     Route::get('/get-setting-spend-save', [TransactionController::class, 'getSpendSave']);
 
-    Route::get('/generate-user-token', [TransactionController::class, 'getUserToken']);
-    Route::get('/generate-user-schedule-token', [TransactionController::class, 'getUserTokenSchedule']);
+    Route::get('/generate-user-token', [TransactionController::class, 'getUserToken'])->middleware('log.route');
+    Route::get('/generate-user-schedule-token', [TransactionController::class, 'getUserTokenSchedule'])->middleware('log.route');
 
     Route::post('/create-schedule-transfer', [TransactionController::class, 'scheduleTransfer'])->middleware('log.route');
     Route::get('/user-schedule-transfer', [TransactionController::class, 'getscheduleTransfer'])->middleware('log.route');

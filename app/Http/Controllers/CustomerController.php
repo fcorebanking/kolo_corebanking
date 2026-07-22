@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\ThirdParty\IdentityPassController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Http\Controllers\ThirdParty\SafehavenController;
-use App\Http\Controllers\ThirdParty\WovenController;
 use App\Http\Controllers\ThirdParty\StroWalletController;
+use App\Http\Controllers\ThirdParty\WovenController;
 use App\Http\Controllers\TransactionController;
 use App\Imports\UsersImport;
 use App\Mail\TransactionReport;
@@ -14,7 +14,7 @@ use App\Models\banks;
 use App\Models\branch;
 use App\Models\CardRequestLog;
 use App\Models\CardType;
-use App\Models\company;
+use App\Models\Company;
 use App\Models\company_settings;
 use App\Models\company_wallet;
 use App\Models\Contries;
@@ -386,12 +386,12 @@ class CustomerController extends Controller
                 }
             }
             if ($request->account_bank == '090286') {
-                $stroWalletController = new StroWalletController();
+                $stroWalletController      = new StroWalletController();
                 $virtualAccount->companyID = $auth->company->id;
-                    $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
+                $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
             }
 
-             if ($request->account_bank == '000013') {
+            if ($request->account_bank == '000013') {
                 $virtualAccount->companyID = $auth->company->id;
                 $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
             }
@@ -3752,7 +3752,7 @@ class CustomerController extends Controller
 
         $myDescription = $adminUser->first_name . " " . $adminUser->last_name . " / " . $adminUser->company->company_name . '/' . "CAC Search Charge";
 
-        $customerBalance = debitCompanyWithSubscriptionBalance($adminUser->company_id, $chargeAmount, $chargeAmount, $adminUser);
+        $customerBalance = debitCompanyWithSubscriptionBalance($adminUser->company_id, $chargeAmount, 0, $adminUser);
 
         if (! $customerBalance['status']) {
             return response()->json($customerBalance, 400);

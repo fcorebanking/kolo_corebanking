@@ -644,6 +644,94 @@ class BridgeController extends WebhookController
         }
     }
 
+    public function transfertobank($customer, $amount, $requestReference)
+    {
+        $userWallet = wb_account_details::where('user_id', $customer->id)->where('virtual_accnum', $customer->remittar_customer_id)->first();
+        $body       = [
+            'on_behalf_of'          => '<string>',
+            'source'                => [
+                'currency'     => match ($userWallet->currency_id) {
+                    7       => 'eurc',
+                    default => 'usdc', // fallback
+                },
+                "payment_rail" => 'base',
+            ],
+            'destination'           => [
+                'currency'     => match ($currency_id) {
+                    4       => 'gbp',
+                    7       => 'eu',
+                    default => 'usd'
+                },
+                'payment_rail' => match ($currency_id) {
+                    4       => 'sepa',
+                    7       => 'sepa',
+                    default => 'swift'
+                },
+
+            ],
+            'client_reference_id'   => $requestReference,
+            'amount'                => $amount,
+            'developer_fee'         => '<string>',
+            'developer_fee_percent' => '<string>',
+            'dry_run'               => true,
+
+        ];
+
+         $jsonBody = json_encode($body);
+
+        $url = "{$this->baseUrl}customers/transfers";
+
+        \logInfo($url, "Bridge Request url");
+       
+
+        try {
+            \logInfo($jsonBody, "Bridge Request Transfer body");
+
+            $action = 'idemkey';
+
+            $createAccountResponse = $this->bridgePostRequest($url, $body, $action);
+
+            logInfo($createAccountResponse, "bridge Create Transfer Response");
+
+            if (isset($createAccountResponse['status'])) {
+
+                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
+
+                if ($createAccountResponse["status"] != "activated") {
+                    return [
+                        'status'  => false,
+                        'message' => $createAccountResponse["message"],
+                    ];
+                } else {
+                    return [
+                        'status'  => true,
+                        'message' => "Account Successful",
+                        'data'    => [
+
+                            'account_number'         => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
+                            'virtual_account_number' => $createAccountResponse['source_deposit_instructions']['bank_account_number'],
+                            'account_reference'      => $customerID,
+                            'bank_routing_number'    => $createAccountResponse['source_deposit_instructions']['bank_routing_number'],
+                            'currency_id'            => match ($currency_id) {
+                                4       => 'GBP',
+                                7       => 'EUR',
+                                8       => 'GHS',
+
+                                default => 2, // fallback
+                            },
+                        ],
+                    ];
+                }
+            } else {
+                return ['status' => false, 'message' => 'Account Creation Failed . Kindly contactsupportfor assistance'];
+            }
+        } catch (Exception $e) {
+            logInfo($e->getMessage(), "Laravel Kuda Error");
+
+            return ['status' => false, 'message' => 'Error Creating Account . Kindly contactsupportfor assistance'];
+        }
+    }
+
     private function getCurrency($currency_id)
     {
         $type = match ($currency_id) {

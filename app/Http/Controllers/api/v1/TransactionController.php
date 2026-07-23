@@ -1479,9 +1479,9 @@ class TransactionController extends Controller
                                 return response()->json($customerBalance, 400);
                             }
 
-                          $bridge = new BridgeController() ;
-                           
-                          logInfo(json_encode($currentUser->company->id), "PreferredEbankingPartnerCompany");
+                            $bridge = new BridgeController();
+
+                            logInfo(json_encode($currentUser->company->id), "PreferredEbankingPartnerCompany");
                             $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', $currentUser->company->id)->first();
 
                             if (isset($preferredEbankingPartner->company_id)) {
@@ -1506,7 +1506,6 @@ class TransactionController extends Controller
                             $bank               = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
                             $gatewayDescription = $currentUser->first_name . " " . $currentUser->last_name . " / " . $currentUser->company->company_name;
 
-                            
                             $checkDebitCustomer = match ($company_debit_bankcode) {
 
                                 90286 => checkCustomerAndCompanyWithChargeSafeHaven($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge), //7000299948
@@ -1536,9 +1535,9 @@ class TransactionController extends Controller
                             $bankTransferType->sessionId            = $currentUser->virtual_account;
                             $bankTransferType->companyID            = $currentUser->company->id ?? "";
                             $bankTransferType->senderAccountNumber  = $currentUser->accounts->first()->virtual_accnum ?? "";
-                            
-                            $bridge = new BridgeController() ;
-                            $bankTransfer = $bridge->transferToBankAccount($customer, $totalAmount , $transaction);
+
+                            $bridge       = new BridgeController();
+                            $bankTransfer = $bridge->transferToBankAccount($customer, $totalAmount, $transaction);
 
                             // if ($bankTransfer['status'] == "01") {
                             //     $reversalResult = debitReversal($transaction->id, $transaction->account_id, $transaction->company_id, $transaction->amount, $bankTransferInfo->charge + $bankTransferInfo->amount, $bankTransferInfo->transfer_entity_type);
@@ -4821,23 +4820,23 @@ class TransactionController extends Controller
         return $response;
     }
 
-    public function checkCustomerBalanceCrossborder($amount, $userWallet){
-         $response = [];
+    public function checkCustomerBalanceCrossborder($amount, $userWallet)
+    {
+        $response = [];
 
         if ($amount > 0) {
-
 
             \logInfo($userWallet->balance, "userWallet balance from checkCustomerAndCompanyBalance");
 
             if ($userWallet->balance >= $amount) {
 
-                 $response = [
-                        "status"          => true,
-                        'message'         => "Amount is Valid",
-                        'account_id'      => auth()->user()->accounts->first()->id,
-                        'balance'         => $userWallet->balance,
-                        'company_balance' => $companyWallet->balance,
-                    ];
+                $response = [
+                    "status"          => true,
+                    'message'         => "Amount is Valid",
+                    'account_id'      => auth()->user()->accounts->first()->id,
+                    'balance'         => $userWallet->balance,
+                    'company_balance' => $companyWallet->balance,
+                ];
             } else {
                 $response = ["status" => false, 'message' => "Insufficient Funds"];
             }

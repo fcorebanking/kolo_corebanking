@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use App\Http\Controllers\ThirdParty\IdentityPassController;
+use App\Http\Controllers\ThirdParty\SafehavenController;
 use App\Http\Controllers\ThirdParty\VTPassController;
 use App\Mail\TransactionReport;
 use App\Models\banks;
@@ -59,6 +60,7 @@ class TransactionService
     private const MAX_AIRTIME_AMOUNT        = 50000;
     private const TRANSACTION_TYPE_AIRTIME  = 11;
     private const TRANSACTION_TYPE_CASHBACK = 66;
+    private const TRANSACTION_TYPE_DATA     = 12;
 
     private float $customerCashback = 0.05;
     private float $companyCashback  = 0.015;
@@ -1116,7 +1118,7 @@ class TransactionService
         User $user,
         string $networkProvider,
         string $phoneNumber
-    ): JsonResponse {
+    ): JsonResponse | array {
         // Generate transaction reference
         $transactionId = $this->vtPassRequestId();
 
@@ -1190,8 +1192,10 @@ class TransactionService
                 return response()->json($customerBalance, 400);
             }
 
+            $transactionType = "airtime";
+            $variationAmount = 0;
             // Create initial transaction
-            $this->createInitialTransaction($user, $amount, $transactionId, $customerBalance);
+            $this->createInitialTransaction($user, $amount, $transactionId, $customerBalance, $transactionType);
 
             // Debit customer
             $debitResult = $this->debitCustomer($user, $amount, $accountId, $companyDebitCode);
@@ -1218,7 +1222,8 @@ class TransactionService
                     ['transaction_id' => $transactionId]
                 );
             }
-
+            $message         = 'Airtime Purchase Successful';
+            $transactionType = "airtime";
             // Complete transaction
             $result = $this->completeTransaction(
                 $transactionId,
@@ -1227,7 +1232,10 @@ class TransactionService
                 $phoneNumber,
                 $accountId,
                 $debitResult,
-                $pinValidation['account_id']
+                $pinValidation['account_id'],
+                $dataPlan = null,
+                $message,
+                $transactionType
             );
 
             DB::commit();
@@ -1246,25 +1254,40 @@ class TransactionService
         User $user,
         float $amount,
         string $transactionId,
-        array $customerBalance
+        array $customerBalance,
+        float $variationAmount = 0,
+        string $transactionType
     ): void {
-        $ledgerSettings = $this->getLedgerSettings(
-            self::TRANSACTION_TYPE_AIRTIME,
-            $user->company_id
-        );
+        if ($transactionType == "airtime") {
+            $ledgerSettings = $this->getLedgerSettings(
+                self::TRANSACTION_TYPE_AIRTIME,
+                $user->company_id
+            );
+            $transaction_type_id = self::TRANSACTION_TYPE_AIRTIME;
+            $description         = "Buy Airtime Initialized";
+        }
+
+        if ($transactionType == "data") {
+            $ledgerSettings = $this->getLedgerSettings(
+                self::TRANSACTION_TYPE_DATA,
+                $user->company_id
+            );
+            $transaction_type_id = self::TRANSACTION_TYPE_DATA;
+            $description         = "Buy Data Bundle Initialized - $variationAmount";
+        }
 
         transactions::create([
             "balance_before"         => $customerBalance['balance'],
             "amount"                 => $amount,
             "account_id"             => $customerBalance['account_id'],
-            "description"            => "Buy Airtime Initialized",
+            "description"            => $description,
             "branch_id"              => $user->branch_id,
             "company_balance_before" => $customerBalance['company_balance'],
             "company_amount"         => $amount,
             "company_id"             => $user->company_id,
             "transaction_reference"  => $transactionId,
             "transaction_remarks_id" => self::TRANSACTION_REMARKS_PENDING,
-            "transaction_type_id"    => self::TRANSACTION_TYPE_AIRTIME,
+            "transaction_type_id"    => $transaction_type_id,
             "credit_debit_type_id"   => self::DEBIT_TYPE,
             "created_date"           => date('Y-m-d'),
             "created_by"             => $user->id,
@@ -1343,8 +1366,11 @@ class TransactionService
         string $phoneNumber,
         string $accountId,
         array $debitResult,
-        string $pinAccountId
-    ): JsonResponse {
+        string $pinAccountId,
+        array $dataPlan = null,
+        string $message,
+        string $transactionType = null
+    ): JsonResponse | array {
         // Get transaction with lock
         $transaction = transactions::lockForUpdate()
             ->where([
@@ -1363,11 +1389,24 @@ class TransactionService
             return $statusCheck;
         }
 
+        if ($transactionType == "data") {
+            $ledgerSettings = $this->getLedgerSettings(
+                self::TRANSACTION_TYPE_DATA,
+                $user->company_id
+            );
+        }
+
         // Update main transaction
-        $this->updateMainTransaction($transaction, $user, $amount, $phoneNumber, $accountId, $debitResult, $pinAccountId);
+        $this->updateMainTransaction($transaction, $user, $amount, $phoneNumber, $accountId, $debitResult, $pinAccountId, $ledgerSettings);
 
         // Create cashback transaction
         $this->createCashbackTransaction($user, $debitResult, $accountId);
+
+        if ($transactionType == "data") {
+            $this->createCashbackTransaction($user, $debitResult, $accountId);
+        } else {
+            $this->createCashbackTransaction($user, $debitResult, $accountId, $transaction->id);
+        }
 
         // Update transaction as successful
         $this->updateTransactionAsSuccessful($transactionId, $debitResult['balance_before'], false);
@@ -1375,13 +1414,13 @@ class TransactionService
         // Send notifications
         $this->sendNotificationsAirtime($user, $amount, $phoneNumber, $debitResult);
 
-        return response()->json([
+        return [
             'status'  => true,
-            'message' => 'Airtime Purchase Successful',
+            'message' => $message,
             'data'    => [
                 'balance' => $debitResult['balance_after'],
             ],
-        ]);
+        ];
     }
 
     /**
@@ -1394,8 +1433,21 @@ class TransactionService
         string $phoneNumber,
         string $accountId,
         array $debitResult,
-        string $pinAccountId
+        string $pinAccountId,
+        $ledgerSettings = null
     ): void {
+        if ($transactionType == "airtime") {
+
+            $transaction_type_id = self::TRANSACTION_TYPE_AIRTIME;
+            $description         = "Purchase of Airtime worth $amount for $phoneNumber";
+        }
+
+        if ($transactionType == "data") {
+
+            $transaction_type_id = self::TRANSACTION_TYPE_DATA;
+            $description         = "Purchase of Data worth $amount for $phoneNumber";
+        }
+
         $transaction->update([
             "balance_before"         => $debitResult['balance_before'],
             "amount"                 => $amount,
@@ -1407,11 +1459,13 @@ class TransactionService
             "company_id"             => $user->company_id,
             "branch_id"              => $user->branch_id,
             "account_id"             => $pinAccountId,
-            "description"            => "Purchase of Airtime worth $amount for $phoneNumber",
+            "description"            => $description,
             "transaction_reference"  => $transaction->transaction_reference,
             "transaction_remarks_id" => self::TRANSACTION_PENDING,
-            "transaction_type_id"    => self::TRANSACTION_TYPE_AIRTIME,
+            "transaction_type_id"    => $transaction_type_id,
             "credit_debit_type_id"   => self::DEBIT_TYPE,
+            "ledger_cr"              => $ledgerSettings['ledger_cr'] ?? null,
+            "ledger_dr"              => $ledgerSettings['ledger_dr'] ?? null,
         ]);
     }
 
@@ -1421,7 +1475,8 @@ class TransactionService
     private function createCashbackTransaction(
         User $user,
         array $debitResult,
-        string $accountId
+        string $accountId,
+        int $parentTransactionId = null
     ): void {
         $cashbackTransactionId = generate_txnID();
         $ledgerSettings        = $this->getLedgerSettings(
@@ -1439,6 +1494,7 @@ class TransactionService
             "company_amount"         => $debitResult['company_cashback'],
             "description"            => "Cashback on Airtime Purchase",
             "branch_id"              => $user->branch_id,
+            "parent_transaction_id"  => $parentTransactionId ?? null,
             "company_id"             => $user->company_id,
             "transaction_reference"  => $cashbackTransactionId,
             "transaction_remarks_id" => self::TRANSACTION_COMPLETED,
@@ -1453,8 +1509,20 @@ class TransactionService
 
     public function getDataBundlesList($networkProvider)
     {
-        $vtPassController = new VTPassController();
-        $dataBundles      = $vtPassController->getDataBundles($networkProvider);
+        $company_debit_bankcode = $this->getCompanyBankCode();
+
+        $dataBundles = match ($company_debit_bankcode) {
+
+            90286 => $this->vtPassControllerSercice('getDataBundles', [
+                'networkProvider' => $networkProvider,
+
+            ]), //7000299948
+            default
+                  => $this->vtPassControllerSercice('getDataBundles', [
+                'networkProvider' => $networkProvider,
+
+            ]),
+        };
 
         if ($dataBundles['status']) {
             return ['status' => true, 'message' => 'Data Bundles fetched successfully', 'data' => $dataBundles['data']];
@@ -1463,202 +1531,178 @@ class TransactionService
         }
     }
 
-    public function buyDataBundle($transaction_pin, $amount, $user, $network_provider, $data_plan, $phone_number)
-    {
-
+    public function buyDataBundle(
+        string $transactionPin,
+        float $amount,
+        User $user,
+        string $networkProvider,
+        array $dataPlan,
+        string $phoneNumber
+    ): JsonResponse | array {
+        // Generate transaction reference
         $transactionId = $this->vtPassRequestId();
 
-        $checkAllowedTransaction = $this->checkCompanyStatus($user->company_id);
-
-        if ($checkAllowedTransaction['status'] == 3 || $checkAllowedTransaction['status'] == 4) {
-            $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] = 1;
-
-        }
-        $selectedwallet           = null;
-        $transactionPinValidation = $this->validatePin($transaction_pin, $amount, $user);
-        if (! $transactionPinValidation['status']) {
-            return $transactionPinValidation;
+        // Check company status
+        $companyStatus = $this->checkCompanyStatus($user->company_id);
+        if (! $companyStatus['status']) {
+            return response()->json($companyStatus, 400);
         }
 
-        if (\checkcustomerrestriction($user->id, '2')) {
-            return ["status" => false, 'message' => "Your account has been restricted. please contact support"];
+        // Validate PIN
+        $pinValidation = $this->validatePin($transactionPin, $amount, $user);
+        if (! $pinValidation['status']) {
+            return $pinValidation;
         }
 
-        $validateTransferAmount = $this->validateTransfer($amount, $user);
-
-        if (! $validateTransferAmount['status']) {
-            return $validateTransferAmount;
+        // Check user restrictions
+        if (checkcustomerrestriction($user->id, '2')) {
+            return $this->errorResponse(
+                'Your account has been restricted. please contact support',
+                400
+            );
         }
 
-        $wb_account_details = wb_account_details::where('user_id', $user->id)->where('acc_reference', $user->account_reference)->first();
-
-        $checkCompanyBalance = $this->checkCompanyBalance($amount, $user);
-
-        if (! $checkCompanyBalance['status']) {
-            return $checkCompanyBalance;
+        // Validate transfer amount
+        $transferValidation = $this->validateTransfer($amount, $user);
+        if (! $transferValidation['status']) {
+            return $transferValidation;
         }
-        $checkCustomerBalance = checkCustomerBalance($wb_account_details->id, $amount);
 
-        $customerBalance = $this->checkCustomerAndCompanyBalance($request->final_amount);
+        // Extract data plan details
+        $variationAmount = $dataPlan['plan']['variation_amount'] ?? $amount;
+        $variationCode   = $dataPlan['plan']['variation_code'] ?? '';
 
+        // Check company balance
+        $companyBalanceCheck = $this->checkCompanyBalance($amount, $user);
+        if (! $companyBalanceCheck['status']) {
+            return $companyBalanceCheck;
+        }
+
+        // Check customer balance
+        $customerBalance = $this->checkCustomerAndCompanyBalance($amount, $user);
         if (! $customerBalance['status']) {
             return response()->json($customerBalance, 400);
         }
 
-        // $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
+        // Get company bank code
+        $companyDebitCode = $this->getCompanyBankCode($user);
 
-        $company_debit_bankcode = $this->getCompanyBankCode();
-
-        $checkVTPASSBalance = match ($company_debit_bankcode) {
-
-            90286 => true, //7000299948
-            default
-                  => $this->checkVTPASSBalance($request->final_amount),
-        };
-
-        if (! $checkVTPASSBalance) {
-            return response()->json("Service is not available at the moment . Please try again later", 400);
+        // Check VTPASS balance
+        $vtpassBalanceCheck = $this->checkVtpassBalance($companyDebitCode, $amount);
+        if (! $vtpassBalanceCheck) {
+            return $this->errorResponse(
+                'Service is not available at the moment. Please try again later',
+                400
+            );
         }
 
-        $dataBundles = match ($company_debit_bankcode) {
+        // Check customer and company balance before purchase
+        $balanceCheck = $this->checkCustomerAndCompanyBalanceBeforePurchase(
+            $user->accounts->first()->id,
+            $user->company_id,
+            $variationAmount,
+            0,
+            0.01,
+            $user
 
-            90286 => $this->vtPassControllerSercice('getDataBundlesList', [
-                'request' => $request,
+        );
 
-            ]), //7000299948
-            default
-                  => $this->vtPassControllerSercice('getDataBundlesList', [
-                'request' => $request,
-
-            ]),
-        };
-
-        if (! $dataBundles['status']) {
-            return response()->json(["status" => false, 'message' => "Failed to get Data bundles"], 400);
+        if (! $balanceCheck['status']) {
+            return response()->json($balanceCheck['message'], 400);
         }
 
-        $isDataPlanValid = false;
+        // Begin database transaction
+        DB::beginTransaction();
 
-        $selectedDataBundle = [];
+        try {
+            $transactionType = "data";
+            // Create initial transaction
+            $this->createInitialTransaction(
+                $user,
+                $variationAmount,
+                $transactionId,
+                $customerBalance,
+                $variationAmount,
+                $transactionType
+            );
 
-        foreach ($dataBundles['data'] as $value) {
-            if ($value['variation_code'] == $data_plan) {
-                $selectedDataBundle = $value;
-                $isDataPlanValid    = true;
+            // Debit customer
+            $debitResult = $this->debitCustomer(
+                $user,
+                $variationAmount,
+                $companyDebitCode
+            );
+
+            if (! $debitResult['status']) {
+                DB::rollBack();
+                return response()->json($debitResult, 400);
             }
-        }
 
-        if (! $isDataPlanValid) {
-            return response()->json(["status" => false, 'message' => "Invalid Data bundle"], 400);
-        }
+            // Purchase data bundle from provider
+            $dataPurchase = $this->purchaseDataBundle(
+                $companyDebitCode,
+                $user,
+                $transactionId,
+                $networkProvider,
+                $dataPlan,
+                $variationAmount,
+                $phoneNumber
+            );
 
-        $body = [
-            "request_id"     => $transactionId,
-            "serviceID"      => $network_provider,
-            "variation_code" => $data_plan['plan']['variation_code'],
-            "amount"         => $data_plan['plan']['variation_amount'],
-            "phone"          => $phone_number,
+            if (! $dataPurchase['status']) {
+                DB::rollBack();
+                return $this->errorResponse(
+                    $dataPurchase['message'] ?? 'Failed to purchase data bundle. Please contact admin if debited.',
+                    400
+                );
+            }
+            $message         = 'Data Plan Purchase Successful';
+            $transactionType = "data";
+            // Complete transaction
+            $result = $this->completeTransaction(
+                $transactionId,
+                $user,
+                $variationAmount,
+                $phoneNumber,
+                $debitResult,
+                $pinValidation['account_id'],
+                $dataPlan,
+                $message,
+                $transactionType
+            );
+
+            DB::commit();
+            return $result;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    private function purchaseDataBundle(
+        int $companyDebitCode,
+        User $user,
+        string $transactionId,
+        string $networkProvider,
+        array $dataPlan,
+        float $amount,
+        string $phoneNumber
+    ): array {
+        $params = [
+            'user'             => $user,
+            'transactionId'    => $transactionId,
+            'data_plan'        => $dataPlan,
+            'network_provider' => $networkProvider,
+            'amount'           => $amount,
+            'phone_number'     => $phoneNumber,
         ];
 
-        $checkCustomerAndCompanyBalanceBeforeBuyAirtime = $this->checkCustomerAndCompanyBalanceBeforeBuyAirtime($user->accounts->first()->id, $user->company_id, $selectedDataBundle['variation_amount'], 0, 0.01);
-
-        if (! $checkCustomerAndCompanyBalanceBeforeBuyAirtime['status']) {
-            return \response()->json($checkCustomerAndCompanyBalanceBeforeBuyAirtime['message'], 400);
+        if ($companyDebitCode == self::BANK_CODE_SAFE_HAVEN) {
+            return $this->safeHavenControllerService('buyData', $params);
         }
 
-        $endpoint = "pay";
-
-        $variation_amount = $data_plan['plan']['variation_amount'];
-        $variation_code   = $data_plan['plan']['variation_code'];
-
-        $vtPassController = new VTPassController();
-
-        $buyAirtime = $vtPassController->buyData($transactionId, $network_provider, $variation_code, $variation_amount, $phone_number);
-
-        if ($buyAirtime["status"]) {
-
-            $debitCustomer = $this->debitCustomerAndCompanyWithCompanyCashback($user->accounts->first()->id, $user->company_id, $variation_amount, 0, 0.01, $user);
-
-            /*   if (! $debitCustomer['status']) {
-            return response()->json($debitCustomer, 400);
-        }*/
-
-            $ledger_cr       = null;
-            $ledger_dr       = null;
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(12, $user->company_id);
-            if ($ledger_Settings) {
-                $ledger_cr = $ledger_Settings->ledger_cr;
-                $ledger_dr = $ledger_Settings->ledger_dr;
-            }
-
-            if (! $debitCustomer['status']) {
-                response()->json($debitCustomer, 400);
-            }
-
-            $transaction = transactions::create([
-                "balance_before"         => $debitCustomer['balance_before'],
-                "amount"                 => $variation_amount,
-                "balance_after"          => $debitCustomer["balance_after"],
-                "company_balance_before" => $debitCustomer["company_balance_before"],
-                "company_balance_after"  => $debitCustomer["company_balance_after"],
-                "company_amount"         => $debitCustomer["company_amount"],
-                "company_id"             => $user->company_id,
-                "branch_id"              => $user->branch_id,
-                "account_id"             => $transactionPinValidation['account_id'],
-                "description"            => "Purchase of Data worth " . $variation_amount . " for $phone_number",
-                "transaction_reference"  => $transactionId,
-                "transaction_remarks_id" => 1,
-                "transaction_type_id"    => 12,
-                "credit_debit_type_id"   => 2,
-                "created_date"           => date('Y-m-d'),
-                "created_by"             => $user->id,
-                "ledger_cr"              => $ledger_cr,
-                "ledger_dr"              => $ledger_dr,
-            ]);
-
-            $cashbackTransactionId = \generate_txnID();
-            $ledger_cr             = null;
-            $ledger_dr             = null;
-            $ledger_Settings       = get_CR_DR_TXN_Type_Ledger(66, $user->company_id);
-            if ($ledger_Settings) {
-                $ledger_cr = $ledger_Settings->ledger_cr;
-                $ledger_dr = $ledger_Settings->ledger_dr;
-            }
-            $cashbackTransaction = transactions::create([
-                "balance_before"         => $debitCustomer['cashback_balance_before'],
-                "amount"                 => $debitCustomer["customer_cashback"],
-                "account_id"             => $debitCustomer["customer_cashback"] > 0 ? $transactionPinValidation['account_id'] : null,
-                "balance_after"          => $debitCustomer["cashback_balance_after"],
-                "company_balance_before" => $debitCustomer["company_cashback_balance_before"],
-                "company_balance_after"  => $debitCustomer["company_cashback_balance_after"],
-                "company_amount"         => $debitCustomer["company_cashback"],
-                "description"            => "Cashback on Data Purchase",
-                "company_id"             => $user->company_id,
-                "branch_id"              => $user->branch_id,
-                "parent_transaction_id"  => $transaction->id,
-                "transaction_reference"  => $cashbackTransactionId,
-                "transaction_remarks_id" => 2,
-                "transaction_type_id"    => 66,
-                "credit_debit_type_id"   => 1,
-                "created_date"           => date('Y-m-d'),
-                "created_by"             => $user->id,
-                "ledger_cr"              => $ledger_cr,
-                "ledger_dr"              => $ledger_dr,
-            ]);
-            $updateBalance = true;
-            $this->updateTransactionAsSuccessful($transactionId, $debitCustomer['balance_after'], $updateBalance, $user);
-
-            return
-                [
-                "status"  => true,
-                'message' => "Data Plan Purchase Successful",
-                'data'    => [
-                    'balance' => $debitCustomer['balance_after'],
-                ],
-            ];
-        } else {
-            return ["status" => false, 'message' => $buyAirtime['message']];
-        }
+        return $this->vtPassControllerService('buyData', $params);
     }
 
     public function verifyMeterNumber($meter_number, $electricity_disco, $type)
@@ -1674,13 +1718,25 @@ class TransactionService
         return $verifyMeterResult;
     }
 
-    public function verifySmartCard(Request $request)
+    public function verifySmartCard($smart_card_number, $cable_tv_type)
     {
 
-        $vtPassController = new VTPassController();
+        $company_debit_bankcode = $this->getCompanyBankCode();
 
-        $verifyCableTV = $vtPassController->verifyCableTV($smart_card_number, $cable_tv_type);
+        $verifyCableTV = match ($company_debit_bankcode) {
 
+            90286 => $this->safeHavenControllerSercice('verifyCableTV', [
+                'smart_card_number' => $smart_card_number,
+                'cable_tv_type'     => $cable_tv_type,
+
+            ]), //7000299948
+            default
+                  => $this->vtPassControllerSercice('verifyCableTV', [
+                'smart_card_number' => $smart_card_number,
+                'cable_tv_type'     => $cable_tv_type,
+
+            ]),
+        };
         if (! $verifyCableTV["status"]) {
             return $verifyCableTV;
         }
@@ -2965,7 +3021,7 @@ class TransactionService
             $service = $vtPassController->buyAirtime($transactionId, $networkProvider, $request->final_amount, $request->phone_number);
         }
         if ($action == "buyData") {
-            $service = $vtPassController->buyData($transactionId, $request->network_provider, $request->data_plan, $selectedDataBundle['variation_amount'], $request->phone_number);
+            $service = $vtPassController->buyData($transactionId, $network_provider, $data_plan, $selectedDataBundle['variation_amount'], $request->phone_number);
         }
         if ($action == "buyElectricity") {
             $service = $vtPassController->buyElectricity(
@@ -3119,6 +3175,94 @@ class TransactionService
             true,
             'Airtime Purchase'
         );
+
+    }
+
+    private function checkCustomerAndCompanyBalanceBeforePurchase(
+        string $accountId,
+        int $companyId,
+        float $amount,
+        float $customerCashback,
+        float $companyCashback,
+        User $user
+    ): array {
+        // Implement based on your actual logic
+        $response = [
+            "status"       => false,
+            "responseCode" => 0,
+            "message"      => "An unexpected error occurred",
+        ];
+
+        if ($originalAmount <= 0) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Invalid transaction amount",
+            ];
+        }
+
+        // Get customer wallet
+        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
+
+        if (! $userWallet) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Invalid customer provided",
+            ];
+        }
+
+        $customerInitialBalance = $userWallet->balance;
+
+        // Compute cashback values (safe defaults)
+        $customerCashbackAmount = (float) $customerCashback * $originalAmount;
+        $companyCashbackAmount  = (float) $companyCashback * $originalAmount;
+
+        // ✅ Ensure customer has enough to pay after cashback
+        if ($customerInitialBalance < ($originalAmount - $customerCashbackAmount)) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Insufficient customer balance",
+            ];
+        }
+
+        // Fetch company and check its wallet
+        $company = Company::find($companyId);
+
+        if (! $company || ! $company->wallet) {
+            return [
+                "status"       => false,
+                "responseCode" => 0,
+                "message"      => "Invalid company or wallet not found",
+            ];
+        }
+
+        $companyIDs       = [1, 29, 36, 63, 67, 80, 92, 97];
+        $companyIDsStatus = in_array($company->id, $companyIDs);
+
+        $companyAfterBalance = $company->wallet->balance - $originalAmount;
+
+        logInfo(json_encode($companyAfterBalance), "checkCustomerAndCompanyBalanceBeforeBuyAirtime Company after balance for cash back");
+
+        // ✅ Logic for switcher company wallet balance
+        if ($company->wallet->balance > 100000 && $companyAfterBalance > 100000) {
+            $companyIDsStatus = true;
+        }
+
+        if ($company->wallet->balance > 100100 || $companyIDsStatus) {
+            return [
+                "status"       => true,
+                "responseCode" => 1,
+                "message"      => "Amount is valid",
+            ];
+        }
+
+        return [
+            "status"       => false,
+            "responseCode" => 0,
+            "message"      => "Switcher-related error... Please contact support",
+        ];
     }
 
 }

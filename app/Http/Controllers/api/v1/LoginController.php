@@ -72,7 +72,7 @@ class LoginController extends Controller
             return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
         }*/
 
-        if (in_array(Auth::user()->company->id, [26, 32, 33, 37, 51, 52, 54, 57, 83])) {
+        if (in_array(Auth::user()->company->id, [26, 32, 37, 51, 52, 54, 57, 83])) {
             return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
         }
 
@@ -171,7 +171,7 @@ class LoginController extends Controller
                 "is_card_available"             => count($virtualCard) > 0,
                 "currency"                      => $request->user()->company->currency->code,
                 "total_wallet_balance_currency" => $total_wallet_balance_currency,
-                "international_account"=> $request->user()->remittar_customer_id
+                "international_account"         => $request->user()->remittar_customer_id,
 
             ];
 

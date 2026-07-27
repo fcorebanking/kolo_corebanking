@@ -127,6 +127,8 @@ class LoginController extends Controller
                     $convertedAmount  = $this->getExchangeRates($userWallet->balance, Auth::user()->company->currency_id, $userWalletAccount->currency_id);
                     \logInfo($convertedAmount['conversion_result'], "User Converted Amount");
                     $total_wallet_balance_currency += $convertedAmount['conversion_result'];
+                } else {
+                    $total_wallet_balance_currency = $userWallet->balance;
                 }
             }
 

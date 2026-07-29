@@ -41,6 +41,7 @@ use PragmaRX\Google2FALaravel\Support\Authenticator;
 */
 
 Route::get('/view-reversable', [App\Http\Controllers\UtilityController::class, 'reverseCron']);
+Route::get('/privacy-policy', [App\Http\Controllers\HomeController::class, 'getPrivacyPolicy']);
 // Route::get('/importLedger', [App\Http\Controllers\TestController::class, 'calculatePrincipalPayment']);
 // Route::get('/importLedgerSetting', [App\Http\Controllers\TestController::class, 'settingsImport']);
 // Route::get('/view-ledger-setting', [App\Http\Controllers\TestController::class, 'index']);
@@ -2026,7 +2027,7 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         // $pageName = 'maintenence';
                         return view('pages.pages.pages_maintenence')->with($data);
                     });
-                    Route::get('/privacy_policy', function () {
+                  /*  Route::get('/privacy_policy', function () {
                         // $category_name = '';
                         $data = [
                             'category_name'    => 'pages',
@@ -2038,7 +2039,7 @@ Route::group(['middleware' => ['auth_factor', '2fa']], function () {
                         ];
                         // $pageName = 'privacy';
                         return view('pages.pages.pages_privacy')->with($data);
-                    });
+                    });*/
                 });
 
                 // Starter Kit

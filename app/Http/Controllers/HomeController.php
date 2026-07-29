@@ -1528,6 +1528,17 @@ class HomeController extends Controller
                     $BranchWallet->save();}
             }
         }
+    }
+        public function getPrivacyPolicy()
+    {
+        
+
+        // if(cando('advance-dashboard|root')){
+        return view('company.dashboard')->with($data);
+        // }else{
+
+        // }
+    }
 // try{
 //   if($id == 1){
 //     $transactions =transactions::where('transaction_type_id',36)->get();
@@ -1653,4 +1664,4 @@ class HomeController extends Controller
 //     return response()->json(['error'=>$e]);
 // }
     }
-}
+

@@ -23,8 +23,15 @@ class KudaController extends WebhookController
             $this->baseUrl           = config('kuda.base_url_test');
             $this->apiMaintenanceKey = config('kuda.api_maintenace_key_live');
         } else {
-            $this->username          = config('kuda.email_live');
-            $this->apiKey            = config('kuda.api_key_live');
+            $companyID = auth('api')->user()->company_id ?? auth()->user()->company_id;
+            if ($companyID == 64) {
+                $this->username = config('kuda.email_live_linkforte');
+                $this->apiKey   = config('kuda.api_key_live_linkforte');
+            } else {
+                $this->username = config('kuda.email_live');
+                $this->apiKey   = config('kuda.api_key_live');
+            }
+
             $this->baseUrl           = config('kuda.base_url_live');
             $this->apiMaintenanceKey = config('kuda.api_maintenace_key_live');
         }

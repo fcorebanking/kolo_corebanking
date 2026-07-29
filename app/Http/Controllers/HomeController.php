@@ -1534,7 +1534,7 @@ class HomeController extends Controller
         
 
         // if(cando('advance-dashboard|root')){
-        return view('company.dashboard')->with($data);
+        return view('privacy')->with($data);
         // }else{
 
         // }

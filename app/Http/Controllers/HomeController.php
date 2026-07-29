@@ -1529,12 +1529,11 @@ class HomeController extends Controller
             }
         }
     }
-        public function getPrivacyPolicy()
+    public function getPrivacyPolicy()
     {
-        
 
         // if(cando('advance-dashboard|root')){
-        return view('privacy')->with($data);
+        return view('privacy');
         // }else{
 
         // }
@@ -1663,5 +1662,4 @@ class HomeController extends Controller
 // }catch(Exception $e){
 //     return response()->json(['error'=>$e]);
 // }
-    }
-
+}

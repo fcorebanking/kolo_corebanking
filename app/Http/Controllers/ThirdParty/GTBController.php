@@ -173,7 +173,9 @@ class GTBController extends WebhookController
 
         ];
 
-        $this->getToken(14);
+        $companyID = auth('api')->user()->company_id ?? auth()->user()->company_id;
+
+        $this->getToken($companyID);
         $endpoint = "payout/account/lookup";
 
         logInfo($body, "GT Request Squado verify bank body");

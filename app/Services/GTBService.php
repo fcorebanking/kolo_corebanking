@@ -13,7 +13,7 @@ class GTBService
 
             46  => $this->ariksCredentials(),
             80  => $this->tomisinCredentials(),
-            101 => curtisCredentials(), //7000219629
+            101 => $this->curtisCredentials(), //7000219629
 
             default
                 => $this->finovaCredentials(), //

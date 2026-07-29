@@ -131,7 +131,7 @@ class EbankingCompanyService
 
             $gtbController = new GTBController();
 
-            $bankTransfer = gtbController->verifyBankAccount($bankCode, $accountNumber);
+            $bankTransfer = $gtbController->verifyBankAccount($bankCode, $accountNumber);
         }
         return $bankAccount;
     }

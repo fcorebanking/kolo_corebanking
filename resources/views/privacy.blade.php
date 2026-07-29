@@ -391,7 +391,8 @@ DEFINITIONS
 
                 <div class="logo">
 
-                    <img src="LOGO.png" alt="Finova Logo" width="93" height="46">
+                    <a href="https://core.finova.ng" class="sidebarCollapse"><img src="LOGO.png" alt="Finova Logo"
+                            width="93" height="46"></a>
 
                     <div>
 
@@ -1144,7 +1145,8 @@ NO REFUND • APP DEACTIVATION POLICY
                 <h3><strong>9. Service Wallet Authorisation</strong></h3>
                 <p>As a mandatory requirement for accessing and using Finova Africa's products and services, a
                     <strong>Service Wallet with Kuda</strong> will be automatically created upon the successful
-                    completion of your registration.</p>
+                    completion of your registration.
+                </p>
                 <p>By clicking <strong>"Create Account," "Sign Up," "Register," "Continue," "I Agree,"</strong> or by
                     submitting your personal, business or company information during registration, you expressly
                     authorise Finova Africa to create, activate and administer your mandatory Service Wallet with Kuda.

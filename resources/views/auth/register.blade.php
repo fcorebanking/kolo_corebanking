@@ -241,14 +241,14 @@
                                     </div>
 
                                     <!-- <div class="custom-file-container" data-upload-id="myFirstImage">
-                                                    <label>Upload (Lincese Certificate) <a href="javascript:void(0)" class="custom-file-container__image-clear" title="Clear Image">x</a></label>
-                                                    <label class="custom-file-container__custom-file" >
-                                                    <input type="file" class="custom-file-container__custom-file__custom-file-input" name="companylicense_certificate_image"  >
-                                                  
-                                                        <span class="custom-file-container__custom-file__custom-file-control"></span>
-                                                    </label>
-                                                    
-                                                </div> -->
+                                            <label>Upload (Lincese Certificate) <a href="javascript:void(0)" class="custom-file-container__image-clear" title="Clear Image">x</a></label>
+                                            <label class="custom-file-container__custom-file" >
+                                            <input type="file" class="custom-file-container__custom-file__custom-file-input" name="companylicense_certificate_image"  >
+                                          
+                                                <span class="custom-file-container__custom-file__custom-file-control"></span>
+                                            </label>
+                                            
+                                        </div> -->
 
 
 
@@ -324,10 +324,11 @@
                                 </div>
                             </div>
                         </form>
-                        <p class="terms-conditions">
-                            <<a href="{{ url('privacy-policy') }}">Privacy Notice: By creating an account, you acknowledge
-                                that you have read and accepted our Privacy Policy</a>
-                        </p>
+                        <p class="terms-conditions">© 2022 All Rights Reserved. <a
+                                href="{{ url('/') }}">{{ env('APP_NAME') }}</a> <a
+                                href="javascript:void(0);">Cookie
+                                Preferences</a>, <a href="javascript:void(0);">Privacy</a>, and <a
+                                href="javascript:void(0);">Terms</a>.</p>
 
                     </div>
                 </div>

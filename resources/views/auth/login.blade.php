@@ -141,8 +141,8 @@
 
                             <p class="terms-conditions">© {{ date('Y') }} All Rights Reserved. <a
                                     href="{{ url('privacy-policy') }}">{{ env('APP_NAME') }}</a>
-                                <a href="javascript:void(0);">Cookie Preferences</a>, <a
-                                    href="javascript:void(0);">Privacy</a>, and <a href="javascript:void(0);">Terms</a>.
+                                <a href="javascript:void(0);">Cookie Preferences</a>, <a href="javascript:void(0);">Read
+                                    Privacy Policy</a>, and <a href="javascript:void(0);">Terms</a>.
                             </p>
 
                         </div>

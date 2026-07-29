@@ -11,10 +11,12 @@ class GTBService
 
         return match ($company_id) {
 
-            46 => $this->ariksCredentials(), //7000219629
+            46  => $this->ariksCredentials(),
+            80  => $this->tomisinCredentials(),
+            101 => curtisCredentials(), //7000219629
 
             default
-               => $this->finovaCredentials(), //
+                => $this->finovaCredentials(), //
         };
     }
 
@@ -42,7 +44,7 @@ class GTBService
 
     }
 
-     public function tomisinCredentials()
+    public function tomisinCredentials()
     {
         return [
             'secretKeySquado'     => "sk_13a440c6597b8c1798819c5eb8158af6790b673b",

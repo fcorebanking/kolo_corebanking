@@ -171,10 +171,9 @@ class GTBController extends WebhookController
             "bank_code"      => $bankCode,
             "account_number" => $accountNumber,
 
-
         ];
 
-         $this->getToken(14);
+        $this->getToken(14);
         $endpoint = "payout/account/lookup";
 
         logInfo($body, "GT Request Squado verify bank body");
@@ -198,7 +197,7 @@ class GTBController extends WebhookController
         }
     }
 
-     public function bankTransfer($amount, $transactionReference, $description, $bankCode, $accountNumber, $companyID)
+    public function bankTransfer($amount, $transactionReference, $description, $bankCode, $accountNumber, $companyID)
     {
 
         try {
@@ -283,8 +282,8 @@ class GTBController extends WebhookController
         logInfo(env('APP_MODE'), "API key");
         $header = [];
         $header = [
-            'Content - Type' => 'application / json',
-            'Authorization'  => "Bearer $this->secretKeySquado",
+            "Content-Type"  => "application/json",
+            "Authorization" => "Bearer $this->secretKeySquado",
         ];
 
         return $header;

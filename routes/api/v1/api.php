@@ -441,6 +441,8 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::post('/internation-transfer', [InternationalTransaction::class, 'saveInternationTransferRequest']);
         Route::get('/get-product', [InternationalTransaction::class, 'get_currency']);
         Route::post('/add-currency', [InternationalTransaction::class, 'add_account']);
+        Route::post('/generate_end_of_day', [TransactionController::class, 'generate_end_of_day'])->middleware('log.route');
+
     });
 });
 //

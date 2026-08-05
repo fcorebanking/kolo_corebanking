@@ -7928,6 +7928,107 @@ class TransactionController extends Controller
         return $safeHavenController->createVirtualAccount($firstName, $lastName, $email, $phone, $customerReference, $bvn, $otp, $bvnId, $companyIDforSafeHavenAccountCheck);
     }
 
+    public function generate_end_of_day(Request $request)
+{
+    
+
+    $filter = $request->query('search', ['value' => ''])['value'];
+    $from   = $request->query('from');
+    $to     = $request->query('to');
+
+    // Build the base query
+    $query = transactions::join('wb_account_details', 'wb_account_details.id', '=', 'transactions.account_id')
+        ->join('users', 'users.id', '=', 'wb_account_details.user_id')
+        ->join('transaction_types', 'transactions.transaction_type_id', '=', 'transaction_types.id')
+        ->join('credit_debit_types', 'transactions.credit_debit_type_id', '=', 'credit_debit_types.id')
+        ->groupBy('transactions.transaction_type_id', 'transactions.credit_debit_type_id', 'credit_debit_types.type', 'transaction_types.transaction_type')
+        ->select(
+            'transactions.transaction_type_id',
+            'transactions.credit_debit_type_id',
+            'credit_debit_types.type as credit_debit_type_name',
+            'transaction_types.transaction_type',
+            DB::raw('sum(transactions.amount) as total')
+        )
+        ->where([
+            'users.user_type_id' => '1',
+            'users.company_id' => auth()->user()->company_id,
+            'transactions.created_by' => auth()->user()->id,
+            'transactions.transaction_status_id' => 1,
+            'users.status_id' => 1,
+        ]);
+
+    // Role‑based filter
+    if (!cando('root')) {
+        $query->where('users.account_officer_id', auth()->user()->id);
+    }
+
+    // Date range
+    if ($from && $to) {
+        $query->whereDate('transactions.created_date', '<=', add_day_to_date(0, $to))
+              ->whereDate('transactions.created_date', '>=', add_day_to_date(0, $from));
+    } else {
+        $query->whereDate('transactions.created_date', '=', date('Y-m-d'));
+    }
+
+    // Search filter
+    if (!empty($filter)) {
+        $query->where(function ($q) use ($filter) {
+            $q->where('transactions.transaction_reference', 'like', '%' . $filter . '%')
+              ->orWhere('transaction_types.transaction_type', 'like', '%' . $filter . '%');
+        });
+    }
+
+    // (Optional) Sorting / pagination – uncomment if needed
+    // $order = $request->query('order', [1, 'desc']);
+    // $sortColumns = [0 => 'transaction_types.transaction_type', 1 => 'transactions.amount'];
+    // $query->orderBy($sortColumns[$order[0]['column']], $order[0]['dir'])
+    //       ->skip($request->query('start', 0))
+    //       ->take($request->query('length', 2000));
+
+    $results = $query->get();
+
+    $transactions = [];
+    $totalCredit = 0;
+    $totalDebit  = 0;
+    $balance     = 0;
+
+    foreach ($results as $item) {
+        $amount = (float) $item->total;
+        $balance += $amount; // careful: credit adds, debit subtracts – but we compute separately
+
+        if ($item->credit_debit_type_id == 1) { // credit
+            $totalCredit += $amount;
+        } elseif ($item->credit_debit_type_id == 2) { // debit
+            $totalDebit += $amount;
+        }
+
+        $transactions[] = [
+            'type'       => $item->transaction_type,
+            'amount'     => $amount,
+            'credit_debit_type_id' => $item->credit_debit_type_id,
+            // you could also add 'credit_debit_type_name' => $item->credit_debit_type_name
+        ];
+    }
+
+    // Compute final balance (credit - debit)
+    $balance = $totalCredit - $totalDebit;
+
+    // Currency symbol
+    $currency = auth()->user()->company->currency->symbol ?? '';
+
+    $response = [
+        'transactions' => $transactions,
+        'summary' => [
+            'total_credit' => $totalCredit,
+            'total_debit'  => $totalDebit,
+            'balance'      => $balance,
+            'currency'     => $currency,
+        ],
+    ];
+
+    return response()->json($response);
+}
+
     private function createTransanctionforUtilityPayment(Request $request, $transactionId, $customerBalance, $transaction_type, $description)
     {
 

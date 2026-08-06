@@ -72,7 +72,7 @@ class LoginController extends Controller
             return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
         }*/
 
-        if (in_array(Auth::user()->company->id, [26, 32, 37, 51, 52, 54, 57, 83, 100])) {
+        if (in_array(Auth::user()->company->id, [26, 32, 37, 51, 52, 54, 57, 83])) {
             return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
         }
 

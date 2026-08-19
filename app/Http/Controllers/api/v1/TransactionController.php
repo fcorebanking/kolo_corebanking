@@ -6187,64 +6187,55 @@ class TransactionController extends Controller
 
     }
 
-    public function verifyWithIdentityPass(Request $request)
-    {
-        $identityPassController = new IdentityPassController();
+public function verifyWithIdentityPass(Request $request)
+{
+    $identityPassController = new IdentityPassController();
 
-        $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
+    $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
 
-        $time = strtotime($request->dob);
+    $time = strtotime($request->dob);
 
-        if (isset($bvnResponse['data']['verification']['status']) && $bvnResponse['data']['verification']['status'] == "VERIFIED") {
-            $firstName       = $bvnResponse['data']['data']["firstName"];
-            $lastName        = $bvnResponse['data']['data']["lastName"];
-            $dob             = $bvnResponse['data']['data']["dateOfBirth"] ?? $bvnResponse['data']['data']["dob"];
-            $bvnFromResponse = $request->bvn;
-            $phone           = $bvnResponse['data']['data']["phoneNumber"] ?? null;
-            $address         = $bvnResponse['data']['data']["residentialAddress"] ?? null;
+    // FIX 2: Updated conditions to look at your actual log structure ($bvnResponse['status'] == true)
+    if (isset($bvnResponse['status']) && $bvnResponse['status'] === true) {
+        $firstName       = $bvnResponse['data']["firstName"];
+        $lastName        = $bvnResponse['data']["lastName"];
+        $dob             = $bvnResponse['data']["dateOfBirth"] ?? $bvnResponse['data']["dob"];
+        $bvnFromResponse = $request->bvn;
+        $phone           = $bvnResponse['data']["phoneNumber"] ?? null;
+        $address         = $bvnResponse['data']["residentialAddress"] ?? null;
 
-            $newformat = date('Y-m-d', $time);
+        $newformat = date('Y-m-d', $time);
 
-            $bvnDob = strtotime($dob);
+        $bvnDob = strtotime($dob);
 
-            if ($time == $bvnDob) {
-
-                return response()->json(
-                    [
-                        'status'  => true,
-                        'message' => "Account Verified Successfully",
-                        'data'    => [
-                            'first_name' => trim($firstName),
-                            "last_name"  => trim($lastName),
-                            "dob"        => $newformat,
-                            "bvn"        => trim($bvnFromResponse),
-                            "phone"      => trim($phone),
-                            "address"    => trim($address),
-                        ],
-                    ]
-                );
-            } else {
-
-                return response()->json(
-                    [
-                        'status'  => false,
-                        'message' => "Failed to verify BVN with Date of birth",
-                        'data'    => $request->bvn,
-                    ],
-                    400
-                );
-            }
-        } else {
-
-            return response()->json(
-                [
-                    'status'  => false,
-                    'message' => "Failed to verify BVN",
+        if ($time == $bvnDob) {
+            return response()->json([
+                'status'  => true,
+                'message' => "Account Verified Successfully",
+                'data'    => [
+                    'first_name' => trim($firstName),
+                    "last_name"  => trim($lastName),
+                    "dob"        => $newformat,
+                    "bvn"        => trim($bvnFromResponse),
+                    "phone"      => trim($phone),
+                    "address"    => trim($address),
                 ],
-                400
-            );
+            ]);
+        } else {
+            return response()->json([
+                'status'  => false,
+                'message' => "Failed to verify BVN with Date of birth",
+                'data'    => $request->bvn,
+            ], 400);
         }
+    } else {
+        return response()->json([
+            'status'  => false,
+            'message' => "Failed to verify BVN",
+        ], 400);
     }
+}
+
 
     public function debitCompanyWithSubscriptionBVN(Request $request, $companyId)
     {
@@ -6264,7 +6255,7 @@ class TransactionController extends Controller
 
         $time = strtotime($request->dob);
 
-        $this->verifyWithIdentityPass($request);
+        return $this->verifyWithIdentityPass($request);
     }
 
     public function verifyIdentityWithSafeHaven(Request $request)

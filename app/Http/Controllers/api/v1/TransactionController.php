@@ -6193,29 +6193,56 @@ public function verifyWithIdentityPass(Request $request)
 
     $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
 
+    // If the response is an object, convert it to an array
+    if (is_object($bvnResponse)) {
+        $bvnResponse = json_decode(json_encode($bvnResponse), true);
+    }
+
     $time = strtotime($request->dob);
 
-    // FIX 2: Updated conditions to look at your actual log structure ($bvnResponse['status'] == true)
-    if (isset($bvnResponse['status']) && $bvnResponse['status'] === true) {
-        $firstName       = $bvnResponse['data']["firstName"];
-        $lastName        = $bvnResponse['data']["lastName"];
-        $dob             = $bvnResponse['data']["dateOfBirth"] ?? $bvnResponse['data']["dob"];
+    // Look at the top level status from your wrapper
+    $status = $bvnResponse['status'] ?? false;
+    
+    if ($status === true || $status === 'true') {
+        
+        // FIX: Extracting from the deeply nested data block shown in your Postman output
+        $apiDataBlock = $bvnResponse['data']['data'] ?? null;
+
+        if (!$apiDataBlock) {
+            return response()->json([
+                'status'  => false,
+                'message' => "Internal payload data array is missing.",
+                'debug'   => $bvnResponse
+            ], 422);
+        }
+
+        $firstName       = $apiDataBlock["firstName"] ?? null;
+        $lastName        = $apiDataBlock["lastName"] ?? null;
+        $dob             = $apiDataBlock["dateOfBirth"] ?? $apiDataBlock["dob"] ?? null;
         $bvnFromResponse = $request->bvn;
-        $phone           = $bvnResponse['data']["phoneNumber"] ?? null;
-        $address         = $bvnResponse['data']["residentialAddress"] ?? null;
+        $phone           = $apiDataBlock["phoneNumber"] ?? null;
+        $address         = $apiDataBlock["residentialAddress"] ?? null;
 
-        $newformat = date('Y-m-d', $time);
+        if (!$firstName || !$lastName || !$dob) {
+            return response()->json([
+                'status'  => false,
+                'message' => "Provider returned invalid or incomplete data structure.",
+                'debug'   => $bvnResponse
+            ], 422);
+        }
 
-        $bvnDob = strtotime($dob);
+        // Standardize both dates to Y-m-d to ensure clean string comparison
+        $inputDateStandardized = date('Y-m-d', $time); 
+        $bvnDateStandardized   = date('Y-m-d', strtotime($dob));
 
-        if ($time == $bvnDob) {
+        if ($inputDateStandardized === $bvnDateStandardized) {
             return response()->json([
                 'status'  => true,
                 'message' => "Account Verified Successfully",
                 'data'    => [
                     'first_name' => trim($firstName),
                     "last_name"  => trim($lastName),
-                    "dob"        => $newformat,
+                    "dob"        => $inputDateStandardized,
                     "bvn"        => trim($bvnFromResponse),
                     "phone"      => trim($phone),
                     "address"    => trim($address),
@@ -6235,6 +6262,8 @@ public function verifyWithIdentityPass(Request $request)
         ], 400);
     }
 }
+
+
 
 
     public function debitCompanyWithSubscriptionBVN(Request $request, $companyId)

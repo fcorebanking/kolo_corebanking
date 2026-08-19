@@ -2113,10 +2113,10 @@ class UserController extends Controller
     public function getCustomers(Request $request)
     {
         $users = User::where('company_id', auth()->user()->company_id)->where('user_type_id', 1)->orderBy('created_at', 'DESC')->paginate(100);
-        return response()->json(['status' => true, 'message' => 'Users fetched successfully', 'data' => $transactions], 200);
+        return response()->json(['status' => true, 'message' => 'Users fetched successfully', 'data' => $users], 200);
     }
 
-    private function sendTierReportEmail($subtext, $msg, $reason, $user)
+    private function sendTierReportEmail($subtext, $msg, $reason, $user) 
     {
 
         $data = [

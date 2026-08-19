@@ -6273,44 +6273,39 @@ class TransactionController extends Controller
 
     }
 
-    public function safeHavenIdentityCheckResponse(Request $request)
-    {
-
-        $safehavenController = new SafehavenController();
-        if ($request->has('nin')) {
-            $bvnResponse = $safehavenController->verifyNIN($request->nin, $request->company_id);
-        } else {
-            $bvnResponse = $safehavenController->verifyBVN($request->bvn, $request->company_id);
-        }
-
-        if ($bvnResponse['status']) {
-            return response()->json(
-                [
-                    'status'  => true,
-                    'message' => "Account Verified Successfully",
-                    'data'    => [
-                        'id'             => $bvnResponse['data']['_id'],
-                        'clientId'       => $bvnResponse['data']['clientId'],
-                        "identityNumber" => $bvnResponse['data']['identityNumber'],
-                        "type"           => $bvnResponse['data']['type'],
-                        'otpId'          => trim($bvnResponse['data']['otpId']),
-                        "message"        => trim($bvnResponse['message']),
-
-                    ],
-
-                ]
-            );
-        } else {
-
-            return response()->json(
-                [
-                    'status'  => false,
-                    'message' => "Failed to verify BVN",
-                ],
-                400
-            );
-        }
+public function safeHavenIdentityCheckResponse(Request $request)
+{
+    $safehavenController = new SafehavenController();
+    if ($request->has('nin')) {
+        $bvnResponse = $safehavenController->verifyNIN($request->nin, $request->company_id);
+    } else {
+        $bvnResponse = $safehavenController->verifyBVN($request->bvn, $request->company_id);
     }
+
+    if ($bvnResponse['status']) {
+        return response()->json([
+            'status'  => true,
+            'message' => "Account Verified Successfully",
+            'data'    => [
+                // Safely maps the payload keys from your Prembly log
+                'firstName'        => $bvnResponse['data']['firstName'] ?? null,
+                'lastName'         => $bvnResponse['data']['lastName'] ?? null,
+                'middleName'       => $bvnResponse['data']['middleName'] ?? null,
+                'dateOfBirth'      => $bvnResponse['data']['dateOfBirth'] ?? null,
+                'phoneNumber'      => $bvnResponse['data']['phoneNumber'] ?? null,
+                'watchListed'      => $bvnResponse['data']['watchListed'] ?? false,
+                'watchListMessage' => $bvnResponse['data']['watchListMessage'] ?? '',
+                'reference'        => $bvnResponse['verification']['reference'] ?? null,
+            ],
+        ]);
+    } else {
+        return response()->json([
+            'status'  => false,
+            'message' => $bvnResponse['message'] ?? "Failed to verify BVN",
+        ], 400);
+    }
+}
+
 
     public function verifyBVNAlt(Request $request, $bvn)
     {

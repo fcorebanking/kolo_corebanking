@@ -9,7 +9,7 @@ use App\Http\Controllers\api\v2\OrderController;
 use App\Http\Controllers\api\v2\RegisterController;
 use App\Http\Controllers\api\v2\TransactionController;
 use App\Http\Controllers\api\v2\user\UserController;
-use App\Http\Controllers\api\v2\UtilityController;
+use App\Http\Controllers\api\v2\UtilityController; 
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ThirdParty\KudaController;
 use App\Http\Controllers\ThirdParty\ProvidusController;
@@ -65,7 +65,7 @@ Route::prefix('/ussd-apis')->group(function () {
 
 Route::post('/verify-bank-account', [TransactionController::class, 'verifyBankAccount'])->name('v2-verify-bank-account');
 Route::post('/verify-account-full', [TransactionController::class, 'verifyBankAccountFullname'])->name('v2-verify-account-full');
-Route::post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v2-verify-bvn');
+Route::post('/verify-bvn-v2', [TransactionController::class, 'verifyBVN'])->name('v2-verify-bvn');
 Route::get('/get-banks', [TransactionController::class, 'getAllBanks'])->name('v2-get-banks');
 
 //saviour modified

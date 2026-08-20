@@ -291,7 +291,7 @@ Route::prefix('/transactions')->group(function () {
     Route::middleware('checkApiKey')->post('/company-bank-transfer', [TransactionController::class, 'companyBankTransfer'])->middleware('log.route');
     Route::middleware('checkApiKey')->get('/get-user-info/{accountNumber}', [UserController::class, 'getUserInfo']);
 
-    Route::middleware('checkApiKey')->post('/credit-debit-customer-account', [TransactionController::class, 'creditDebitCustomerAccount'])->middleware('log.route');
+    Route::post('/credit-debit-customer-account', [TransactionController::class, 'creditDebitCustomerAccount'])->middleware('log.route');
     Route::post('/report-transaction', [TransactionController::class, 'reportTransaction']);
 
     Route::post('/set-spend-save', [TransactionController::class, 'setSpendSave'])->middleware('log.route');
@@ -359,7 +359,6 @@ Route::prefix('/virtual-cards')->group(function () {
 //Cards
 Route::prefix('/loan')->group(function () {
     Route::group(['middleware' => 'auth:api'], function () {
-
         Route::get('/eligibility', [LoanController::class, 'eligibility']);
         Route::post('/process-loan', [LoanController::class, 'processLoan']);
         Route::post('/send-process-loan', [LoanController::class, 'PostBooklLoan']);

@@ -1923,6 +1923,9 @@ class UserController extends Controller
 
                 $response = $this->createLocalAccount($request, $user, $company, $bankId);
 
+                \logInfo($response, "Create Account service response 1");
+
+
             } else {
 
                 $response = $this->addForeignAccount($request, $user);
@@ -1930,6 +1933,8 @@ class UserController extends Controller
                 $user->update([
                     'remittar_customer_id' => $response['data']['account_reference'] ?? null,
                 ]);
+
+                \logInfo($response, "Create Account service response 2");
 
                 return response()->json($response);
             }
@@ -1942,7 +1947,7 @@ class UserController extends Controller
                 ]);
             }
 
-            \logInfo($response, "Create Account service response");
+            \logInfo($response, "Create Account service response 3");
 
             // ✅ Extract response
             $accountReference = $response['data']['account_reference'];
@@ -1988,7 +1993,6 @@ class UserController extends Controller
         } else {
             return $company->currency_id == 1 || $request->has('bvn');
         }
-
     }
 
     private function createLocalAccount($request, $user, $company, $bankId)

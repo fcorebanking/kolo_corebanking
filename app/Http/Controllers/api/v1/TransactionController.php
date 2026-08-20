@@ -251,78 +251,129 @@ class TransactionController extends Controller
         }
     }
 
-    public function creditDebitCustomerAccount(Request $request)
-    {
-        $validation = Validator::make($request->all(), [
-            "type"           => 'required|in:credit,debit',
-            "account_number" => 'required|numeric|gt:0',
-            "amount"         => 'required|numeric|gt:0',
-            "description"    => 'required|string',
-        ]);
+public function creditDebitCustomerAccount(Request $request)
+{
+     $validation = Validator::make($request->all(), [
+        "type"           => 'required|in:credit,debit',
+        "account_number" => 'required|numeric|gt:0',
+        "amount"         => 'required|numeric|gt:0',
+        "description"    => 'required|string',
+    ]);
 
-        if ($validation->fails()) {
-            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
-            return response()->json($ra, 406);
-        }
-
-        $header = $request->header('ApiKey');
-
-        $checkApiKey = ApiKey::where('api_key', $header)->first();
-
-        $companyWallet = company_wallet::where('company_id', $checkApiKey->company_id)->first();
-
-        $userAccount = wb_account_details::where('virtual_accnum', $request->account_number)->first();
-
-        if (! $userAccount) {
-            return response()->json(['status' => false, 'message' => 'Invalid account number'], 400);
-        }
-
-        $erroMessage = $request->type == "debit" ? "Cannot Debit this customer account" : "Cannot Credit this customer account";
-
-        if ($checkApiKey->company_id != $userAccount->user->company_id) {
-            return response()->json(['status' => false, 'message' => $erroMessage], 400);
-        }
-
-        $customerBalance = $request->type == "debit" ? debitCustomerOnly($userAccount->id, $request->amount, $userAccount->user) : creditCustomerOnly($userAccount->id, $request->amount);
-
-        if (! $customerBalance['status']) {
-            return response()->json($customerBalance, 400);
-        }
-
-        $transactionType = $request->type == 'credit' ? 109 : 110;
-
-        $transactionId = generate_txnID();
-
-        $transaction = transactions::create([
-            "branch_id"              => $userAccount->user->branch_id,
-            "account_id"             => $userAccount->id,
-            "description"            => $request->description,
-            "balance_before"         => $customerBalance['balance_before'],
-            "balance_after"          => $customerBalance['balance_after'],
-            "amount"                 => $request->amount,
-            "transaction_reference"  => $transactionId,
-            "transaction_remarks_id" => 2,
-            "transaction_type_id"    => $transactionType,
-            "credit_debit_type_id"   => $request->type == "debit" ? 2 : 1,
-            "created_date"           => date('Y-m-d'),
-            "created_by"             => $userAccount->user_id,
-        ]);
-
-        $message = $request->type == "debit" ? "Customer Debited Successfully" : "Customer Credited Successfully";
-
-        if ($companyWallet) {
-            return response()->json([
-                'status'  => true,
-                'message' => $message,
-                'data'    => [
-                    'balance'        => $customerBalance['balance_after'],
-                    'transaction_id' => $transactionId,
-                ],
-            ]);
-        } else {
-            return response()->json(['status' => false, 'message' => 'Failed to completed transaction'], 400);
-        }
+    if ($validation->fails()) {
+        return response()->json([
+            "status"  => false,
+            "message" => $validation->errors()->all()[0]
+        ], 406);
     }
+
+    // Get the authenticated API user
+    $authUser = auth('api')->user();
+
+    if (! $authUser) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Unauthenticated'
+        ], 401);
+    }
+
+    // Get the company belonging to the authenticated user
+    $companyId = $authUser->company_id;
+
+    // Get the company's wallet
+    $companyWallet = company_wallet::where(
+        'company_id',
+        $companyId
+    )->first();
+
+    if (! $companyWallet) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Company wallet not found'
+        ], 400);
+    }
+
+    // Find customer account
+    $userAccount = wb_account_details::where(
+        'virtual_accnum',
+        $request->account_number
+    )->first();
+
+    if (! $userAccount) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Invalid account number'
+        ], 400);
+    }
+
+    $erroMessage = $request->type == "debit"
+        ? "Cannot Debit this customer account"
+        : "Cannot Credit this customer account";
+
+    // Make sure the customer belongs to the authenticated user's company
+    if ($companyId != $userAccount->user->company_id) {
+        return response()->json([
+            'status'  => false,
+            'message' => $erroMessage
+        ], 400);
+    }
+
+    // Credit or debit customer account
+    $customerBalance = $request->type == "debit"
+        ? debitCustomerOnly(
+            $userAccount->id,
+            $request->amount,
+            $userAccount->user
+        )
+        : creditCustomerOnly(
+            $userAccount->id,
+            $request->amount
+        );
+
+    if (! $customerBalance['status']) {
+        return response()->json(
+            $customerBalance,
+            400
+        );
+    }
+
+    // Transaction type
+    $transactionType = $request->type == 'credit'
+        ? 109
+        : 110;
+
+    // Generate transaction reference
+    $transactionId = generate_txnID();
+
+    // Create transaction record
+    $transaction = transactions::create([
+        "branch_id"              => $userAccount->user->branch_id,
+        "account_id"             => $userAccount->id,
+        "description"            => $request->description,
+        "balance_before"         => $customerBalance['balance_before'],
+        "balance_after"          => $customerBalance['balance_after'],
+        "amount"                 => $request->amount,
+        "transaction_reference"  => $transactionId,
+        "transaction_remarks_id" => 2,
+        "transaction_type_id"    => $transactionType,
+        "credit_debit_type_id"   => $request->type == "debit" ? 2 : 1,
+        "created_date"            => date('Y-m-d'),
+        "created_by"              => $userAccount->user_id,
+    ]);
+
+    $message = $request->type == "debit"
+        ? "Customer Debited Successfully"
+        : "Customer Credited Successfully";
+
+    return response()->json([
+        'status'  => true,
+        'message' => $message,
+        'data'    => [
+            'balance'        => $customerBalance['balance_after'],
+            'transaction_id' => $transactionId,
+        ],
+    ]);
+}
 
     public function companyBankTransfer(Request $request)
     {

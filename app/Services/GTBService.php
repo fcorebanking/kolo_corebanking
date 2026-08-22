@@ -12,6 +12,7 @@ class GTBService
         return match ($company_id) {
 
             46  => $this->ariksCredentials(),
+            79  => $this->funditSaveCredentials(),
             80  => $this->tomisinCredentials(),
             101 => $this->curtisCredentials(), //7000219629
 
@@ -59,6 +60,16 @@ class GTBService
         return [
             'secretKeySquado'     => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
             'secretKeySquadoTest' => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
+
+        ];
+
+    }
+
+        public function funditSaveCredentials()
+    {
+        return [
+            'secretKeySquado'     => "sk_68c7ad2b9c0c00a673cd8087438b0011d887d9d5",
+            'secretKeySquadoTest' => "sk_68c7ad2b9c0c00a673cd8087438b0011d887d9d5",
 
         ];
 

@@ -100,7 +100,7 @@ class CompanySettingsController extends Controller
     public function showPaymentLinkPage()
     {
         $data = [
-            'category_name' => 'forms',
+            'category_name' => 'forms', 
             'page_name' => 'wizards',
             'page_menu' => 'company_payment_link_page',
             'has_scrollspy' => 0,
@@ -223,7 +223,25 @@ class CompanySettingsController extends Controller
             $company_settings = company_settings::findorfail($company_settings_id);
         }
 
-        $preferredBank = banks::where("bank_code", $request->preferred_bank)->first();
+        $companyId = (int) auth()->user()->company_id;
+
+$gtbCompanyIds = [46, 79, 80, 101];
+
+$preferredBankQuery = banks::where(
+    "bank_code",
+    $request->preferred_bank
+);
+
+if ($request->preferred_bank === '13') {
+    if (!in_array($companyId, $gtbCompanyIds)) {
+        return response()->json([
+            'status' => 0,
+            'message' => 'GT Bank is not available for your company.'
+        ]);
+    }
+}
+
+$preferredBank = $preferredBankQuery->first();
 
         if (!$preferredBank) {
             return response()->json(['status' => 0, 'message' => 'Invalid bank selected']);

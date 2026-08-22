@@ -15,6 +15,7 @@ class GTBService
             79  => $this->funditSaveCredentials(),
             80  => $this->tomisinCredentials(),
             101 => $this->curtisCredentials(), //7000219629
+            105  => $this->foreRunnerCredentials(),
 
             default
                 => $this->finovaCredentials(), //
@@ -65,7 +66,7 @@ class GTBService
 
     }
 
-        public function funditSaveCredentials()
+    public function funditSaveCredentials()
     {
         return [
             'secretKeySquado'     => "sk_68c7ad2b9c0c00a673cd8087438b0011d887d9d5",
@@ -75,4 +76,13 @@ class GTBService
 
     }
 
+        public function foreRunnerCredentials()
+    {
+        return [
+            'secretKeySquado'     => "sk_4a8b19c8c2d71135237951424a6dc4c944b1391f",
+            'secretKeySquadoTest' => "sk_4a8b19c8c2d71135237951424a6dc4c944b1391f",
+
+        ];
+
+    }
 }

@@ -225,7 +225,7 @@ class CompanySettingsController extends Controller
 
         $companyId = (int) auth()->user()->company_id;
 
-$gtbCompanyIds = [46, 79, 80, 101];
+$gtbCompanyIds = [46, 79, 80, 101, 105];
 
 $preferredBankQuery = banks::where(
     "bank_code",

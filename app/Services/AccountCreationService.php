@@ -1,7 +1,7 @@
 <?php
 namespace App\Services;
 
-use App\Http\Controllers\GTBController;
+use App\Http\Controllers\ThirdParty\GTBController;
 use App\Http\Controllers\ThirdParty\AmuchaController;
 use App\Http\Controllers\ThirdParty\AssetMatrixController;
 use App\Http\Controllers\ThirdParty\BaniController;
@@ -21,6 +21,14 @@ class AccountCreationService
 {
     public function createVirtualAccount(VirtualAccountType $virtualAccount)
     {
+        logInfo([
+     'first_name'   => $virtualAccount->firstName,
+     'last_name'    => $virtualAccount->lastName,
+     'company_id'   => $virtualAccount->companyID,
+     'account_type' => $virtualAccount->accountType,
+     'email'        => $virtualAccount->email,
+     ], "GTB/VirtualAccountService INITIAL DATA");
+
         $virtualAccountNumber  = "";
         $accountReference      = "";
         $createAccountResponse = "";
@@ -178,7 +186,7 @@ class AccountCreationService
             if ($createAccountResponse['status']) {
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['virtual_account_number']);
             }
-        } else if ($virtualAccount->bankCode == "000013" || $virtualAccount->bankCode == "120001" || $virtualAccount->bankCode == "000012" || $virtualAccount->bankCode == "000003" || $virtualAccount->bankCode == "000017") {
+        } else if ($virtualAccount->bankCode == "120001" || $virtualAccount->bankCode == "000012" || $virtualAccount->bankCode == "000003" || $virtualAccount->bankCode == "000017") {
 
             // $gtbController = new GTBController();
 
@@ -201,9 +209,9 @@ class AccountCreationService
             $requestReference = generateTransactionReference();
 
             switch ($virtualAccount->bankCode) {
-                case '000013':
-                    $bankName = "guaranty trust bank";
-                    break;
+                // case '000013':
+                //     $bankName = "guaranty trust bank";
+                //     break;
                 case '120001':
                     $bankName = "9 payment service bank";
                     break;
@@ -227,7 +235,16 @@ class AccountCreationService
                 $accountReference     = $requestReference;
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['virtual_account_number']);
             }
-        } else if ($virtualAccount->bankCode == "000003") {
+        } else if ($virtualAccount->bankCode == "000013") {
+
+            logInfo($virtualAccount->bankCode, "GTB Bank Code");
+            logInfo($virtualAccount->companyID, "GTB Company ID");
+            logInfo([
+     'first_name' => $virtualAccount->firstName,
+     'last_name'  => $virtualAccount->lastName,
+     'company_id' => $virtualAccount->companyID,
+     'account_type' => $virtualAccount->accountType,
+     ], "GTB Customer Data BEFORE Controller");
 
             $gtbController = new GTBController();
 

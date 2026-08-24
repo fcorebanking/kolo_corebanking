@@ -7640,23 +7640,32 @@ public function safeHavenIdentityCheckResponse(Request $request)
 
     }
 
-    public function withdrawSpendSave(Request $request)
-    {
-        $user   = auth('api')->user();
-        $amount = (double) $request->final_amount;
+public function withdrawSpendSave(Request $request)
+{
+    $user = auth('api')->user();
+    
+    // FIX: Read 'amount' instead of 'final_amount' if that's what your API payload passes
+    $amount = (double) ($request->amount ?? $request->final_amount);
 
-        // Validate account product charges
-        $chargeValidation = $this->validateAccountProductCharges($amount);
-        if (! $chargeValidation['status']) {
-            return response()->json($chargeValidation, 400);
-        }
+    if ($amount < 50) {
+        return response()->json([
+            'status' => false, 
+            'message' => 'Transfer Amount cannot be less than 50'
+        ], 400);
+    }
 
-        // Calculate total amount (withdrawal + charges)
-        $charge      = $this->getChargeAmount($chargeValidation, $user);
-        $totalAmount = $charge + $request->amount;
+    // Validate account product charges using the correct amount variable
+    $chargeValidation = $this->validateAccountProductCharges($amount);
+    if (! $chargeValidation['status']) {
+        return response()->json($chargeValidation, 400);
+    }
 
-        // Process Spend/Save debit
-        $debitResult = debitCustomerWithdrawSpendSave($user->id, $totalAmount);
+    // Calculate total amount (withdrawal + charges)
+    $charge      = $this->getChargeAmount($chargeValidation, $user);
+    $totalAmount = $charge + $amount; // FIX: Use the validated local $amount variable
+
+    // Process Spend/Save debit
+    $debitResult = debitCustomerWithdrawSpendSave($user->id, $totalAmount);
 
         if (! $debitResult['status']) {
             return response()->json([

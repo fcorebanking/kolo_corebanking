@@ -223,25 +223,7 @@ class CompanySettingsController extends Controller
             $company_settings = company_settings::findorfail($company_settings_id);
         }
 
-        $companyId = (int) auth()->user()->company_id;
-
-$gtbCompanyIds = [46, 79, 80, 101, 105];
-
-$preferredBankQuery = banks::where(
-    "bank_code",
-    $request->preferred_bank
-);
-
-if ($request->preferred_bank === '13') {
-    if (!in_array($companyId, $gtbCompanyIds)) {
-        return response()->json([
-            'status' => 0,
-            'message' => 'GT Bank is not available for your company.'
-        ]);
-    }
-}
-
-$preferredBank = $preferredBankQuery->first();
+$preferredBank = banks::where("bank_code", $request->preferred_bank)->first();
 
         if (!$preferredBank) {
             return response()->json(['status' => 0, 'message' => 'Invalid bank selected']);

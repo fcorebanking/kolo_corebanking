@@ -392,9 +392,20 @@ class CustomerController extends Controller
             }
 
             if ($request->account_bank == '000013') {
-                $virtualAccount->companyID = $auth->company->id;
-                $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
-            }
+
+    $virtualAccount->companyID = $auth->company->id;
+    $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
+
+    // GTB requires first_name and last_name to be separate
+    $virtualAccount->firstName = $request->first_name;
+    $virtualAccount->lastName  = $request->last_name;
+
+    logInfo([
+        'first_name' => $virtualAccount->firstName,
+        'last_name'  => $virtualAccount->lastName,
+        'company_id' => $virtualAccount->companyID,
+    ], "GTB Customer Data AFTER GTB Mapping");
+}
 
             $createAccountService = new AccountCreationService();
 

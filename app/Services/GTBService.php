@@ -29,7 +29,9 @@ class GTBService
         return [
             'secretKeySquado'     => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
             'secretKeySquadoTest' => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
-
+            'beneficiaryAccount'  => config('gtb.beneficiary_account_live'),
+            'baseUrlSquado'       => config('gtb.base_url_squado'),
+            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
         ];
 
     }
@@ -41,6 +43,9 @@ class GTBService
         return [
             'secretKeySquado'     => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
             'secretKeySquadoTest' => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
+            'beneficiaryAccount'  => config('gtb.ariks_beneficiary_account_live'),
+            'baseUrlSquado'       => config('gtb.base_url_squado'),
+            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
 
         ];
 
@@ -51,7 +56,9 @@ class GTBService
         return [
             'secretKeySquado'     => "sk_13a440c6597b8c1798819c5eb8158af6790b673b",
             'secretKeySquadoTest' => "sk_13a440c6597b8c1798819c5eb8158af6790b673b",
-
+            'beneficiaryAccount'  => config('gtb.tomisin_beneficiary_account_live'),
+            'baseUrlSquado'       => config('gtb.base_url_squado'),
+            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
         ];
 
     }
@@ -61,7 +68,9 @@ class GTBService
         return [
             'secretKeySquado'     => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
             'secretKeySquadoTest' => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
-
+            'beneficiaryAccount'  => config('gtb.curtis_beneficiary_account_live'),
+            'baseUrlSquado'       => config('gtb.base_url_squado'),
+            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
         ];
 
     }
@@ -71,7 +80,9 @@ class GTBService
         return [
             'secretKeySquado'     => "sk_68c7ad2b9c0c00a673cd8087438b0011d887d9d5",
             'secretKeySquadoTest' => "sk_68c7ad2b9c0c00a673cd8087438b0011d887d9d5",
-
+            'beneficiaryAccount'  => config('gtb.fundit_save_beneficiary_account_live'),
+            'baseUrlSquado'       => config('gtb.base_url_squado'),
+            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
         ];
 
     }
@@ -81,7 +92,9 @@ class GTBService
         return [
             'secretKeySquado'     => "sk_4a8b19c8c2d71135237951424a6dc4c944b1391f",
             'secretKeySquadoTest' => "sk_4a8b19c8c2d71135237951424a6dc4c944b1391f",
-
+            'beneficiaryAccount'  => config('gtb.forerunner_beneficiary_account_live'),
+            'baseUrlSquado'       => config('gtb.base_url_squado'),
+            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
         ];
 
     }

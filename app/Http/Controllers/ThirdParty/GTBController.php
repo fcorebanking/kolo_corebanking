@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\CustomClasses\WebhookController;
@@ -13,80 +14,196 @@ class GTBController extends WebhookController
     private $beneficiaryAccount;
     private $baseUrl;
 
+    private $secretKeySquado;
+    private $secretKeySquadoTest;
+
+    private $publicKeySquado;
+    private $publicKeySquadoTest;
+
+    private $beneficiaryAccountSquado;
+    private $beneficiaryAccountSquadoTest;
+
+    private $baseUrlSquado;
+    private $baseUrlSquadoTest;
+
     public function __construct()
     {
+        if (env('APP_MODE') === 'test') {
 
-        if (env('APP_MODE') == 'test') {
-            $this->secretKey          = config('gtb.secret_key_live');
-            $this->publicKey          = config('gtb.public_key_live');
-            $this->beneficiaryAccount = config('gtb.beneficiary_account_live');
-            $this->baseUrl            = config('gtb.base_url_live');
+            $this->secretKey          = config('gtb.secret_key_test');
+            $this->publicKey          = config('gtb.public_key_test');
+            $this->beneficiaryAccount = config('gtb.beneficiary_account_test');
+            $this->baseUrl            = config('gtb.base_url_test');
+
+            $this->baseUrlSquado     = config('gtb.base_url_squado');
+            $this->baseUrlSquadoTest = config('gtb.base_url_squado_test');
 
         } else {
+
             $this->secretKey          = config('gtb.secret_key_live');
             $this->publicKey          = config('gtb.public_key_live');
             $this->beneficiaryAccount = config('gtb.beneficiary_account_live');
             $this->baseUrl            = config('gtb.base_url_live');
-            $this->baseUrlSquado      = config('gtb.base_url_live_squado');
-            $this->baseUrlSquadoTest  = config('gtb.base_url_test_squado');
 
+            $this->baseUrlSquado     = config('gtb.base_url_squado');
+            $this->baseUrlSquadoTest = config('gtb.base_url_squado_test');
         }
+
+        logInfo([
+            'app_mode'              => env('APP_MODE'),
+            'base_url_squado'       => $this->baseUrlSquado,
+            'base_url_squado_test'  => $this->baseUrlSquadoTest,
+        ], 'GTB Controller Configuration');
     }
 
     public function getToken($company_id = null)
     {
-
         $gtbService = new GTBService();
 
         $credentials = $gtbService->initCredentials($company_id);
 
-        logInfo(json_encode($credentials), "GTB credentials");
+        logInfo([
+            'company_id'                  => $company_id,
+            'beneficiary_account_present' => !empty($credentials['beneficiaryAccount']),
+            'base_url_present'            => !empty($credentials['baseUrlSquado']),
+        ], 'GTB credentials loaded');
 
-        $this->secretKeySquado = $credentials['secretKeySquado'];
-
+        // Secret keys
+        $this->secretKeySquado     = $credentials['secretKeySquado'];
         $this->secretKeySquadoTest = $credentials['secretKeySquadoTest'];
-    }
 
-    public function createVirtualAccount($firstName, $lastName, $dob, $gender, $bvn, $email, $phone, $address, $customerReference, $companyID)
-    {
+        // Beneficiary accounts
+        $this->beneficiaryAccountSquado     = $credentials['beneficiaryAccount'];
+        $this->beneficiaryAccountSquadoTest = $credentials['beneficiaryAccountTest'] ?? null;
 
-        $body = [
-            "first_name"          => $firstName,
-            "last_name"           => $lastName,
-            "middle_name"         => $firstName,
-            "mobile_num"          => $phone,
-            "dob"                 => date("m/d/Y", strtotime($dob)),
-            "email"               => $email,
-            "bvn"                 => $bvn,
-            "gender"              => $gender == "Male" ? '1' : '2',
-            "address"             => $address,
-            "customer_identifier" => $customerReference,
-            //  "beneficiary_account" => "4920299492"
+        // Squad URLs
+        $this->baseUrlSquado     = $credentials['baseUrlSquado'];
+        $this->baseUrlSquadoTest = $credentials['baseUrlSquadoTest'] ?? null;
+
+        return [
+            'status'  => true,
+            'message' => 'GTB credentials loaded successfully',
         ];
-        $this->getToken($companyID);
-
-        $endpoint = "virtual-account";
-
-        logInfo($body, "GT Request Create Virtual accont body");
-        try {
-            $createAccount = $this->gtbPostRequest($endpoint, $body);
-
-            logInfo($createAccount, "GTB Response");
-
-            if (isset($createAccount['success'])) {
-                if ($createAccount['success']) {
-                    return ['status' => true, 'message' => $createAccount['message'], 'data' => $createAccount['data']];
-                } else {
-                    return ['status' => false, 'message' => $createAccount['message'], 'data' => $createAccount];
-                }
-            } else {
-                return ['status' => false, 'message' => "Failed to Create Account... Please contact support", 'data' => $createAccount];
-            }
-        } catch (\Exception $e) {
-            logInfo($e->getMessage(), "GTB Error");
-            return ['status' => false, 'message' => "Failed to Create Account... Please contact support"];
-        }
     }
+
+public function createVirtualAccount(
+    $firstName,
+    $lastName,
+    $dob,
+    $gender,
+    $bvn,
+    $email,
+    $phone,
+    $address,
+    $customerReference,
+    $companyID
+) {
+    if (empty($firstName) || empty($lastName)) {
+        logInfo([
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'company_id' => $companyID,
+        ], "GTB Invalid Customer Name");
+
+        return [
+            'status' => false,
+            'message' => "Invalid Customer Name"
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load credentials for this company
+    |--------------------------------------------------------------------------
+    */
+    $credentials = $this->getToken($companyID);
+
+    if (! $credentials['status']) {
+        return $credentials;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Make sure beneficiary account exists
+    |--------------------------------------------------------------------------
+    */
+    if (empty($this->beneficiaryAccountSquado)) {
+        logInfo([
+            'company_id' => $companyID,
+        ], "GTB Beneficiary Account Missing");
+
+        return [
+            'status' => false,
+            'message' => 'GTB beneficiary account has not been configured for this company.'
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Build request
+    |--------------------------------------------------------------------------
+    */
+    $body = [
+        "first_name"          => $firstName,
+        "last_name"           => $lastName,
+        "middle_name"         => $firstName,
+        "mobile_num"          => $phone,
+        "dob"                 => date("m/d/Y", strtotime($dob)),
+        "email"               => $email,
+        "bvn"                 => $bvn,
+        "gender"              => $gender == "Male" ? '1' : '2',
+        "address"             => $address,
+        "customer_identifier" => $customerReference,
+        "beneficiary_account" => $this->beneficiaryAccountSquado,
+    ];
+
+    $endpoint = "virtual-account";
+
+    logInfo([
+        'company_id' => $companyID,
+        'beneficiary_account_present' => !empty($this->beneficiaryAccountSquado),
+    ], "GTB Request Configuration");
+
+    logInfo($body, "GT Request Create Virtual account body");
+
+    try {
+        $createAccount = $this->gtbPostRequest($endpoint, $body);
+
+        logInfo($createAccount, "GTB Response");
+
+        if (isset($createAccount['success'])) {
+
+            if ($createAccount['success']) {
+                return [
+                    'status' => true,
+                    'message' => $createAccount['message'],
+                    'data' => $createAccount['data']
+                ];
+            }
+
+            return [
+                'status' => false,
+                'message' => $createAccount['message'],
+                'data' => $createAccount
+            ];
+        }
+
+        return [
+            'status' => false,
+            'message' => "Failed to Create Account... Please contact support",
+            'data' => $createAccount
+        ];
+
+    } catch (\Exception $e) {
+
+        logInfo($e->getMessage(), "GTB Error");
+
+        return [
+            'status' => false,
+            'message' => "Failed to Create Account... Please contact support"
+        ];
+    }
+}
 
     public function createCompanyVirtualAccount($businessName, $bvn, $phone, $customerReference, $companyID)
     {

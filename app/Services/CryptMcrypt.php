@@ -19,13 +19,21 @@ class CryptMcrypt{
         return $data;
     }
 
-    private function pkcs5_unpad($data){
-        //Unpad for PKCS5
-        $pad = ord($data{strlen($data)-1});
-        if ($pad > strlen($data)) return false;
-        if (strspn($data, chr($pad), strlen($data) - $pad) != $pad) return false;
-        return substr($data, 0, -1 * $pad);
+private function pkcs5_unpad($data)
+{
+    // Unpad for PKCS5
+    $pad = ord($data[strlen($data) - 1]);
+
+    if ($pad > strlen($data)) {
+        return false;
     }
+
+    if (strspn($data, chr($pad), strlen($data) - $pad) != $pad) {
+        return false;
+    }
+
+    return substr($data, 0, -1 * $pad);
+}
 
     /**
      * @param $data

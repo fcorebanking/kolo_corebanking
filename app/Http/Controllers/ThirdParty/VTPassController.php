@@ -910,30 +910,93 @@ class VTPassController extends Controller
         }
     }
 
-    public function checkVTPASSBalance()
-    {
-        try {
+public function checkVTPASSBalance()
+{
+     try {
 
-            $endpoint = "balance";
+        $endpoint = "balance";
 
-            $dataResponse = $this->vtpassGetRequest($endpoint);
+        $dataResponse = $this->vtpassGetRequest($endpoint);
 
-            logInfo($dataResponse, "VTPass Check Balance Response Log");
+        logInfo($dataResponse, "VTPass Check Balance Response Log");
 
-            if (isset($dataResponse['code'])) {
-                if ($dataResponse["code"] == 1) {
-                    return ["status" => true, 'message' => "Balance Successful", 'balance' => $dataResponse["contents"]["balance"]];
-                } else {
-                    return ["status" => false, 'message' => "Kindly contact admin for support"];
-                }
-            } else {
-                return ["status" => false, 'message' => 'Please contact support'];
-            }
-        } catch (Exception $e) {
-            \logInfo($e->getMessage(), "VTPASS Data Error");
-            return ["status" => false, 'message' => 'Failed, Please contact support'];
+        /*
+         * Make sure VTPass returned a valid response
+         */
+        if (!is_array($dataResponse)) {
+            return [
+                'status'  => false,
+                'message' => 'Invalid response received from VTPass',
+            ];
         }
+
+        /*
+         * VTPass successful balance response:
+         *
+         * {
+         *     "code": 1,
+         *     "contents": {
+         *         "balance": "56.08"
+         *     }
+         * }
+         */
+        if (
+            isset($dataResponse['code']) &&
+            (string) $dataResponse['code'] === '1'
+        ) {
+
+            if (
+                !isset($dataResponse['contents']) ||
+                !isset($dataResponse['contents']['balance'])
+            ) {
+                logInfo(
+                    $dataResponse,
+                    "VTPass Balance Missing From Response"
+                );
+
+                return [
+                    'status'  => false,
+                    'message' => 'VTPass balance was not returned',
+                ];
+            }
+
+            $balance = (float) $dataResponse['contents']['balance'];
+
+            return [
+                'status'  => true,
+                'message' => 'VTPass balance retrieved successfully',
+                'balance' => $balance,
+            ];
+        }
+
+        /*
+         * VTPass returned an error
+         */
+        logInfo(
+            $dataResponse,
+            "VTPass Balance API Error Response"
+        );
+
+        return [
+            'status'  => false,
+            'message' => $dataResponse['response_description']
+                ?? $dataResponse['message']
+                ?? 'Unable to retrieve VTPass balance',
+        ];
+
+    } catch (Exception $e) {
+
+        logInfo(
+            $e->getMessage(),
+            "VTPASS Balance Error"
+        );
+
+        return [
+            'status'  => false,
+            'message' => 'Failed to retrieve VTPass balance. Please try again later',
+        ];
     }
+}
 
     public function updateTransactionAsSuccessful($transaction, $balance = 0, $updateBalance = true, $modifierId = null)
     {

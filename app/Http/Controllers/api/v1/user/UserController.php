@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use OpenApi\Attributes as OA;
 
 class UserController extends Controller
 {
@@ -50,7 +51,27 @@ class UserController extends Controller
         // return User::all();
     }
 
-    //
+    #[OA\Get(
+    path: "/api/v1/users/get-details",
+    summary: "Get authenticated user details",
+    description: "Fetches the authenticated user's profile, wallets, cards, accounts, terminals and sliders.",
+    tags: ["User"],
+    security: [["bearerAuth" => []]],
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "User details fetched successfully"
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        ),
+        new OA\Response(
+            response: 500,
+            description: "Failed to fetch user details"
+        )
+    ]
+)]
     public function getDetails(Request $request)
     {
         try {
@@ -63,7 +84,7 @@ class UserController extends Controller
 
                 $userWallet = user_wallet::where('wb_account_detail_id', $request->user()->accounts->first()->id)->first();
 
-                $myUserWallets   = [];
+                $myUserWallets   = []; 
                 $myUserTerminals = [];
 
                 foreach ($request->user()->accounts as $key => $wallet) {

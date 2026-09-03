@@ -607,7 +607,7 @@ class MapleradController extends WebhookController
         ];
     }
 
-    private function creditCustomerMaplerad($customerAccountId, $originalAmount, $charge = 0.0, $userWallet)
+    private function creditCustomerMaplerad($customerAccountId, $originalAmount, $userWallet, $charge = 0.0)
     {
         // Validate credit amount
         if ($originalAmount <= 0) {

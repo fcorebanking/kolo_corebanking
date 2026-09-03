@@ -27,12 +27,18 @@ class GTBService
     public function finovaCredentials()
     {
         return [
-            'secretKeySquado'     => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
-            'secretKeySquadoTest' => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
-            'beneficiaryAccount'  => config('gtb.beneficiary_account_live'),
-            'baseUrlSquado'       => config('gtb.base_url_squado'),
-            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
-        ];
+        'secretKeySquado'        => config('gtb.finova_secret_key_live'),
+        'secretKeySquadoTest'    => config('gtb.finova_secret_key_test'),
+
+        'publicKeySquado'        => config('gtb.finova_public_key_live'),
+        'publicKeySquadoTest'    => config('gtb.finova_public_key_test'),
+
+        'beneficiaryAccount'     => config('gtb.finova_beneficiary_account_live'),
+        'beneficiaryAccountTest' => config('gtb.finova_beneficiary_account_test'),
+
+        'baseUrlSquado'          => config('gtb.base_url_squado'),
+        'baseUrlSquadoTest'      => config('gtb.base_url_squado_test'),
+    ];
 
     }
 
@@ -41,61 +47,90 @@ class GTBService
     public function ariksCredentials()
     {
         return [
-            'secretKeySquado'     => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
-            'secretKeySquadoTest' => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
-            'beneficiaryAccount'  => config('gtb.ariks_beneficiary_account_live'),
-            'baseUrlSquado'       => config('gtb.base_url_squado'),
-            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
+        'secretKeySquado'        => config('gtb.arik_secret_key_live'),
+        // 'secretKeySquadoTest'    => config('gtb.arik_secret_key_test'),
 
-        ];
+        'publicKeySquado'        => config('gtb.arik_public_key_live'),
+        // 'publicKeySquadoTest'    => config('gtb.arik_public_key_test'),
+
+        'beneficiaryAccount'     => config('gtb.arik_beneficiary_account_live'),
+        // 'beneficiaryAccountTest' => config('gtb.arik_beneficiary_account_test'),
+
+        'baseUrlSquado'          => config('gtb.base_url_squado'),
+        'baseUrlSquadoTest'      => config('gtb.base_url_squado_test'),
+    ];
 
     }
 
     public function tomisinCredentials()
     {
         return [
-            'secretKeySquado'     => "sk_13a440c6597b8c1798819c5eb8158af6790b673b",
-            'secretKeySquadoTest' => "sk_13a440c6597b8c1798819c5eb8158af6790b673b",
-            'beneficiaryAccount'  => config('gtb.tomisin_beneficiary_account_live'),
-            'baseUrlSquado'       => config('gtb.base_url_squado'),
-            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
-        ];
+        'secretKeySquado'        => config('gtb.tomisin_secret_key_live'),
+        // 'secretKeySquadoTest'    => config('gtb.tomisin_secret_key_test'),
+
+        'publicKeySquado'        => config('gtb.tomisin_public_key_live'),
+        // 'publicKeySquadoTest'    => config('gtb.tomisin_public_key_test'),
+
+        'beneficiaryAccount'     => config('gtb.tomisin_beneficiary_account_live'),
+        // 'beneficiaryAccountTest' => config('gtb.tomisin_beneficiary_account_test'),
+
+        'baseUrlSquado'          => config('gtb.base_url_squado'),
+        'baseUrlSquadoTest'      => config('gtb.base_url_squado_test'),
+    ];
 
     }
 
     public function curtisCredentials()
     {
         return [
-            'secretKeySquado'     => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
-            'secretKeySquadoTest' => "sk_878b9cf9f3a5cb8b84d5e5332348f02a9bdbf8d2",
-            'beneficiaryAccount'  => config('gtb.curtis_beneficiary_account_live'),
-            'baseUrlSquado'       => config('gtb.base_url_squado'),
-            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
-        ];
+        'secretKeySquado'        => config('gtb.curtis_secret_key_live'),
+        // 'secretKeySquadoTest'    => config('gtb.curtis_secret_key_test'),
+
+        'publicKeySquado'        => config('gtb.curtis_public_key_live'),
+        // 'publicKeySquadoTest'    => config('gtb.curtis_public_key_test'),
+
+        'beneficiaryAccount'     => config('gtb.curtis_beneficiary_account_live'),
+        // 'beneficiaryAccountTest' => config('gtb.curtis_beneficiary_account_test'),
+
+        'baseUrlSquado'          => config('gtb.base_url_squado'),
+        'baseUrlSquadoTest'      => config('gtb.base_url_squado_test'),
+    ];
 
     }
 
     public function funditSaveCredentials()
     {
         return [
-            'secretKeySquado'     => "sk_68c7ad2b9c0c00a673cd8087438b0011d887d9d5",
-            'secretKeySquadoTest' => "sk_68c7ad2b9c0c00a673cd8087438b0011d887d9d5",
-            'beneficiaryAccount'  => config('gtb.fundit_save_beneficiary_account_live'),
-            'baseUrlSquado'       => config('gtb.base_url_squado'),
-            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
-        ];
+        'secretKeySquado'        => config('gtb.fundit_save_secret_key_live'),
+        // 'secretKeySquadoTest'    => config('gtb.fundit_save_secret_key_test'),
+
+        'publicKeySquado'        => config('gtb.fundit_save_public_key_live'),
+        // 'publicKeySquadoTest'    => config('gtb.fundit_save_public_key_test'),
+
+        'beneficiaryAccount'     => config('gtb.fundit_save_beneficiary_account_live'),
+        // 'beneficiaryAccountTest' => config('gtb.fundit_save_beneficiary_account_test'),
+
+        'baseUrlSquado'          => config('gtb.base_url_squado'),
+        'baseUrlSquadoTest'      => config('gtb.base_url_squado_test'),
+    ];
 
     }
 
         public function foreRunnerCredentials()
     {
         return [
-            'secretKeySquado'     => "sk_4a8b19c8c2d71135237951424a6dc4c944b1391f",
-            'secretKeySquadoTest' => "sk_4a8b19c8c2d71135237951424a6dc4c944b1391f",
-            'beneficiaryAccount'  => config('gtb.forerunner_beneficiary_account_live'),
-            'baseUrlSquado'       => config('gtb.base_url_squado'),
-            'baseUrlSquadoTest'   => config('gtb.base_url_squado_test'),
-        ];
+        'secretKeySquado'        => config('gtb.fore_runner_secret_key_live'),
+        // 'secretKeySquadoTest'    => config('gtb.fore_runner_secret_key_test'),
+
+        'publicKeySquado'        => config('gtb.fore_runner_public_key_live'),
+        // 'publicKeySquadoTest'    => config('gtb.fore_runner_public_key_test'),
+
+        'beneficiaryAccount'     => config('gtb.fore_runner_beneficiary_account_live'),
+        // 'beneficiaryAccountTest' => config('gtb.fore_runner_beneficiary_account_test'),
+
+        'baseUrlSquado'          => config('gtb.base_url_squado'),
+        'baseUrlSquadoTest'      => config('gtb.base_url_squado_test'),
+    ];
 
     }
 }

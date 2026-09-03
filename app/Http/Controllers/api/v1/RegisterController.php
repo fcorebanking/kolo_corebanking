@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use OpenApi\Attributes as OA;
 
 class RegisterController extends Controller
 {
@@ -44,6 +45,250 @@ class RegisterController extends Controller
         // return User::all();
     }
 
+#[OA\Post(
+    path: "/api/v1/users/register",
+    summary: "Register a new user",
+    description: "Creates a new customer account under a specified company. The registration process validates the user's information, optionally verifies BVN/NIN, creates a virtual account when applicable, creates the customer's wallet, assigns the default role, and returns the newly created account details.",
+    tags: ["User"],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            type: "object",
+            required: [
+                "first_name",
+                "last_name",
+                "phone",
+                "email",
+                "dob",
+                "username",
+                "company",
+                "pin",
+                "password"
+            ],
+            properties: [
+                new OA\Property(
+                    property: "first_name",
+                    type: "string",
+                    minLength: 2,
+                    maxLength: 50,
+                    example: "John",
+                    description: "Customer's first name."
+                ),
+                new OA\Property(
+                    property: "last_name",
+                    type: "string",
+                    minLength: 2,
+                    maxLength: 50,
+                    example: "Doe",
+                    description: "Customer's last name."
+                ),
+                new OA\Property(
+                    property: "phone",
+                    type: "string",
+                    example: "08012345678",
+                    description: "Customer's phone number."
+                ),
+                new OA\Property(
+                    property: "email",
+                    type: "string",
+                    format: "email",
+                    example: "john.doe@example.com",
+                    description: "Customer's email address."
+                ),
+                new OA\Property(
+                    property: "dob",
+                    type: "string",
+                    format: "date",
+                    example: "1995-08-15",
+                    description: "Customer's date of birth."
+                ),
+                new OA\Property(
+                    property: "username",
+                    type: "string",
+                    example: "johndoe",
+                    description: "Unique username for the customer."
+                ),
+                new OA\Property(
+                    property: "company",
+                    type: "string",
+                    example: "46",
+                    description: "Company ID or company reference under which the customer will be registered."
+                ),
+                new OA\Property(
+                    property: "pin",
+                    type: "string",
+                    example: "1234",
+                    description: "Customer's transaction PIN."
+                ),
+                new OA\Property(
+                    property: "password",
+                    type: "string",
+                    format: "password",
+                    example: "Password@123",
+                    description: "Customer's login password."
+                ),
+                new OA\Property(
+                    property: "nin",
+                    type: "string",
+                    nullable: true,
+                    example: "12345678901",
+                    description: "Customer's National Identification Number (NIN), when required/provided."
+                ),
+                new OA\Property(
+                    property: "bvn",
+                    type: "string",
+                    nullable: true,
+                    example: "22123456789",
+                    description: "Customer's Bank Verification Number (BVN), when required/provided."
+                ),
+                new OA\Property(
+                    property: "gender",
+                    type: "string",
+                    nullable: true,
+                    example: "Male",
+                    description: "Customer's gender."
+                ),
+                new OA\Property(
+                    property: "address",
+                    type: "string",
+                    nullable: true,
+                    example: "12 Allen Avenue, Ikeja, Lagos",
+                    description: "Customer's residential address."
+                ),
+                new OA\Property(
+                    property: "account_type",
+                    type: "string",
+                    nullable: true,
+                    enum: ["regular"],
+                    example: "regular",
+                    description: "Account type. If set to regular, a virtual account is not created through the virtual account service."
+                ),
+                new OA\Property(
+                    property: "selected_product",
+                    type: "integer",
+                    nullable: true,
+                    example: 1,
+                    description: "ID of the savings product to associate with the new account."
+                ),
+                new OA\Property(
+                    property: "branch",
+                    type: "integer",
+                    nullable: true,
+                    example: 2,
+                    description: "Branch ID. If omitted, the company's first branch is used."
+                ),
+                new OA\Property(
+                    property: "referral",
+                    type: "string",
+                    nullable: true,
+                    example: "johndoe123",
+                    description: "Referral username or user ID."
+                ),
+                new OA\Property(
+                    property: "account_bank",
+                    type: "string",
+                    nullable: true,
+                    example: "090286",
+                    description: "Bank code used for specific virtual account creation flows."
+                ),
+                new OA\Property(
+                    property: "id",
+                    type: "string",
+                    nullable: true,
+                    example: "12345678901",
+                    description: "Identity verification reference used by supported virtual account providers."
+                ),
+                new OA\Property(
+                    property: "otp",
+                    type: "string",
+                    nullable: true,
+                    example: "123456",
+                    description: "OTP used by supported identity/account creation flows."
+                ),
+                new OA\Property(
+                    property: "identityNumber",
+                    type: "string",
+                    nullable: true,
+                    example: "22123456789",
+                    description: "Alternative identity number used when NIN is not supplied in supported provider flows."
+                )
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Registration successful.",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Registration Successful"
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        type: "object",
+                        properties: [
+                            new OA\Property(
+                                property: "user_reference",
+                                type: "string",
+                                example: "CUS1234567890"
+                            ),
+                            new OA\Property(
+                                property: "account_number",
+                                type: "string",
+                                example: "5080135881"
+                            ),
+                            new OA\Property(
+                                property: "bank",
+                                type: "string",
+                                example: "Example Bank"
+                            ),
+                            new OA\Property(
+                                property: "phone_number",
+                                type: "string",
+                                example: "08012345678"
+                            ),
+                            new OA\Property(
+                                property: "otp_code",
+                                type: "string",
+                                example: ""
+                            ),
+                            new OA\Property(
+                                property: "pin",
+                                type: "string",
+                                example: ""
+                            )
+                        ]
+                    )
+                ]
+            )
+        ),
+        new OA\Response(
+            response: 400,
+            description: "Registration failed, invalid company/product/bank, identity verification failure, or account creation failure."
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Validation failed."
+        ),
+        new OA\Response(
+            response: 409,
+            description: "Conflict. NIN, BVN, email, phone number, or username already exists."
+        ),
+        new OA\Response(
+            response: 500,
+            description: "Internal server error."
+        )
+    ]
+)]
     public function register(Request $request)
     {
         $rules = [
@@ -295,9 +540,6 @@ class RegisterController extends Controller
                     $virtual_acccount_number  = substr_replace($virtual_acccount_number, $branchData->code, -$branchCodeLength);
                 }
             }
-
-            $bank_id  = 232;
-
         }
 
         $accountOfficer = User::where('company_id', $companyRecord->id)->first();
@@ -319,7 +561,7 @@ class RegisterController extends Controller
                 'phone'                        => $userPhone,
                 'otp'                          => $otp,
                 'nin'                          => $request->nin ?? null,
-                'bank_id'                      => $bank_id,
+                'bank_id'                      => $bank_id ?? 232,
                 'pin'                          => $request->pin,
                 'address'                      => $request->address,
                 'dob'                          => $request->dob,

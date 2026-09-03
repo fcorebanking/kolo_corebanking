@@ -72,7 +72,7 @@ class HomeController extends Controller
             'loanID'           => false,
             'alt_menu'         => 0,
             'wallet'           => $wallet,
-            'closingBalance'   => $closingBalance,
+            'closingBalance'   => $closingBalance, 
 
         ];
 
@@ -82,6 +82,7 @@ class HomeController extends Controller
 
         // }
     }
+    
     public function dashboard_json(Request $request)
     {
         $viewtype            = $is_staff            = cando('root');
@@ -458,6 +459,7 @@ class HomeController extends Controller
         }
         return json_encode($total_record);
     }
+
     public function dashboard_json_full(Request $request)
     {
         $viewtype           = $is_staff           = cando('root');

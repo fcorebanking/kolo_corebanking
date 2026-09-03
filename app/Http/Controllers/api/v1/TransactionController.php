@@ -73,6 +73,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use OpenApi\Attributes as OA;
 
 class TransactionController extends Controller
 {
@@ -5176,6 +5177,157 @@ public function creditDebitCustomerAccount(Request $request)
         return ["status" => true, 'message' => "Savings products validated", 'data' => ['charge' => $charge]];
     }
 
+#[OA\Post(
+    path: "/api/v1/transactions/buy-airtime",
+    summary: "Purchase airtime",
+    description: "Allows an authenticated user to purchase airtime using their account balance. The transaction validates the user's transaction PIN, account restrictions, customer and company balances, service provider balance, and processes the purchase through the configured airtime provider.",
+    tags: ["Airtime"],
+    security: [["bearerAuth" => []]],
+
+    requestBody: new OA\RequestBody(
+        required: true,
+        description: "Airtime purchase details",
+        content: new OA\JsonContent(
+            required: [
+                "final_amount",
+                "phone_number",
+                "network_provider",
+                "transaction_pin"
+            ],
+
+            properties: [
+                new OA\Property(
+                    property: "final_amount",
+                    type: "number",
+                    format: "float",
+                    example: 1000,
+                    description: "Amount of airtime to purchase. Maximum allowed amount is 50,000."
+                ),
+
+                new OA\Property(
+                    property: "phone_number",
+                    type: "string",
+                    example: "08012345678",
+                    description: "Phone number to receive the airtime."
+                ),
+
+                new OA\Property(
+                    property: "network_provider",
+                    type: "string",
+                    example: "MTN",
+                    description: "Mobile network provider."
+                ),
+
+                new OA\Property(
+                    property: "transaction_pin",
+                    type: "string",
+                    example: "1234",
+                    description: "Transaction PIN. Must contain between 4 and 6 digits."
+                ),
+            ]
+        )
+    ),
+
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Airtime purchase successful",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Airtime Purchase Successful"
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        type: "object",
+                        properties: [
+                            new OA\Property(
+                                property: "balance",
+                                type: "number",
+                                format: "float",
+                                example: 9500
+                            )
+                        ]
+                    )
+                ]
+            )
+        ),
+
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        ),
+
+        new OA\Response(
+            response: 406,
+            description: "Validation failed",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: false
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "The final amount field is required."
+                    )
+                ]
+            )
+        ),
+
+        new OA\Response(
+            response: 400,
+            description: "Transaction failed",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: false
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Insufficient balance"
+                    )
+                ]
+            )
+        ),
+
+        new OA\Response(
+            response: 409,
+            description: "Transaction conflict",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: false
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Transaction has already been completed"
+                    )
+                ]
+            )
+        ),
+
+        new OA\Response(
+            response: 500,
+            description: "Internal server error"
+        )
+    ]
+)]
     public function buyAirtime(Request $request)
     {
 
@@ -5248,18 +5400,53 @@ public function creditDebitCustomerAccount(Request $request)
 
         //   $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
 
-        $company_debit_bankcode = $this->getCompanyBankCode();
+     $company_debit_bankcode = $this->getCompanyBankCode();
 
-        $checkVTPASSBalance = match ($company_debit_bankcode) {
+      if ($company_debit_bankcode == 90286) {
 
-            90286 => true, //7000299948
-            default
-                  => $this->checkVTPASSBalance($request->final_amount),
-        };
+      // This company uses SafeHaven instead of VTPass
+        $checkVTPASSBalance = [
+        'status'  => true,
+        'message' => 'VTPass balance check skipped',
+        ];
 
-        if (! $checkVTPASSBalance) {
-            return response()->json("Service is not available at the moment . Please try again later", 400);
-        }
+      } else {
+
+      $checkVTPASSBalance = $this->checkVTPASSBalance(
+        $request->final_amount
+      );
+       }
+
+      logInfo(
+       $checkVTPASSBalance,
+       "VTPass Balance Check Before Airtime Purchase"
+        );
+
+      if (!$checkVTPASSBalance['status']) {
+
+       /*
+      * If VTPass itself has insufficient balance,
+      * return a more useful message.
+      */
+       if (
+        isset($checkVTPASSBalance['reason']) &&
+        $checkVTPASSBalance['reason'] === 'insufficient_balance'
+       ) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Airtime service is temporarily unavailable because the service provider balance is insufficient. Please try again later.',
+        ], 400);
+       }
+
+       /*
+       * VTPass balance API failed
+       */
+        return response()->json([
+        'status'  => false,
+        'message' => $checkVTPASSBalance['message']
+            ?? 'Unable to verify service provider balance. Please try again later.',
+        ], 400);
+     }
 
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 11, "Buy Airtime Initialized");
 
@@ -5395,6 +5582,162 @@ public function creditDebitCustomerAccount(Request $request)
         return $company_debit_bank_code;
     }
 
+
+#[OA\Post(
+    path: "/api/v1/transactions/buy-data-bundle",
+    summary: "Purchase data bundle",
+    description: "Allows an authenticated user to purchase a data bundle. The request validates the user's transaction PIN, account restrictions, account and company balances, service provider balance, network provider, and selected data plan before processing the transaction.",
+    tags: ["Data"],
+    security: [["bearerAuth" => []]],
+
+    requestBody: new OA\RequestBody(
+        required: true,
+        description: "Data bundle purchase details",
+        content: new OA\JsonContent(
+            required: [
+                "phone_number",
+                "network_provider",
+                "data_plan",
+                "transaction_pin"
+            ],
+
+            properties: [
+                new OA\Property(
+                    property: "phone_number",
+                    type: "string",
+                    example: "08012345678",
+                    description: "Phone number that will receive the data bundle."
+                ),
+
+                new OA\Property(
+                    property: "network_provider",
+                    type: "string",
+                    example: "MTN",
+                    description: "Mobile network provider/service ID."
+                ),
+
+                new OA\Property(
+                    property: "data_plan",
+                    type: "string",
+                    example: "MTN_1GB",
+                    description: "Variation code of the data bundle to purchase. The variation code must be available for the selected network provider."
+                ),
+
+                new OA\Property(
+                    property: "transaction_pin",
+                    type: "string",
+                    example: "1234",
+                    description: "Transaction PIN. Must contain between 4 and 6 digits."
+                ),
+            ]
+        )
+    ),
+
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Data bundle purchase successful",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Data Plan Purchase Successful"
+                    ),
+
+                    new OA\Property(
+                        property: "data",
+                        type: "object",
+                        properties: [
+                            new OA\Property(
+                                property: "balance",
+                                type: "number",
+                                format: "float",
+                                example: 9500
+                            )
+                        ]
+                    )
+                ]
+            )
+        ),
+
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        ),
+
+        new OA\Response(
+            response: 406,
+            description: "Validation failed",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: false
+                    ),
+
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "The phone number field is required."
+                    )
+                ]
+            )
+        ),
+
+        new OA\Response(
+            response: 400,
+            description: "Data bundle purchase failed",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: false
+                    ),
+
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Insufficient balance"
+                    )
+                ]
+            )
+        ),
+
+        new OA\Response(
+            response: 409,
+            description: "Transaction conflict",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: false
+                    ),
+
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Transaction has already been completed"
+                    )
+                ]
+            )
+        ),
+
+        new OA\Response(
+            response: 500,
+            description: "Internal server error"
+        )
+    ]
+)]
     public function buyDataBundle(Request $request)
     {
 
@@ -5455,18 +5798,53 @@ public function creditDebitCustomerAccount(Request $request)
 
         // $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
 
-        $company_debit_bankcode = $this->getCompanyBankCode();
+      $company_debit_bankcode = $this->getCompanyBankCode();
 
-        $checkVTPASSBalance = match ($company_debit_bankcode) {
+     if ($company_debit_bankcode == 90286) {
 
-            90286 => true, //7000299948
-            default
-                  => $this->checkVTPASSBalance($request->final_amount),
-        };
+     // This company uses SafeHaven instead of VTPass
+     $checkVTPASSBalance = [
+        'status'  => true,
+        'message' => 'VTPass balance check skipped',
+     ];
 
-        if (! $checkVTPASSBalance) {
-            return response()->json("Service is not available at the moment . Please try again later", 400);
-        }
+      } else {
+
+     $checkVTPASSBalance = $this->checkVTPASSBalance(
+        $request->final_amount
+     );
+      }
+
+     logInfo(
+     $checkVTPASSBalance,
+      "VTPass Balance Check Before Data Purchase"
+     );
+
+     if (!$checkVTPASSBalance['status']) {
+
+     /*
+     * If VTPass itself has insufficient balance,
+     * return a more useful message.
+     */
+     if (
+        isset($checkVTPASSBalance['reason']) &&
+        $checkVTPASSBalance['reason'] === 'insufficient_balance'
+     ) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Data service is temporarily unavailable because the service provider balance is insufficient. Please try again later.',
+        ], 400);
+     }
+
+     /*
+     * VTPass balance API failed
+     */
+     return response()->json([
+        'status'  => false,
+        'message' => $checkVTPASSBalance['message']
+            ?? 'Unable to verify service provider balance. Please try again later.',
+     ], 400);
+     }
 
         $dataBundles = match ($company_debit_bankcode) {
 
@@ -5550,7 +5928,7 @@ public function creditDebitCustomerAccount(Request $request)
 
         if ($buyData["status"]) {
 
-/*
+     /*
             $ledger_cr       = null;
             $ledger_dr       = null;
             $ledger_Settings = get_CR_DR_TXN_Type_Ledger(12, auth()->user()->company_id);
@@ -5558,9 +5936,9 @@ public function creditDebitCustomerAccount(Request $request)
                 $ledger_cr = $ledger_Settings->ledger_cr;
                 $ledger_dr = $ledger_Settings->ledger_dr;
             }
-*/
+     */
             if (! $debitCustomer['status']) {
-                response()->json($debitCustomer, 400);
+                return response()->json($debitCustomer, 400);
             }
 
             $transaction = transactions::lockForUpdate()->where(['transaction_reference' => $transactionId, 'amount' => $request->final_amount])->first();
@@ -5811,18 +6189,53 @@ public function creditDebitCustomerAccount(Request $request)
 
         //  $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
 
-        $company_debit_bankcode = $this->getCompanyBankCode();
+$company_debit_bankcode = $this->getCompanyBankCode();
 
-        $checkVTPASSBalance = match ($company_debit_bankcode) {
+if ($company_debit_bankcode == 90286) {
 
-            90286 => true, //7000299948
-            default
-                  => $this->checkVTPASSBalance($request->final_amount),
-        };
+    // This company uses SafeHaven instead of VTPass
+    $checkVTPASSBalance = [
+        'status'  => true,
+        'message' => 'VTPass balance check skipped',
+    ];
 
-        if (! $checkVTPASSBalance) {
-            return response()->json("Service is not available at the moment . Please try again later", 400);
-        }
+} else {
+
+    $checkVTPASSBalance = $this->checkVTPASSBalance(
+        $request->final_amount
+    );
+}
+
+logInfo(
+    $checkVTPASSBalance,
+    "VTPass Balance Check Before Electricity Purchase"
+);
+
+if (!$checkVTPASSBalance['status']) {
+
+    /*
+     * If VTPass itself has insufficient balance,
+     * return a more useful message.
+     */
+    if (
+        isset($checkVTPASSBalance['reason']) &&
+        $checkVTPASSBalance['reason'] === 'insufficient_balance'
+    ) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Electricity service is temporarily unavailable because the service provider balance is insufficient. Please try again later.',
+        ], 400);
+    }
+
+    /*
+     * VTPass balance API failed
+     */
+    return response()->json([
+        'status'  => false,
+        'message' => $checkVTPASSBalance['message']
+            ?? 'Unable to verify service provider balance. Please try again later.',
+    ], 400);
+}
 
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 14, "Buy Electricity Initialized");
 
@@ -6045,19 +6458,53 @@ public function creditDebitCustomerAccount(Request $request)
             return response()->json($customerBalance, 400);
         }
 
-        $company_debit_bankcode = $this->getCompanyBankCode();
+$company_debit_bankcode = $this->getCompanyBankCode();
 
-        $checkVTPASSBalance = match ($company_debit_bankcode) {
+if ($company_debit_bankcode == 90286) {
 
-            90286 => true, //7000299948
-            default
-                  => $this->checkVTPASSBalance($request->final_amount),
-        };
+    // This company uses SafeHaven instead of VTPass
+    $checkVTPASSBalance = [
+        'status'  => true,
+        'message' => 'VTPass balance check skipped',
+    ];
 
-        // $checkVTPASSBalance = $this->checkVTPASSBalance($request->final_amount);
-        if (! $checkVTPASSBalance) {
-            return response()->json("Service is not available at the moment . Please try again later", 400);
-        }
+} else {
+
+    $checkVTPASSBalance = $this->checkVTPASSBalance(
+        $request->final_amount
+    );
+}
+
+logInfo(
+    $checkVTPASSBalance,
+    "VTPass Balance Check Before Cable TV Purchase"
+);
+
+if (!$checkVTPASSBalance['status']) {
+
+    /*
+     * If VTPass itself has insufficient balance,
+     * return a more useful message.
+     */
+    if (
+        isset($checkVTPASSBalance['reason']) &&
+        $checkVTPASSBalance['reason'] === 'insufficient_balance'
+    ) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Cable TV service is temporarily unavailable because the service provider balance is insufficient. Please try again later.',
+        ], 400);
+    }
+
+    /*
+     * VTPass balance API failed
+     */
+    return response()->json([
+        'status'  => false,
+        'message' => $checkVTPASSBalance['message']
+            ?? 'Unable to verify service provider balance. Please try again later.',
+    ], 400);
+}
 
         $this->createTransanctionforUtilityPayment($request, $transactionId, $customerBalance, 13, "Subscribe TV Initialized");
 
@@ -6176,6 +6623,67 @@ public function creditDebitCustomerAccount(Request $request)
         }
     }
 
+#[OA\Post(
+    path: "/api/v1/verify-bvn",
+    summary: "Verify BVN / Identity",
+    description: "Verifies a customer's BVN, date of birth, or NIN. The verification service used depends on the company's configured bank.",
+    tags: ["User"],
+    security: [["bearerAuth" => []]],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            type: "object",
+            properties: [
+                new OA\Property(
+                    property: "bvn",
+                    type: "string",
+                    example: "22123456789",
+                    description: "Bank Verification Number (BVN)."
+                ),
+                new OA\Property(
+                    property: "dob",
+                    type: "string",
+                    example: "1995-08-15",
+                    description: "Customer's date of birth."
+                ),
+                new OA\Property(
+                    property: "nin",
+                    type: "string",
+                    example: "12345678901",
+                    description: "National Identification Number (NIN)."
+                ),
+                new OA\Property(
+                    property: "company_id",
+                    type: "integer",
+                    example: 46,
+                    description: "Company ID. Used when the authenticated user's company ID is unavailable."
+                )
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Identity verification request processed successfully."
+        ),
+        new OA\Response(
+            response: 400,
+            description: "Identity verification failed."
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated."
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Validation failed. BVN and/or date of birth information is invalid or missing."
+        ),
+        new OA\Response(
+            response: 500,
+            description: "Internal server error."
+        )
+    ]
+)]
     public function verifyBVN(Request $request)
     {
 
@@ -7095,16 +7603,71 @@ public function safeHavenIdentityCheckResponse(Request $request)
         $vtPassController->handleWebhook($request);
     }
 
-    public function checkVTPASSBalance($originalAmount)
-    {
+public function checkVTPASSBalance($originalAmount)
+{
+    try {
+
         $vtPassController = new VTPassController();
-        $response         = $vtPassController->checkVTPASSBalance($originalAmount);
-        if ($originalAmount > $response['balance']) {
-            return false;
-        } else {
-            return true;
+
+        $response = $vtPassController->checkVTPASSBalance();
+
+        logInfo($response, "VTPass Balance Validation Response");
+
+        // VTPass balance request itself failed
+        if (!isset($response['status']) || $response['status'] !== true) {
+            return [
+                'status'  => false,
+                'message' => $response['message'] ?? 'Unable to verify VTPass balance',
+                'reason'  => 'balance_check_failed',
+            ];
         }
+
+        // Make sure balance exists
+        if (!isset($response['balance'])) {
+            return [
+                'status'  => false,
+                'message' => 'Unable to verify VTPass balance',
+                'reason'  => 'balance_not_available',
+            ];
+        }
+
+        $vtpassBalance = (float) $response['balance'];
+        $amount        = (float) $originalAmount;
+
+        logInfo([
+            'requested_amount' => $amount,
+            'vtpass_balance'   => $vtpassBalance,
+        ], "VTPass Balance Comparison");
+
+        // VTPass does not have enough balance
+        if ($amount > $vtpassBalance) {
+            return [
+                'status'          => false,
+                'message'         => 'VTPass balance is insufficient to process this transaction',
+                'reason'          => 'insufficient_balance',
+                'vtpass_balance'  => $vtpassBalance,
+                'requested_amount' => $amount,
+            ];
+        }
+
+        return [
+            'status'          => true,
+            'message'         => 'VTPass balance is sufficient',
+            'vtpass_balance'  => $vtpassBalance,
+            'requested_amount' => $amount,
+        ];
+
+    } catch (\Exception $e) {
+
+        logInfo($e->getMessage(), "VTPass Balance Validation Error");
+
+        return [
+            'status'  => false,
+            'message' => 'Unable to verify VTPass balance. Please try again later',
+            'reason'  => 'exception',
+        ];
     }
+}
 
     public function ninetyPSBTestHash(Request $request)
     {

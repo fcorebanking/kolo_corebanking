@@ -20,6 +20,8 @@ use App\Http\Controllers\ThirdParty\ProvidusController;
 use App\Http\Middleware\LogRoute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ThirdParty\GTBController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -125,7 +127,7 @@ Route::post('/verify-bank-account', [TransactionController::class, 'verifyBankAc
 Route::post('/verify-bank-account-test', [TransactionController::class, 'verifyBankAccountTest'])->name('v1-verify-bank-account-test');
 Route::post('/verify-account-full', [TransactionController::class, 'verifyBankAccountFullname'])->name('v1-verify-account-full');
 //Route::middleware('auth:api')->post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
-Route::post('/verify-bvn-v1', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
+Route::post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
 Route::middleware('checkApiKey')->get('/verify-bvn/{bvn}', [TransactionController::class, 'verifyBVNAlt'])->name('verify-bvn-alt');
 Route::get('/get-banks', [TransactionController::class, 'getAllBanks'])->name('v1-get-banks');
 
@@ -445,3 +447,6 @@ Route::group(['middleware' => 'auth:api'], function () {
     });
 });
 //
+
+Route::post('/test/gtb/create-virtual-account', [ GTBController::class, 'testCreateVirtualAccount' ]);
+Route::post('/test/kuda/create-virtual-account', [KudaController::class, 'testCreateAccount']);

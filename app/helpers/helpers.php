@@ -2156,7 +2156,7 @@ function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $orig
 
             $companyIDs = [1, 29, 36, 43];
 
-            $companyIDsStatus = false;
+            $companyIDsStatus = false; 
 
             if (in_array($company->id, $companyIDs)) {
                 $companyIDsStatus = true;
@@ -3168,67 +3168,56 @@ function debitCompanyWithCharge($companyId, $originalAmount, $companyCharge, $us
     return $response;
 }
 
-function debitCompanyWithSubscriptionBalance($companyId, $originalAmount, $companyCharge, $user = null)
-{
-
-    $currentUser = $user == null ? auth()->user() : $user;
-
-    if (! $currentUser) {
-        $currentUser = User::where('company_id', $companyId)->first();
-    }
-
-    $response = [];
-
-    if ($originalAmount > 0) {
-
-        $company = Company::find($companyId);
-
-        $company_wallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
-
-        logInfo(json_encode($company_wallet), "Company Wallet debitCompanyWithCharge Subscrioption Wallet");
-
-        $companyInitialBalance = $company_wallet->subscription_balance;
-
-        $debitAmount = $originalAmount + $companyCharge;
-
-        $companyAfterBalance = $companyInitialBalance - $debitAmount;
-
-        if ($companyInitialBalance >= $debitAmount) {
-
-            $companyBalanceAfter  = $companyInitialBalance - $originalAmount;
-            $companyFinalBalance  = $company_wallet->subscription_balance -= $debitAmount;
-            $company_wallet->save();
-
-            $currentUser->balance_fails = 0;
-            $currentUser->save();
-
-            $response = [
-                "status"                => true,
-                'message'               => "Amount is Valid",
-                'balance_before'        => $companyInitialBalance,
-                'balance_after'         => $companyBalanceAfter,
-                'amount'                => $debitAmount,
-                'charge_balance_before' => $companyBalanceAfter,
-                'charge_balance_after'  => $companyFinalBalance,
-            ];
-        } else {
-            if ($currentUser->balance_fails < 4) {
-                $currentUser->balance_fails += 1;
-                $currentUser->save();
-                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
-            } else if (! $companyIDsStatus) {
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"];
-            } else {
-                restrictUserAccount(2, "Multiple Insuficient balance trials", $currentUser);
-
-                $response = ["status" => false, "responseCode" => 1, 'message' => "Your account has been restricted. please contact support"];
-            }
-        }
-    } else {
-        $response = ["status" => false, "responseCode" => 2, 'message' => "Invalid Transaction Amount"];
-    }
-    return $response;
+function debitCompanyWithSubscriptionBalance($companyId, $originalAmount, $companyCharge, $user = null, $companyIDsStatus = false) 
+{ 
+    $currentUser = $user == null ? auth()->user() : $user; 
+    if (! $currentUser) { 
+        $currentUser = User::where('company_id', $companyId)->first(); 
+    } 
+    
+    $response = []; 
+    if ($originalAmount > 0) { 
+        $company = Company::find($companyId); 
+        $company_wallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first(); 
+        logInfo(json_encode($company_wallet), "Company Wallet debitCompanyWithCharge Subscrioption Wallet"); 
+        
+        $companyInitialBalance = $company_wallet->subscription_balance; 
+        $debitAmount = $originalAmount + $companyCharge; 
+        $companyAfterBalance = $companyInitialBalance - $debitAmount; 
+        
+        if ($companyInitialBalance >= $debitAmount) { 
+            $companyBalanceAfter = $companyInitialBalance - $originalAmount; 
+            $companyFinalBalance = $company_wallet->subscription_balance -= $debitAmount; 
+            $company_wallet->save(); 
+            $currentUser->balance_fails = 0; 
+            $currentUser->save(); 
+            $response = [ 
+                "status" => true, 
+                'message' => "Amount is Valid", 
+                'balance_before' => $companyInitialBalance, 
+                'balance_after' => $companyBalanceAfter, 
+                'amount' => $debitAmount, 
+                'charge_balance_before' => $companyBalanceAfter, 
+                'charge_balance_after' => $companyFinalBalance, 
+            ]; 
+        } else { 
+            if ($currentUser->balance_fails < 4) { 
+                $currentUser->balance_fails += 1; 
+                $currentUser->save(); 
+                $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"]; 
+            } else if (! $companyIDsStatus) { 
+                $response = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds"]; 
+            } else { 
+                restrictUserAccount(2, "Multiple Insuficient balance trials", $currentUser); 
+                $response = ["status" => false, "responseCode" => 1, 'message' => "Your account has been restricted. please contact support"]; 
+            } 
+        } 
+    } else { 
+        $response = ["status" => false, "responseCode" => 2, 'message' => "Invalid Transaction Amount"]; 
+    } 
+    return $response; 
 }
+
 
 function creditCompanyWithService($companyId, $originalAmount, $service)
 {

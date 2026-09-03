@@ -665,7 +665,7 @@ class AssetMatrixController extends WebhookController
         }
     }
 
-    public function handleWebhook(Request $request)
+    public function handleAssetMatrixWebhook(Request $request)
     {
         $response_status = $request->all();
 

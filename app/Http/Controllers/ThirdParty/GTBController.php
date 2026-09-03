@@ -6,6 +6,7 @@ use App\Http\Controllers\CustomClasses\WebhookController;
 use App\Services\GTBService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Validator;
 
 class GTBController extends WebhookController
 {
@@ -26,65 +27,84 @@ class GTBController extends WebhookController
     private $baseUrlSquado;
     private $baseUrlSquadoTest;
 
-    public function __construct()
-    {
-        if (env('APP_MODE') === 'test') {
+    // public function __construct()
+    // {
+    //     if (env('APP_MODE') === 'test') {
 
-            $this->secretKey          = config('gtb.secret_key_test');
-            $this->publicKey          = config('gtb.public_key_test');
-            $this->beneficiaryAccount = config('gtb.beneficiary_account_test');
-            $this->baseUrl            = config('gtb.base_url_test');
+    //         $this->secretKey          = config('gtb.secret_key_test');
+    //         $this->publicKey          = config('gtb.public_key_test');
+    //         $this->beneficiaryAccount = config('gtb.beneficiary_account_test');
+    //         $this->baseUrl            = config('gtb.base_url_test');
 
-            $this->baseUrlSquado     = config('gtb.base_url_squado');
-            $this->baseUrlSquadoTest = config('gtb.base_url_squado_test');
+    //         $this->baseUrlSquado     = config('gtb.base_url_squado');
+    //         $this->baseUrlSquadoTest = config('gtb.base_url_squado_test');
 
-        } else {
+    //     } else {
+ 
+    //         $this->secretKey          = config('gtb.secret_key_live');
+    //         $this->publicKey          = config('gtb.public_key_live');
+    //         $this->beneficiaryAccount = config('gtb.beneficiary_account_live');
+    //         $this->baseUrl            = config('gtb.base_url_live');
 
-            $this->secretKey          = config('gtb.secret_key_live');
-            $this->publicKey          = config('gtb.public_key_live');
-            $this->beneficiaryAccount = config('gtb.beneficiary_account_live');
-            $this->baseUrl            = config('gtb.base_url_live');
+    //         $this->baseUrlSquado     = config('gtb.base_url_squado');
+    //         $this->baseUrlSquadoTest = config('gtb.base_url_squado_test');
+    //     }
 
-            $this->baseUrlSquado     = config('gtb.base_url_squado');
-            $this->baseUrlSquadoTest = config('gtb.base_url_squado_test');
-        }
+    //     logInfo([
+    //         'app_mode'              => env('APP_MODE'),
+    //         'base_url_squado'       => $this->baseUrlSquado,
+    //         'base_url_squado_test'  => $this->baseUrlSquadoTest,
+    //     ], 'GTB Controller Configuration');
+    // }
 
-        logInfo([
-            'app_mode'              => env('APP_MODE'),
-            'base_url_squado'       => $this->baseUrlSquado,
-            'base_url_squado_test'  => $this->baseUrlSquadoTest,
-        ], 'GTB Controller Configuration');
+public function getToken($company_id = null)
+{
+     $gtbService = new GTBService();
+
+     $credentials = $gtbService->initCredentials($company_id);
+
+    if (env('APP_MODE') === 'test') {
+
+        $this->secretKeySquado =
+            $credentials['secretKeySquadoTest'];
+
+        $this->publicKeySquado =
+            $credentials['publicKeySquadoTest'];
+
+        $this->beneficiaryAccountSquado =
+            $credentials['beneficiaryAccountTest'];
+
+        $this->baseUrlSquado =
+            $credentials['baseUrlSquadoTest'];
+
+    } else {
+
+        $this->secretKeySquado =
+            $credentials['secretKeySquado'];
+
+        $this->publicKeySquado =
+            $credentials['publicKeySquado'];
+
+        $this->beneficiaryAccountSquado =
+            $credentials['beneficiaryAccount'];
+
+        $this->baseUrlSquado =
+            $credentials['baseUrlSquado'];
     }
 
-    public function getToken($company_id = null)
-    {
-        $gtbService = new GTBService();
+    logInfo([
+        'company_id' => $company_id,
+        'app_mode' => env('APP_MODE'),
+        'beneficiary_account_present' => !empty($this->beneficiaryAccountSquado),
+        'secret_key_present' => !empty($this->secretKeySquado),
+        'base_url' => $this->baseUrlSquado,
+      ], 'GTB credentials loaded');
 
-        $credentials = $gtbService->initCredentials($company_id);
-
-        logInfo([
-            'company_id'                  => $company_id,
-            'beneficiary_account_present' => !empty($credentials['beneficiaryAccount']),
-            'base_url_present'            => !empty($credentials['baseUrlSquado']),
-        ], 'GTB credentials loaded');
-
-        // Secret keys
-        $this->secretKeySquado     = $credentials['secretKeySquado'];
-        $this->secretKeySquadoTest = $credentials['secretKeySquadoTest'];
-
-        // Beneficiary accounts
-        $this->beneficiaryAccountSquado     = $credentials['beneficiaryAccount'];
-        $this->beneficiaryAccountSquadoTest = $credentials['beneficiaryAccountTest'] ?? null;
-
-        // Squad URLs
-        $this->baseUrlSquado     = $credentials['baseUrlSquado'];
-        $this->baseUrlSquadoTest = $credentials['baseUrlSquadoTest'] ?? null;
-
-        return [
-            'status'  => true,
-            'message' => 'GTB credentials loaded successfully',
-        ];
-    }
+    return [
+        'status' => true,
+        'message' => 'GTB credentials loaded successfully',
+    ];
+}
 
 public function createVirtualAccount(
     $firstName,
@@ -202,6 +222,63 @@ public function createVirtualAccount(
             'status' => false,
             'message' => "Failed to Create Account... Please contact support"
         ];
+    }
+}
+
+public function testCreateVirtualAccount(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'first_name'         => 'required|string|max:50',
+        'last_name'          => 'required|string|max:50',
+        'dob'                => 'required|date',
+        'gender'             => 'required|string',
+        'bvn'                => 'required|numeric|digits:11',
+        'email'              => 'nullable|email',
+        'phone'              => 'required|string',
+        'address'            => 'required|string',
+        'customer_reference' => 'required|string',
+        'company_id'         => 'required|integer',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Validation failed',
+            'errors'  => $validator->errors(),
+        ], 422);
+    }
+
+    try {
+
+        $result = $this->createVirtualAccount(
+            $request->first_name,
+            $request->last_name,
+            $request->dob,
+            $request->gender,
+            $request->bvn,
+            $request->email,
+            $request->phone,
+            $request->address,
+            $request->customer_reference,
+            $request->company_id
+        );
+
+        logInfo($result, 'GTB Sandbox API Test');
+
+        return response()->json($result);
+
+    } catch (\Throwable $e) {
+
+        logInfo([
+            'message'   => $e->getMessage(),
+            'company_id' => $request->company_id,
+        ], 'GTB Sandbox API Test Error');
+
+        return response()->json([
+            'status'  => false,
+            'message' => 'An error occurred while creating the virtual account.',
+            'error'   => $e->getMessage(),
+        ], 500);
     }
 }
 
@@ -378,11 +455,11 @@ public function createVirtualAccount(
     public function gtbPostRequest($endpoint, $body)
     {
 
-        \logInfo("$this->baseUrlSquado/$endpoint", "Endpoint log");
+        \logInfo("$this->baseUrlSquadoTest/$endpoint", "Endpoint log");
         logInfo($this->gtbHeader(), "gtb header");
         logInfo($body, "gtb body");
 
-        $response = Http::withHeaders($this->gtbHeader())->post("$this->baseUrlSquado/$endpoint", $body);
+        $response = Http::withHeaders($this->gtbHeader())->post("$this->baseUrlSquadoTest/$endpoint", $body);
         return $response->json();
     }
 

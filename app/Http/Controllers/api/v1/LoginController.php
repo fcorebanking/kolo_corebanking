@@ -19,9 +19,369 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use OpenApi\Attributes as OA;
 
 class LoginController extends Controller
 {
+
+#[OA\Post(
+    path: "/api/v1/users/login",
+    summary: "User Login",
+    description: "Authenticates a customer using their username and password. If the credentials are valid and the account is active and verified, an access token and customer account information are returned. If the customer's phone has not been verified, an OTP is sent and the account is placed in pending verification status.",
+    tags: ["User"],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            type: "object",
+            required: [
+                "username",
+                "password"
+            ],
+            properties: [
+                new OA\Property(
+                    property: "username",
+                    type: "string",
+                    example: "johndoe",
+                    description: "Customer's username."
+                ),
+                new OA\Property(
+                    property: "password",
+                    type: "string",
+                    format: "password",
+                    example: "Password@123",
+                    description: "Customer's login password."
+                )
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Login successful.",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Login Successful"
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        type: "object",
+                        properties: [
+                            new OA\Property(
+                                property: "user",
+                                type: "object",
+                                properties: [
+                                    new OA\Property(
+                                        property: "first_name",
+                                        type: "string",
+                                        example: "John"
+                                    ),
+                                    new OA\Property(
+                                        property: "last_name",
+                                        type: "string",
+                                        example: "Doe"
+                                    ),
+                                    new OA\Property(
+                                        property: "uuid",
+                                        type: "string",
+                                        example: "CUS123456789"
+                                    ),
+                                    new OA\Property(
+                                        property: "phone",
+                                        type: "string",
+                                        example: "08012345678"
+                                    ),
+                                    new OA\Property(
+                                        property: "profile_pic",
+                                        type: "string",
+                                        example: "https://safe.wbalite.com/passports/default_image.jpg"
+                                    ),
+                                    new OA\Property(
+                                        property: "username",
+                                        type: "string",
+                                        example: "johndoe"
+                                    ),
+                                    new OA\Property(
+                                        property: "bvn",
+                                        type: "string",
+                                        example: "22123456789"
+                                    ),
+                                    new OA\Property(
+                                        property: "bvn_status_id",
+                                        type: "integer",
+                                        example: 1
+                                    ),
+                                    new OA\Property(
+                                        property: "nin",
+                                        type: "string",
+                                        example: "12345678901"
+                                    ),
+                                    new OA\Property(
+                                        property: "email",
+                                        type: "string",
+                                        format: "email",
+                                        example: "john.doe@example.com"
+                                    ),
+                                    new OA\Property(
+                                        property: "address",
+                                        type: "string",
+                                        example: "12 Allen Avenue, Ikeja, Lagos"
+                                    ),
+                                    new OA\Property(
+                                        property: "sex",
+                                        type: "string",
+                                        example: "Male"
+                                    ),
+                                    new OA\Property(
+                                        property: "is_agent",
+                                        type: "boolean",
+                                        example: false
+                                    ),
+                                    new OA\Property(
+                                        property: "virtual_account",
+                                        type: "string",
+                                        example: "5080135881"
+                                    ),
+                                    new OA\Property(
+                                        property: "account_reference",
+                                        type: "string",
+                                        example: "CUS123456789"
+                                    ),
+                                    new OA\Property(
+                                        property: "bank_id",
+                                        type: "integer",
+                                        example: 1
+                                    ),
+                                    new OA\Property(
+                                        property: "validID_file",
+                                        type: "string",
+                                        nullable: true,
+                                        example: "https://example.com/documents/valid-id.jpg"
+                                    ),
+                                    new OA\Property(
+                                        property: "otherID_file",
+                                        type: "string",
+                                        nullable: true,
+                                        example: ""
+                                    ),
+                                    new OA\Property(
+                                        property: "company_id",
+                                        type: "integer",
+                                        example: 46
+                                    ),
+                                    new OA\Property(
+                                        property: "status_id",
+                                        type: "integer",
+                                        example: 1
+                                    ),
+                                    new OA\Property(
+                                        property: "phone_verification_status_id",
+                                        type: "integer",
+                                        nullable: true,
+                                        example: 2
+                                    ),
+                                    new OA\Property(
+                                        property: "account_officer_id",
+                                        type: "integer",
+                                        example: 15
+                                    ),
+                                    new OA\Property(
+                                        property: "branch_id",
+                                        type: "integer",
+                                        example: 2
+                                    ),
+                                    new OA\Property(
+                                        property: "tier",
+                                        type: "integer",
+                                        example: 1
+                                    ),
+                                    new OA\Property(
+                                        property: "balance",
+                                        type: "number",
+                                        format: "float",
+                                        example: 25000.50
+                                    ),
+                                    new OA\Property(
+                                        property: "wallets",
+                                        type: "array",
+                                        items: new OA\Items(
+                                            type: "object",
+                                            properties: [
+                                                new OA\Property(
+                                                    property: "account_id",
+                                                    type: "integer",
+                                                    example: 101
+                                                ),
+                                                new OA\Property(
+                                                    property: "account_number",
+                                                    type: "string",
+                                                    example: "5080135881"
+                                                ),
+                                                new OA\Property(
+                                                    property: "bank_id",
+                                                    type: "integer",
+                                                    example: 1
+                                                ),
+                                                new OA\Property(
+                                                    property: "bank",
+                                                    type: "string",
+                                                    example: "Example Bank"
+                                                ),
+                                                new OA\Property(
+                                                    property: "product_name",
+                                                    type: "string",
+                                                    example: "Savings Account"
+                                                ),
+                                                new OA\Property(
+                                                    property: "wallet_balance",
+                                                    type: "number",
+                                                    format: "float",
+                                                    example: 25000.50
+                                                ),
+                                                new OA\Property(
+                                                    property: "currency",
+                                                    type: "string",
+                                                    example: "NGN"
+                                                ),
+                                                new OA\Property(
+                                                    property: "currency_id",
+                                                    type: "integer",
+                                                    example: 1
+                                                )
+                                            ]
+                                        )
+                                    ),
+                                    new OA\Property(
+                                        property: "cards",
+                                        type: "array",
+                                        items: new OA\Items(
+                                            type: "object"
+                                        )
+                                    ),
+                                    new OA\Property(
+                                        property: "sliders",
+                                        type: "array",
+                                        items: new OA\Items(
+                                            type: "object"
+                                        )
+                                    ),
+                                    new OA\Property(
+                                        property: "loanCount",
+                                        type: "integer",
+                                        example: 2
+                                    ),
+                                    new OA\Property(
+                                        property: "company",
+                                        type: "object",
+                                        properties: [
+                                            new OA\Property(
+                                                property: "phone",
+                                                type: "string",
+                                                example: "08098765432"
+                                            ),
+                                            new OA\Property(
+                                                property: "email",
+                                                type: "string",
+                                                format: "email",
+                                                example: "support@example.com"
+                                            )
+                                        ]
+                                    ),
+                                    new OA\Property(
+                                        property: "is_card_available",
+                                        type: "boolean",
+                                        example: true
+                                    ),
+                                    new OA\Property(
+                                        property: "currency",
+                                        type: "string",
+                                        example: "NGN"
+                                    ),
+                                    new OA\Property(
+                                        property: "total_wallet_balance_currency",
+                                        type: "number",
+                                        format: "float",
+                                        example: 25000.50
+                                    ),
+                                    new OA\Property(
+                                        property: "international_account",
+                                        type: "string",
+                                        nullable: true,
+                                        example: "REM123456789"
+                                    )
+                                ]
+                            ),
+                            new OA\Property(
+                                property: "access_token",
+                                type: "string",
+                                example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+                            )
+                        ]
+                    )
+                ]
+            )
+        ),
+        new OA\Response(
+            response: 203,
+            description: "Account pending phone verification.",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Account Pending Verification"
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        type: "object",
+                        properties: [
+                            new OA\Property(
+                                property: "user_reference",
+                                type: "string",
+                                example: "CUS123456789"
+                            ),
+                            new OA\Property(
+                                property: "phone_number",
+                                type: "string",
+                                example: "08012345678"
+                            )
+                        ]
+                    )
+                ]
+            )
+        ),
+        new OA\Response(
+            response: 400,
+            description: "Login unavailable because the company's subscription has expired or the system is undergoing maintenance."
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Authentication failed, account is blocked, company is inactive, or the account is not permitted to log in."
+        ),
+        new OA\Response(
+            response: 404,
+            description: "Invalid login credentials because the user's company has been deleted."
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Validation failed. Username and password are required."
+        )
+    ]
+)]
     public function login(Request $request)
     {
         // return response()->json(['status' => false, 'message' => 'Running a quick maintenace'], 401);

@@ -12,6 +12,7 @@
         "bacon/bacon-qr-code": "^3.0",
         "barryvdh/laravel-dompdf": "^3.0",
         "coinremitter/laravel": "^0.1.8",
+        "darkaonline/l5-swagger": "^11.1",
         "doctrine/dbal": "^3.3",
         "firebase/php-jwt": "^6.3",
         "guzzlehttp/guzzle": "^7.4",

@@ -209,8 +209,11 @@ class CustomerController extends Controller
         $factor = floor((strlen($bytes) - 1) / 3);
         return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$size[$factor];
     }
+    
     public function create_customer_account(Request $request)
     {
+        logInfo($request->all(), "Create Customer Request");
+
         if (! cando('create-customer|manage-customer|root')) {
             abort(403);
             return 0;
@@ -393,19 +396,36 @@ class CustomerController extends Controller
 
             if ($request->account_bank == '000013') {
 
-    $virtualAccount->companyID = $auth->company->id;
-    $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
+     $virtualAccount->companyID = $auth->company->id;
+     $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
 
-    // GTB requires first_name and last_name to be separate
-    $virtualAccount->firstName = $request->first_name;
-    $virtualAccount->lastName  = $request->last_name;
+     // GTB requires first_name and last_name to be separate
+     $virtualAccount->firstName = $request->first_name;
+     $virtualAccount->lastName  = $request->last_name;
 
-    logInfo([
+     logInfo([
         'first_name' => $virtualAccount->firstName,
         'last_name'  => $virtualAccount->lastName,
         'company_id' => $virtualAccount->companyID,
-    ], "GTB Customer Data AFTER GTB Mapping");
-}
+        'bank_id'   => $virtualAccount->bankCode,
+     ], "GTB Customer Data AFTER GTB Mapping");
+     }
+
+                 if ($request->account_bank == '090267') {
+
+     $virtualAccount->companyID = $auth->company->id;
+     $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
+     $virtualAccount->firstName = $request->first_name;
+     $virtualAccount->lastName  = $request->last_name;
+     $virtualAccount->email     = $request->email;
+
+     logInfo([
+        'first_name' => $virtualAccount->firstName,
+        'last_name'  => $virtualAccount->lastName,
+        'company_id' => $virtualAccount->companyID,
+        'bank_id'   => $bankId,
+     ], "Kuda Customer Data AFTER Kuda Mapping");
+     }
 
             $createAccountService = new AccountCreationService();
 

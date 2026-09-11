@@ -683,7 +683,7 @@ public function createTarget(
 
         TargetSaving::query()
             ->where('status', 'active')
-            ->whereDate('withdrawal_date', '>', today())
+            ->whereDate('withdrawal_date', '>=', today())
             ->orderBy('id')
             ->chunkById(100, function ($targets) use ($processUntil) {
 

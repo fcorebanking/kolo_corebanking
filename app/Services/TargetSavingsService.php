@@ -76,28 +76,29 @@ public function createTarget(
         }
 
         /*
-         * Resolve the customer's first Savings account.
+         * Resolve the customer's first account/wallet.
          *
-         * wb_account_details.accountType() points to
-         * savings_product.
+         * We are intentionally using the first account because the
+         * Target Savings requirement is to use the customer's first
+         * wallet. The account ID is saved on the Target Savings record
+         * so future operations do not have to guess which account
+         * should be used.
          */
         $account = $user->wb_account_details()
-            ->whereHas('accountType', function ($query) {
-                $query->where('account_type', 'Savings');
-            })
+            ->orderBy('id')
             ->first();
 
         if (!$account) {
             throw new RuntimeException(
-                'Savings account could not be found.'
+                'Customer Savings account could not be found.'
             );
         }
 
         /*
          * Create Target Savings.
          *
-         * The company configuration is snapshotted here so that
-         * future company-setting changes do not affect this target.
+         * Company interest and early-withdrawal fee are snapshotted
+         * from the company's current settings.
          */
         return TargetSaving::create([
             'user_id' => $user->id,

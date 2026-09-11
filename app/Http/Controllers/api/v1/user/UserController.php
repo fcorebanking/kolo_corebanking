@@ -87,15 +87,10 @@ class UserController extends Controller
                 $myUserWallets   = []; 
                 $myUserTerminals = [];
 
-                foreach ($request->user()->accounts as $key => $wallet) {
-                    $userWallet      = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
-                    $myUserWallets[] = ["account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN'];
-                }
-
                 if ($request->user()->terminals != null) {
                     \logInfo(json_encode($request->user()->terminals), "Login terminals");
                     foreach ($request->user()->terminals as $key => $terminal) {
-                        $myUserTerminals[] = ["account_id" => $terminal->terminal_code, "account_number" => $terminal->terminal_code, "bank_id" => $terminal->terminal_code, "bank" => "Nomba", 'product_name' => "POS Account $wallet->terminal_code", "wallet_balance" => $terminal->balance, "currency" => 'NGN'];
+                        $myUserTerminals[] = ["account_id" => $terminal->terminal_code, "account_number" => $terminal->terminal_code, "bank_id" => $terminal->terminal_code, "bank" => "Nomba", 'product_name' => "POS Account {$terminal->terminal_code}", "wallet_balance" => $terminal->balance, "currency" => 'NGN'];
                     }
 
                 }
@@ -104,6 +99,25 @@ class UserController extends Controller
 
                 // $sliders = CarouselImage::where('status_id', 1)->get("image_url");
                 $sliders = CarouselImage::where(['status_id' => 1, 'company_id' => auth()->user()->company_id])->get("image_url");
+
+            $total_wallet_balance_currency = 0;
+
+            foreach (Auth::user()->accounts as $key => $wallet) {
+                $userWallet        = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
+                $myUserWallets[]   = ["account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN', "currency_id" => $wallet->currency_id ?? 1];
+                $userWalletAccount = wb_account_details::where('id', $wallet->id)->first();
+                \logInfo(Auth::user()->company->currency_id, "Company currency id");
+                \logInfo($userWalletAccount->currency_id, "User Wallet Account Currency id");
+                if (Auth::user()->company->currency_id != 1 && $userWalletAccount->currency_id != Auth::user()->company->currency_id) {
+                    \logInfo($userWallet->balance, "User Wallet Balance");
+                    \logInfo($userWalletAccount->currency_id, "User Wallet Account Currency id");
+                    $convertedAmount  = $this->getExchangeRates($userWallet->balance, Auth::user()->company->currency_id, $userWalletAccount->currency_id);
+                    \logInfo($convertedAmount['conversion_result'], "User Converted Amount");
+                    $total_wallet_balance_currency += $convertedAmount['conversion_result'];
+                } else {
+                    $total_wallet_balance_currency = $userWallet->balance;
+                }
+            }
 
                 if (! $virtualCard) {
                     $virtualCard = [];
@@ -149,6 +163,7 @@ class UserController extends Controller
                     "is_card_available"            => count($virtualCard) > 0,
                     "accounts"                     => $wb_accounts,
                     "terminals"                    => $myUserTerminals,
+                    "total_wallet_balance_currency" => $total_wallet_balance_currency,
                     //$request->user()->wb_account_details,
                 ];
 

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Mail;
 
 use Exception;
@@ -10,6 +11,9 @@ class AccountCreated extends Mailable
 {
     use Queueable, SerializesModels;
 
+    // FIX: Explicitly declare the property so the class knows it exists
+    public $data;
+
     /**
      * Create a new message instance.
      *
@@ -17,7 +21,6 @@ class AccountCreated extends Mailable
      */
     public function __construct($data)
     {
-        //
         $this->data = $data;
     }
 
@@ -29,22 +32,21 @@ class AccountCreated extends Mailable
     public function build()
     {
         try {
-            \logInfo(env('MAIL_FROM_ADDRES'), "Email Credentials");
-            return $this->from(env('MAIL_FROM_ADDRES'), $this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.account-created')->with('data', $this->data);
+            // Typo Fix: Corrected MAIL_FROM_ADDRES to MAIL_FROM_ADDRESS
+            $fromAddress = env('MAIL_FROM_ADDRESS', 'noreply@finova.ng');
+            
+            \logInfo($fromAddress, "Email Credentials");
+
+            return $this->from($fromAddress, $this->data['company_name'] ?? 'Finova')
+                        ->subject($this->data['subtext'] ?? 'Account Created')
+                        ->markdown('mails.account-created')
+                        ->with('data', $this->data);
 
         } catch (Exception $e) {
-            \logInfo($e->getMessage());
+            \logInfo($e->getMessage(), 'Mailable Build Error');
+            
+            // Re-throw or return default behavior so the mail pipeline doesn't fail silently
+            throw $e; 
         }
-        // return $this->markdown('mails.transaction-alert',[
-        //         'data' => $this->data
-        //     ]);
-
-        // return $this->markdown('mails.transaction-alert',[
-        //     'data' => $this->data
-        // ]);
-        //    return  $this
-        //     ->from(env('MAIL_USERNAME'), 'Sender name')
-        //     ->subject('Here is my subject')
-        //     ->view('mails.transaction-alert',)->with('data',$this->data);
     }
 }

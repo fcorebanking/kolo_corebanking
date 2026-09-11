@@ -21,6 +21,7 @@ use App\Http\Middleware\LogRoute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ThirdParty\GTBController;
+use App\Http\Controllers\api\v1\TargetSavingsController;
 
 
 /*
@@ -450,3 +451,19 @@ Route::group(['middleware' => 'auth:api'], function () {
 
 Route::post('/test/gtb/create-virtual-account', [ GTBController::class, 'testCreateVirtualAccount' ]);
 Route::post('/test/kuda/create-virtual-account', [KudaController::class, 'testCreateAccount']);
+
+Route::prefix('/target-savings')->middleware('auth:api')->group(function () {
+
+    Route::post('/create', [TargetSavingsController::class, 'store']);
+
+    Route::get('/list', [TargetSavingsController::class, 'index']);
+
+    Route::get('/details/{id}', [TargetSavingsController::class, 'show']);
+
+    Route::post('/deposit/{id}', [TargetSavingsController::class, 'deposit']);
+
+    Route::post('/withdraw/{id}', [TargetSavingsController::class, 'withdraw']);
+
+    Route::get('/transactions/{id}', [TargetSavingsController::class, 'transactions']);
+
+});

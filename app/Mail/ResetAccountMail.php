@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Mail;
 
 use Exception;
@@ -10,7 +11,8 @@ class ResetAccountMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    protected $data;
+    // FIX 1: Changed visibility to public so Blade/Markdown templates can read it automatically
+    public $data;
 
     /**
      * Create a new message instance.
@@ -29,24 +31,28 @@ class ResetAccountMail extends Mailable
      */
     public function build()
     {
-
         try {
-            \logInfo($this->data['user'], "Reset Password Log");
+            // Safe logging with null-coalescing to avoid missing key errors
+            \logInfo($this->data['user'] ?? 'No user data', "Reset Password Log");
             \logInfo(env('MAIL_USERNAME'), "Email Credentials");
-            return $this->from(env('MAIL_FROM_ADDRES'), $this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.reset-password')->with('data', $this->data);
-        } catch (Exception $e) {
-            \logInfo($e->getMessage());
-        }
-        // return $this->markdown('mails.transaction-alert',[
-        //         'data' => $this->data
-        //     ]);
 
-        // return $this->markdown('mails.transaction-alert',[
-        //     'data' => $this->data
-        // ]);
-        //    return  $this
-        //     ->from(env('MAIL_USERNAME'), 'Sender name')
-        //     ->subject('Here is my subject')
-        //     ->view('mails.transaction-alert',)->with('data',$this->data);
+            // FIX 2: Corrected the typo from MAIL_FROM_ADDRES to MAIL_FROM_ADDRESS
+            $fromAddress = env('MAIL_FROM_ADDRESS', 'noreply@finova.ng');
+            
+            // FALLBACKS: Match company_name to config or default text
+            $senderName = $this->data['company_name'] ?? config('app.name', 'Finova');
+            $subjectText = $this->data['subtext'] ?? 'Reset Account Password';
+
+            return $this->from($fromAddress, $senderName)
+                        ->subject($subjectText)
+                        ->markdown('mails.reset-password')
+                        ->with('data', $this->data);
+
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), 'ResetAccountMail Mailable Build Error');
+            
+            // Re-throw so your application pipeline registers the failure instead of failing silently
+            throw $e; 
+        }
     }
 }

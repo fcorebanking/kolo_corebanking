@@ -7,7 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class transaction_types extends Model
 {
+    
     use HasFactory;
+
+    protected $fillable = [
+        'transaction_type',
+    ];
 
     public function transaction()
     {

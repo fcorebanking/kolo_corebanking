@@ -25,7 +25,17 @@ class EbankingService
 
     public function transferToBankAccount(BankTransferType $bankTransferType)
     {
+         loginfo('BANK TRANSFER STARTED', [
+        'bank_code' => $bankTransferType->bankCode,
+        'account_number' => $bankTransferType->accountNumber,
+        'amount' => $bankTransferType->amount,
+        'account_verification_partner' => $this->accountVerificationPartner,
+        'bank_transfer_partner' => $this->bankTransferPartner,
+     ]);
+
         $bankAccount = $this->verifyAccountNumberFull($bankTransferType->bankCode, $bankTransferType->accountNumber);
+
+
         if (! $bankAccount['status']) {
             $bankAccount['status']  = "01";
             $bankAccount['message'] = "Failed to Complete Bank transfer. If you have been debited kindly contact support for reversal";
@@ -86,10 +96,18 @@ class EbankingService
             $bankTransfer = $ninePSBController->bankTransfer($bankTransferType->transactionReference, $bankTransferType->accountNumber, $bankTransferType->bankCode, $bankTransferType->sessionId, $bankTransferType->amount, $bankAccount['data']['account_name'], $bankTransferType->description, $this->bankTransferPartner);
         }
 
+        loginfo([
+     'bank_transfer_partner' => $this->bankTransferPartner,
+     'status' => $bankTransfer['status'] ?? null,
+     'message' => $bankTransfer['message'] ?? null,
+     'response' => $bankTransfer,
+     ], 'BANK TRANSFER PROVIDER RESPONSE');
+
         if (! $bankTransfer['status']) {
             $bankTransfer['status'] = "02";
             return $bankTransfer;
         }
+
 
         $bankTransfer["status"] = "00";
         return $bankTransfer;

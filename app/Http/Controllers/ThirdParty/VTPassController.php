@@ -23,6 +23,7 @@ class VTPassController extends Controller
     public function buyAirtime($transactionId, $network, $amount, $phoneNumber)
     {
 
+    
         try {
             $body = [
                 "request_id" => $transactionId,
@@ -30,6 +31,14 @@ class VTPassController extends Controller
                 "amount"     => $amount,
                 "phone"      => $phoneNumber,
             ];
+
+logInfo([
+    'transaction_id' => $transactionId,
+    'network' => $network,
+    'amount' => $amount,
+    'phone' => $phoneNumber,
+    'body' => $body,
+], 'VTPass Airtime Request');
 
             $buyAirtime = $this->vtpassPostRequest('pay', $body);
 
@@ -176,18 +185,110 @@ class VTPassController extends Controller
         }
     }
 
-    public function getDataBundles($networkProvider)
-    {
-        $endpoint = "service-variations?serviceID=$networkProvider";
+public function getDataBundles($networkProvider)
+{
+    try {
+
+        $endpoint = "service-variations?serviceID=" . urlencode($networkProvider);
+
+        logInfo($endpoint, "VTPass Data Bundles Endpoint");
 
         $dataBundles = $this->vtpassGetRequest($endpoint);
 
-        if (isset($dataBundles['response_description']) == "000") {
-            return ['status' => true, 'message' => 'Data Bundles fetched successfully', 'data' => $dataBundles['content']['varations']];
-        } else {
-            return ['status' => false, 'message' => 'Failed to fetch Data bundles', 'data' => $dataBundles];
+        // Log the COMPLETE response from VTpass
+        logInfo($dataBundles, "VTPass Data Bundles Raw Response");
+
+        // Check whether VTpass returned anything
+        if (empty($dataBundles)) {
+
+            logInfo(
+                "VTpass returned an empty response",
+                "VTPass Data Bundles Error"
+            );
+
+            return [
+                'status'  => false,
+                'message' => 'VTpass returned an empty response',
+                'data'    => []
+            ];
         }
+
+        // Check VTpass response code
+        if (
+            isset($dataBundles['response_description']) &&
+            $dataBundles['response_description'] === "000"
+        ) {
+
+            logInfo(
+                $dataBundles['response_description'],
+                "VTPass Data Bundles Response Code"
+            );
+
+            // VTpass documentation uses "variations"
+            if (
+                isset($dataBundles['content']['variations']) &&
+                is_array($dataBundles['content']['variations'])
+            ) {
+
+                logInfo(
+                    count($dataBundles['content']['variations']),
+                    "VTPass Data Bundles Count"
+                );
+
+                return [
+                    'status'  => true,
+                    'message' => 'Data Bundles fetched successfully',
+                    'data'    => $dataBundles['content']['variations']
+                ];
+            }
+
+            logInfo(
+                $dataBundles,
+                "VTPass Success Response But Variations Missing"
+            );
+
+            return [
+                'status'  => false,
+                'message' => 'VTpass returned success but no data variations were found',
+                'data'    => $dataBundles
+            ];
+        }
+
+        // VTpass returned an error
+        logInfo(
+            [
+                'network_provider'     => $networkProvider,
+                'response_description' => $dataBundles['response_description'] ?? null,
+                'full_response'        => $dataBundles,
+            ],
+            "VTPass Data Bundles FAILED Response"
+        );
+
+        return [
+            'status'  => false,
+            'message' => $dataBundles['response_description']
+                ?? 'VTpass failed to fetch data bundles',
+            'data'    => $dataBundles
+        ];
+
+    } catch (\Exception $e) {
+
+        logInfo(
+            [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ],
+            "VTPass Data Bundles Exception"
+        );
+
+        return [
+            'status'  => false,
+            'message' => 'Exception while fetching data bundles',
+            'data'    => []
+        ];
     }
+}
 
     public function verifyMeterNumber($meterNumber, $electrictyDisco, $type)
     {

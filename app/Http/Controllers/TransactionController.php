@@ -248,7 +248,7 @@ class TransactionController extends Controller
             'scrollspy_offset' => '',
             'alt_menu'         => 0,
             'banks'            => $banks,
-
+ 
         ];
 
         return view('company.transaction.verify_and_reverse_transaction.verify_and_reverse_transaction')->with($data);
@@ -314,8 +314,8 @@ class TransactionController extends Controller
             return response()->json(['status' => 0, 'message' => "Transaction cannot be reversed"]);
         }
 
-        if ($transaction->created_at > Carbon::now()->subMinutes(30)) {
-            return response()->json(['status' => 0, 'message' => "Transaction must be at least 30 minutes before the transaction status can be confirmed"]);
+        if ($transaction->created_at > Carbon::now()->subMinutes(10)) {
+            return response()->json(['status' => 0, 'message' => "Transaction must be at least 10 minutes before the transaction status can be confirmed"]);
         }
 
         $affliateCustomerCharge = 0;

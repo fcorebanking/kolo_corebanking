@@ -2807,7 +2807,7 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
         if ($customerInitialBalance > ($originalAmount - $customerCashbackAmount)) {
 
             $company    = Company::find($companyId);
-            $companyIDs = [1, 29, 36];
+            $companyIDs = [1, 14, 29, 36];
 
             $companyIDsStatus = false;
 
@@ -2882,6 +2882,258 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
     }
     return $response;
 }
+
+//To debit customer and company with cashback, this function is to counter the strictness of the one ontop
+// function debitCustomerAndCompanyWithCompanyCashback(
+//     $customerAccountId,
+//     $companyId,
+//     $originalAmount,
+//     $customerCashback = 0,
+//     $companyCashback = null,
+//     $user = null
+// ) {
+//     if ($originalAmount <= 0) {
+//         return [
+//             'status' => false,
+//             'responseCode' => 0,
+//             'message' => 'Invalid transaction amount',
+//         ];
+//     }
+
+//     $currentUser = Auth::check()
+//         ? Auth::user()
+//         : $user;
+
+//     if (!$currentUser) {
+//         return [
+//             'status' => false,
+//             'responseCode' => 0,
+//             'message' => 'Unauthenticated',
+//         ];
+//     }
+
+//     try {
+//         return DB::transaction(function () use (
+//             $customerAccountId,
+//             $companyId,
+//             $originalAmount,
+//             $customerCashback,
+//             $companyCashback,
+//             $currentUser
+//         ) {
+
+//             /*
+//              * Lock customer wallet.
+//              *
+//              * This prevents two simultaneous transactions from
+//              * reading the same balance and both spending it.
+//              */
+//             $userWallet = user_wallet::where(
+//                 'wb_account_detail_id',
+//                 $customerAccountId
+//             )
+//                 ->lockForUpdate()
+//                 ->first();
+
+//             if (!$userWallet) {
+//                 return [
+//                     'status' => false,
+//                     'responseCode' => 0,
+//                     'message' => 'Customer wallet not found',
+//                 ];
+//             }
+
+//             /*
+//              * Lock company and company wallet.
+//              */
+//             $company = Company::where('id', $companyId)
+//                 ->lockForUpdate()
+//                 ->first();
+
+//             if (!$company) {
+//                 return [
+//                     'status' => false,
+//                     'responseCode' => 0,
+//                     'message' => 'Company not found',
+//                 ];
+//             }
+
+//             $companyWallet = company_wallet::where(
+//                 'company_id',
+//                 $companyId
+//             )
+//                 ->lockForUpdate()
+//                 ->first();
+
+//             if (!$companyWallet) {
+//                 return [
+//                     'status' => false,
+//                     'responseCode' => 0,
+//                     'message' => 'Company wallet not found',
+//                 ];
+//             }
+
+//             /*
+//              * Calculate cashback.
+//              */
+//             $customerCashbackAmount =
+//                 (float) $customerCashback * (float) $originalAmount;
+
+//             $companyCashbackAmount =
+//                 (float) $companyCashback * (float) $originalAmount;
+
+//             /*
+//              * Actual amounts that will leave the wallets.
+//              */
+//             $customerDebitAmount =
+//                 (float) $originalAmount - $customerCashbackAmount;
+
+//             $companyDebitAmount =
+//                 (float) $originalAmount - $companyCashbackAmount;
+
+//             $customerInitialBalance = (float) $userWallet->balance;
+//             $companyInitialBalance = (float) $companyWallet->balance;
+
+//             /*
+//              * Customer balance validation.
+//              */
+//             if ($customerInitialBalance < $customerDebitAmount) {
+
+//                 if ($currentUser->balance_fails < 4) {
+//                     $currentUser->balance_fails += 1;
+//                     $currentUser->save();
+//                 } else {
+//                     restrictUserAccount(
+//                         2,
+//                         'Multiple Insufficient balance trials'
+//                     );
+//                 }
+
+//                 return [
+//                     'status' => false,
+//                     'responseCode' => 0,
+//                     'message' => $currentUser->balance_fails >= 4
+//                         ? 'Your account has been restricted. please contact support'
+//                         : 'Insufficient Funds',
+//                 ];
+//             }
+
+//             /*
+//              * Company balance validation.
+//              *
+//              * No hard-coded company IDs.
+//              * No arbitrary ₦100,000 requirement.
+//              */
+//             if ($companyInitialBalance < $companyDebitAmount) {
+//                 return [
+//                     'status' => false,
+//                     'responseCode' => 0,
+//                     'message' => 'Insufficient company balance',
+//                 ];
+//             }
+
+//             /*
+//              * Customer spend/save logic.
+//              */
+//             $customerBalanceBefore = $customerInitialBalance;
+
+//             $spendSaveCash = debitCustomerSpendSave(
+//                 $customerAccountId,
+//                 $originalAmount
+//             );
+
+//             /*
+//              * Update customer wallet.
+//              */
+//             $customerBalanceAfter =
+//                 $customerInitialBalance - $customerDebitAmount;
+
+//             $userWallet->balance = $customerBalanceAfter;
+//             $userWallet->save();
+
+//             /*
+//              * Update branch wallet if applicable.
+//              */
+//             if (
+//                 isset(
+//                     $userWallet->wb_account_details->user->branch_id
+//                 )
+//             ) {
+//                 $branchWallet = BranchWallet::where(
+//                     'branch_id',
+//                     $userWallet->wb_account_details->user->branch_id
+//                 )
+//                     ->lockForUpdate()
+//                     ->first();
+
+//                 if ($branchWallet) {
+//                     $branchWallet->balance -= (
+//                         $originalAmount + $spendSaveCash
+//                     );
+
+//                     $branchWallet->save();
+//                 }
+//             }
+
+//             /*
+//              * Update company wallet.
+//              */
+//             $companyBalanceAfter =
+//                 $companyInitialBalance - $companyDebitAmount;
+
+//             $companyWallet->balance = $companyBalanceAfter;
+//             $companyWallet->save();
+
+//             /*
+//              * Reset balance failures after successful debit.
+//              */
+//             $currentUser->balance_fails = 0;
+//             $currentUser->save();
+
+//             return [
+//                 'status' => true,
+//                 'message' => 'Amount is Valid',
+//                 'account_id' => $customerAccountId,
+
+//                 'balance_before' => $customerBalanceBefore,
+//                 'balance_after' => $customerBalanceAfter,
+
+//                 'cashback_balance_before' => $customerBalanceAfter,
+//                 'cashback_balance_after' => $customerBalanceAfter,
+
+//                 'company_balance_before' => $companyInitialBalance,
+//                 'company_balance_after' => $companyBalanceAfter,
+
+//                 'company_amount' => $originalAmount,
+
+//                 'customer_cashback' => $customerCashbackAmount,
+//                 'company_cashback' => $companyCashbackAmount,
+
+//                 'company_cashback_balance_before' => $companyBalanceAfter,
+//                 'company_cashback_balance_after' => $companyBalanceAfter,
+
+//                 'spend_save_cash' => $spendSaveCash,
+//             ];
+//         }, 3);
+
+//     } catch (\Throwable $e) {
+
+//         Log::error('CUSTOMER COMPANY DEBIT FAILED', [
+//             'customer_account_id' => $customerAccountId,
+//             'company_id' => $companyId,
+//             'amount' => $originalAmount,
+//             'error' => $e->getMessage(),
+//             'file' => $e->getFile(),
+//             'line' => $e->getLine(),
+//         ]);
+
+//         return [
+//             'status' => false,
+//             'responseCode' => 0,
+//             'message' => 'Unable to process debit at this time. Please try again.',
+//         ];
+//     }
+// }
 
 function debitCustomerAndCompanyWithCompanyCashbackServiceWallet($customerAccountId, $companyId, $originalAmount, $customerCashback = 0, $companyCashback = null, $user = null)
 {

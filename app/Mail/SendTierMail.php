@@ -1,6 +1,8 @@
 <?php
+
 namespace App\Mail;
 
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -9,7 +11,8 @@ class SendTierMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    protected $data;
+    // FIX 1: Changed visibility to public so Blade/Markdown templates can read it automatically
+    public $data;
 
     /**
      * Create a new message instance.
@@ -18,7 +21,6 @@ class SendTierMail extends Mailable
      */
     public function __construct($data)
     {
-        //
         $this->data = $data;
     }
 
@@ -29,8 +31,26 @@ class SendTierMail extends Mailable
      */
     public function build()
     {
-        \logInfo(env('MAIL_FROM_ADDRESS'), "Mail from ");
-        return $this->from(env('MAIL_FROM_ADDRESS'), $this->data['company_name'])->subject($this->data['subtext'])->markdown('mails.tier-mail')->with('data', $this->data);
+        try {
+            // FIX 2: Set a safe environment fallback default for the email address
+            $fromAddress = env('MAIL_FROM_ADDRESS', 'noreply@finova.ng');
+            
+            \logInfo($fromAddress, "Mail from ");
 
+            // FALLBACKS: Dynamically extract app name or use generic string fallbacks
+            $senderName = $this->data['company_name'] ?? config('app.name', 'Finova');
+            $subjectText = $this->data['subtext'] ?? 'Account Tier Update';
+
+            return $this->from($fromAddress, $senderName)
+                        ->subject($subjectText)
+                        ->markdown('mails.tier-mail')
+                        ->with('data', $this->data);
+
+        } catch (Exception $e) {
+            \logInfo($e->getMessage(), 'SendTierMail Mailable Build Error');
+            
+            // Re-throw so your execution context registers the failure rather than failing silently
+            throw $e;
+        }
     }
 }

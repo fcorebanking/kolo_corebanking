@@ -14,7 +14,7 @@
             <form id='submit_Rform' enctype="multipart/form-data">
                 <div class="row pb-4">
 
-                    <div class="col-md-8 offset-md-2 alert alert-info mb-20"><b>Notice:</b> Kindly ensure transaction has been performed at least 30mins ago before attempting to check Nibss status.  If the Bank transfer has failed reversal will be done else contact us</div>
+                    <div class="col-md-8 offset-md-2 alert alert-info mb-20"><b>Notice:</b> Kindly ensure transaction has been performed at least 10mins ago before attempting to check Nibss status.  If the Bank transfer has failed reversal will be done else contact us</div>
 
                     <div class="form-group mb-4 col-sm-12 col-md-8 offset-md-2">
                         <label for="transaction_reference">Transaction Reference</label>

@@ -1098,6 +1098,8 @@ public function creditDebitCustomerAccount(Request $request)
 
     public function transferToBankAccount(Request $request)
     {
+        loginfo(["request" => $request->all()], "Bank Transfer Request");
+
         $userId  = auth()->user()->id ?? $request->id;
         $lockKey = "user:last_request:{$userId}";
         $lock    = Cache::lock($lockKey, 20); // 10-second lock
@@ -1196,7 +1198,7 @@ public function creditDebitCustomerAccount(Request $request)
                             logInfo(json_encode($charge), "customer Charge stamp duty");
 
                             // $charge =  $charge < $wbaCharge && $charge > 0 ?  ($wbaCharge + ($wbaCharge * 0.01)) : $charge;
-/*
+      /*
                     $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
 
                     if (! $debitCustomer["status"]) {
@@ -1214,7 +1216,7 @@ public function creditDebitCustomerAccount(Request $request)
                     $companyBalanceAfter        = $debitCustomer['company_balance_after'];
                     $companyChargeBalanceBefore = $debitCustomer['company_charge_balance_before'];
                     $companyChargeBalanceAfter  = $debitCustomer['company_charge_balance_after'];
-*/
+     */
 
                             $customerBalance = $this->checkCustomerAndCompanyBalance($request->final_amount);
 
@@ -5455,6 +5457,12 @@ public function creditDebitCustomerAccount(Request $request)
 
         logInfo($company_debit_bankcode, "company_debit_bankcode");
 
+        logInfo([
+    'company_id' => auth()->user()->company_id,
+    'company_debit_bankcode' => $company_debit_bankcode,
+    'amount' => $request->final_amount,
+], 'BEFORE AIRTIME DEBIT');
+
         $debitCustomer = match ($company_debit_bankcode) {
 
             90286 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.05, 0.015), //7000299948
@@ -5465,6 +5473,8 @@ public function creditDebitCustomerAccount(Request $request)
         if (! $debitCustomer['status']) {
             return response()->json($debitCustomer, 400);
         }
+
+        logInfo($debitCustomer, 'AFTER AIRTIME DEBIT');
 
         $buyAirtime = match ($company_debit_bankcode) {
 
@@ -6697,6 +6707,8 @@ if (!$checkVTPASSBalance['status']) {
             return response()->json($ra, 406);
         }
 
+        logInfo($request->all(), "Request body");
+        
         $companyId = auth()->user()->company->id ?? $request->company_id;
 
         logInfo($companyId, "verifyBVN company id");
@@ -6708,7 +6720,7 @@ if (!$checkVTPASSBalance['status']) {
         $company_bank_id = (int) $bankID;
 
         return match ($company_bank_id) {
-
+ 
             190 => $this->verifyIdentityWithSafeHaven($request), //7000299948
             default
                 => $this->debitCompanyWithSubscriptionBVN($request, $companyId),
@@ -7088,29 +7100,28 @@ public function safeHavenIdentityCheckResponse(Request $request)
         return response()->json(['status' => true, 'message' => 'Transactions fetched successfully', 'data' => $transactions]);
     }
 
-    public function getDataBundles($networkProvider)
-    {
-        $company_debit_bankcode = $this->getCompanyBankCode();
+public function getDataBundles($networkProvider)
+{
+    $dataBundles = $this->vtPassControllerSercice('getDataBundles', [
+        'networkProvider' => $networkProvider,
+    ]);
 
-        $dataBundles = match ($company_debit_bankcode) {
+    logInfo($dataBundles, "Get Data Bundles Service Response");
 
-            90286 => $this->vtPassControllerSercice('getDataBundles', [
-                'networkProvider' => $networkProvider,
-
-            ]), //7000299948
-            default
-                  => $this->vtPassControllerSercice('getDataBundles', [
-                'networkProvider' => $networkProvider,
-
-            ]),
-        };
-
-        if ($dataBundles['status']) {
-            return ['status' => true, 'message' => 'Data Bundles fetched successfully', 'data' => $dataBundles['data']];
-        } else {
-            return ['status' => false, 'message' => 'Failed to fetch Data bundles', 'data' => []];
-        }
+    if ($dataBundles['status']) {
+        return [
+            'status'  => true,
+            'message' => 'Data Bundles fetched successfully',
+            'data'    => $dataBundles['data']
+        ];
     }
+
+    return [
+        'status'  => false,
+        'message' => $dataBundles['message'] ?? 'Failed to fetch Data bundles',
+        'data'    => $dataBundles['data'] ?? []
+    ];
+}
 
     public function getDataBundlesList($networkProvider)
     {
@@ -7676,94 +7687,102 @@ public function checkVTPASSBalance($originalAmount)
         return $ninePSBController->getHashed($request);
     }
 
-    public function checkCustomerAndCompanyBalanceBeforeBuyAirtime(
-        $customerAccountId,
-        $companyId,
-        $originalAmount,
-        $customerCashback = 0,
-        $companyCashback = null,
-        $user = null
-    ) {
-        $response = [
-            "status"       => false,
-            "responseCode" => 0,
-            "message"      => "An unexpected error occurred",
-        ];
-
-        // Determine user
-        $currentUser = Auth::check() ? auth()->user() : $user;
-
-        if ($originalAmount <= 0) {
-            return [
-                "status"       => false,
-                "responseCode" => 0,
-                "message"      => "Invalid transaction amount",
-            ];
-        }
-
-        // Get customer wallet
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
-
-        if (! $userWallet) {
-            return [
-                "status"       => false,
-                "responseCode" => 0,
-                "message"      => "Invalid customer provided",
-            ];
-        }
-
-        $customerInitialBalance = $userWallet->balance;
-
-        // Compute cashback values (safe defaults)
-        $customerCashbackAmount = (float) $customerCashback * $originalAmount;
-        $companyCashbackAmount  = (float) $companyCashback * $originalAmount;
-
-        // ✅ Ensure customer has enough to pay after cashback
-        if ($customerInitialBalance < ($originalAmount - $customerCashbackAmount)) {
-            return [
-                "status"       => false,
-                "responseCode" => 0,
-                "message"      => "Insufficient customer balance",
-            ];
-        }
-
-        // Fetch company and check its wallet
-        $company = Company::find($companyId);
-
-        if (! $company || ! $company->wallet) {
-            return [
-                "status"       => false,
-                "responseCode" => 0,
-                "message"      => "Invalid company or wallet not found",
-            ];
-        }
-
-        $companyIDs       = [1, 29, 36, 63, 67, 80, 92, 97];
-        $companyIDsStatus = in_array($company->id, $companyIDs);
-
-        $companyAfterBalance = $company->wallet->balance - $originalAmount;
-
-        logInfo(json_encode($companyAfterBalance), "checkCustomerAndCompanyBalanceBeforeBuyAirtime Company after balance for cash back");
-
-        // ✅ Logic for switcher company wallet balance
-        if ($company->wallet->balance > 100000 && $companyAfterBalance > 100000) {
-            $companyIDsStatus = true;
-        }
-
-        if ($company->wallet->balance > 100100 || $companyIDsStatus) {
-            return [
-                "status"       => true,
-                "responseCode" => 1,
-                "message"      => "Amount is valid",
-            ];
-        }
-
+public function checkCustomerAndCompanyBalanceBeforeBuyAirtime(
+    $customerAccountId,
+    $companyId,
+    $originalAmount,
+    $customerCashback = 0,
+    $companyCashback = null,
+    $user = null
+) {
+    // Validate transaction amount
+    if ($originalAmount <= 0) {
         return [
             "status"       => false,
             "responseCode" => 0,
-            "message"      => "Switcher-related error... Please contact support",
+            "message"      => "Invalid transaction amount",
         ];
     }
+
+    // Get customer wallet
+    $userWallet = user_wallet::where(
+        'wb_account_detail_id',
+        $customerAccountId
+    )->first();
+
+    if (!$userWallet) {
+        return [
+            "status"       => false,
+            "responseCode" => 0,
+            "message"      => "Invalid customer provided",
+        ];
+    }
+
+    $customerInitialBalance = (float) $userWallet->balance;
+
+    // Calculate cashback
+    $customerCashbackAmount =
+        (float) $customerCashback * (float) $originalAmount;
+
+    $companyCashbackAmount =
+        (float) $companyCashback * (float) $originalAmount;
+
+    // Amount customer actually needs to cover
+    $customerRequiredAmount =
+        (float) $originalAmount - $customerCashbackAmount;
+
+    // Check customer balance
+    if ($customerInitialBalance < $customerRequiredAmount) {
+        return [
+            "status"       => false,
+            "responseCode" => 0,
+            "message"      => "Insufficient customer balance",
+        ];
+    }
+
+    // Fetch company
+    $company = Company::find($companyId);
+
+    if (!$company || !$company->wallet) {
+        return [
+            "status"       => false,
+            "responseCode" => 0,
+            "message"      => "Invalid company or wallet not found",
+        ];
+    }
+
+    $companyInitialBalance = (float) $company->wallet->balance;
+
+    // Calculate the company's expected balance after transaction
+    $companyAfterBalance =
+        $companyInitialBalance - (float) $originalAmount;
+
+    logInfo([
+        'company_id'             => $company->id,
+        'company_balance_before' => $companyInitialBalance,
+        'transaction_amount'     => $originalAmount,
+        'company_balance_after'  => $companyAfterBalance,
+        'customer_balance'       => $customerInitialBalance,
+        'customer_required'      => $customerRequiredAmount,
+        'customer_cashback'      => $customerCashbackAmount,
+        'company_cashback'       => $companyCashbackAmount,
+    ], "Airtime Balance Check");
+
+    // Company must be able to cover the transaction
+    if ($companyInitialBalance < (float) $originalAmount) {
+        return [
+            "status"       => false,
+            "responseCode" => 0,
+            "message"      => "Switcher Error... Insufficient company balance",
+        ];
+    }
+
+    return [
+        "status"       => true,
+        "responseCode" => 1,
+        "message"      => "Amount is valid",
+    ];
+}
 
     public function checkCustomerAndCompanyBalanceBeforeBuyElectricity(
         $customerAccountId,
@@ -8803,6 +8822,7 @@ public function withdrawSpendSave(Request $request)
 
         return $service;
     }
+
     private function safeHavenControllerSercice($action, array $data = [])
     {
 

@@ -37,85 +37,100 @@ class TargetSavingsService
     /**
      * Create a Target Savings account.
      */
-    public function createTarget(
+public function createTarget(
+    $user,
+    string $targetName,
+    float $targetAmount,
+    string $withdrawalDate
+): TargetSaving {
+    return DB::transaction(function () use (
         $user,
-        string $targetName,
-        float $targetAmount,
-        string $withdrawalDate
-    ): TargetSaving {
-        return DB::transaction(function () use (
-            $user,
-            $targetName,
-            $targetAmount,
-            $withdrawalDate
-        ) {
+        $targetName,
+        $targetAmount,
+        $withdrawalDate
+    ) {
 
-            $companyId = $user->company_id;
+        $companyId = $user->company_id;
 
-            $companySettings = $user->company->setting;
+        /*
+         * Resolve company settings.
+         */
+        $companySettings = $user->company->setting;
 
-            if (!$companySettings) {
-                throw new RuntimeException(
-                    'Company savings settings could not be found.'
-                );
-            }
+        if (!$companySettings) {
+            throw new RuntimeException(
+                'Company savings settings could not be found.'
+            );
+        }
 
-            $withdrawDate = Carbon::parse($withdrawalDate)
-                ->startOfDay();
+        /*
+         * Validate maturity date.
+         */
+        $withdrawDate = Carbon::parse($withdrawalDate)
+            ->startOfDay();
 
-            if ($withdrawDate->lte(now()->startOfDay())) {
-                throw new RuntimeException(
-                    'Withdrawal date must be a future date.'
-                );
-            }
+        if ($withdrawDate->lte(now()->startOfDay())) {
+            throw new RuntimeException(
+                'Withdrawal date must be a future date.'
+            );
+        }
 
-            /*
-             * Resolve the customer's first Savings account.
-             *
-             * Account ID is never accepted from the API request.
-             */
-            $account = $user->wb_account_details()
-                ->whereHas('accountProduct', function ($query) {
-                    $query->where('account_type', 'Savings');
-                })
-                ->first();
+        /*
+         * Resolve the customer's first Savings account.
+         *
+         * wb_account_details.accountType() points to
+         * savings_product.
+         */
+        $account = $user->wb_account_details()
+            ->whereHas('accountType', function ($query) {
+                $query->where('account_type', 'Savings');
+            })
+            ->first();
 
-            if (!$account) {
-                throw new RuntimeException(
-                    'Savings account could not be found.'
-                );
-            }
+        if (!$account) {
+            throw new RuntimeException(
+                'Savings account could not be found.'
+            );
+        }
 
-            return TargetSaving::create([
-                'user_id' => $user->id,
-                'company_id' => $companyId,
+        /*
+         * Create Target Savings.
+         *
+         * The company configuration is snapshotted here so that
+         * future company-setting changes do not affect this target.
+         */
+        return TargetSaving::create([
+            'user_id' => $user->id,
 
-                'source_account_id' => $account->id,
-                'destination_account_id' => $account->id,
+            'company_id' => $companyId,
 
-                'target_name' => $targetName,
-                'target_amount' => $targetAmount,
+            'source_account_id' => $account->id,
 
-                'current_balance' => 0,
-                'total_deposited' => 0,
-                'total_interest_earned' => 0,
+            'destination_account_id' => $account->id,
 
-                /*
-                 * Snapshot company settings at creation time.
-                 */
-                'interest_rate' =>
-                    $companySettings->target_savings_interest_rate ?? 0,
+            'target_name' => $targetName,
 
-                'early_withdrawal_fee_percentage' =>
-                    $companySettings
-                        ->target_savings_early_withdrawal_fee_percentage ?? 0,
+            'target_amount' => $targetAmount,
 
-                'withdrawal_date' => $withdrawDate,
+            'current_balance' => 0,
 
-                'status' => 'active',
-            ]);
-        });
-    }
+            'total_deposited' => 0,
+
+            'total_interest_earned' => 0,
+
+            'interest_rate' =>
+                $companySettings->target_savings_interest_rate ?? 0,
+
+            'early_withdrawal_fee_percentage' =>
+                $companySettings
+                    ->target_savings_early_withdrawal_fee_percentage ?? 0,
+
+            'withdrawal_date' => $withdrawDate,
+
+            'status' => 'active',
+        ]);
+    });
+}
 
     /**
      * Deposit money into Target Savings.

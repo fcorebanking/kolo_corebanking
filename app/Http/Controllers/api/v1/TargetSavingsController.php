@@ -8,6 +8,7 @@ use App\Services\TargetSavingsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use OpenApi\Attributes as OA;
 use Throwable;
 
 class TargetSavingsController extends Controller
@@ -22,6 +23,56 @@ class TargetSavingsController extends Controller
     /**
      * Create a new Target Savings.
      */
+    #[OA\Post(
+        path: "/api/v1/target-savings/create",
+        summary: "Create a Target Savings",
+        description: "Creates a new Target Savings plan for the authenticated user using the company's configured interest rate and early withdrawal fee.",
+        tags: ["Target Savings"],
+        security: [["bearerAuth" => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["target_name", "target_amount", "withdrawal_date"],
+                properties: [
+                    new OA\Property(
+                        property: "target_name",
+                        type: "string",
+                        example: "My New Car"
+                    ),
+                    new OA\Property(
+                        property: "target_amount",
+                        type: "number",
+                        format: "float",
+                        example: 1000000
+                    ),
+                    new OA\Property(
+                        property: "withdrawal_date",
+                        type: "string",
+                        format: "date",
+                        example: "2026-12-31"
+                    )
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Target Savings created successfully"
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Unauthenticated"
+            ),
+            new OA\Response(
+                response: 422,
+                description: "Validation failed"
+            ),
+            new OA\Response(
+                response: 400,
+                description: "Unable to create Target Savings"
+            )
+        ]
+    )]
     public function store(Request $request): JsonResponse
     {
         try {
@@ -90,6 +141,39 @@ class TargetSavingsController extends Controller
     /**
      * Get the authenticated user's Target Savings.
      */
+    #[OA\Get(
+        path: "/api/v1/target-savings/list",
+        summary: "Get Target Savings list",
+        description: "Fetches all Target Savings plans belonging to the authenticated user. An optional status filter may be supplied.",
+        tags: ["Target Savings"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "status",
+                in: "query",
+                required: false,
+                description: "Optional Target Savings status filter.",
+                schema: new OA\Schema(
+                    type: "string",
+                    example: "active"
+                )
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Target Savings retrieved successfully"
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Unauthenticated"
+            ),
+            new OA\Response(
+                response: 500,
+                description: "Unable to retrieve Target Savings"
+            )
+        ]
+    )]
     public function index(Request $request): JsonResponse
     {
         try {
@@ -139,6 +223,43 @@ class TargetSavingsController extends Controller
     /**
      * Get one Target Savings.
      */
+    #[OA\Get(
+        path: "/api/v1/target-savings/details/{id}",
+        summary: "Get Target Savings details",
+        description: "Fetches a specific Target Savings belonging to the authenticated user, including its transaction history.",
+        tags: ["Target Savings"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "id",
+                in: "path",
+                required: true,
+                description: "Target Savings ID.",
+                schema: new OA\Schema(
+                    type: "integer",
+                    example: 1
+                )
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Target Savings retrieved successfully"
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Unauthenticated"
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Target Savings not found"
+            ),
+            new OA\Response(
+                response: 500,
+                description: "Unable to retrieve Target Savings"
+            )
+        ]
+    )]
     public function show(Request $request, $id): JsonResponse
     {
         try {
@@ -190,6 +311,61 @@ class TargetSavingsController extends Controller
     /**
      * Deposit money into Target Savings.
      */
+    #[OA\Post(
+        path: "/api/v1/target-savings/deposit/{id}",
+        summary: "Deposit into Target Savings",
+        description: "Deposits money from the authenticated user's source savings account into the specified Target Savings plan.",
+        tags: ["Target Savings"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "id",
+                in: "path",
+                required: true,
+                description: "Target Savings ID.",
+                schema: new OA\Schema(
+                    type: "integer",
+                    example: 1
+                )
+            )
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["amount"],
+                properties: [
+                    new OA\Property(
+                        property: "amount",
+                        type: "number",
+                        format: "float",
+                        example: 10000
+                    )
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Target Savings deposit successful"
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Unauthenticated"
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Target Savings not found"
+            ),
+            new OA\Response(
+                response: 422,
+                description: "Validation failed"
+            ),
+            new OA\Response(
+                response: 400,
+                description: "Target Savings deposit failed"
+            )
+        ]
+    )]
     public function deposit(Request $request, $id): JsonResponse
     {
         try {
@@ -263,6 +439,43 @@ class TargetSavingsController extends Controller
      * This may be either a maturity withdrawal or
      * an early withdrawal depending on the date/status.
      */
+    #[OA\Post(
+        path: "/api/v1/target-savings/withdraw/{id}",
+        summary: "Withdraw from Target Savings",
+        description: "Withdraws the full available Target Savings balance. If the withdrawal is before the maturity date, the configured early withdrawal fee is deducted. On maturity, the full matured balance including accrued interest is released.",
+        tags: ["Target Savings"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "id",
+                in: "path",
+                required: true,
+                description: "Target Savings ID.",
+                schema: new OA\Schema(
+                    type: "integer",
+                    example: 1
+                )
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Target Savings withdrawal successful"
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Unauthenticated"
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Target Savings not found"
+            ),
+            new OA\Response(
+                response: 400,
+                description: "Target Savings withdrawal failed"
+            )
+        ]
+    )]
     public function withdraw(Request $request, $id): JsonResponse
     {
         try {
@@ -313,6 +526,43 @@ class TargetSavingsController extends Controller
     /**
      * Get Target Savings transaction history.
      */
+    #[OA\Get(
+        path: "/api/v1/target-savings/transactions/{id}",
+        summary: "Get Target Savings transactions",
+        description: "Fetches the transaction history for a specific Target Savings plan belonging to the authenticated user.",
+        tags: ["Target Savings"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "id",
+                in: "path",
+                required: true,
+                description: "Target Savings ID.",
+                schema: new OA\Schema(
+                    type: "integer",
+                    example: 1
+                )
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Target Savings transactions retrieved successfully"
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Unauthenticated"
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Target Savings not found"
+            ),
+            new OA\Response(
+                response: 500,
+                description: "Unable to retrieve Target Savings transactions"
+            )
+        ]
+    )]
     public function transactions(Request $request, $id): JsonResponse
     {
         try {

@@ -113,36 +113,80 @@ class EbankingService
         return $bankTransfer;
     }
 
-    public function verifyAccountNumberFull($bankCode, $accountNumber)
-    {
-        $bankAccount = [
-            'status'  => false,
-            'message' => "Service unavailable. Please try again later",
-        ];
+public function verifyAccountNumberFull($bankCode, $accountNumber)
+{
+    logInfo([
+        'account_verification_partner' => $this->accountVerificationPartner,
+        'bank_code' => $bankCode,
+        'account_number' => $accountNumber,
+    ], 'VERIFY BANK ACCOUNT - PARTNER');
 
-        if ($this->accountVerificationPartner == 1 || $this->accountVerificationPartner == 15) {
-            $kudaController = new KudaController();
-            $bankAccount    = $kudaController->verifyBankAccount($bankCode, $accountNumber);
-        } else if ($this->accountVerificationPartner == 17) {
-            $kudaController = new KudaBusinessController();
-            $bankAccount    = $kudaController->verifyBankAccount($bankCode, $accountNumber);
-        } else if ($this->accountVerificationPartner == 2) {
-            $wovenController = new WovenController();
-            $bankAccount     = $wovenController->verifyBankAccountNumberGuzzle($bankCode, $accountNumber);
-        } else if ($this->accountVerificationPartner == 11) {
-            $monnifyController = new MonnifyController();
-            $bankAccount       = $monnifyController->verifyBankAccountNumberGuzzle($bankCode, $accountNumber);
-        } else if ($this->accountVerificationPartner == 13) {
-            $safeHavenController = new SafehavenController();
-            $bankAccount         = $safeHavenController->verifyAccount($bankCode, $accountNumber);
-        } else if ($this->accountVerificationPartner == 19) {
+    $bankAccount = [
+        'status'  => false,
+        'message' => "Service unavailable. Please try again later",
+    ];
 
-            $ninePSBController = new NinePSBController();
+    if ($this->accountVerificationPartner == 1 || $this->accountVerificationPartner == 15) {
 
-            $bankTransfer = $ninePSBController->verifyBankAccount($bankCode, $accountNumber);
-        }
-        return $bankAccount;
+        logInfo('Using Kuda for bank account verification', 'VERIFY BANK ACCOUNT');
+
+        $kudaController = new KudaController();
+
+        $bankAccount = $kudaController->verifyBankAccount(
+            $bankCode,
+            $accountNumber
+        );
+
+    } else if ($this->accountVerificationPartner == 17) {
+
+        $kudaController = new KudaBusinessController();
+
+        $bankAccount = $kudaController->verifyBankAccount(
+            $bankCode,
+            $accountNumber
+        );
+
+    } else if ($this->accountVerificationPartner == 2) {
+
+        $wovenController = new WovenController();
+
+        $bankAccount = $wovenController->verifyBankAccountNumberGuzzle(
+            $bankCode,
+            $accountNumber
+        );
+
+    } else if ($this->accountVerificationPartner == 11) {
+
+        $monnifyController = new MonnifyController();
+
+        $bankAccount = $monnifyController->verifyBankAccountNumberGuzzle(
+            $bankCode,
+            $accountNumber
+        );
+
+    } else if ($this->accountVerificationPartner == 13) {
+
+        $safeHavenController = new SafehavenController();
+
+        $bankAccount = $safeHavenController->verifyAccount(
+            $bankCode,
+            $accountNumber
+        );
+
+    } else if ($this->accountVerificationPartner == 19) {
+
+        $ninePSBController = new NinePSBController();
+
+        $bankAccount = $ninePSBController->verifyBankAccount(
+            $bankCode,
+            $accountNumber
+        );
     }
+
+    logInfo($bankAccount, 'VERIFY BANK ACCOUNT - FINAL RESPONSE');
+
+    return $bankAccount;
+}
 
     public function sanitizeAccountNumber($countryCode, $accountNumber)
     {

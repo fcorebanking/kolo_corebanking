@@ -430,9 +430,14 @@ class KudaController extends WebhookController
 
             $login = $this->login();
 
-            if (! $login['status']) {
-                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
-            }
+logInfo($login, 'KUDA LOGIN RESPONSE');
+
+if (! $login['status']) {
+    return [
+        'status' => false,
+        'message' => 'Bank Unavailable. Try again later',
+    ];
+}
 
             \logInfo($requestBody, "Kuda Request body");
 

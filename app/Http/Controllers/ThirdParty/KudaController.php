@@ -45,7 +45,7 @@ class KudaController extends WebhookController
 
         $header = ['Content-Type' => 'application/json'];
         try {
-            $response = Http::post($this->baseUrl . "v2.1/Account/GetToken", $body);
+            $response = Http::post($this->baseUrl . "Account/GetToken", $body);
 
             logInfo($response, "Kuda Bank Code in kuda controller body");
 
@@ -430,14 +430,14 @@ class KudaController extends WebhookController
 
             $login = $this->login();
 
-logInfo($login, 'KUDA LOGIN RESPONSE');
+      logInfo($login, 'KUDA LOGIN RESPONSE');
 
-if (! $login['status']) {
-    return [
+     if (! $login['status']) {
+     return [
         'status' => false,
         'message' => 'Bank Unavailable. Try again later',
-    ];
-}
+     ];
+     }
 
             \logInfo($requestBody, "Kuda Request body");
 

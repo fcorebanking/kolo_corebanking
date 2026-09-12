@@ -90,6 +90,8 @@ class TransactionController extends Controller
     public function verifyBankAccount(Request $request)
     {
 
+        logInfo($request->all(), "Verify Bank Account Request");
+
         $validation = Validator::make($request->all(), [
             "bank_code"      => 'required',
             "account_number" => 'required|numeric|gt:0',

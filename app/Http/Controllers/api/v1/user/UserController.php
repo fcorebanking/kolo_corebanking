@@ -100,7 +100,7 @@ class UserController extends Controller
                 // $sliders = CarouselImage::where('status_id', 1)->get("image_url");
                 $sliders = CarouselImage::where(['status_id' => 1, 'company_id' => auth()->user()->company_id])->get("image_url");
 
-            $total_wallet_balance_currency = 0;
+            $total_wallet_balance = 0;
 
             foreach (Auth::user()->accounts as $key => $wallet) {
                 $userWallet        = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
@@ -113,9 +113,9 @@ class UserController extends Controller
                     \logInfo($userWalletAccount->currency_id, "User Wallet Account Currency id");
                     $convertedAmount  = $this->getExchangeRates($userWallet->balance, Auth::user()->company->currency_id, $userWalletAccount->currency_id);
                     \logInfo($convertedAmount['conversion_result'], "User Converted Amount");
-                    $total_wallet_balance_currency += $convertedAmount['conversion_result'];
+                    $total_wallet_balance += $convertedAmount['conversion_result'];
                 } else {
-                    $total_wallet_balance_currency = $userWallet->balance;
+                    $total_wallet_balance += $userWallet->balance;
                 }
             }
 
@@ -163,7 +163,7 @@ class UserController extends Controller
                     "is_card_available"            => count($virtualCard) > 0,
                     "accounts"                     => $wb_accounts,
                     "terminals"                    => $myUserTerminals,
-                    "total_wallet_balance_currency" => $total_wallet_balance_currency,
+                    "total_wallet_balance"         => $total_wallet_balance,
                     //$request->user()->wb_account_details,
                 ];
 

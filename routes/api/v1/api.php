@@ -466,4 +466,19 @@ Route::prefix('/target-savings')->middleware('auth:api')->group(function () {
 
     Route::get('/transactions/{id}', [TargetSavingsController::class, 'transactions']);
 
+    Route::get(
+    '/target-savings/company/list',
+    [TargetSavingsController::class, 'companyIndex']
+);
+
+Route::get(
+    '/target-savings/company/settings',
+    [TargetSavingsController::class, 'companySettings']
+);
+
+Route::put(
+    '/target-savings/company/settings',
+    [TargetSavingsController::class, 'updateCompanySettings']
+);
+
 });

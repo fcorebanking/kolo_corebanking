@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 use Throwable;
+use Illuminate\Support\Facades\DB;
 
 class TargetSavingsController extends Controller
 {
@@ -606,6 +607,396 @@ class TargetSavingsController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Unable to retrieve Target Savings transactions.',
+            ], 500);
+        }
+    }
+
+        /**
+     * Get all Target Savings belonging to users in the
+     * authenticated administrator's company.
+     */
+    #[OA\Get(
+        path: "/api/v1/target-savings/company/list",
+        summary: "Get company Target Savings",
+        description: "Returns all Target Savings belonging to users under the authenticated administrator's company. The company is determined automatically from the authenticated user.",
+        tags: ["Target Savings - Admin"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "status",
+                in: "query",
+                required: false,
+                description: "Optional Target Savings status filter.",
+                schema: new OA\Schema(
+                    type: "string",
+                    example: "active"
+                )
+            ),
+            new OA\Parameter(
+                name: "per_page",
+                in: "query",
+                required: false,
+                description: "Number of records per page.",
+                schema: new OA\Schema(
+                    type: "integer",
+                    minimum: 1,
+                    maximum: 100,
+                    example: 20
+                )
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Company Target Savings retrieved successfully"
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Unauthenticated"
+            ),
+            new OA\Response(
+                response: 403,
+                description: "Administrator access required"
+            ),
+            new OA\Response(
+                response: 500,
+                description: "Unable to retrieve company Target Savings"
+            )
+        ]
+    )]
+    public function companyIndex(Request $request): JsonResponse
+    {
+        try {
+
+            $user = auth('api')->user();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            /*
+             * Only administrators/root users should be able
+             * to view Target Savings belonging to the entire company.
+             *
+             * Adjust these permission names if your application's
+             * actual admin permissions use different names.
+             */
+            if (!apiCando('root|admin')) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Administrator access required.',
+                ], 403);
+            }
+
+            if (empty($user->company_id)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Your account is not linked to a company.',
+                ], 400);
+            }
+
+            $query = TargetSaving::query()
+                ->where('company_id', $user->company_id)
+                ->orderByDesc('id');
+
+            /*
+             * Optional status filter.
+             */
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            /*
+             * Prevent excessively large API responses.
+             */
+            $perPage = min(
+                max((int) $request->get('per_page', 20), 1),
+                100
+            );
+
+            $targets = $query->paginate($perPage);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Company Target Savings retrieved successfully.',
+                'company_id' => $user->company_id,
+                'data' => $targets,
+            ], 200);
+
+        } catch (Throwable $e) {
+
+            report($e);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to retrieve company Target Savings.',
+            ], 500);
+        }
+    }
+
+        /**
+     * Get the authenticated company's Target Savings settings.
+     */
+    #[OA\Get(
+        path: "/api/v1/target-savings/company/settings",
+        summary: "Get company Target Savings settings",
+        description: "Returns the Target Savings interest rate and early withdrawal fee configured for the authenticated administrator's company.",
+        tags: ["Target Savings - Admin"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Target Savings settings retrieved successfully"
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Unauthenticated"
+            ),
+            new OA\Response(
+                response: 403,
+                description: "Administrator access required"
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Company settings not found"
+            ),
+            new OA\Response(
+                response: 500,
+                description: "Unable to retrieve Target Savings settings"
+            )
+        ]
+    )]
+    public function companySettings(Request $request): JsonResponse
+    {
+        try {
+
+            $user = auth('api')->user();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            if (!apiCando('root|admin')) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Administrator access required.',
+                ], 403);
+            }
+
+            if (empty($user->company_id)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Your account is not linked to a company.',
+                ], 400);
+            }
+
+            $settings = DB::table('company_settings')
+                ->where('company_id', $user->company_id)
+                ->first([
+                    'company_id',
+                    'target_savings_interest_rate',
+                    'target_savings_early_withdrawal_fee_percentage',
+                ]);
+
+            if (!$settings) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Company settings not found.',
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Target Savings settings retrieved successfully.',
+                'data' => $settings,
+            ], 200);
+
+        } catch (Throwable $e) {
+
+            report($e);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to retrieve Target Savings settings.',
+            ], 500);
+        }
+    }
+
+        /**
+     * Get or update the authenticated company's Target Savings settings.
+     */
+    #[OA\Put(
+        path: "/api/v1/target-savings/company/settings",
+        summary: "Update company Target Savings settings",
+        description: "Updates the Target Savings annual interest rate and early withdrawal fee percentage for the authenticated administrator's company.",
+        tags: ["Target Savings - Admin"],
+        security: [["bearerAuth" => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: [
+                    "target_savings_interest_rate",
+                    "target_savings_early_withdrawal_fee_percentage"
+                ],
+                properties: [
+                    new OA\Property(
+                        property: "target_savings_interest_rate",
+                        type: "number",
+                        format: "float",
+                        minimum: 0,
+                        maximum: 100,
+                        example: 12
+                    ),
+                    new OA\Property(
+                        property: "target_savings_early_withdrawal_fee_percentage",
+                        type: "number",
+                        format: "float",
+                        minimum: 0,
+                        maximum: 100,
+                        example: 5
+                    )
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Target Savings settings updated successfully"
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Unauthenticated"
+            ),
+            new OA\Response(
+                response: 403,
+                description: "Administrator access required"
+            ),
+            new OA\Response(
+                response: 422,
+                description: "Validation failed"
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Company settings not found"
+            ),
+            new OA\Response(
+                response: 500,
+                description: "Unable to update Target Savings settings"
+            )
+        ]
+    )]
+    public function updateCompanySettings(Request $request): JsonResponse
+    {
+        try {
+
+            $user = auth('api')->user();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            /*
+             * Only administrators/root users can change
+             * company Target Savings settings.
+             */
+            if (!apiCando('root|admin')) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Administrator access required.',
+                ], 403);
+            }
+
+            if (empty($user->company_id)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Your account is not linked to a company.',
+                ], 400);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'target_savings_interest_rate' => [
+                    'required',
+                    'numeric',
+                    'min:0',
+                    'max:100',
+                ],
+
+                'target_savings_early_withdrawal_fee_percentage' => [
+                    'required',
+                    'numeric',
+                    'min:0',
+                    'max:100',
+                ],
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            /*
+             * Find the existing settings row belonging to
+             * the authenticated administrator's company.
+             *
+             * We deliberately DO NOT accept company_id from
+             * the request.
+             */
+            $companySettings = DB::table('company_settings')
+                ->where('company_id', $user->company_id)
+                ->first();
+
+            if (!$companySettings) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Company settings not found.',
+                ], 404);
+            }
+
+            DB::table('company_settings')
+                ->where('company_id', $user->company_id)
+                ->update([
+                    'target_savings_interest_rate' => $request->target_savings_interest_rate,
+                    'target_savings_early_withdrawal_fee_percentage' => $request->target_savings_early_withdrawal_fee_percentage,
+                    'updated_at' => now(),
+                ]);
+
+            /*
+             * Read the values back from the database so the API
+             * returns exactly what was actually stored.
+             */
+            $updatedSettings = DB::table('company_settings')
+                ->where('company_id', $user->company_id)
+                ->first([
+                    'company_id',
+                    'target_savings_interest_rate',
+                    'target_savings_early_withdrawal_fee_percentage',
+                ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Target Savings settings updated successfully.',
+                'data' => $updatedSettings,
+            ], 200);
+
+        } catch (Throwable $e) {
+
+            report($e);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to update Target Savings settings.',
             ], 500);
         }
     }

@@ -133,6 +133,91 @@ function cando($permission)
     }
 }
 
+function apiCando($permission)
+{
+    $auth = auth('api')->user();
+
+    if (!$auth) {
+        return false;
+    }
+
+    /*
+     * Get the authenticated user's staff permission
+     * and its associated staff role.
+     *
+     * The company is also matched against the authenticated
+     * user's company to prevent cross-company permission checks.
+     */
+    $userRole = StaffpermissionTable::query()
+        ->with([
+            'staffrole.has_permissions.permission'
+        ])
+        ->where('user_id', $auth->id)
+        ->whereHas('staffrole', function ($query) use ($auth) {
+            $query->where('company_id', $auth->company_id);
+        })
+        ->first();
+
+    if (!$userRole) {
+        logInfo([
+            'user_id' => $auth->id,
+            'company_id' => $auth->company_id,
+            'reason' => 'No matching staff permission/role found',
+        ], 'API Permission Check');
+
+        return false;
+    }
+
+    if (!$userRole->staffrole) {
+        logInfo([
+            'user_id' => $auth->id,
+            'company_id' => $auth->company_id,
+            'staffpermission_id' => $userRole->id,
+            'reason' => 'Staff role not found',
+        ], 'API Permission Check');
+
+        return false;
+    }
+
+    /*
+     * Get all permissions attached to this staff role.
+     */
+    $staffPermissions = [];
+
+    foreach ($userRole->staffrole->has_permissions as $rolePermission) {
+        if ($rolePermission->permission) {
+            $staffPermissions[] = $rolePermission->permission->name;
+        }
+    }
+
+    /*
+     * Allow one or more permissions:
+     *
+     * apiCando('admin')
+     * apiCando('admin|root')
+     * apiCando(['admin', 'root'])
+     */
+    $permissions = is_array($permission)
+        ? $permission
+        : explode('|', $permission);
+
+    /*
+     * Log the role and permissions so we can see exactly
+     * what this API user has.
+     */
+    logInfo([
+        'user_id' => $auth->id,
+        'company_id' => $auth->company_id,
+        'staffpermission_id' => $userRole->id,
+        'staffrole_id' => $userRole->staffrole->id,
+        'staffrole_name' => $userRole->staffrole->name,
+        'required_permissions' => $permissions,
+        'available_permissions' => $staffPermissions,
+    ], 'API Permission Check');
+
+    return count(array_intersect($permissions, $staffPermissions)) > 0;
+}
+
 function postRequest($headers, $body, $url)
 {
 

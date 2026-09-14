@@ -698,9 +698,11 @@ class TargetSavingsController extends Controller
                 ], 400);
             }
 
-            $query = TargetSaving::query()
-                ->where('company_id', $user->company_id)
-                ->orderByDesc('id');
+            $query = TargetSaving::with([
+      'user:id,uuid,first_name,last_name,username,email,phone'
+             ])
+       ->where('company_id', $user->company_id)
+       ->orderByDesc('id');
 
             /*
              * Optional status filter.

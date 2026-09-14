@@ -138,15 +138,33 @@ function apiCando($permission)
     $auth = auth('api')->user();
 
     if (!$auth) {
+        logInfo([
+            'reason' => 'Unauthenticated',
+        ], 'API Permission Check');
+
         return false;
     }
 
     /*
-     * Get the authenticated user's staff permission
-     * and its associated staff role.
-     *
-     * The company is also matched against the authenticated
-     * user's company to prevent cross-company permission checks.
+     * Check whether the authenticated user has any
+     * staffpermission record at all.
+     */
+    $staffPermissionRecord = StaffpermissionTable::query()
+        ->where('user_id', $auth->id)
+        ->first();
+
+    if (!$staffPermissionRecord) {
+        logInfo([
+            'user_id' => $auth->id,
+            'company_id' => $auth->company_id,
+            'reason' => 'No staffpermission record exists for this user',
+        ], 'API Permission Check');
+
+        return false;
+    }
+
+    /*
+     * Now load the assigned staff role.
      */
     $userRole = StaffpermissionTable::query()
         ->with([
@@ -162,7 +180,9 @@ function apiCando($permission)
         logInfo([
             'user_id' => $auth->id,
             'company_id' => $auth->company_id,
-            'reason' => 'No matching staff permission/role found',
+            'staffpermission_id' => $staffPermissionRecord->id,
+            'staffrole_id' => $staffPermissionRecord->staffrole_id,
+            'reason' => 'Staff permission exists, but role does not belong to authenticated user company',
         ], 'API Permission Check');
 
         return false;
@@ -173,15 +193,13 @@ function apiCando($permission)
             'user_id' => $auth->id,
             'company_id' => $auth->company_id,
             'staffpermission_id' => $userRole->id,
-            'reason' => 'Staff role not found',
+            'staffrole_id' => $userRole->staffrole_id,
+            'reason' => 'Staff role relationship is missing',
         ], 'API Permission Check');
 
         return false;
     }
 
-    /*
-     * Get all permissions attached to this staff role.
-     */
     $staffPermissions = [];
 
     foreach ($userRole->staffrole->has_permissions as $rolePermission) {
@@ -190,21 +208,10 @@ function apiCando($permission)
         }
     }
 
-    /*
-     * Allow one or more permissions:
-     *
-     * apiCando('admin')
-     * apiCando('admin|root')
-     * apiCando(['admin', 'root'])
-     */
     $permissions = is_array($permission)
         ? $permission
         : explode('|', $permission);
 
-    /*
-     * Log the role and permissions so we can see exactly
-     * what this API user has.
-     */
     logInfo([
         'user_id' => $auth->id,
         'company_id' => $auth->company_id,

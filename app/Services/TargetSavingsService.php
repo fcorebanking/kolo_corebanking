@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\TargetSaving;
 use App\Models\TargetSavingsTransaction;
+use App\Models\CompanyFinancialEntry;
 use App\Models\transactions;
 use App\Models\wb_account_details;
-use App\Models\company_wallet;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -17,9 +17,9 @@ class TargetSavingsService
     /**
      * Transaction type IDs for Target Savings.
      *
-     * 26 = Target Savings Deposit
-     * 27 = Target Savings Early Withdrawal
-     * 28 = Target Savings Maturity
+     * 126 = Target Savings Deposit
+     * 127 = Target Savings Early Withdrawal
+     * 128 = Target Savings Maturity
      */
     private const TRANSACTION_TYPE_DEPOSIT = 126;
     private const TRANSACTION_TYPE_EARLY_WITHDRAWAL = 127;
@@ -35,108 +35,121 @@ class TargetSavingsService
     private const DEBIT = 2;
 
     /**
+     * Financial entry types.
+     */
+    private const FINANCIAL_REVENUE = 'revenue';
+    private const FINANCIAL_EXPENSE = 'expense';
+
+    /**
+     * Financial categories.
+     */
+    private const CATEGORY_TARGET_SAVINGS_INTEREST =
+        'target_savings_interest';
+
+    private const CATEGORY_TARGET_SAVINGS_EARLY_WITHDRAWAL_FEE =
+        'target_savings_early_withdrawal_fee';
+
+    /**
      * Create a Target Savings account.
      */
-public function createTarget(
-    $user,
-    string $targetName,
-    float $targetAmount,
-    string $withdrawalDate
-): TargetSaving {
-    return DB::transaction(function () use (
+    public function createTarget(
         $user,
-        $targetName,
-        $targetAmount,
-        $withdrawalDate
-    ) {
+        string $targetName,
+        float $targetAmount,
+        string $withdrawalDate
+    ): TargetSaving {
+        return DB::transaction(function () use (
+            $user,
+            $targetName,
+            $targetAmount,
+            $withdrawalDate
+        ) {
 
-        $companyId = $user->company_id;
+            $companyId = $user->company_id;
 
-        /*
-         * Resolve company settings.
-         */
-        $companySettings = $user->company->setting;
+            /*
+             * Resolve company settings.
+             */
+            $companySettings = $user->company->setting;
 
-        if (!$companySettings) {
-            throw new RuntimeException(
-                'Company savings settings could not be found.'
-            );
-        }
+            if (!$companySettings) {
+                throw new RuntimeException(
+                    'Company savings settings could not be found.'
+                );
+            }
 
-        /*
-         * Validate maturity date.
-         */
-        $withdrawDate = Carbon::parse($withdrawalDate)
-            ->startOfDay();
+            /*
+             * Validate maturity date.
+             */
+            $withdrawDate = Carbon::parse($withdrawalDate)
+                ->startOfDay();
 
-        if ($withdrawDate->lte(now()->startOfDay())) {
-            throw new RuntimeException(
-                'Withdrawal date must be a future date.'
-            );
-        }
+            if ($withdrawDate->lte(now()->startOfDay())) {
+                throw new RuntimeException(
+                    'Withdrawal date must be a future date.'
+                );
+            }
 
-        /*
-         * Resolve the customer's first account/wallet.
-         *
-         * We are intentionally using the first account because the
-         * Target Savings requirement is to use the customer's first
-         * wallet. The account ID is saved on the Target Savings record
-         * so future operations do not have to guess which account
-         * should be used.
-         */
-        $account = $user->wb_account_details()
-            ->orderBy('id')
-            ->first();
+            /*
+             * Resolve the customer's first account/wallet.
+             */
+            $account = $user->wb_account_details()
+                ->orderBy('id')
+                ->first();
 
-        if (!$account) {
-            throw new RuntimeException(
-                'Customer Savings account could not be found.'
-            );
-        }
+            if (!$account) {
+                throw new RuntimeException(
+                    'Customer Savings account could not be found.'
+                );
+            }
 
-        /*
-         * Create Target Savings.
-         *
-         * Company interest and early-withdrawal fee are snapshotted
-         * from the company's current settings.
-         */
-        return TargetSaving::create([
-            'user_id' => $user->id,
+            /*
+             * Create Target Savings.
+             *
+             * Interest rate and early withdrawal fee are
+             * snapshotted from the company's current settings.
+             */
+            return TargetSaving::create([
+                'user_id' => $user->id,
 
-            'company_id' => $companyId,
+                'company_id' => $companyId,
 
-            'source_account_id' => $account->id,
+                'source_account_id' => $account->id,
 
-            'destination_account_id' => $account->id,
+                'destination_account_id' => $account->id,
 
-            'target_name' => $targetName,
+                'target_name' => $targetName,
 
-            'target_amount' => $targetAmount,
+                'target_amount' => $targetAmount,
 
-            'current_balance' => 0,
+                'current_balance' => 0,
 
-            'total_deposited' => 0,
+                'total_deposited' => 0,
 
-            'total_interest_earned' => 0,
+                'total_interest_earned' => 0,
 
-            'interest_rate' =>
-                $companySettings->target_savings_interest_rate ?? 0,
+                'interest_rate' =>
+                    $companySettings
+                        ->target_savings_interest_rate ?? 0,
 
-            'early_withdrawal_fee_percentage' =>
-                $companySettings
-                    ->target_savings_early_withdrawal_fee_percentage ?? 0,
+                'early_withdrawal_fee_percentage' =>
+                    $companySettings
+                        ->target_savings_early_withdrawal_fee_percentage
+                        ?? 0,
 
-            'withdrawal_date' => $withdrawDate,
+                'withdrawal_date' => $withdrawDate,
 
-            'status' => 'active',
-        ]);
-    });
-}
+                'status' => 'active',
+            ]);
+        });
+    }
 
     /**
      * Deposit money into Target Savings.
      *
-     * Money is debited from the customer's saved Savings account.
+     * Money is debited from the customer's actual wallet.
+     *
+     * This does NOT create a company revenue or expense.
      */
     public function deposit(
         int $targetId,
@@ -177,7 +190,7 @@ public function createTarget(
             }
 
             /*
-             * Deposits are not allowed on/after the maturity date.
+             * Deposits are not allowed on/after maturity.
              */
             if (
                 now()->startOfDay()->gte(
@@ -190,7 +203,7 @@ public function createTarget(
             }
 
             /*
-             * Use the account saved against the Target Savings.
+             * Use the account saved against Target Savings.
              */
             $accountId = $target->source_account_id;
 
@@ -226,7 +239,7 @@ public function createTarget(
             );
 
             /*
-             * Update Target Savings balance.
+             * Update Target Savings.
              */
             $target->current_balance = $balanceAfter;
             $target->total_deposited = $totalDeposited;
@@ -236,22 +249,35 @@ public function createTarget(
              * Target Savings product ledger.
              */
             $targetTransaction = TargetSavingsTransaction::create([
-                'target_savings_id' => $target->id,
-                'user_id' => $target->user_id,
-                'company_id' => $target->company_id,
+                'target_savings_id' =>
+                    $target->id,
 
-                'type' => 'deposit',
+                'user_id' =>
+                    $target->user_id,
 
-                'amount' => $amount,
-                'fee' => 0,
+                'company_id' =>
+                    $target->company_id,
 
-                'balance_before' => $balanceBefore,
-                'balance_after' => $balanceAfter,
+                'type' =>
+                    'deposit',
+
+                'amount' =>
+                    $amount,
+
+                'fee' =>
+                    0,
+
+                'balance_before' =>
+                    $balanceBefore,
+
+                'balance_after' =>
+                    $balanceAfter,
 
                 'transaction_reference' =>
                     'TSD-' . strtoupper(Str::random(20)),
 
-                'status' => 'successful',
+                'status' =>
+                    'successful',
 
                 'description' =>
                     'Deposit into Target Savings',
@@ -263,26 +289,49 @@ public function createTarget(
             ]);
 
             /*
-             * Record the actual customer wallet movement
+             * Record the customer's actual wallet movement
              * in the main Finova transactions table.
              */
             $coreTransaction = $this->createCoreTransaction(
                 target: $target,
-                transactionTypeId: self::TRANSACTION_TYPE_DEPOSIT,
-                creditDebitTypeId: self::DEBIT,
-                accountId: $target->source_account_id,
-                amount: $amount,
-                balanceBefore: (float) $debit['balance_before'],
-                balanceAfter: (float) $debit['balance_after'],
-                companyAmount: 0,
-                companyBalanceBefore: 0,
-                companyBalanceAfter: 0,
-                description: 'Target Savings Deposit',
-                reference: 'TSD-' . strtoupper(Str::random(20))
+
+                transactionTypeId:
+                    self::TRANSACTION_TYPE_DEPOSIT,
+
+                creditDebitTypeId:
+                    self::DEBIT,
+
+                accountId:
+                    $target->source_account_id,
+
+                amount:
+                    $amount,
+
+                balanceBefore:
+                    (float) $debit['balance_before'],
+
+                balanceAfter:
+                    (float) $debit['balance_after'],
+
+                companyAmount:
+                    0,
+
+                companyBalanceBefore:
+                    0,
+
+                companyBalanceAfter:
+                    0,
+
+                description:
+                    'Target Savings Deposit',
+
+                reference:
+                    'TSD-' . strtoupper(Str::random(20))
             );
 
             return [
-                'target_savings' => $target->fresh(),
+                'target_savings' =>
+                    $target->fresh(),
 
                 'target_savings_transaction' =>
                     $targetTransaction,
@@ -299,13 +348,15 @@ public function createTarget(
     /**
      * Withdraw from Target Savings.
      *
-     * If the maturity date has arrived:
-     *     Full balance goes to customer.
+     * Maturity:
+     *     Customer receives the full Target Savings balance.
      *
-     * If withdrawal is early:
-     *     Fee is deducted.
-     *     Net amount goes to customer.
-     *     Fee goes to company wallet.
+     * Early withdrawal:
+     *     Customer receives balance minus fee.
+     *     Fee becomes company revenue.
+     *
+     * Important:
+     *     The company wallet balance is NOT modified.
      */
     public function withdraw(
         int $targetId,
@@ -355,8 +406,7 @@ public function createTarget(
                 ->startOfDay();
 
             /*
-             * If today is the maturity date or later,
-             * this is a maturity withdrawal.
+             * Maturity date reached.
              */
             $isMatured = $today->gte($maturityDate);
 
@@ -388,7 +438,9 @@ public function createTarget(
             }
 
             /*
-             * Credit the customer wallet.
+             * Credit the customer's actual wallet.
+             *
+             * This remains a real money movement.
              */
             $credit = [
                 'status' => true,
@@ -413,28 +465,7 @@ public function createTarget(
             }
 
             /*
-             * Credit early withdrawal fee to company wallet.
-             */
-            $companyCredit = null;
-
-            if ($fee > 0) {
-
-                $companyCredit =
-                    $this->creditCompanyTargetSavingsFee(
-                        $target->company_id,
-                        $fee
-                    );
-
-                if (!($companyCredit['status'] ?? false)) {
-                    throw new RuntimeException(
-                        $companyCredit['message']
-                        ?? 'Unable to credit company wallet with withdrawal fee.'
-                    );
-                }
-            }
-
-            /*
-             * Preserve the target balance before closing it.
+             * Preserve Target Savings balance before closing.
              */
             $balanceBefore = $balance;
 
@@ -454,7 +485,7 @@ public function createTarget(
             $target->save();
 
             /*
-             * Target Savings product ledger.
+             * Main Target Savings withdrawal transaction.
              */
             $withdrawalTransaction =
                 TargetSavingsTransaction::create([
@@ -512,7 +543,8 @@ public function createTarget(
                 ]);
 
             /*
-             * Record the fee separately in the Target Savings ledger.
+             * Record early withdrawal fee separately
+             * in the Target Savings ledger.
              */
             $feeTransaction = null;
 
@@ -557,34 +589,38 @@ public function createTarget(
                             'fee_percentage' =>
                                 $feePercentage,
 
-                            'company_id' =>
-                                $target->company_id,
+                            'fee_amount' =>
+                                $fee,
 
-                            'company_wallet_credit' =>
-                                $companyCredit,
+                            /*
+                             * Important:
+                             * this is accounting revenue.
+                             * It does NOT represent a company
+                             * wallet balance credit.
+                             */
+                            'company_wallet_affected' =>
+                                false,
                         ],
                     ]);
             }
 
             /*
-             * Main Finova transaction record.
+             * Main Finova customer transaction.
              *
-             * Early withdrawal:
-             * customer gets net amount
-             * company gets the fee.
-             *
-             * Maturity:
-             * customer gets full amount
-             * company amount = 0.
+             * Only the customer's wallet movement is represented
+             * here. Company balance fields remain zero because
+             * company_wallet.balance is NOT being changed.
              */
             $coreTransaction = $this->createCoreTransaction(
                 target: $target,
+
                 transactionTypeId:
                     $isMatured
                         ? self::TRANSACTION_TYPE_MATURITY
                         : self::TRANSACTION_TYPE_EARLY_WITHDRAWAL,
 
-                creditDebitTypeId: self::CREDIT,
+                creditDebitTypeId:
+                    self::CREDIT,
 
                 accountId:
                     $target->destination_account_id,
@@ -599,13 +635,13 @@ public function createTarget(
                     (float) ($credit['balance_after'] ?? 0),
 
                 companyAmount:
-                    $fee,
+                    0,
 
                 companyBalanceBefore:
-                    (float) ($companyCredit['balance_before'] ?? 0),
+                    0,
 
                 companyBalanceAfter:
-                    (float) ($companyCredit['balance_after'] ?? 0),
+                    0,
 
                 description:
                     $isMatured
@@ -617,6 +653,52 @@ public function createTarget(
                         ? 'TSM-' . strtoupper(Str::random(20))
                         : 'TSW-' . strtoupper(Str::random(20))
             );
+
+            /*
+             * Early withdrawal fee = company revenue.
+             *
+             * We DO NOT modify company_wallet.balance.
+             */
+            $financialEntry = null;
+
+            if (!$isMatured && $fee > 0) {
+
+                $financialEntry =
+                    $this->recordCompanyRevenue(
+                        target: $target,
+                        amount: $fee,
+                        category:
+                            self::CATEGORY_TARGET_SAVINGS_EARLY_WITHDRAWAL_FEE,
+                        description:
+                            'Target Savings early withdrawal fee revenue.',
+                        reference:
+                            'TSR-' . strtoupper(Str::random(20)),
+                        transactionId:
+                            $coreTransaction->id,
+                        metadata: [
+                            'fee_percentage' =>
+                                $feePercentage,
+
+                            'target_balance_before_withdrawal' =>
+                                $balanceBefore,
+
+                            'customer_amount_released' =>
+                                $customerAmount,
+
+                            'fee_amount' =>
+                                $fee,
+
+                            'target_savings_transaction_id' =>
+                                $withdrawalTransaction->id,
+
+                            'fee_transaction_id' =>
+                                $feeTransaction?->id,
+
+                            'company_wallet_affected' =>
+                                false,
+                        ]
+                    );
+            }
 
             return [
                 'target_savings' =>
@@ -639,14 +721,23 @@ public function createTarget(
                 'customer_credit' =>
                     $credit,
 
+                /*
+                 * Kept for backwards compatibility.
+                 *
+                 * This is now null because the company wallet
+                 * is intentionally not modified.
+                 */
                 'company_credit' =>
-                    $companyCredit,
+                    null,
 
                 'target_savings_transaction' =>
                     $withdrawalTransaction,
 
                 'fee_transaction' =>
                     $feeTransaction,
+
+                'financial_entry' =>
+                    $financialEntry,
 
                 'core_transaction' =>
                     $coreTransaction,
@@ -657,15 +748,14 @@ public function createTarget(
     /**
      * Process daily Target Savings interest.
      *
-     * Interest rate is treated as an annual percentage
-     * and accrued daily using a 365-day year.
+     * Interest is:
      *
-     * The processor catches up missed dates when required.
+     * 1. Added to Target Savings balance.
+     * 2. Added to total_interest_earned.
+     * 3. Recorded as a Target Savings transaction.
+     * 4. Recorded as COMPANY EXPENSE.
      *
-     * Important:
-     * Interest is stored inside Target Savings and does NOT
-     * go into the customer's spendable wallet until maturity
-     * or withdrawal.
+     * The customer's spendable wallet is NOT credited yet.
      */
     public function processDailyInterest(): void
     {
@@ -694,6 +784,9 @@ public function createTarget(
                         $processUntil
                     ) {
 
+                        /*
+                         * Lock current Target Savings record.
+                         */
                         $target = TargetSaving::query()
                             ->lockForUpdate()
                             ->find($target->id);
@@ -719,24 +812,26 @@ public function createTarget(
                         }
 
                         /*
-                         * First date that has not yet received interest.
+                         * First date that has not received interest.
                          */
                         $interestDate = $target->last_interest_date
                             ? Carbon::parse(
                                 $target->last_interest_date
-                            )->addDay()->startOfDay()
+                            )
+                                ->addDay()
+                                ->startOfDay()
                             : $target->created_at
                                 ->copy()
                                 ->startOfDay();
 
                         /*
-                         * Catch up all missing dates.
+                         * Catch up missing dates.
                          */
                         while ($interestDate->lte($processUntil)) {
 
                             /*
-                             * Never award interest after the
-                             * maturity date.
+                             * Never award interest on or after
+                             * the maturity date.
                              */
                             if (
                                 $interestDate->gte(
@@ -749,24 +844,78 @@ public function createTarget(
                             }
 
                             /*
-                             * Protect against duplicate interest entries.
+                             * Prevent duplicate interest entries.
                              */
-                            $existing = TargetSavingsTransaction::query()
-                                ->where(
-                                    'target_savings_id',
-                                    $target->id
-                                )
-                                ->where(
-                                    'type',
-                                    'interest'
-                                )
-                                ->whereDate(
-                                    'interest_date',
-                                    $interestDate->toDateString()
-                                )
-                                ->exists();
+                            $existing =
+                                TargetSavingsTransaction::query()
+                                    ->where(
+                                        'target_savings_id',
+                                        $target->id
+                                    )
+                                    ->where(
+                                        'type',
+                                        'interest'
+                                    )
+                                    ->whereDate(
+                                        'interest_date',
+                                        $interestDate->toDateString()
+                                    )
+                                    ->first();
 
                             if ($existing) {
+
+                                /*
+                                 * Make sure an accounting expense
+                                 * also exists for this interest.
+                                 *
+                                 * This protects old/incomplete records.
+                                 */
+                                $financialReference =
+                                    'TSE-'
+                                    . $target->id
+                                    . '-'
+                                    . $interestDate->format('Ymd');
+
+                                $expenseExists =
+                                    CompanyFinancialEntry::query()
+                                        ->where(
+                                            'reference',
+                                            $financialReference
+                                        )
+                                        ->exists();
+
+                                if (
+                                    !$expenseExists
+                                    && (float) $existing->amount > 0
+                                ) {
+                                    $this->recordCompanyExpense(
+                                        target: $target,
+                                        amount:
+                                            (float) $existing->amount,
+                                        category:
+                                            self::CATEGORY_TARGET_SAVINGS_INTEREST,
+                                        description:
+                                            'Target Savings interest expense.',
+                                        reference:
+                                            $financialReference,
+                                        transactionId:
+                                            null,
+                                        metadata: [
+                                            'interest_date' =>
+                                                $interestDate
+                                                    ->toDateString(),
+
+                                            'interest_transaction_id' =>
+                                                $existing->id,
+
+                                            'annual_rate' =>
+                                                (float) $target->interest_rate,
+
+                                            'company_wallet_affected' =>
+                                                false,
+                                        ]
+                                    );
+                                }
 
                                 $target->last_interest_date =
                                     $interestDate->toDateString();
@@ -785,9 +934,6 @@ public function createTarget(
 
                             /*
                              * No money means no interest.
-                             *
-                             * Still advance the date to avoid
-                             * repeatedly processing the same date.
                              */
                             if ($balanceBefore <= 0) {
 
@@ -814,6 +960,22 @@ public function createTarget(
                                 2
                             );
 
+                            /*
+                             * Do not create meaningless zero-value
+                             * interest records.
+                             */
+                            if ($interest <= 0) {
+
+                                $target->last_interest_date =
+                                    $interestDate->toDateString();
+
+                                $target->save();
+
+                                $interestDate->addDay();
+
+                                continue;
+                            }
+
                             $balanceAfter = round(
                                 $balanceBefore + $interest,
                                 2
@@ -839,52 +1001,87 @@ public function createTarget(
                             $target->save();
 
                             /*
-                             * Record the interest in the Target
-                             * Savings ledger.
+                             * Record the interest in Target Savings ledger.
                              */
-                            TargetSavingsTransaction::create([
-                                'target_savings_id' =>
-                                    $target->id,
+                            $targetTransaction =
+                                TargetSavingsTransaction::create([
+                                    'target_savings_id' =>
+                                        $target->id,
 
-                                'user_id' =>
-                                    $target->user_id,
+                                    'user_id' =>
+                                        $target->user_id,
 
-                                'company_id' =>
-                                    $target->company_id,
+                                    'company_id' =>
+                                        $target->company_id,
 
-                                'type' =>
-                                    'interest',
+                                    'type' =>
+                                        'interest',
 
-                                'amount' =>
-                                    $interest,
+                                    'amount' =>
+                                        $interest,
 
-                                'fee' =>
-                                    0,
+                                    'fee' =>
+                                        0,
 
-                                'balance_before' =>
-                                    $balanceBefore,
+                                    'balance_before' =>
+                                        $balanceBefore,
 
-                                'balance_after' =>
-                                    $balanceAfter,
+                                    'balance_after' =>
+                                        $balanceAfter,
 
-                                'interest_date' =>
-                                    $interestDate->toDateString(),
+                                    'interest_date' =>
+                                        $interestDate->toDateString(),
 
-                                'transaction_reference' =>
-                                    'TSI-'
-                                    . $interestDate->format('Ymd')
-                                    . '-'
-                                    . strtoupper(
-                                        Str::random(12)
-                                    ),
+                                    'transaction_reference' =>
+                                        'TSI-'
+                                        . $interestDate->format('Ymd')
+                                        . '-'
+                                        . strtoupper(
+                                            Str::random(12)
+                                        ),
 
-                                'status' =>
-                                    'successful',
+                                    'status' =>
+                                        'successful',
 
-                                'description' =>
-                                    'Daily Target Savings interest',
+                                    'description' =>
+                                        'Daily Target Savings interest',
 
-                                'metadata' => [
+                                    'metadata' => [
+                                        'annual_rate' =>
+                                            $annualRate,
+
+                                        'daily_rate' =>
+                                            $annualRate / 365,
+
+                                        'interest_date' =>
+                                            $interestDate
+                                                ->toDateString(),
+                                    ],
+                                ]);
+
+                            /*
+                             * Interest is a COMPANY EXPENSE.
+                             *
+                             * No company wallet balance is changed.
+                             */
+                            $financialReference =
+                                'TSE-'
+                                . $target->id
+                                . '-'
+                                . $interestDate->format('Ymd');
+
+                            $this->recordCompanyExpense(
+                                target: $target,
+                                amount: $interest,
+                                category:
+                                    self::CATEGORY_TARGET_SAVINGS_INTEREST,
+                                description:
+                                    'Target Savings interest expense.',
+                                reference:
+                                    $financialReference,
+                                transactionId:
+                                    null,
+                                metadata: [
                                     'annual_rate' =>
                                         $annualRate,
 
@@ -893,8 +1090,14 @@ public function createTarget(
 
                                     'interest_date' =>
                                         $interestDate->toDateString(),
-                                ],
-                            ]);
+
+                                    'interest_transaction_id' =>
+                                        $targetTransaction->id,
+
+                                    'company_wallet_affected' =>
+                                        false,
+                                ]
+                            );
 
                             $interestDate->addDay();
                         }
@@ -905,12 +1108,22 @@ public function createTarget(
 
     /**
      * Automatically mature eligible Target Savings.
+     *
+     * Customer receives the complete current Target Savings
+     * balance, which includes previously accrued interest.
+     *
+     * The accrued interest has already been recognized as
+     * company expense during daily interest processing.
      */
     public function processMaturities(): void
     {
         TargetSaving::query()
             ->where('status', 'active')
-            ->whereDate('withdrawal_date', '<=', today())
+            ->whereDate(
+                'withdrawal_date',
+                '<=',
+                today()
+            )
             ->orderBy('id')
             ->chunkById(100, function ($targets) {
 
@@ -930,13 +1143,22 @@ public function createTarget(
                             return;
                         }
 
+                        /*
+                         * Complete Target Savings balance.
+                         *
+                         * This includes:
+                         *
+                         * total_deposited
+                         * +
+                         * total_interest_earned
+                         */
                         $amount = round(
                             (float) $target->current_balance,
                             2
                         );
 
                         /*
-                         * Credit the customer's Savings wallet.
+                         * Credit the customer's actual wallet.
                          */
                         $credit = [
                             'status' => true,
@@ -961,8 +1183,10 @@ public function createTarget(
                         }
 
                         /*
-                         * Create the main Finova transactions record
-                         * before closing the Target Savings.
+                         * Create main Finova transaction.
+                         *
+                         * Company balance values are zero because
+                         * we are not modifying company_wallet.balance.
                          */
                         $coreTransaction = null;
 
@@ -970,7 +1194,9 @@ public function createTarget(
 
                             $coreTransaction =
                                 $this->createCoreTransaction(
-                                    target: $target,
+                                    target:
+                                        $target,
+
                                     transactionTypeId:
                                         self::TRANSACTION_TYPE_MATURITY,
 
@@ -978,16 +1204,23 @@ public function createTarget(
                                         self::CREDIT,
 
                                     accountId:
-                                        $target->destination_account_id,
+                                        $target
+                                            ->destination_account_id,
 
                                     amount:
                                         $amount,
 
                                     balanceBefore:
-                                        (float) $credit['balance_before'],
+                                        (float)
+                                        $credit[
+                                            'balance_before'
+                                        ],
 
                                     balanceAfter:
-                                        (float) $credit['balance_after'],
+                                        (float)
+                                        $credit[
+                                            'balance_after'
+                                        ],
 
                                     companyAmount:
                                         0,
@@ -1010,65 +1243,103 @@ public function createTarget(
                         }
 
                         /*
-                         * Close the Target Savings.
+                         * Preserve the amount before closing.
+                         */
+                        $balanceBefore = $amount;
+
+                        /*
+                         * Close Target Savings.
                          */
                         $target->current_balance = 0;
+
                         $target->status = 'completed';
+
                         $target->matured_at = now();
+
                         $target->withdrawn_at = now();
 
                         $target->save();
 
                         /*
-                         * Record maturity in the Target Savings ledger.
+                         * Record maturity in Target Savings ledger.
                          */
-                        $targetTransaction =
-                            TargetSavingsTransaction::create([
-                                'target_savings_id' =>
-                                    $target->id,
+                        TargetSavingsTransaction::create([
+                            'target_savings_id' =>
+                                $target->id,
 
-                                'user_id' =>
-                                    $target->user_id,
+                            'user_id' =>
+                                $target->user_id,
 
-                                'company_id' =>
-                                    $target->company_id,
+                            'company_id' =>
+                                $target->company_id,
 
-                                'type' =>
-                                    'maturity',
+                            'type' =>
+                                'maturity',
 
-                                'amount' =>
-                                    $amount,
+                            'amount' =>
+                                $amount,
 
-                                'fee' =>
-                                    0,
+                            'fee' =>
+                                0,
 
-                                'balance_before' =>
-                                    $amount,
+                            'balance_before' =>
+                                $balanceBefore,
 
-                                'balance_after' =>
-                                    0,
+                            'balance_after' =>
+                                0,
 
-                                'transaction_reference' =>
-                                    'TSM-'
-                                    . strtoupper(
-                                        Str::random(20)
+                            'transaction_reference' =>
+                                'TSM-'
+                                . strtoupper(
+                                    Str::random(20)
+                                ),
+
+                            'status' =>
+                                'successful',
+
+                            'description' =>
+                                'Target Savings matured and funds released',
+
+                            'metadata' => [
+                                'destination_account_id' =>
+                                    $target
+                                        ->destination_account_id,
+
+                                'principal_amount' =>
+                                    round(
+                                        (float)
+                                        $target->total_deposited,
+                                        2
                                     ),
 
-                                'status' =>
-                                    'successful',
+                                'interest_amount' =>
+                                    round(
+                                        (float)
+                                        $target
+                                            ->total_interest_earned,
+                                        2
+                                    ),
 
-                                'description' =>
-                                    'Target Savings matured and funds released',
-
-                                'metadata' => [
-                                    'destination_account_id' =>
-                                        $target->destination_account_id,
-                                ],
-                            ]);
+                                /*
+                                 * Interest has already been
+                                 * recognized as company expense
+                                 * during daily accrual.
+                                 */
+                                'interest_expense_recognized' =>
+                                    round(
+                                        (float)
+                                        $target
+                                            ->total_interest_earned,
+                                        2
+                                    ),
+                            ],
+                        ]);
 
                         /*
-                         * Nothing is returned because this method
-                         * is designed for the scheduler.
+                         * No company revenue/expense is created here.
+                         *
+                         * The interest expense was already recorded
+                         * when each interest amount was accrued.
                          */
                     });
                 }
@@ -1076,61 +1347,138 @@ public function createTarget(
     }
 
     /**
-     * Credit a company's wallet with an early withdrawal fee.
+     * Record a company revenue entry.
+     *
+     * IMPORTANT:
+     * This does not change company_wallet.balance.
      */
-    protected function creditCompanyTargetSavingsFee(
-        int $companyId,
-        float $amount
-    ): array {
+    protected function recordCompanyRevenue(
+        TargetSaving $target,
+        float $amount,
+        string $category,
+        string $description,
+        string $reference,
+        ?int $transactionId = null,
+        ?array $metadata = null
+    ): CompanyFinancialEntry {
         if ($amount <= 0) {
-            return [
-                'status' => false,
-                'message' => 'Invalid company fee amount.',
-            ];
+            throw new RuntimeException(
+                'Revenue amount must be greater than zero.'
+            );
         }
 
-        $companyWallet = company_wallet::query()
-            ->where('company_id', $companyId)
-            ->lockForUpdate()
+        return CompanyFinancialEntry::create([
+            'company_id' =>
+                $target->company_id,
+
+            'user_id' =>
+                $target->user_id,
+
+            'target_savings_id' =>
+                $target->id,
+
+            'transaction_id' =>
+                $transactionId,
+
+            'type' =>
+                self::FINANCIAL_REVENUE,
+
+            'category' =>
+                $category,
+
+            'amount' =>
+                round($amount, 2),
+
+            'reference' =>
+                $reference,
+
+            'description' =>
+                $description,
+
+            'metadata' =>
+                $metadata,
+
+            'status' =>
+                'successful',
+        ]);
+    }
+
+    /**
+     * Record a company expense entry.
+     *
+     * IMPORTANT:
+     * This does not change company_wallet.balance.
+     */
+    protected function recordCompanyExpense(
+        TargetSaving $target,
+        float $amount,
+        string $category,
+        string $description,
+        string $reference,
+        ?int $transactionId = null,
+        ?array $metadata = null
+    ): CompanyFinancialEntry {
+        if ($amount <= 0) {
+            throw new RuntimeException(
+                'Expense amount must be greater than zero.'
+            );
+        }
+
+        /*
+         * Prevent duplicate accounting entries.
+         */
+        $existing = CompanyFinancialEntry::query()
+            ->where('reference', $reference)
             ->first();
 
-        if (!$companyWallet) {
-            return [
-                'status' => false,
-                'message' => 'Company wallet not found.',
-            ];
+        if ($existing) {
+            return $existing;
         }
 
-        $balanceBefore = round(
-            (float) $companyWallet->balance,
-            2
-        );
+        return CompanyFinancialEntry::create([
+            'company_id' =>
+                $target->company_id,
 
-        $balanceAfter = round(
-            $balanceBefore + $amount,
-            2
-        );
+            'user_id' =>
+                $target->user_id,
 
-        $companyWallet->balance = $balanceAfter;
-        $companyWallet->save();
+            'target_savings_id' =>
+                $target->id,
 
-        return [
-            'status' => true,
-            'company_id' => $companyId,
-            'amount' => $amount,
-            'balance_before' => $balanceBefore,
-            'balance_after' => $balanceAfter,
-        ];
+            'transaction_id' =>
+                $transactionId,
+
+            'type' =>
+                self::FINANCIAL_EXPENSE,
+
+            'category' =>
+                $category,
+
+            'amount' =>
+                round($amount, 2),
+
+            'reference' =>
+                $reference,
+
+            'description' =>
+                $description,
+
+            'metadata' =>
+                $metadata,
+
+            'status' =>
+                'successful',
+        ]);
     }
 
     /**
      * Create the actual Finova transactions record.
      *
-     * This is used for:
+     * The company balance fields are populated only when
+     * an actual company wallet movement occurs.
      *
-     * 26 = Target Savings Deposit
-     * 27 = Target Savings Early Withdrawal
-     * 28 = Target Savings Maturity
+     * Target Savings no longer performs such a company
+     * wallet movement, so those values are zero here.
      */
     protected function createCoreTransaction(
         TargetSaving $target,
@@ -1151,8 +1499,7 @@ public function createTarget(
         $ledgerDr = null;
 
         /*
-         * Resolve CR/DR ledger configuration using the same
-         * Finova helper used by your existing transactions.
+         * Resolve CR/DR ledger configuration.
          */
         $ledgerSettings = get_CR_DR_TXN_Type_Ledger(
             $transactionTypeId,
@@ -1165,7 +1512,7 @@ public function createTarget(
         }
 
         /*
-         * Resolve branch from the account/user.
+         * Resolve branch from the customer's account/user.
          */
         $account = wb_account_details::with('user')
             ->find($accountId);
@@ -1189,6 +1536,9 @@ public function createTarget(
             'balance_after' =>
                 $balanceAfter,
 
+            /*
+             * No company wallet movement for Target Savings.
+             */
             'company_balance_before' =>
                 $companyBalanceBefore,
 

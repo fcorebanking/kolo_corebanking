@@ -134,14 +134,10 @@ class CampaignService
             /*
              * Resolve the creator's account using the supplied
              * account number.
-             *
-             * IMPORTANT:
-             * This assumes wb_account_details has an
-             * account_number column.
              */
             $account = wb_account_details::query()
                 ->where(
-                    'account_number',
+                    'virtual_accnum',
                     $creatorAccountNumber
                 )
                 ->where(
@@ -601,7 +597,7 @@ class CampaignService
              * the Campaign record.
              */
             if (
-                (string) $account->account_number
+                (string) $account->virtual_accnum
                 !==
                 (string) $campaign->creator_account_number
             ) {

@@ -22,6 +22,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ThirdParty\GTBController;
 use App\Http\Controllers\api\v1\TargetSavingsController;
+use App\Http\Controllers\api\v1\CampaignController;
 
 
 /*
@@ -481,4 +482,73 @@ Route::put(
     [TargetSavingsController::class, 'updateCompanySettings']
 );
 
+});
+
+Route::prefix('campaigns')->group(function () {
+
+    /*
+     * Customer Campaign endpoints.
+     */
+    Route::post('/create', [
+        CampaignController::class,
+        'store'
+    ]);
+
+    Route::get('/list', [
+        CampaignController::class,
+        'index'
+    ]);
+
+    Route::get('/details/{id}', [
+        CampaignController::class,
+        'show'
+    ]);
+
+    Route::post('/deposit/{id}', [
+        CampaignController::class,
+        'deposit'
+    ]);
+
+    Route::post('/withdraw/{id}', [
+        CampaignController::class,
+        'withdraw'
+    ]);
+
+    Route::put('/{id}/target', [
+        CampaignController::class,
+        'updateTarget'
+    ]);
+
+    Route::post('/{id}/close', [
+        CampaignController::class,
+        'close'
+    ]);
+
+    Route::get('/transactions/{id}', [
+        CampaignController::class,
+        'transactions'
+    ]);
+
+    /*
+     * Administrator endpoints.
+     */
+    Route::get('/company/list', [
+        CampaignController::class,
+        'companyIndex'
+    ]);
+
+    Route::get('/company/settings', [
+        CampaignController::class,
+        'companySettings'
+    ]);
+
+    Route::put('/company/settings', [
+        CampaignController::class,
+        'updateCompanySettings'
+    ]);
+
+    Route::post('/company/{id}/close', [
+        CampaignController::class,
+        'adminClose'
+    ]);
 });

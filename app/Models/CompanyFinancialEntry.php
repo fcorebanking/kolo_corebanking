@@ -16,6 +16,7 @@ class CompanyFinancialEntry extends Model
         'company_id',
         'user_id',
         'target_savings_id',
+        'campaign_id',
         'transaction_id',
         'type',
         'category',
@@ -68,4 +69,12 @@ class CompanyFinancialEntry extends Model
             'transaction_id'
         );
     }
+
+    public function campaign(): BelongsTo
+{
+    return $this->belongsTo(
+        Campaign::class,
+        'campaign_id'
+    );
+}
 }

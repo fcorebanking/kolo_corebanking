@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\ThirdParty;
 
 use App\Http\Controllers\CustomClasses\WebhookController;
@@ -7,791 +8,1321 @@ use Illuminate\Support\Facades\Http;
 
 class KudaController extends WebhookController
 {
-
     private $username;
     private $apiKey;
+    private $apiMaintenanceKey;
     private $baseUrl;
     private $token;
 
     public function __construct()
     {
-        $this->token = "";
-        if (env('APP_MODE') == 'test') {
+        $this->token = '';
 
-            $this->username          = config('kuda.email_test');
-            $this->apiKey            = config('kuda.api_key_test');
-            $this->baseUrl           = config('kuda.base_url_test');
+        if (env('APP_MODE') === 'test') {
+            $this->username = config('kuda.email_test');
+            $this->apiKey = config('kuda.api_key_test');
+            $this->baseUrl = rtrim(config('kuda.base_url_test'), '/');
+
             $this->apiMaintenanceKey = config('kuda.api_maintenace_key_live');
         } else {
-            $isSpecial = (auth('api')->user()?->company_id ?? auth()->user()?->company_id) == 14;
+            $apiUser = auth('api')->user();
+            $webUser = auth()->user();
 
-            $this->username = $isSpecial ? config('kuda.email_live_linkforte') : config('kuda.email_live');
-            $this->apiKey   = $isSpecial ? config('kuda.api_key_live_linkforte') : config('kuda.api_key_live');
+            $companyId = $apiUser?->company_id ?? $webUser?->company_id;
 
-            $this->baseUrl           = config('kuda.base_url_live');
+            $isSpecial = $companyId == 14;
+
+            $this->username = $isSpecial
+                ? config('kuda.email_live_linkforte')
+                : config('kuda.email_live');
+
+            $this->apiKey = $isSpecial
+                ? config('kuda.api_key_live_linkforte')
+                : config('kuda.api_key_live');
+
+            $this->baseUrl = rtrim(config('kuda.base_url_live'), '/');
+
             $this->apiMaintenanceKey = config('kuda.api_maintenace_key_live');
         }
     }
 
+    /**
+     * Get a Kuda access token using the normal API credentials.
+     *
+     * Kuda returns the access token as raw text/JWT.
+     */
     public function login()
     {
-
         $body = [
-            "email"  => $this->username,
-            "apiKey" => $this->apiKey,
+            'email'  => $this->username,
+            'apiKey' => $this->apiKey,
         ];
 
-        // logInfo($body, "Kuda Bank Code in kuda controller body");
-
-        $header = ['Content-Type' => 'application/json'];
         try {
-            $response = Http::post($this->baseUrl . "Account/GetToken", $body);
+            $response = Http::acceptJson()
+                ->timeout(30)
+                ->post($this->baseUrl . '/Account/GetToken', $body);
 
-            logInfo($response, "Kuda Bank Code in kuda controller body");
+            if (! $response->successful()) {
+                logInfo([
+                    'http_status' => $response->status(),
+                    'body'        => $response->body(),
+                ], 'Kuda Login Failed');
 
-            if ($response->successful()) {
-                $this->token = $response;
-                return ['status' => true, 'message' => 'Login success'];
-            } else {
-                return ['status' => false, 'message' => 'Failed to login to Monnify'];
+                return [
+                    'status'  => false,
+                    'message' => 'Failed to login to Kuda',
+                ];
             }
+
+            /*
+             * Kuda returns a raw JWT string here.
+             */
+            $token = trim($response->body());
+
+            if ($token === '') {
+                logInfo([
+                    'http_status' => $response->status(),
+                ], 'Kuda Login Empty Token');
+
+                return [
+                    'status'  => false,
+                    'message' => 'Kuda returned an empty access token',
+                ];
+            }
+
+            $this->token = $token;
+
+            return [
+                'status'  => true,
+                'message' => 'Login success',
+            ];
+
         } catch (Exception $e) {
+            logInfo([
+                'error' => $e->getMessage(),
+            ], 'Kuda Login Error');
 
-            \logInfo($e->getMessage(), "Kuda Login serror log");
-
-            return ['status' => false, 'message' => 'Server Error...'];
+            return [
+                'status'  => false,
+                'message' => 'Server Error connecting to Kuda',
+            ];
         }
     }
 
+    /**
+     * Get a Kuda access token using the maintenance API credentials.
+     *
+     * IMPORTANT:
+     * Do not log the API key or returned JWT.
+     */
     public function loginForMaintenance()
     {
+        $maintenanceEmail = config(
+            'kuda.email_maintenance',
+            'johnaje557@gmail.com'
+        );
 
         $body = [
-            "email"  => "johnaje557@gmail.com",
-            "apiKey" => $this->apiMaintenanceKey,
+            'email'  => $maintenanceEmail,
+            'apiKey' => $this->apiMaintenanceKey,
         ];
 
-        // logInfo($body, "Kuda Bank Code in kuda controller body");
-
-        $header = ['Content-Type' => 'application/json'];
-
-        logInfo($this->apiMaintenanceKey, "Kuda Bank Code apiMaintenanceKey body");
-
         try {
-            $response = Http::post($this->baseUrl . "v2.1/Account/GetToken", $body);
+            $response = Http::acceptJson()
+                ->timeout(30)
+                ->post(
+                    $this->baseUrl . '/Account/GetToken',
+                    $body
+                );
 
-            logInfo($response, "Kuda Bank Code in kuda controller body");
+            if (! $response->successful()) {
+                logInfo([
+                    'http_status' => $response->status(),
+                    'body'        => $response->body(),
+                ], 'Kuda Maintenance Login Failed');
 
-            if ($response->successful()) {
-                $this->token = $response;
-                return ['status' => true, 'message' => 'Login success'];
-            } else {
-                return ['status' => false, 'message' => 'Failed to login to Monnify'];
+                return [
+                    'status'  => false,
+                    'message' => 'Failed to login to Kuda maintenance API',
+                ];
             }
+
+            /*
+             * Kuda returns a raw JWT string.
+             */
+            $token = trim($response->body());
+
+            if ($token === '') {
+                logInfo([
+                    'http_status' => $response->status(),
+                ], 'Kuda Maintenance Login Empty Token');
+
+                return [
+                    'status'  => false,
+                    'message' => 'Kuda returned an empty maintenance access token',
+                ];
+            }
+
+            $this->token = $token;
+
+            return [
+                'status'  => true,
+                'message' => 'Login success',
+            ];
+
         } catch (Exception $e) {
+            logInfo([
+                'error' => $e->getMessage(),
+            ], 'Kuda Maintenance Login Error');
 
-            \logInfo($e->getMessage(), "Kuda Login serror log");
-
-            return ['status' => false, 'message' => 'Server Error...'];
+            return [
+                'status'  => false,
+                'message' => 'Server Error connecting to Kuda',
+            ];
         }
     }
 
-    public function getExchangeRate($exchangeAmount, $sourceCurrency, $destinationCurrency)
-    {
-        $body = ["amount" => $exchangeAmount, "destination_currency" => $sourceCurrency, "source_currency" => $destinationCurrency];
-        $url  = "transfers/rates?amount=$exchangeAmount&destination_currency=$destinationCurrency&source_currency=$sourceCurrency";
+    /**
+     * Get exchange rate.
+     */
+    public function getExchangeRate(
+        $exchangeAmount,
+        $sourceCurrency,
+        $destinationCurrency
+    ) {
+        $body = [
+            'amount'             => $exchangeAmount,
+            'destination_currency' => $destinationCurrency,
+            'source_currency'      => $sourceCurrency,
+        ];
 
-        logInfo("We are converting $exchangeAmount from $sourceCurrency to $destinationCurrency");
+        $url = 'transfers/rates'
+            . '?amount=' . urlencode($exchangeAmount)
+            . '&destination_currency=' . urlencode($destinationCurrency)
+            . '&source_currency=' . urlencode($sourceCurrency);
+
+        logInfo(
+            "We are converting {$exchangeAmount} from {$sourceCurrency} to {$destinationCurrency}",
+            'Kuda Exchange Rate'
+        );
+
         try {
-            $exhangeRate = $this->kudaPostRequest($url, $body);
+            $exchangeRate = $this->kudaPostRequest($url, $body);
 
-            logInfo($exhangeRate, "Exchange Rates");
+            logInfo(
+                [
+                    'http_status' => $exchangeRate->status(),
+                    'response'    => $exchangeRate->json(),
+                ],
+                'Kuda Exchange Rates'
+            );
 
-            if ($exhangeRate['status'] == 'success') {
-                $rate   = $exhangeRate["data"]["rate"];
-                $amount = $exhangeRate["data"]["source"]["amount"];
+            $data = $exchangeRate->json();
 
-                $finalAmount = $amount;
+            if (($data['status'] ?? null) === 'success') {
+                $rate = $data['data']['rate'] ?? null;
+                $amount = $data['data']['source']['amount'] ?? null;
 
                 return [
                     'status'  => true,
-                    'message' => "Exchange rate received",
+                    'message' => 'Exchange rate received',
                     'data'    => [
                         'rate'         => $rate,
                         'amount'       => $amount,
-                        'final_amount' => $finalAmount,
+                        'final_amount' => $amount,
                     ],
                 ];
-            } else {
-                return ['status' => false, 'message' => 'Failed to get Exchange rates'];
             }
-        } catch (Exception $e) {
-            logInfo($e->getMessage(), "Laravel Error");
 
-            return ['status' => false, 'message' => 'Failed to get Exchange rates'];
+            return [
+                'status'  => false,
+                'message' => $data['message'] ?? 'Failed to get Exchange rates',
+            ];
+
+        } catch (Exception $e) {
+            logInfo(
+                $e->getMessage(),
+                'Laravel Kuda Exchange Rate Error'
+            );
+
+            return [
+                'status'  => false,
+                'message' => 'Failed to get Exchange rates',
+            ];
         }
     }
 
-    public function createAccount($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference)
-    {
-        /*  $body = [
-            "servicetype" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
-            "requestref"  => $requestReference,
-            "data"        => [
-                "email"             => $email,
-                "phoneNumber"       => $phoneNumber,
-                "lastName"          => $lastName,
-                "firstName"         => $firstName,
-                "trackingReference" => $trackingReference,
-            ],
-        ];*/
+    /**
+     * Create a normal Kuda dynamic collection account.
+     */
+    public function createAccount(
+        $requestReference,
+        $email,
+        $phoneNumber,
+        $firstName,
+        $lastName,
+        $trackingReference
+    ) {
+        /*
+         * Kuda dynamic pass-through account.
+         *
+         * The email/phone/trackingReference arguments are retained
+         * because existing parts of the application call this method
+         * with them.
+         */
         $body = [
-            "serviceType" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
-            "requestRef"  => $requestReference,
-            "data"        => [
-                "Amount"        => 0,
-                "AccountName"   => "$firstName $lastName",
-                "IsPassThrough" => true,
-
+            'serviceType' => 'ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT',
+            'requestRef'  => $requestReference,
+            'data'        => [
+                'amount'       => 0,
+                'accountName'  => trim("$firstName $lastName"),
+                'isPassThrough' => true,
             ],
         ];
-
-        $jsonBody = json_encode($body);
-
-        $requestBody = [
-            'data' => $jsonBody,
-        ];
-
-        //  $url = "v2.1/";
-        $url = "https://kuda-openapi.kuda.com/v2.1";
 
         try {
-
             $login = $this->login();
 
-            if (! $login['status']) {
-                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
+            if (! ($login['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $login['message'] ?? 'Bank Unavailable',
+                ];
             }
 
-            \logInfo($requestBody, "Kuda Request body");
+            logInfo(
+                [
+                    'requestRef' => $requestReference,
+                    'serviceType' => $body['serviceType'],
+                    'data'        => $body['data'],
+                ],
+                'Kuda Request Create Account'
+            );
 
-            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
+            $response = $this->kudaPostRequestUpdate(
+                $this->baseUrl,
+                $body
+            );
 
-            logInfo($createAccountResponse, "Kuda Create Account Response");
+            $data = $response->json();
 
-            if ($createAccountResponse->successful()) {
+            logInfo(
+                [
+                    'http_status' => $response->status(),
+                    'response'    => $data,
+                ],
+                'Kuda Create Account Response'
+            );
 
-                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
-
-                if (! $createAccountResponse["status"]) {
-                    return [
-                        'status'  => false,
-                        'message' => $createAccountResponse["message"],
-                    ];
-                } else {
-                    return [
-                        'status'  => true,
-                        'message' => "Account Created Successfully",
-                        'data'    => [
-                            'account_number'         => $createAccountResponse['data']['accountNumber'],
-                            'virtual_account_number' => $createAccountResponse['data']['accountNumber'],
-                        ],
-                    ];
-                }
-            } else {
-                return ['status' => false, 'message' => 'Account Creation Failed. Kindly contact support for assistance'];
+            if (! $response->successful()) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Account Creation Failed',
+                    'data'    => $data,
+                ];
             }
+
+            if (! ($data['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Kuda rejected the account creation request',
+                    'data'    => $data,
+                ];
+            }
+
+            $accountNumber = $data['data']['accountNumber'] ?? null;
+
+            if (! $accountNumber) {
+                return [
+                    'status'  => false,
+                    'message' => 'Kuda did not return an account number',
+                    'data'    => $data,
+                ];
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Account Created Successfully',
+                'data'    => [
+                    'account_number'         => $accountNumber,
+                    'virtual_account_number' => $accountNumber,
+                ],
+            ];
+
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Laravel Kuda Error");
+            logInfo([
+                'error'       => $e->getMessage(),
+                'request_ref' => $requestReference,
+            ], 'Laravel Kuda Create Account Error');
 
-            return ['status' => false, 'message' => 'Error Creating Account. Kindly contact support for assistance'];
+            return [
+                'status'  => false,
+                'message' => 'Error Creating Account. Kindly contact support for assistance',
+            ];
         }
     }
 
-    public function createMaintenanceAccount($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference)
-    {
-        /*  $body = [
-            "servicetype" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
-            "requestref"  => $requestReference,
-            "data"        => [
-                "email"             => $email,
-                "phoneNumber"       => $phoneNumber,
-                "lastName"          => $lastName,
-                "firstName"         => $firstName,
-                "trackingReference" => $trackingReference,
-            ],
-        ];*/
+    /**
+     * Create the company subscription maintenance virtual account.
+     */
+    public function createMaintenanceAccount(
+        $requestReference,
+        $email,
+        $phoneNumber,
+        $firstName,
+        $lastName,
+        $trackingReference
+    ) {
+        /*
+         * Pass-through dynamic collection account.
+         *
+         * Current Kuda API format:
+         * amount = 0
+         * isPassThrough = true
+         */
         $body = [
-            "serviceType" => "ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT",
-            "requestRef"  => $requestReference,
-            "data"        => [
-                "Amount"        => 0,
-                "AccountName"   => "$firstName $lastName",
-                "IsPassThrough" => true,
-
+            'serviceType' => 'ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT',
+            'requestRef'  => $requestReference,
+            'data'        => [
+                'amount'        => 0,
+                'isPassThrough' => true,
+                'accountName'   => trim("$firstName $lastName"),
             ],
         ];
-
-        $jsonBody = json_encode($body);
-
-        $requestBody = [
-            'data' => $jsonBody,
-        ];
-
-        //  $url = "v2.1/";
-        $url = "https://kuda-openapi.kuda.com/v2.1";
 
         try {
-
+            /*
+             * Use the separate maintenance API credentials.
+             */
             $login = $this->loginForMaintenance();
 
-            if (! $login['status']) {
-                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
+            if (! ($login['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $login['message'] ?? 'Bank Unavailable',
+                ];
             }
 
-            \logInfo($requestBody, "Kuda Request Create Maintenance body");
+            logInfo(
+                [
+                    'requestRef'  => $requestReference,
+                    'serviceType' => $body['serviceType'],
+                    'data'        => $body['data'],
+                ],
+                'Kuda Request Create Maintenance Account'
+            );
 
-            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
+            /*
+             * Send the request to:
+             *
+             * https://kuda-openapi.kuda.com/v2.1
+             */
+            $response = $this->kudaPostRequestUpdate(
+                $this->baseUrl,
+                $body
+            );
 
-            logInfo($createAccountResponse, "Kuda Create Account Maintenance Response");
+            $data = $response->json();
 
-            if ($createAccountResponse->successful()) {
+            logInfo(
+                [
+                    'http_status' => $response->status(),
+                    'response'    => $data,
+                ],
+                'Kuda Create Maintenance Account Response'
+            );
 
-                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
-
-                if (! $createAccountResponse["status"]) {
-                    return [
-                        'status'  => false,
-                        'message' => $createAccountResponse["message"],
-                    ];
-                } else {
-                    return [
-                        'status'  => true,
-                        'message' => "Account Created Successfully",
-                        'data'    => [
-                            'account_number'         => $createAccountResponse['data']['accountNumber'],
-                            'virtual_account_number' => $createAccountResponse['data']['accountNumber'],
-                        ],
-                    ];
-                }
-            } else {
-                return ['status' => false, 'message' => 'Account Creation Failed. Kindly contact support for assistance'];
+            if (! $response->successful()) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Account Creation Failed',
+                    'data'    => $data,
+                ];
             }
+
+            if (! ($data['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Kuda rejected the maintenance account request',
+                    'data'    => $data,
+                ];
+            }
+
+            $accountNumber = $data['data']['accountNumber'] ?? null;
+
+            if (! $accountNumber) {
+                return [
+                    'status'  => false,
+                    'message' => 'Kuda did not return a maintenance account number',
+                    'data'    => $data,
+                ];
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Account Created Successfully',
+                'data'    => [
+                    'account_number'         => $accountNumber,
+                    'virtual_account_number' => $accountNumber,
+                ],
+            ];
+
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Laravel Kuda Error");
+            logInfo([
+                'error'       => $e->getMessage(),
+                'request_ref' => $requestReference,
+            ], 'Laravel Kuda Create Maintenance Account Error');
 
-            return ['status' => false, 'message' => 'Error Creating Account. Kindly contact support for assistance'];
+            return [
+                'status'  => false,
+                'message' => 'Error Creating Maintenance Account',
+            ];
         }
     }
 
+    /**
+     * Get betting billers.
+     */
     public function getBet()
     {
         $requestReference = generateTransactionReference();
-        $body             = [
-            "serviceType" => "GET_BILLERS_BY_TYPE",
-            "requestRef"  => $requestReference,
-            "data"        => [
-                "BillTypeName" => "betting",
-
-            ],
-        ];
-
-        $jsonBody = json_encode($body);
-
-        logInfo($jsonBody, "Kuda get bets");
-
-        //  $url = "v2.1/";
-        $url = "https://kuda-openapi.kuda.com/v2.1";
-
-        try {
-
-            $login = $this->login();
-
-            if (! $login['status']) {
-                return ['status' => false, 'message' => 'Unavailable. Try again later'];
-            }
-
-            \logInfo($body, "Kuda Request body Bet Response");
-
-            $createBetResponse = $this->kudaPostRequestUpdate($url, $body);
-
-            logInfo($createBetResponse, "Kuda Betting Response");
-
-            if ($createBetResponse->successful()) {
-
-                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
-
-                if (! $createBetResponse["status"]) {
-                    return [
-                        'status'  => false,
-                        'message' => $createBetResponse["message"],
-                    ];
-                } else {
-                    return [
-                        'status'  => true,
-                        'message' => "Bet Response Successfully",
-                        'data'    => [
-                            $createBetResponse['data']['billers'],
-                        ],
-                    ];
-                }
-            } else {
-                return ['status' => false, 'message' => 'Bet respond failed. Kindly contact support for assistance'];
-            }
-        } catch (Exception $e) {
-            logInfo($e->getMessage(), "Laravel Kuda Error");
-
-            return ['status' => false, 'message' => 'Error Creating Account. Kindly contact support for assistance'];
-        }
-    }
-
-    public function webhookWithdraw($requestReference, $amount, $narration, $trackingReference)
-    {
 
         $body = [
-            "servicetype" => "WITHDRAW_VIRTUAL_ACCOUNT",
-            "requestref"  => $requestReference,
-            "data"        => [
-                "amount"            => $amount,
-                "narration"         => $narration,
-                "trackingReference" => $trackingReference,
+            'serviceType' => 'GET_BILLERS_BY_TYPE',
+            'requestRef'  => $requestReference,
+            'data'        => [
+                'BillTypeName' => 'betting',
             ],
         ];
-        $jsonBody = \json_encode($body);
 
-        $requestBody = [
-            'data' => $jsonBody,
-        ];
-
-        $url = "https://kuda-openapi.kuda.com/v2.1";
+        logInfo($body, 'Kuda Get Bets Request');
 
         try {
-
             $login = $this->login();
 
-            if (! $login['status']) {
-                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
+            if (! ($login['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $login['message'] ?? 'Unavailable',
+                ];
             }
 
-            \logInfo($requestBody, "Kuda Request body");
+            $response = $this->kudaPostRequestUpdate(
+                $this->baseUrl,
+                $body
+            );
 
-            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
+            $data = $response->json();
 
-            logInfo($createAccountResponse, "Kuda Create Account Response");
+            logInfo(
+                [
+                    'http_status' => $response->status(),
+                    'response'    => $data,
+                ],
+                'Kuda Betting Response'
+            );
 
-            if ($createAccountResponse->successful()) {
-
-                //  $response = $this->sanitizeResponse($createAccountResponse['data']);
-
-                if (! $createAccountResponse["status"]) {
-                    return [
-                        'status'  => false,
-                        'message' => $createAccountResponse["message"],
-                    ];
-                } else {
-                    return [
-                        'status'  => true,
-                        'message' => "Webhook Withdrawal Successful",
-                    ];
-                }
-            } else {
-                return ['status' => false, 'message' => 'Webhook withdrawal failed. Kindly contact support for assistance'];
+            if (! $response->successful()) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message'] ?? 'Bet response failed',
+                    'data'    => $data,
+                ];
             }
+
+            if (! ($data['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message'] ?? 'Bet response failed',
+                    'data'    => $data,
+                ];
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Bet Response Successfully',
+                'data'    => $data['data']['billers'] ?? [],
+            ];
+
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Kuda Error");
+            logInfo(
+                $e->getMessage(),
+                'Laravel Kuda Betting Error'
+            );
 
-            return ['status' => false, 'message' => 'Error completing withdrawal. Kindly contact support for assistance'];
+            return [
+                'status'  => false,
+                'message' => 'Error fetching betting information',
+            ];
         }
     }
 
+    /**
+     * Withdraw from a Kuda virtual account.
+     */
+    public function webhookWithdraw(
+        $requestReference,
+        $amount,
+        $narration,
+        $trackingReference
+    ) {
+        $body = [
+            'serviceType' => 'WITHDRAW_VIRTUAL_ACCOUNT',
+            'requestRef'  => $requestReference,
+            'data'        => [
+                'amount'            => $amount,
+                'narration'         => $narration,
+                'trackingReference' => $trackingReference,
+            ],
+        ];
+
+        try {
+            $login = $this->login();
+
+            if (! ($login['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $login['message'] ?? 'Bank Unavailable',
+                ];
+            }
+
+            logInfo(
+                [
+                    'requestRef'  => $requestReference,
+                    'serviceType' => $body['serviceType'],
+                    'data'        => $body['data'],
+                ],
+                'Kuda Webhook Withdrawal Request'
+            );
+
+            $response = $this->kudaPostRequestUpdate(
+                $this->baseUrl,
+                $body
+            );
+
+            $data = $response->json();
+
+            logInfo(
+                [
+                    'http_status' => $response->status(),
+                    'response'    => $data,
+                ],
+                'Kuda Create Withdrawal Response'
+            );
+
+            if (! $response->successful()) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Webhook withdrawal failed',
+                ];
+            }
+
+            if (! ($data['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Webhook withdrawal failed',
+                ];
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Webhook Withdrawal Successful',
+            ];
+
+        } catch (Exception $e) {
+            logInfo(
+                $e->getMessage(),
+                'Laravel Kuda Withdrawal Error'
+            );
+
+            return [
+                'status'  => false,
+                'message' => 'Error completing withdrawal',
+            ];
+        }
+    }
+
+    /**
+     * Verify bank account.
+     */
     public function verifyBankAccount($bankCode, $accountNumber)
     {
-
-        $requestReference = \generate_txnID();
+        $requestReference = generate_txnID();
 
         $body = [
-            "servicetype" => "NAME_ENQUIRY",
-            "requestRef"  => $requestReference,
-            "Data"        => [
-                "BeneficiaryAccountNumber" => $accountNumber,
-                "BeneficiaryBankCode"      => $bankCode,
-
+            'serviceType' => 'NAME_ENQUIRY',
+            'requestRef'  => $requestReference,
+            'data'        => [
+                'BeneficiaryAccountNumber' => $accountNumber,
+                'BeneficiaryBankCode'      => $bankCode,
             ],
         ];
-        $jsonBody = \json_encode($body);
-
-        $requestBody = [
-            'data' => $jsonBody,
-        ];
-
-        $url = "https://kuda-openapi.kuda.com/v2.1";
 
         try {
-
             $login = $this->login();
 
-      logInfo($login, 'KUDA LOGIN RESPONSE');
+            logInfo(
+                $login,
+                'KUDA LOGIN RESPONSE'
+            );
 
-     if (! $login['status']) {
-     return [
-        'status' => false,
-        'message' => 'Bank Unavailable. Try again later',
-     ];
-     }
-
-            \logInfo($requestBody, "Kuda Request body");
-
-            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
-
-            logInfo($createAccountResponse, "Kuda Verify Account Response");
-
-            if ($createAccountResponse->successful()) {
-
-                //$response = $this->sanitizeResponse($createAccountResponse['data']);
-
-                if (! $createAccountResponse["status"]) {
-                    return [
-                        'status'  => false,
-                        'message' => $createAccountResponse["message"],
-                    ];
-                } else {
-                    return [
-                        'status'  => true,
-                        'message' => "Account Verified Successfully",
-                        'data'    => [
-                            'account_name'      => $createAccountResponse["data"]["beneficiaryName"],
-                            'bank_code'         => $createAccountResponse["data"]["beneficiaryBankCode"],
-                            'request_reference' => $requestReference,
-                            //  'sessionID'         => $createAccountResponse["data"]["SessionID"],
-                        ],
-                    ];
-                }
-            } else {
-                return ['status' => false, 'message' => 'Webhook withdrawal failed. Kindly contact support for assistance'];
+            if (! ($login['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $login['message'] ?? 'Bank Unavailable',
+                ];
             }
-        } catch (Exception $e) {
-            logInfo($e->getMessage(), "Kuda Error");
 
-            return ['status' => false, 'message' => 'Error completing withdrawal. Kindly contact support for assistance'];
+            logInfo(
+                [
+                    'requestRef'  => $requestReference,
+                    'serviceType' => $body['serviceType'],
+                    'data'        => $body['data'],
+                ],
+                'Kuda Verify Account Request'
+            );
+
+            $response = $this->kudaPostRequestUpdate(
+                $this->baseUrl,
+                $body
+            );
+
+            $data = $response->json();
+
+            logInfo(
+                [
+                    'http_status' => $response->status(),
+                    'response'    => $data,
+                ],
+                'Kuda Verify Account Response'
+            );
+
+            if (! $response->successful()) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Account verification failed',
+                ];
+            }
+
+            if (! ($data['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Account verification failed',
+                ];
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Account Verified Successfully',
+                'data'    => [
+                    'account_name' => $data['data']['beneficiaryName'] ?? null,
+                    'bank_code'    => $data['data']['beneficiaryBankCode'] ?? null,
+                    'request_reference' => $requestReference,
+                ],
+            ];
+
+        } catch (Exception $e) {
+            logInfo(
+                $e->getMessage(),
+                'Laravel Kuda Verify Account Error'
+            );
+
+            return [
+                'status'  => false,
+                'message' => 'Error completing account verification',
+            ];
         }
     }
 
+    /**
+     * Verify transaction.
+     */
     public function verifyTransaction($transactionReference)
     {
-
-        $requestReference = \generate_txnID();
+        $requestReference = generate_txnID();
 
         $body = [
-            "servicetype" => "TRANSACTION_STATUS_QUERY",
-            "requestref"  => $requestReference,
-            "data"        => [
-                "isThirdPartyBankTransfer"    => false,
-                "transactionRequestReference" => $transactionReference,
+            'serviceType' => 'TRANSACTION_STATUS_QUERY',
+            'requestRef'  => $requestReference,
+            'data'        => [
+                'isThirdPartyBankTransfer'    => false,
+                'transactionRequestReference' => $transactionReference,
             ],
         ];
-        $jsonBody = \json_encode($body);
-
-        $requestBody = [
-            'data' => $jsonBody,
-        ];
-
-        $url = "https://kuda-openapi.kuda.com/v2.1";
 
         try {
-
             $login = $this->login();
 
-            if (! $login['status']) {
-                return ['status' => "03", 'message' => 'Bank Unavailable. Try again later'];
+            if (! ($login['status'] ?? false)) {
+                return [
+                    'status'  => '03',
+                    'message' => $login['message'] ?? 'Bank Unavailable',
+                ];
             }
 
-            \logInfo($requestBody, "Kuda Request body");
+            logInfo(
+                [
+                    'requestRef'  => $requestReference,
+                    'serviceType' => $body['serviceType'],
+                    'data'        => $body['data'],
+                ],
+                'Kuda Verify Transaction Request'
+            );
 
-            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
+            $response = $this->kudaPostRequestUpdate(
+                $this->baseUrl,
+                $body
+            );
 
-            logInfo($createAccountResponse, "Kuda Verify Transaction Response");
+            $data = $response->json();
 
-            if ($createAccountResponse->successful()) {
+            logInfo(
+                [
+                    'http_status' => $response->status(),
+                    'response'    => $data,
+                ],
+                'Kuda Verify Transaction Response'
+            );
 
-                //$response = $this->sanitizeResponse($createAccountResponse['data']);
+            if (! $response->successful()) {
+                return [
+                    'status'  => '05',
+                    'message' => $data['message']
+                        ?? 'Verify transaction failed',
+                ];
+            }
 
-                if (! $createAccountResponse["status"]) {
-                    if ($createAccountResponse["responseCode"] == "-4" || $createAccountResponse["responseCode"] == "-2" || $createAccountResponse["responseCode"] == "-1") {
-                        return [
-                            'status'  => "02",
-                            'message' => "Your transaction has been found and as well reversed successfully",
-                        ];
-                    } else if ($createAccountResponse["responseCode"] == "k25") {
-                        return [
-                            'status'  => "03",
-                            'message' => $createAccountResponse["message"],
-                        ];
-                    } /*else if ($createAccountResponse["responseCode"] == "1" && isset($createAccountResponse["sessionID"])) {
-                        return [
-                            'status'  => "00",
-                            'message' => "Transaction Verified Successfully (Session ID: " . $createAccountResponse["sessionID"] . ")",
-                            'data'    => $createAccountResponse["data"],
-                        ];
-                    } */else {
-                        return [
-                            'status'  => "04",
-                            'message' => $createAccountResponse["message"],
-                        ];
-                    }
-                } else {
+            if (! ($data['status'] ?? false)) {
+                $responseCode = $data['responseCode'] ?? null;
+
+                if (in_array($responseCode, ['-4', '-2', '-1'])) {
                     return [
-                        'status'  => "00",
-                        'message' => "Transaction Verified Successfully (Session ID: " . $createAccountResponse["sessionID"] . ")",
-                        'data'    => $createAccountResponse["data"],
+                        'status'  => '02',
+                        'message' => 'Your transaction has been found and as well reversed successfully',
                     ];
                 }
-            } else {
-                return ['status' => "05", 'message' => 'Verify transaction failed. Kindly contact support for assistance'];
-            }
-        } catch (Exception $e) {
-            logInfo($e->getMessage(), "Kuda Error");
 
-            return ['status' => "06", 'message' => 'Error verifying transaction. Kindly contact support for assistance'];
+                if ($responseCode === 'k25') {
+                    return [
+                        'status'  => '03',
+                        'message' => $data['message']
+                            ?? 'Transaction still pending',
+                    ];
+                }
+
+                return [
+                    'status'  => '04',
+                    'message' => $data['message']
+                        ?? 'Transaction verification failed',
+                ];
+            }
+
+            $sessionId = $data['sessionID'] ?? null;
+
+            return [
+                'status'  => '00',
+                'message' => $sessionId
+                    ? "Transaction Verified Successfully (Session ID: {$sessionId})"
+                    : 'Transaction Verified Successfully',
+                'data'    => $data['data'] ?? [],
+            ];
+
+        } catch (Exception $e) {
+            logInfo(
+                $e->getMessage(),
+                'Laravel Kuda Verify Transaction Error'
+            );
+
+            return [
+                'status'  => '06',
+                'message' => 'Error verifying transaction',
+            ];
         }
     }
 
-    public function bankTransfer($requestReference, $accountNumber, $bankCode, $sessionId, $amount, $accountName, $description, $type)
-    {
-
-        //************** Old one *************************
-        // $body = [
-        //     "servicetype" => "VIRTUAL_ACCOUNT_FUND_TRANSFER",
-        //     "requestref" => $requestReference,
-        //     "data" => [
-        //         "beneficiaryAccount" => $accountNumber,
-        //         "beneficiarybankCode" => $bankCode,
-        //         "nameEnquirySessionID" => $sessionId,
-        //         "amount" => $amount * 100,
-        //         "ClientAccountNumber" => "payout account",
-        //         "beneficiaryName" => $accountName,
-        //         "trackingReference" => "payout account",
-        //         "senderName" => "Wired Banking Lite",
-        //         "narration" => $description
-        //     ]
-        // ];
-
-        //************** tracking Ref changed one *************************
-
-        if ($type == 1) {
-            $body = [
-                "servicetype" => "SINGLE_FUND_TRANSFER",
-                "requestRef"  => $requestReference,
-                "Data"        => [
-                    "BeneficiaryAccount"  => $accountNumber,
-                    "beneficiaryBankCode" => $bankCode,
-                    "amount"              => $amount * 100,
-                    "ClientAccountNumber" => "3002284739",
-                    "beneficiaryName"     => $accountName,
-                    "SenderName"          => $description,
-                    "narration"           => $description,
-                ],
-            ];
-        } else {
-            //************** New one *************************
-            $body = [
-                "servicetype" => "SINGLE_FUND_TRANSFER",
-                "requestRef"  => $requestReference,
-                "Data"        => [
-                    "BeneficiaryAccount"  => $accountNumber,
-                    "beneficiaryBankCode" => $bankCode,
-                    "amount"              => $amount * 100,
-                    "ClientAccountNumber" => "3002284739",
-                    "beneficiaryName"     => $accountName,
-                    "SenderName"          => $description,
-                    "narration"           => $description,
-                ],
-            ];
-        }
-
-        $jsonBody = \json_encode($body);
-
-        $requestBody = [
-            'data' => $jsonBody,
+    /**
+     * Transfer funds through Kuda.
+     */
+    public function bankTransfer(
+        $requestReference,
+        $accountNumber,
+        $bankCode,
+        $sessionId,
+        $amount,
+        $accountName,
+        $description,
+        $type
+    ) {
+        $body = [
+            'serviceType' => 'SINGLE_FUND_TRANSFER',
+            'requestRef'  => $requestReference,
+            'data'        => [
+                'BeneficiaryAccount'  => $accountNumber,
+                'beneficiaryBankCode' => $bankCode,
+                'amount'              => $amount * 100,
+                'ClientAccountNumber' => '3002284739',
+                'beneficiaryName'     => $accountName,
+                'SenderName'          => $description,
+                'narration'           => $description,
+            ],
         ];
 
-        $url = "https://kuda-openapi.kuda.com/v2.1";
-
         try {
-
             $login = $this->login();
 
-            if (! $login['status']) {
-                return ['status' => false, 'message' => 'Bank Unavailable. Try again later'];
+            if (! ($login['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $login['message'] ?? 'Bank Unavailable',
+                ];
             }
 
-            \logInfo($requestBody, "Kuda Request body");
+            logInfo(
+                [
+                    'requestRef'  => $requestReference,
+                    'serviceType' => $body['serviceType'],
+                    'data'        => $body['data'],
+                ],
+                'Kuda Bank Transfer Request'
+            );
 
-            $createAccountResponse = $this->kudaPostRequestUpdate($url, $body);
+            $response = $this->kudaPostRequestUpdate(
+                $this->baseUrl,
+                $body
+            );
 
-            logInfo($createAccountResponse, "Kuda Bank Transfer Response");
+            $data = $response->json();
 
-            if ($createAccountResponse->successful()) {
+            logInfo(
+                [
+                    'http_status' => $response->status(),
+                    'response'    => $data,
+                ],
+                'Kuda Bank Transfer Response'
+            );
 
-                //    $response = $this->sanitizeResponse($createAccountResponse['data']);
-
-                if ($createAccountResponse['responseCode'] == "-2") {
-
-                    $newType = $type == 1 ? 15 : 1;
-                    $this->bankTransfer($requestReference, $accountNumber, $bankCode, $sessionId, $amount, $accountName, $description, $newType);
-                }
-
-                if (! $createAccountResponse["status"]) {
-                    return [
-                        'status'  => true,
-                        'message' => "Bank Transfer Processing",
-                    ];
-                } else {
-                    return [
-                        'status'  => true,
-                        'message' => "Bank Transfer Successful",
-                    ];
-                }
-            } else {
-                return ['status' => false, 'message' => 'Bank Transfer failed. If you have been debited kindly contact support for reversal'];
+            if (! $response->successful()) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Bank Transfer failed',
+                ];
             }
+
+            /*
+             * Preserve your previous response-code fallback behaviour.
+             */
+            if (($data['responseCode'] ?? null) === '-2') {
+                $newType = $type == 1 ? 15 : 1;
+
+                return $this->bankTransfer(
+                    $requestReference,
+                    $accountNumber,
+                    $bankCode,
+                    $sessionId,
+                    $amount,
+                    $accountName,
+                    $description,
+                    $newType
+                );
+            }
+
+            if (! ($data['status'] ?? false)) {
+                return [
+                    'status'  => true,
+                    'message' => 'Bank Transfer Processing',
+                    'data'    => $data,
+                ];
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Bank Transfer Successful',
+                'data'    => $data,
+            ];
+
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "Kuda Error");
+            logInfo(
+                $e->getMessage(),
+                'Laravel Kuda Bank Transfer Error'
+            );
 
-            return ['status' => false, 'message' => 'Error with Bank Transfer. If you have been debited kindly contact support for reversal'];
+            return [
+                'status'  => false,
+                'message' => 'Error with Bank Transfer. If you have been debited kindly contact support for reversal',
+            ];
         }
     }
 
-    public function buyAirtime($transactionId, $network, $amount, $phoneNumber, $account)
-    {
-        $requestReference = \generate_txnID();
-        $type             = "airtime";
-        $biller_id        = $this->getBiller($type, $network);
-        if (isset($biller_id['status'])) {
-            return ["status" => false, 'message' => 'Failed to purchase airtime, Please contact support'];
+    /**
+     * Purchase airtime.
+     */
+    public function buyAirtime(
+        $transactionId,
+        $network,
+        $amount,
+        $phoneNumber,
+        $account
+    ) {
+        $requestReference = generate_txnID();
+        $type = 'airtime';
+
+        $billerId = $this->getBiller($type, $network);
+
+        if (! ($billerId['status'] ?? false)) {
+            return [
+                'status'  => false,
+                'message' => $billerId['message']
+                    ?? 'Failed to purchase airtime',
+            ];
         }
 
-        $login = $this->login();
+        $billerIdentifier = $billerId['data'] ?? null;
+
         try {
+            $login = $this->login();
+
+            if (! ($login['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $login['message'] ?? 'Bank Unavailable',
+                ];
+            }
 
             $body = [
-                "servicetype" => "ADMIN_PURCHASE_BILL",
-                "requestRef"  => $requestReference,
-                "Data"        => [
-                    "CustomerFirstName"  => $account,
-                    "CustomerIdentifier" => $bankCode,
-                    "PhoneNumber"        => $phoneNumber,
-                    "BillItemIdentifier" => $biller_id,
-                    "Amount"             => $amount,
+                'serviceType' => 'ADMIN_PURCHASE_BILL',
+                'requestRef'  => $requestReference,
+                'data'        => [
+                    'CustomerFirstName'  => $account,
+                    'CustomerIdentifier' => $account,
+                    'PhoneNumber'        => $phoneNumber,
+                    'BillItemIdentifier' => $billerIdentifier,
+                    'Amount'             => $amount,
+                ],
+            ];
 
-                ]];
-            $url = "https://kuda-openapi.kuda.com/v2.1";
+            $response = $this->kudaPostRequestUpdate(
+                $this->baseUrl,
+                $body
+            );
 
-            $buyAirtime = $this->kudaPostRequestUpdate($url, $body);
+            $data = $response->json();
 
-            logInfo($buyAirtime, 'Kuda Airtime Response log');
+            logInfo(
+                [
+                    'http_status' => $response->status(),
+                    'response'    => $data,
+                ],
+                'Kuda Airtime Response'
+            );
 
-            if (isset($buyAirtime['status'])) {
-                if ($buyAirtime["status"] == "true") {
-                    return ["status" => true, 'message' => "Airtime Purhcase Successful"];
-                } else {
-                    return ["status" => false, 'message' => $buyAirtime['response_description'] . ". Kindly contact admin for support", 'data' => $buyAirtime];
-                }
-            } else {
-                return ["status" => false, 'message' => 'Failed to purchase airtime, Please contact support'];
+            if (! $response->successful()) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Failed to purchase airtime',
+                    'data'    => $data,
+                ];
             }
+
+            if (($data['status'] ?? null) === true || ($data['status'] ?? null) === 'true') {
+                return [
+                    'status'  => true,
+                    'message' => 'Airtime Purchase Successful',
+                    'data'    => $data,
+                ];
+            }
+
+            return [
+                'status'  => false,
+                'message' => $data['response_description']
+                    ?? $data['message']
+                    ?? 'Failed to purchase airtime',
+                'data'    => $data,
+            ];
+
         } catch (Exception $e) {
-            logInfo($e->getMessage(), "VTPass log error");
-            return ["status" => false, 'message' => 'Failed to purchase airtime, Please contact support'];
+            logInfo(
+                $e->getMessage(),
+                'VTPass / Kuda Airtime Error'
+            );
+
+            return [
+                'status'  => false,
+                'message' => 'Failed to purchase airtime, Please contact support',
+            ];
         }
     }
 
+    /**
+     * Get billers.
+     */
     public function getBiller($type, $network = null)
     {
-        $requestReference = \generate_txnID();
-        $login            = $this->login();
+        $requestReference = generate_txnID();
 
-        $body = [
-            "servicetype" => "GET_BILLERS_BY_TYPE",
-            "requestRef"  => $requestReference,
-            "Data"        => [
-                "BillTypeName" => $type,
+        try {
+            $login = $this->login();
 
-            ]];
-        $url = "https://kuda-openapi.kuda.com/v2.1";
-
-        $billers = $this->kudaPostRequestUpdate($url, $body);
-
-        if (isset($billers['status']) == "true") {
-            if (isset($billers['data']['billers'][0]['description']) && $billers['data']['billers'][0]['description'] == "Airtime") {
-                return $this->getBillAirtimeID($billers, $network);
+            if (! ($login['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $login['message'] ?? 'Bank Unavailable',
+                ];
             }
-            return ['status' => true, 'message' => "{$type} fetched successfully", 'data' => $billers['data']];
-        } else {
-            return ['status' => false, 'message' => 'Failed to fetch Data bundles', 'data' => $billers];
+
+            $body = [
+                'serviceType' => 'GET_BILLERS_BY_TYPE',
+                'requestRef'  => $requestReference,
+                'data'        => [
+                    'BillTypeName' => $type,
+                ],
+            ];
+
+            $response = $this->kudaPostRequestUpdate(
+                $this->baseUrl,
+                $body
+            );
+
+            $data = $response->json();
+
+            logInfo(
+                [
+                    'http_status' => $response->status(),
+                    'response'    => $data,
+                ],
+                'Kuda Biller Response'
+            );
+
+            if (! $response->successful()) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Failed to fetch billers',
+                    'data'    => $data,
+                ];
+            }
+
+            if (! ($data['status'] ?? false)) {
+                return [
+                    'status'  => false,
+                    'message' => $data['message']
+                        ?? 'Failed to fetch billers',
+                    'data'    => $data,
+                ];
+            }
+
+            /*
+             * Airtime uses the bill-item identifier for the
+             * selected network.
+             */
+            if (
+                isset($data['data']['billers'][0]['description']) &&
+                strtolower($data['data']['billers'][0]['description']) === 'airtime'
+            ) {
+                $airtimeId = $this->getBillAirtimeID(
+                    $data,
+                    $network
+                );
+
+                if (! $airtimeId) {
+                    return [
+                        'status'  => false,
+                        'message' => 'Airtime biller not found for selected network',
+                    ];
+                }
+
+                return [
+                    'status'  => true,
+                    'message' => 'Airtime biller fetched successfully',
+                    'data'    => $airtimeId,
+                ];
+            }
+
+            return [
+                'status'  => true,
+                'message' => "{$type} fetched successfully",
+                'data'    => $data['data'] ?? [],
+            ];
+
+        } catch (Exception $e) {
+            logInfo(
+                $e->getMessage(),
+                'Laravel Kuda Biller Error'
+            );
+
+            return [
+                'status'  => false,
+                'message' => "Failed to fetch {$type}",
+            ];
         }
     }
 
+    /**
+     * Find airtime bill item ID for a network.
+     */
     public function getBillAirtimeID($data, $network)
     {
-        $airtime_id_name = "";
-        $airtime_id      = "";
-        if ($network == "mtn") {
-            $airtime_id_name = "MTN VTU";
+        $airtimeIdName = '';
 
+        switch (strtolower($network)) {
+            case 'mtn':
+                $airtimeIdName = 'MTN VTU';
+                break;
+
+            case 'glo':
+                $airtimeIdName = 'GLO VTU';
+                break;
+
+            case 'airtel':
+                $airtimeIdName = 'AIRTEL VTU';
+                break;
+
+            case '9mobile':
+                $airtimeIdName = '9MOBILE VTU';
+                break;
         }
-        if ($network == "glo") {
-            $airtime_id_name = "GLO VTU";
 
-        }
-        if ($network == "airtel") {
-            $airtime_id_name = "AIRTEL VTU";
-
-        }
-        if ($network == "9mobile") {
-            $airtime_id_name = "9MOBILE VTU";
-
+        if ($airtimeIdName === '') {
+            return null;
         }
 
-        foreach ($data['data']['billers'] as $airtime) {
-            if ($airtime['billItems'][0]['name'] == $airtime_id_name) {
-                $airtime_id = $airtime['billItems'][0]['kudaIdentifier'];
+        $billers = $data['data']['billers'] ?? [];
+
+        foreach ($billers as $airtime) {
+            $billItems = $airtime['billItems'] ?? [];
+
+            foreach ($billItems as $billItem) {
+                if (
+                    isset($billItem['name']) &&
+                    strtoupper($billItem['name']) === strtoupper($airtimeIdName)
+                ) {
+                    return $billItem['kudaIdentifier'] ?? null;
+                }
             }
         }
-        logInfo($airtime_id, "$airtime_id_name");
-        return $airtime_id;
 
+        logInfo(
+            $airtimeIdName,
+            "Kuda Airtime Biller ID Not Found"
+        );
+
+        return null;
     }
 
+    /**
+     * Send a POST request using the normal Kuda request format.
+     *
+     * Supports:
+     * - relative endpoints
+     * - the main https://.../v2.1 endpoint
+     */
     public function kudaPostRequest($endpoint, $body)
     {
-        $response = Http::withHeaders($this->kudaHeader())->post("$this->baseUrl $endpoint", $body);
-        return $response;
+        return $this->postToKuda($endpoint, $body);
     }
+
+    /**
+     * Send a POST request used by the existing controller methods.
+     */
     public function kudaPostRequestUpdate($endpoint, $body)
     {
-        logInfo(json_encode($body), "Kuda Process Endpoint Body");
-        $response = Http::withHeaders($this->kudaHeader())->post($endpoint, $body);
-        return $response;
+        return $this->postToKuda($endpoint, $body);
     }
 
+    /**
+     * Shared Kuda POST implementation.
+     */
+    private function postToKuda($endpoint, $body)
+    {
+        $url = $this->resolveKudaEndpoint($endpoint);
+
+        logInfo(
+            [
+                'url' => $url,
+                'body' => $body,
+            ],
+            'Kuda Process Endpoint Body'
+        );
+
+        return Http::withHeaders($this->kudaHeader())
+            ->acceptJson()
+            ->timeout(60)
+            ->post($url, $body);
+    }
+
+    /**
+     * Build the correct Kuda endpoint URL.
+     */
+    private function resolveKudaEndpoint($endpoint)
+    {
+        /*
+         * If a full URL is provided, use it exactly.
+         */
+        if (preg_match('/^https?:\/\//i', $endpoint)) {
+            return $endpoint;
+        }
+
+        return $this->baseUrl . '/' . ltrim($endpoint, '/');
+    }
+
+    /**
+     * GET request helper retained for compatibility.
+     */
     public function monnifyGetRequest($endpoint)
     {
-        $response = Http::withHeaders($this->kudaHeader())->get("$this->baseUrl $endpoint");
-        return $response->json();
+        $url = $this->resolveKudaEndpoint($endpoint);
+
+        try {
+            $response = Http::withHeaders($this->kudaHeader())
+                ->acceptJson()
+                ->timeout(60)
+                ->get($url);
+
+            return $response->json();
+
+        } catch (Exception $e) {
+            logInfo(
+                $e->getMessage(),
+                'Laravel Kuda GET Error'
+            );
+
+            return [
+                'status'  => false,
+                'message' => 'Kuda request failed',
+            ];
+        }
     }
 
+    /**
+     * Sanitize a JSON string where required by legacy code.
+     */
     public function sanitizeResponse($stringValue)
     {
-        return \json_decode(str_replace('\\', '', $stringValue), true);
+        return json_decode(
+            str_replace('\\\\', '', $stringValue),
+            true
+        );
     }
 
+    /**
+     * Kuda authorization headers.
+     */
     public function kudaHeader()
     {
-        $header = [
+        return [
             'Content-Type'  => 'application/json',
+            'Accept'        => 'application/json',
             'Authorization' => 'Bearer ' . $this->token,
         ];
-
-        return $header;
     }
 }

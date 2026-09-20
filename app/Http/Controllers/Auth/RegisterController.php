@@ -226,6 +226,8 @@ class RegisterController extends Controller
 
                 $companyWallet->save();
 
+                $this->createMaintenanceAccount($company);
+
                 $verificationHash = \generateAPIKey(12);
 
                 $user = User::create([
@@ -578,34 +580,105 @@ class RegisterController extends Controller
         }
     }
 
-    public function createMaintenanceAccount($company, $user)
-    {
+    public function createMaintenanceAccount($company)
+{
+    try {
+        $company = Company::with('allStaff', 'wallet')->find($company->id);
 
-        $requestReference  = generateAccountReference();
-        $trackingReference = generateAccountReference();
+        if (! $company) {
+            \logInfo([
+                'error' => 'Company not found',
+            ], 'maintenance account');
 
-        $kudaService = app(KudaController::class); // better than new
-
-        $response = $kudaService->createMaintenanceAccount(
-            $requestReference,
-            $user->email,
-            $user->phone ?? $admin->email,
-            $company->short_name,
-            "",
-            $trackingReference
-        );
-
-        if (! ($response['status'] ?? false)) {
-            \logInfo($response, "Maintenance account failed");
-            return;
+            return false;
         }
 
         $wallet = $company->wallet;
 
-        $wallet->subscription_vaccount = $response["data"]["account_number"];
+        if (! $wallet) {
+            \logInfo([
+                'company_id' => $company->id,
+                'error'      => 'Company wallet not found',
+            ], 'maintenance account');
+
+            return false;
+        }
+
+        // Don't create another subscription account if one already exists.
+        if (! empty($wallet->subscription_vaccount)) {
+            \logInfo([
+                'company_id'           => $company->id,
+                'subscription_vaccount' => $wallet->subscription_vaccount,
+                'message'              => 'Subscription account already exists',
+            ], 'maintenance account');
+
+            return true;
+        }
+
+        $admin = $company->allStaff->first();
+
+        if (! $admin) {
+            \logInfo([
+                'company_id' => $company->id,
+                'error'      => 'No admin found',
+            ], 'maintenance account');
+
+            return false;
+        }
+
+        $requestReference  = generateAccountReference();
+        $trackingReference = generateAccountReference();
+
+        $kudaService = app(KudaController::class);
+
+        $response = $kudaService->createMaintenanceAccount(
+            $requestReference,
+            $admin->email,
+            $admin->phone ?? $admin->email,
+            $company->short_name,
+            '',
+            $trackingReference
+        );
+
+        if (! ($response['status'] ?? false)) {
+            \logInfo([
+                'company_id' => $company->id,
+                'response'   => $response,
+            ], 'maintenance account failed');
+
+            return false;
+        }
+
+        $accountNumber = $response['data']['account_number'] ?? null;
+
+        if (! $accountNumber) {
+            \logInfo([
+                'company_id' => $company->id,
+                'response'   => $response,
+                'error'      => 'Provider did not return account number',
+            ], 'maintenance account failed');
+
+            return false;
+        }
+
+        $wallet->subscription_vaccount = $accountNumber;
         $wallet->save();
 
-        \logInfo($response, "Maintenance account created successfully");
+        \logInfo([
+            'company_id'           => $company->id,
+            'subscription_vaccount' => $accountNumber,
+        ], 'maintenance account created successfully');
 
+        return true;
+
+    } catch (\Throwable $e) {
+        \logInfo([
+            'company_id' => $company->id ?? null,
+            'error'      => $e->getMessage(),
+            'line'       => $e->getLine(),
+        ], 'maintenance account error');
+
+        return false;
     }
+}
 }

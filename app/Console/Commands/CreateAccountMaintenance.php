@@ -29,21 +29,22 @@ class CreateAccountMaintenance extends Command
      * @return int
      */
     public function handle()
-    {
-        $this->getCompanies()->each(function ($company) {
-            try {
-                //  $this->createMaintenanceAccount($company);
-                $this->createSudoMaintenanceAccountSafeHaven($company);
-            } catch (\Throwable $e) {
-                \logInfo([
-                    "company_id" => $company->id,
-                    "error"      => $e->getMessage(),
-                    "line"       => $e->getLine(),
-                ], 'maintenance account error');
-            }
-        });
+{
+    $this->getCompanies()->each(function ($company) {
+        try {
+            $this->createMaintenanceAccount($company);
+        } catch (\Throwable $e) {
+            \logInfo([
+                "company_id" => $company->id,
+                "error"      => $e->getMessage(),
+                "line"       => $e->getLine(),
+            ], 'maintenance account error');
+        }
+    });
 
-    }
+    return self::SUCCESS;
+}
+
     public function getCompanies()
     {
 

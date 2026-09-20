@@ -116,72 +116,134 @@ class KudaController extends WebhookController
      * IMPORTANT:
      * Do not log the API key or returned JWT.
      */
-    public function loginForMaintenance()
-    {
-        $maintenanceEmail = config(
-            'kuda.email_maintenance',
-            'johnaje557@gmail.com'
-        );
+public function loginForMaintenance()
+{
+    $maintenanceEmail = config(
+        'kuda.email_maintenance',
+        'johnaje557@gmail.com'
+    );
 
-        $body = [
-            'email'  => $maintenanceEmail,
-            'apiKey' => $this->apiMaintenanceKey,
+    if (empty($maintenanceEmail)) {
+        return [
+            'status'  => false,
+            'message' => 'Kuda maintenance email is not configured',
         ];
+    }
 
-        try {
-            $response = Http::acceptJson()
-                ->timeout(30)
-                ->post(
-                    $this->baseUrl . '/Account/GetToken',
-                    $body
-                );
+    if (empty($this->apiMaintenanceKey)) {
+        return [
+            'status'  => false,
+            'message' => 'Kuda maintenance API key is not configured',
+        ];
+    }
 
-            if (! $response->successful()) {
-                logInfo([
-                    'http_status' => $response->status(),
-                    'body'        => $response->body(),
-                ], 'Kuda Maintenance Login Failed');
+    $body = [
+        'email'  => $maintenanceEmail,
+        'apiKey' => $this->apiMaintenanceKey,
+    ];
 
-                return [
-                    'status'  => false,
-                    'message' => 'Failed to login to Kuda maintenance API',
-                ];
-            }
+    try {
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Accept'       => 'application/json',
+        ])
+            ->timeout(30)
+            ->post(
+                $this->baseUrl . '/Account/GetToken',
+                $body
+            );
 
-            /*
-             * Kuda returns a raw JWT string.
-             */
-            $token = trim($response->body());
+        /*
+         * Do NOT log the API key or token.
+         */
+        logInfo([
+            'http_status' => $response->status(),
+            'email'       => $maintenanceEmail,
+        ], 'Kuda Maintenance Login Response');
 
-            if ($token === '') {
-                logInfo([
-                    'http_status' => $response->status(),
-                ], 'Kuda Maintenance Login Empty Token');
-
-                return [
-                    'status'  => false,
-                    'message' => 'Kuda returned an empty maintenance access token',
-                ];
-            }
-
-            $this->token = $token;
-
-            return [
-                'status'  => true,
-                'message' => 'Login success',
-            ];
-
-        } catch (Exception $e) {
+        if (! $response->successful()) {
             logInfo([
-                'error' => $e->getMessage(),
-            ], 'Kuda Maintenance Login Error');
+                'http_status' => $response->status(),
+                'body'        => $response->body(),
+            ], 'Kuda Maintenance Login Failed');
 
             return [
                 'status'  => false,
-                'message' => 'Server Error connecting to Kuda',
+                'message' => 'Kuda maintenance authentication failed',
             ];
         }
+
+        /*
+         * Kuda documents this response as a raw JWT string.
+         */
+        $token = trim($response->body());
+
+        /*
+         * Handle the case where the provider returns a quoted
+         * JSON string instead of plain text.
+         */
+        if (
+            strlen($token) >= 2 &&
+            $token[0] === '"' &&
+            substr($token, -1) === '"'
+        ) {
+            $decodedToken = json_decode($token, true);
+
+            if (is_string($decodedToken)) {
+                $token = trim($decodedToken);
+            }
+        }
+
+        /*
+         * Handle "Bearer eyJ..." just in case.
+         */
+        if (stripos($token, 'Bearer ') === 0) {
+            $token = trim(substr($token, 7));
+        }
+
+        /*
+         * A JWT normally has 3 dot-separated sections.
+         * Don't send an invalid token to the API.
+         */
+        if (
+            empty($token) ||
+            substr_count($token, '.') !== 2
+        ) {
+            logInfo([
+                'http_status' => $response->status(),
+                'token_length' => strlen($token),
+                'token_parts'  => substr_count($token, '.') + 1,
+            ], 'Kuda Maintenance Invalid Token');
+
+            return [
+                'status'  => false,
+                'message' => 'Kuda returned an invalid access token',
+            ];
+        }
+
+        $this->token = $token;
+
+        logInfo([
+            'token_received' => true,
+            'token_length'   => strlen($token),
+        ], 'Kuda Maintenance Login Successful');
+
+        return [
+            'status'  => true,
+            'message' => 'Login success',
+        ];
+
+    } catch (Exception $e) {
+        logInfo([
+            'error' => $e->getMessage(),
+        ], 'Kuda Maintenance Login Error');
+
+        return [
+            'status'  => false,
+            'message' => 'Server Error connecting to Kuda',
+        ];
     }
+}
 
     /**
      * Get exchange rate.
@@ -369,121 +431,136 @@ class KudaController extends WebhookController
      * Create the company subscription maintenance virtual account.
      */
     public function createMaintenanceAccount(
-        $requestReference,
-        $email,
-        $phoneNumber,
-        $firstName,
-        $lastName,
-        $trackingReference
-    ) {
+    $requestReference,
+    $email,
+    $phoneNumber,
+    $firstName,
+    $lastName,
+    $trackingReference
+) {
+    $body = [
+        'serviceType' => 'ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT',
+        'requestRef'  => $requestReference,
+        'data'        => [
+            'amount'        => 0,
+            'isPassThrough' => true,
+            'accountName'   => trim("$firstName $lastName"),
+        ],
+    ];
+
+    try {
         /*
-         * Pass-through dynamic collection account.
-         *
-         * Current Kuda API format:
-         * amount = 0
-         * isPassThrough = true
+         * Get a fresh maintenance token.
          */
-        $body = [
-            'serviceType' => 'ADMIN_CREATE_DYNAMIC_COLLECTION_ACCOUNT',
+        $login = $this->loginForMaintenance();
+
+        if (! ($login['status'] ?? false)) {
+            logInfo([
+                'requestRef' => $requestReference,
+                'message'    => $login['message'] ?? 'Authentication failed',
+            ], 'Kuda Maintenance Authentication Error');
+
+            return [
+                'status'  => false,
+                'message' => $login['message'] ?? 'Kuda authentication failed',
+            ];
+        }
+
+        logInfo([
             'requestRef'  => $requestReference,
-            'data'        => [
-                'amount'        => 0,
-                'isPassThrough' => true,
-                'accountName'   => trim("$firstName $lastName"),
-            ],
-        ];
+            'serviceType' => $body['serviceType'],
+            'data'        => $body['data'],
+        ], 'Kuda Request Create Maintenance Account');
 
-        try {
-            /*
-             * Use the separate maintenance API credentials.
-             */
-            $login = $this->loginForMaintenance();
-
-            if (! ($login['status'] ?? false)) {
-                return [
-                    'status'  => false,
-                    'message' => $login['message'] ?? 'Bank Unavailable',
-                ];
-            }
-
-            logInfo(
-                [
-                    'requestRef'  => $requestReference,
-                    'serviceType' => $body['serviceType'],
-                    'data'        => $body['data'],
-                ],
-                'Kuda Request Create Maintenance Account'
-            );
-
-            /*
-             * Send the request to:
-             *
-             * https://kuda-openapi.kuda.com/v2.1
-             */
-            $response = $this->kudaPostRequestUpdate(
+        /*
+         * Kuda's production API uses:
+         *
+         * https://kuda-openapi.kuda.com/v2.1
+         */
+        $response = Http::withHeaders($this->kudaHeader())
+            ->acceptJson()
+            ->timeout(60)
+            ->post(
                 $this->baseUrl,
                 $body
             );
 
+        $data = null;
+
+        /*
+         * Try JSON first.
+         */
+        if ($response->header('Content-Type')) {
             $data = $response->json();
+        }
 
-            logInfo(
-                [
-                    'http_status' => $response->status(),
-                    'response'    => $data,
-                ],
-                'Kuda Create Maintenance Account Response'
-            );
+        logInfo([
+            'http_status' => $response->status(),
+            'response'    => $data,
+            'requestRef'  => $requestReference,
+        ], 'Kuda Create Maintenance Account Response');
 
-            if (! $response->successful()) {
-                return [
-                    'status'  => false,
-                    'message' => $data['message']
-                        ?? 'Account Creation Failed',
-                    'data'    => $data,
-                ];
-            }
-
-            if (! ($data['status'] ?? false)) {
-                return [
-                    'status'  => false,
-                    'message' => $data['message']
-                        ?? 'Kuda rejected the maintenance account request',
-                    'data'    => $data,
-                ];
-            }
-
-            $accountNumber = $data['data']['accountNumber'] ?? null;
-
-            if (! $accountNumber) {
-                return [
-                    'status'  => false,
-                    'message' => 'Kuda did not return a maintenance account number',
-                    'data'    => $data,
-                ];
-            }
-
-            return [
-                'status'  => true,
-                'message' => 'Account Created Successfully',
-                'data'    => [
-                    'account_number'         => $accountNumber,
-                    'virtual_account_number' => $accountNumber,
-                ],
-            ];
-
-        } catch (Exception $e) {
-            logInfo([
-                'error'       => $e->getMessage(),
-                'request_ref' => $requestReference,
-            ], 'Laravel Kuda Create Maintenance Account Error');
-
+        /*
+         * 401 means the access token/API credentials are being
+         * rejected by Kuda. Return that explicitly.
+         */
+        if ($response->status() === 401) {
             return [
                 'status'  => false,
-                'message' => 'Error Creating Maintenance Account',
+                'message' => 'Kuda authentication rejected the maintenance access token',
+                'data'    => $data,
             ];
         }
+
+        if (! $response->successful()) {
+            return [
+                'status'  => false,
+                'message' => $data['message']
+                    ?? 'Kuda account creation request failed',
+                'data'    => $data,
+            ];
+        }
+
+        if (! ($data['status'] ?? false)) {
+            return [
+                'status'  => false,
+                'message' => $data['message']
+                    ?? 'Kuda rejected the maintenance account request',
+                'data'    => $data,
+            ];
+        }
+
+        $accountNumber = $data['data']['accountNumber'] ?? null;
+
+        if (! $accountNumber) {
+            return [
+                'status'  => false,
+                'message' => 'Kuda did not return a maintenance account number',
+                'data'    => $data,
+            ];
+        }
+
+        return [
+            'status'  => true,
+            'message' => 'Account Created Successfully',
+            'data'    => [
+                'account_number'         => $accountNumber,
+                'virtual_account_number' => $accountNumber,
+            ],
+        ];
+
+    } catch (Exception $e) {
+        logInfo([
+            'requestRef' => $requestReference,
+            'error'      => $e->getMessage(),
+        ], 'Laravel Kuda Create Maintenance Account Error');
+
+        return [
+            'status'  => false,
+            'message' => 'Error Creating Maintenance Account',
+        ];
     }
+}
 
     /**
      * Get betting billers.
@@ -1318,11 +1395,12 @@ class KudaController extends WebhookController
      * Kuda authorization headers.
      */
     public function kudaHeader()
-    {
-        return [
-            'Content-Type'  => 'application/json',
-            'Accept'        => 'application/json',
-            'Authorization' => 'Bearer ' . $this->token,
-        ];
-    }
+{
+    return [
+        'Content-Type'  => 'application/json',
+        'Accept'        => 'application/json',
+        'Authorization' => 'Bearer ' . trim($this->token),
+    ];
+}
+
 }

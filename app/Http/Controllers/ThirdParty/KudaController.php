@@ -444,7 +444,6 @@ public function loginForMaintenance()
         'data'        => [
             'amount'        => 0,
             'isPassThrough' => true,
-            'accountName'   => trim("$firstName $lastName"),
         ],
     ];
 

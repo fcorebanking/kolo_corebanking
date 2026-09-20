@@ -57,110 +57,93 @@ class CreateAccountMaintenance extends Command
             ->cursor();
     }
 
-    public function createMaintenanceAccount($company)
-    {
-        $company = Company::with('allStaff', 'wallet')->find($company->id);
+public function createMaintenanceAccount($company)
+{
+    $company = Company::with('wallet')->find($company->id);
 
-        if (! $company) {
-            $this->warn("Company not found: {$company->id}");
-            return false;
-        }
+    if (! $company) {
+        $this->warn("Company not found.");
+        return false;
+    }
 
-        $wallet = $company->wallet;
+    $wallet = $company->wallet;
 
-        if (! $wallet) {
-            $this->warn("Company {$company->id}: wallet not found");
-
-            \logInfo([
-                'company_id' => $company->id,
-                'error'      => 'Company wallet not found',
-            ], 'maintenance account');
-
-            return false;
-        }
-
-        /*
-         * Do not create another subscription account
-         * if one already exists.
-         */
-        if (! empty($wallet->subscription_vaccount)) {
-            $this->line(
-                "Company {$company->id}: subscription account already exists - {$wallet->subscription_vaccount}"
-            );
-
-            return true;
-        }
-
-        $admin = $company->allStaff->first();
-
-        if (! $admin) {
-            $this->warn("Company {$company->id}: no active company staff/admin found");
-
-            \logInfo([
-                'company_id' => $company->id,
-                'error'      => 'No active company staff/admin found',
-            ], 'maintenance account');
-
-            return false;
-        }
-
-        $this->line("Company {$company->id}: creating subscription account...");
-
-        $requestReference  = generateAccountReference();
-        $trackingReference = generateAccountReference();
-
-        $kudaService = app(KudaController::class);
-
-        $response = $kudaService->createMaintenanceAccount(
-            $requestReference,
-            $admin->email,
-            $admin->phone ?? $admin->email,
-            $company->short_name,
-            '',
-            $trackingReference
-        );
-
-        if (! ($response['status'] ?? false)) {
-            $message = $response['message'] ?? 'Unknown Kuda error';
-
-            $this->error("Company {$company->id}: Kuda failed - {$message}");
-
-            \logInfo([
-                'company_id' => $company->id,
-                'response'   => $response,
-            ], 'maintenance account failed');
-
-            return false;
-        }
-
-        $accountNumber = $response['data']['account_number'] ?? null;
-
-        if (! $accountNumber) {
-            $this->error("Company {$company->id}: Kuda returned no account number");
-
-            \logInfo([
-                'company_id' => $company->id,
-                'response'   => $response,
-                'error'      => 'Provider did not return account number',
-            ], 'maintenance account failed');
-
-            return false;
-        }
-
-        $wallet->subscription_vaccount = $accountNumber;
-        $wallet->save();
-
-        $this->info(
-            "Company {$company->id}: subscription account created - {$accountNumber}"
-        );
+    if (! $wallet) {
+        $this->warn("Company {$company->id}: wallet not found");
 
         \logInfo([
-            'company_id'           => $company->id,
-            'subscription_vaccount' => $accountNumber,
-        ], 'maintenance account created successfully');
+            'company_id' => $company->id,
+            'error'      => 'Company wallet not found',
+        ], 'maintenance account');
+
+        return false;
+    }
+
+    if (! empty($wallet->subscription_vaccount)) {
+        $this->line(
+            "Company {$company->id}: subscription account already exists - {$wallet->subscription_vaccount}"
+        );
 
         return true;
     }
+
+    $this->line(
+        "Company {$company->id}: creating subscription account..."
+    );
+
+    $requestReference  = generateAccountReference();
+    $trackingReference = generateAccountReference();
+
+    $kudaService = app(KudaController::class);
+
+    $response = $kudaService->createMaintenanceAccount(
+        $requestReference,
+        null,
+        null,
+        $company->short_name,
+        '',
+        $trackingReference
+    );
+
+    if (! ($response['status'] ?? false)) {
+        $message = $response['message'] ?? 'Unknown Kuda error';
+
+        $this->error(
+            "Company {$company->id}: Kuda failed - {$message}"
+        );
+
+        \logInfo([
+            'company_id' => $company->id,
+            'response'   => $response,
+        ], 'maintenance account failed');
+
+        return false;
+    }
+
+    $accountNumber = $response['data']['account_number'] ?? null;
+
+    if (! $accountNumber) {
+        $this->error(
+            "Company {$company->id}: Kuda returned no account number"
+        );
+
+        return false;
+    }
+
+    $wallet->subscription_vaccount = $accountNumber;
+    $wallet->save();
+
+    $this->info(
+        "Company {$company->id}: subscription account created - {$accountNumber}"
+    );
+
+    \logInfo([
+        'company_id'            => $company->id,
+        'subscription_vaccount' => $accountNumber,
+    ], 'maintenance account created successfully');
+
+    return true;
+}
 
     public function createSudoMaintenanceAccountSafeHaven($company)
     {

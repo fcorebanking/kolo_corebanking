@@ -87,61 +87,181 @@ class TransactionController extends Controller
         $this->baseUrl = url('/');
     }
 
-    public function verifyBankAccount(Request $request)
-    {
+    public function verifyBankAccount($bankCode, $accountNumber)
+{
+    /*
+     * Make sure the values are strings because bank codes can
+     * contain leading zeroes.
+     */
+    $bankCode = (string) $bankCode;
+    $accountNumber = (string) $accountNumber;
 
-        logInfo($request->all(), "Verify Bank Account Request");
+    /*
+     * Use a short unique request reference.
+     * Kuda recommends short request references.
+     */
+    $requestReference = 'NE' . now()->format('YmdHis') . strtoupper(
+        substr(bin2hex(random_bytes(4)), 0, 6)
+    );
 
-        $validation = Validator::make($request->all(), [
-            "bank_code"      => 'required',
-            "account_number" => 'required|numeric|gt:0',
-        ]);
-        if ($validation->fails()) {
-            $ra = ["status" => false, "message" => "Bank code and account number is required"];
-            return response()->json($ra, 406);
-        }
+    /*
+     * Kuda NAME_ENQUIRY payload.
+     *
+     * Keep these in camelCase.
+     */
+    $body = [
+        'serviceType' => 'NAME_ENQUIRY',
+        'requestRef'  => $requestReference,
+        'data'        => [
+            'beneficiaryAccountNumber' => $accountNumber,
+            'beneficiaryBankCode'      => $bankCode,
+        ],
+    ];
 
-        $preferredEbankingPartner = PreferredEbankingPartner::all();
+    try {
+        /*
+         * Authenticate using the normal Kuda credentials.
+         */
+        $login = $this->login();
 
-        $ebankingService = new EbankingService($preferredEbankingPartner);
-
-        $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->account_number);
-
-        if (! $bankAccount['status']) {
-            return response()->json($bankAccount, 400);
-        }
-
-        $bank_name = "";
-
-        if (isset($bankAccount["data"]["bank_code"])) {
-            $bank      = banks::where('bank_code', $bankAccount["data"]["bank_code"])->first();
-            $bank_name = $bank->bank_name;
-        } else {
-            $bank_name = $bankAccount['data']['bank_name'];
-        }
-
-        $accountName = $bankAccount["data"]["account_name"];
-
-        $myAccountName = [];
-
-        $myAccountName = explode(" ", $accountName);
-
-        $firstName = strlen($myAccountName[0]) < 3 ? $myAccountName[1] : $myAccountName[0];
-        $lastName  = count($myAccountName) > 2 ? (strlen($myAccountName[2]) < 3 ? $myAccountName[1] : $myAccountName[2]) : (count($myAccountName) > 1 ? $myAccountName[1] : "");
-
-        return response()->json(
-            [
-                'status'  => true,
-                'message' => "Account Verified Successfully",
-                'data'    => [
-                    'first_name' => $firstName,
-                    'last_name'  => $lastName,
-                    'bank_name'  => $bank_name,
-
-                ],
-            ]
+        logInfo(
+            $login,
+            'KUDA LOGIN RESPONSE'
         );
+
+        if (! ($login['status'] ?? false)) {
+            return [
+                'status'  => false,
+                'message' => $login['message'] ?? 'Kuda Bank Unavailable',
+            ];
+        }
+
+        logInfo(
+            [
+                'requestRef'  => $requestReference,
+                'serviceType' => 'NAME_ENQUIRY',
+                'data'        => [
+                    'beneficiaryAccountNumber' => $accountNumber,
+                    'beneficiaryBankCode'      => $bankCode,
+                ],
+            ],
+            'Kuda Verify Account Request'
+        );
+
+        /*
+         * Send directly to the Kuda v2.1 endpoint.
+         */
+        $response = Http::withHeaders($this->kudaHeader())
+            ->acceptJson()
+            ->timeout(60)
+            ->post(
+                $this->baseUrl,
+                $body
+            );
+
+        /*
+         * Read the raw body as well as JSON.
+         * This is important because Kuda may return a non-JSON
+         * response for authentication errors.
+         */
+        $rawBody = $response->body();
+        $data = $response->json();
+
+        logInfo(
+            [
+                'http_status' => $response->status(),
+                'response'    => $data,
+                'raw_body'    => $rawBody,
+                'requestRef'  => $requestReference,
+            ],
+            'Kuda Verify Account Response'
+        );
+
+        /*
+         * Explicitly detect authentication failure.
+         */
+        if ($response->status() === 401) {
+            return [
+                'status'  => false,
+                'message' => 'Kuda authentication rejected the account verification request',
+                'data'    => [
+                    'http_status' => 401,
+                ],
+            ];
+        }
+
+        if (! $response->successful()) {
+            return [
+                'status'  => false,
+                'message' => $data['message']
+                    ?? $data['response_description']
+                    ?? 'Account verification failed',
+                'data'    => $data,
+            ];
+        }
+
+        /*
+         * Kuda API-level failure.
+         */
+        if (! ($data['status'] ?? false)) {
+            return [
+                'status'  => false,
+                'message' => $data['message']
+                    ?? $data['response_description']
+                    ?? 'Account verification failed',
+                'data'    => $data,
+            ];
+        }
+
+        /*
+         * Depending on the Kuda response version, the account
+         * name may be returned under one of these fields.
+         */
+        $accountName =
+            $data['data']['beneficiaryName']
+            ?? $data['data']['accountName']
+            ?? $data['data']['account_name']
+            ?? null;
+
+        $returnedBankCode =
+            $data['data']['beneficiaryBankCode']
+            ?? $data['data']['bankCode']
+            ?? $bankCode;
+
+        if (empty($accountName)) {
+            return [
+                'status'  => false,
+                'message' => 'Kuda did not return the beneficiary account name',
+                'data'    => $data,
+            ];
+        }
+
+        return [
+            'status'  => true,
+            'message' => 'Account Verified Successfully',
+            'data'    => [
+                'account_name'       => $accountName,
+                'bank_code'          => $returnedBankCode,
+                'request_reference'  => $requestReference,
+            ],
+        ];
+
+    } catch (Exception $e) {
+        logInfo(
+            [
+                'error'      => $e->getMessage(),
+                'requestRef' => $requestReference,
+            ],
+            'Laravel Kuda Verify Account Error'
+        );
+
+        return [
+            'status'  => false,
+            'message' => 'Error completing account verification',
+        ];
     }
+}
+
 
     public function verifyBankAccountTest(Request $request)
     {

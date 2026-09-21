@@ -51,64 +51,73 @@ class KudaController extends WebhookController
      *
      * Kuda returns the access token as raw text/JWT.
      */
-    public function login()
-    {
-        $body = [
-            'email'  => $this->username,
-            'apiKey' => $this->apiKey,
-        ];
+public function login()
+{
+     $body = [
+        'email'  => $this->username,
+        'apiKey' => $this->apiKey,
+    ];
 
-        try {
-            $response = Http::acceptJson()
-                ->timeout(30)
-                ->post($this->baseUrl . '/Account/GetToken', $body);
+    try {
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Accept'       => 'application/json',
+        ])
+            ->timeout(30)
+            ->post(
+                $this->baseUrl . '/Account/GetToken',
+                $body
+            );
 
-            if (! $response->successful()) {
-                logInfo([
-                    'http_status' => $response->status(),
-                    'body'        => $response->body(),
-                ], 'Kuda Login Failed');
-
-                return [
-                    'status'  => false,
-                    'message' => 'Failed to login to Kuda',
-                ];
-            }
-
-            /*
-             * Kuda returns a raw JWT string here.
-             */
-            $token = trim($response->body());
-
-            if ($token === '') {
-                logInfo([
-                    'http_status' => $response->status(),
-                ], 'Kuda Login Empty Token');
-
-                return [
-                    'status'  => false,
-                    'message' => 'Kuda returned an empty access token',
-                ];
-            }
-
-            $this->token = $token;
-
-            return [
-                'status'  => true,
-                'message' => 'Login success',
-            ];
-
-        } catch (Exception $e) {
+        if (! $response->successful()) {
             logInfo([
-                'error' => $e->getMessage(),
-            ], 'Kuda Login Error');
+                'http_status' => $response->status(),
+                'body'        => $response->body(),
+            ], 'Kuda Login Failed');
 
             return [
                 'status'  => false,
-                'message' => 'Server Error connecting to Kuda',
+                'message' => 'Failed to login to Kuda',
             ];
         }
+
+        $token = $this->extractKudaAccessToken($response);
+
+        if (! $token) {
+            logInfo([
+                'http_status' => $response->status(),
+                'body_length' => strlen($response->body()),
+            ], 'Kuda Login Invalid Token');
+
+            return [
+                'status'  => false,
+                'message' => 'Kuda returned an invalid access token',
+            ];
+        }
+
+        $this->token = $token;
+
+        logInfo([
+            'token_received' => true,
+            'token_length'   => strlen($token),
+        ], 'Kuda Login Successful');
+
+        return [
+            'status'  => true,
+            'message' => 'Login success',
+        ];
+
+    } catch (Exception $e) {
+        logInfo([
+            'error' => $e->getMessage(),
+        ], 'Kuda Login Error');
+
+        return [
+            'status'  => false,
+            'message' => 'Server Error connecting to Kuda',
+        ];
     }
+}
 
     /**
      * Get a Kuda access token using the maintenance API credentials.
@@ -1400,6 +1409,68 @@ public function loginForMaintenance()
         'Accept'        => 'application/json',
         'Authorization' => 'Bearer ' . trim($this->token),
     ];
+}
+
+private function extractKudaAccessToken($response)
+{
+    $token = trim($response->body());
+
+    if ($token === '') {
+        return null;
+    }
+
+    /*
+     * Normally Kuda returns a plain-text JWT.
+     *
+     * But support these formats as well:
+     * 1. "eyJ..."
+     * 2. {"token":"eyJ..."}
+     * 3. {"accessToken":"eyJ..."}
+     * 4. {"access_token":"eyJ..."}
+     */
+    $decoded = json_decode($token, true);
+
+    if (json_last_error() === JSON_ERROR_NONE) {
+        if (is_string($decoded)) {
+            $token = trim($decoded);
+        } elseif (is_array($decoded)) {
+            $token =
+                $decoded['accessToken']
+                ?? $decoded['access_token']
+                ?? $decoded['token']
+                ?? null;
+
+            if ($token !== null) {
+                $token = trim($token);
+            }
+        }
+    }
+
+    if (! is_string($token) || $token === '') {
+        return null;
+    }
+
+    /*
+     * Handle "Bearer eyJ..."
+     */
+    if (stripos($token, 'Bearer ') === 0) {
+        $token = trim(substr($token, 7));
+    }
+
+    /*
+     * Remove accidental surrounding quotes.
+     */
+    $token = trim($token, "\"'");
+
+    /*
+     * Kuda access tokens are JWTs.
+     * A JWT has 3 dot-separated sections.
+     */
+    if (substr_count($token, '.') !== 2) {
+        return null;
+    }
+
+    return $token;
 }
 
 }

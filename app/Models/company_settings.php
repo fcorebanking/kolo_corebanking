@@ -11,7 +11,7 @@ class company_settings extends Model
     use HasFactory;
     protected $fillable = [
         'smsapi_id',
-        'allsms_state','target_saving_interest','target_saving_commission', 'target_savings_early_withdrawal_fee_percentage', 'target_savings_interest_rate', 'campaign_fee_percentage'
+        'allsms_state','target_saving_interest','target_saving_commission', 'target_savings_early_withdrawal_fee_percentage', 'target_savings_interest_rate', 'campaign_fee_percentage', 'ajo_creation_fee', 'ajo_maturity_fee_percentage'
     ];
     public function plan()
     {

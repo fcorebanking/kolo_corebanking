@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ThirdParty\GTBController;
 use App\Http\Controllers\api\v1\TargetSavingsController;
 use App\Http\Controllers\api\v1\CampaignController;
+use App\Http\Controllers\api\v1\AjoController;
 
 
 /*
@@ -459,6 +460,8 @@ Route::prefix('/target-savings')->middleware('auth:api')->group(function () {
 
     Route::get('/list', [TargetSavingsController::class, 'index']);
 
+    Route::get('/summary', [TargetSavingsController::class, 'summary']);
+
     Route::get('/details/{id}', [TargetSavingsController::class, 'show']);
 
     Route::post('/deposit/{id}', [TargetSavingsController::class, 'deposit']);
@@ -551,4 +554,68 @@ Route::prefix('campaigns')->group(function () {
         CampaignController::class,
         'adminClose'
     ]);
+});
+
+Route::prefix('ajo')->group(function () {
+
+    // Personal Ajo Account
+    Route::get('/account', [AjoController::class, 'account'])
+        ->name('ajo.account');
+
+    Route::post('/account/deposit', [AjoController::class, 'depositToAccount'])
+        ->name('ajo.account.deposit');
+
+    Route::post('/account/withdraw', [AjoController::class, 'withdrawFromAccount'])
+        ->name('ajo.account.withdraw');
+
+    // Ajo creation
+    Route::post('/create', [AjoController::class, 'create'])
+        ->name('ajo.create');
+
+    // Membership / invitations
+    Route::post('/{ajoId}/invite', [AjoController::class, 'invite'])
+        ->whereNumber('ajoId')
+        ->name('ajo.invite');
+
+    Route::post('/{ajoId}/join', [AjoController::class, 'join'])
+        ->whereNumber('ajoId')
+        ->name('ajo.join');
+
+    Route::post('/invitations/{invitationId}/accept', [AjoController::class, 'acceptInvitation'])
+        ->whereNumber('invitationId')
+        ->name('ajo.invitation.accept');
+
+    Route::post('/invitations/{invitationId}/decline', [AjoController::class, 'declineInvitation'])
+        ->whereNumber('invitationId')
+        ->name('ajo.invitation.decline');
+
+    // Early leave
+    Route::post('/{ajoId}/leave/request', [AjoController::class, 'requestEarlyLeave'])
+        ->whereNumber('ajoId')
+        ->name('ajo.leave.request');
+
+    Route::post('/members/{ajoMemberId}/leave/approve', [AjoController::class, 'approveEarlyLeave'])
+        ->whereNumber('ajoMemberId')
+        ->name('ajo.leave.approve');
+
+    Route::post('/members/{ajoMemberId}/leave/reject', [AjoController::class, 'rejectEarlyLeave'])
+        ->whereNumber('ajoMemberId')
+        ->name('ajo.leave.reject');
+
+    // Ajo conditions / fee split
+    Route::get('/{ajoId}/conditions', [AjoController::class, 'conditions'])
+        ->whereNumber('ajoId')
+        ->name('ajo.conditions');
+
+    Route::post('/{ajoId}/fee-split', [AjoController::class, 'feeSplit'])
+        ->whereNumber('ajoId')
+        ->name('ajo.fee-split');
+
+    // Administrative / internal processing endpoints
+    Route::post('/system/process-collections', [AjoController::class, 'processCollections'])
+        ->name('ajo.system.process-collections');
+
+    Route::post('/system/process-maturity', [AjoController::class, 'processMaturity'])
+        ->name('ajo.system.process-maturity');
+
 });

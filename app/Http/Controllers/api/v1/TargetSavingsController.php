@@ -221,6 +221,102 @@ class TargetSavingsController extends Controller
         }
     }
 
+        /**
+     * Get authenticated user's Target Savings summary.
+     *
+     * Returns:
+     * - Total target amount across all Target Savings.
+     * - Number of Target Savings created.
+     * - Total amount deposited across all Target Savings.
+     */
+    #[OA\Get(
+        path: "/api/v1/target-savings/summary",
+        summary: "Get Target Savings summary",
+        description: "Returns the authenticated user's Target Savings summary, including the combined target amount, total number of Target Savings created, and cumulative amount deposited across all Target Savings.",
+        tags: ["Target Savings"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Target Savings summary retrieved successfully"
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Unauthenticated"
+            ),
+            new OA\Response(
+                response: 500,
+                description: "Unable to retrieve Target Savings summary"
+            )
+        ]
+    )]
+    public function summary(Request $request): JsonResponse
+    {
+        try {
+
+            $user = auth('api')->user();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            /*
+             * Get all Target Savings belonging to
+             * the authenticated user.
+             */
+            $query = TargetSaving::query()
+                ->where('user_id', $user->id);
+
+            /*
+             * Total number of Target Savings created.
+             */
+            $targetSavingsCount = (clone $query)->count();
+
+            /*
+             * Combined target amount across
+             * all Target Savings.
+             */
+            $totalTargetAmount = (float) (
+                (clone $query)->sum('target_amount')
+            );
+
+            /*
+             * Cumulative amount actually deposited
+             * across all Target Savings.
+             *
+             * We use total_deposited rather than current_balance
+             * because current_balance can become zero after withdrawal,
+             * while total_deposited represents the cumulative
+             * amount deposited into each target.
+             */
+            $totalAmountDeposited = (float) (
+                (clone $query)->sum('total_deposited')
+            );
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Target Savings summary retrieved successfully.',
+                'data' => [
+                    'target_savings_count' => $targetSavingsCount,
+                    'total_target_amount' => round($totalTargetAmount, 2),
+                    'total_amount_deposited' => round($totalAmountDeposited, 2),
+                ],
+            ], 200);
+
+        } catch (Throwable $e) {
+
+            report($e);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to retrieve Target Savings summary.',
+            ], 500);
+        }
+    }
+
     /**
      * Get one Target Savings.
      */

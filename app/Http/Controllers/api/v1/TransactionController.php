@@ -6802,39 +6802,49 @@ if (!$checkVTPASSBalance['status']) {
         )
     ]
 )]
-    public function verifyBVN(Request $request)
-    {
+public function verifyBVN(Request $request)
+{
+    $validation = Validator::make($request->all(), [
+        "bvn" => 'sometimes|numeric|gt:0',
+        "dob"  => 'sometimes',
+        'nin'  => 'sometimes',
+    ]);
 
-        $validation = Validator::make($request->all(), [
-            "bvn" => 'sometimes|numeric|gt:0',
-            "dob" => 'sometimes',
-            'nin' => 'sometimes',
-        ]);
-        if ($validation->fails()) {
-            $ra = ["status" => false, "message" => "BVN and Date of birth is required"];
-            return response()->json($ra, 406);
-        }
+    if ($validation->fails()) {
+        $ra = [
+            "status" => false,
+            "message" => "BVN and Date of birth is required"
+        ];
 
-        logInfo($request->all(), "Request body");
-        
-        $companyId = auth()->user()->company->id ?? $request->company_id;
-
-        logInfo($companyId, "verifyBVN company id");
-
-        $bankID = company_wallet::where('company_id', $companyId)->first()->bank_id;
-
-        logInfo($bankID, "verifyBVN bank id");
-
-        $company_bank_id = (int) $bankID;
-
-        return match ($company_bank_id) {
- 
-            190 => $this->verifyIdentityWithSafeHaven($request), //7000299948
-            default
-                => $this->debitCompanyWithSubscriptionBVN($request, $companyId),
-        };
-
+        return response()->json($ra, 406);
     }
+
+    logInfo($request->all(), "Request body");
+
+    $companyId = auth()->user()->company->id ?? $request->company_id;
+
+    logInfo($companyId, "verifyBVN company id");
+
+    $wallet = company_wallet::where('company_id', $companyId)->first();
+
+    if (!$wallet) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Company wallet not found'
+        ], 400);
+    }
+
+    $bankID = $wallet->bank_id;
+
+    logInfo($bankID, "verifyBVN bank id");
+
+    $company_bank_id = (int) $bankID;
+
+    return match ($company_bank_id) {
+        190 => $this->verifyIdentityWithSafeHaven($request),
+        default => $this->debitCompanyWithSubscriptionBVN($request, $companyId),
+    };
+}
 
     public function debitBVNFromCompany($debitCompanyWithCharge, $companyId, $charge)
     {
@@ -6966,61 +6976,90 @@ public function verifyWithIdentityPass(Request $request)
         return $this->verifyWithIdentityPass($request);
     }
 
-    public function verifyIdentityWithSafeHaven(Request $request)
-    {
-        return $this->safeHavenIdentityCheckResponse($request);
-
-    }
-
-public function safeHavenIdentityCheckResponse(Request $request) 
-{ 
-    $safehavenController = new SafehavenController(); 
-
-    // 1. Determine whether to verify via NIN or BVN
-    if ($request->has('nin')) { 
-        $response = $safehavenController->verifyNIN($request->nin, $request->company_id); 
-    } else { 
-        $response = $safehavenController->verifyBVN($request->bvn, $request->company_id); 
-    } 
-
-    // 2. Handle failed verification status
-    if (! ($response['status'] ?? false)) { 
-        return response()->json([ 
-            'status' => false, 
-            'message' => $response['message'] ?? 'Failed to verify identity', 
-        ], 400); 
-    } 
-
-    // 3. Handle pending verification / OTP requirements
-    if (($response['verification_pending'] ?? false) === true) { 
-        return response()->json([ 
-            'status' => true, 
-            'message' => $response['message'] ?? 'OTP sent successfully', 
-            'data' => [ 
-                'otp_required' => true, 
-                'otpId' => $response['otpId'] ?? null, 
-                'phoneAndDobVerified' => false, 
-            ], 
-        ]); 
-    } 
-
-    // 4. Return successful verification data
-    return response()->json([ 
-        'status' => true, 
-        'message' => 'Account Verified Successfully', 
-        'data' => [ 
-            'firstName' => $response['data']['firstName'] ?? null, 
-            'lastName' => $response['data']['lastName'] ?? null, 
-            'middleName' => $response['data']['middleName'] ?? null, 
-            'dateOfBirth' => $response['data']['dateOfBirth'] ?? null, 
-            'phoneNumber' => $response['data']['phoneNumber'] ?? null, 
-            'watchListed' => $response['data']['watchListed'] ?? false, 
-            'watchListMessage' => $response['data']['watchListMessage'] ?? '', 
-        ], 
-    ]); 
+public function verifyIdentityWithSafeHaven(Request $request)
+{
+    return $this->safeHavenIdentityCheckResponse($request);
 }
 
+public function safeHavenIdentityCheckResponse(Request $request)
+{
+    $safehavenController = new SafehavenController();
 
+    /*
+    |--------------------------------------------------------------------------
+    | Determine whether to verify via NIN or BVN
+    |--------------------------------------------------------------------------
+    */
+
+    if ($request->filled('nin')) {
+
+        $response = $safehavenController->verifyNIN(
+            $request->nin,
+            $request->company_id
+        );
+
+    } else {
+
+        $response = $safehavenController->verifyBVN(
+            $request->bvn,
+            $request->dob,
+            $request->company_id
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Handle failed verification
+    |--------------------------------------------------------------------------
+    */
+
+    if (!($response['status'] ?? false)) {
+        return response()->json([
+            'status' => false,
+            'message' => $response['message'] ?? 'Failed to verify identity',
+        ], 400);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Handle pending verification / OTP requirement
+    |--------------------------------------------------------------------------
+    */
+
+    if (($response['verification_pending'] ?? false) === true) {
+        return response()->json([
+            'status' => true,
+            'message' => $response['message'] ?? 'OTP sent successfully',
+
+            'data' => [
+                'otp_required' => true,
+                'otpId' => $response['otpId'] ?? null,
+                'phoneAndDobVerified' => $response['phoneAndDobVerified'] ?? false,
+            ],
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Return successful verification data
+    |--------------------------------------------------------------------------
+    */
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Account Verified Successfully',
+
+        'data' => [
+            'firstName' => $response['data']['firstName'] ?? null,
+            'lastName' => $response['data']['lastName'] ?? null,
+            'middleName' => $response['data']['middleName'] ?? null,
+            'dateOfBirth' => $response['data']['dateOfBirth'] ?? null,
+            'phoneNumber' => $response['data']['phoneNumber'] ?? null,
+            'watchListed' => $response['data']['watchListed'] ?? false,
+            'watchListMessage' => $response['data']['watchListMessage'] ?? '',
+        ],
+    ]);
+}
 
     public function verifyBVNAlt(Request $request, $bvn)
     {

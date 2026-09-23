@@ -2872,37 +2872,143 @@ public function creditDebitCustomerAccount(Request $request)
         return response()->json($verifyWebhook);
     }
 
-    public function safeHavenWebhook(Request $request)
-    {
 
-        $safeHavenController = new SafehavenController();
-        // $verifyWebhook = $safeHavenController->verifyIncomingWebhook($request);
+public function safeHavenWebhook(Request $request)
+{
+    $safeHavenController = new SafehavenController();
 
-        logInfo($request->all(), "SafehavenWeb Hook Request body");
+    logInfo($request->all(), "SafehavenWeb Hook Request body");
 
-        $currentRequest = $request->all();
+    $currentRequest = $request->all();
 
-        if ($currentRequest['type'] != "transfer") {
-            return response()->json(['status' => false, 'message' => 'Webhook is not of type Transfer'], 400);
+    /*
+    |--------------------------------------------------------------------------
+    | Validate webhook type
+    |--------------------------------------------------------------------------
+    */
+    if (!isset($currentRequest['type'])) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Webhook type is missing',
+        ], 400);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SafeHaven Identity Credit Check Webhook
+    |--------------------------------------------------------------------------
+    |
+    | This is sent after a BVN/NIN identity check.
+    |
+    | Example:
+    | type = identityCreditCheck
+    |
+    */
+    if ($currentRequest['type'] === 'identityCreditCheck') {
+
+        logInfo(
+            $currentRequest,
+            "Safehaven Identity Credit Check Webhook"
+        );
+
+        $identityData = $currentRequest['data'] ?? [];
+
+        /*
+        |--------------------------------------------------------------------------
+        | You can store/update the identity verification here if needed.
+        |--------------------------------------------------------------------------
+        |
+        | Important:
+        | Do NOT treat this webhook alone as "Account Verified Successfully"
+        | because your SafeHaven response is still returning:
+        |
+        | phoneAndDobVerified = false
+        |
+        | The user still needs to complete the OTP/phone + DOB verification
+        | flow.
+        |
+        */
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Identity credit check webhook received',
+        ], 200);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SafeHaven Transfer Webhook
+    |--------------------------------------------------------------------------
+    |
+    | Keep your existing transfer processing here.
+    |
+    */
+    if ($currentRequest['type'] === 'transfer') {
+
+        if (
+            !isset($currentRequest['data']['paymentReference']) ||
+            !isset($currentRequest['data']['amount']) ||
+            !isset($currentRequest['data']['creditAccountNumber'])
+        ) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid transfer webhook payload',
+            ], 400);
         }
 
-        $safeHavenController->transactionReference = $currentRequest['data']['paymentReference'];
-        $safeHavenController->wbaCharge            = getWbaTransferCharges(38, $currentRequest['data']['amount']);
-        $safeHavenController->virtualAccount       = $currentRequest['data']['creditAccountNumber'];
-        $safeHavenController->amount               = $currentRequest['data']['amount'];
-        $safeHavenController->webhookType          = 'safehaven';
-        $safeHavenController->senderName           = $currentRequest['data']['debitAccountName'];
-        $safeHavenController->description          = "You received Funds from" . $currentRequest['data']['debitAccountName'];
-        $safeHavenController->transactionDate      = $currentRequest['data']['createdAt'];
-        $safeHavenController->request              = $request;
-        $safeHavenController->fromTempWebhook      = 'false';
+        $safeHavenController->transactionReference =
+            $currentRequest['data']['paymentReference'];
+
+        $safeHavenController->wbaCharge =
+            getWbaTransferCharges(
+                38,
+                $currentRequest['data']['amount']
+            );
+
+        $safeHavenController->virtualAccount =
+            $currentRequest['data']['creditAccountNumber'];
+
+        $safeHavenController->amount =
+            $currentRequest['data']['amount'];
+
+        $safeHavenController->webhookType = 'safehaven';
+
+        $safeHavenController->senderName =
+            $currentRequest['data']['debitAccountName'];
+
+        $safeHavenController->description =
+            "You received Funds from " .
+            $currentRequest['data']['debitAccountName'];
+
+        $safeHavenController->transactionDate =
+            $currentRequest['data']['createdAt'];
+
+        $safeHavenController->request = $request;
+
+        $safeHavenController->fromTempWebhook = 'false';
 
         $handleWebhook = $safeHavenController->handleWebhook();
 
-        $httpCode = ! isset($handleWebhook['httpCode']) ? 400 : 200;
+        $httpCode = !isset($handleWebhook['httpCode'])
+            ? 400
+            : 200;
 
-        return response()->json($handleWebhook, $httpCode);
+        return response()->json(
+            $handleWebhook,
+            $httpCode
+        );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Unsupported webhook type
+    |--------------------------------------------------------------------------
+    */
+    return response()->json([
+        'status' => false,
+        'message' => 'Unsupported SafeHaven webhook type',
+    ], 400);
+}
 
     public function safeHavenCardMaintenanceWebhook(Request $request)
     {
@@ -6866,38 +6972,54 @@ public function verifyWithIdentityPass(Request $request)
 
     }
 
-public function safeHavenIdentityCheckResponse(Request $request)
-{
-    $safehavenController = new SafehavenController();
-    if ($request->has('nin')) {
-        $bvnResponse = $safehavenController->verifyNIN($request->nin, $request->company_id);
-    } else {
-        $bvnResponse = $safehavenController->verifyBVN($request->bvn, $request->company_id);
-    }
+public function safeHavenIdentityCheckResponse(Request $request) 
+{ 
+    $safehavenController = new SafehavenController(); 
 
-    if ($bvnResponse['status']) {
-        return response()->json([
-            'status'  => true,
-            'message' => "Account Verified Successfully",
-            'data'    => [
-                // Safely maps the payload keys from your Prembly log
-                'firstName'        => $bvnResponse['data']['firstName'] ?? null,
-                'lastName'         => $bvnResponse['data']['lastName'] ?? null,
-                'middleName'       => $bvnResponse['data']['middleName'] ?? null,
-                'dateOfBirth'      => $bvnResponse['data']['dateOfBirth'] ?? null,
-                'phoneNumber'      => $bvnResponse['data']['phoneNumber'] ?? null,
-                'watchListed'      => $bvnResponse['data']['watchListed'] ?? false,
-                'watchListMessage' => $bvnResponse['data']['watchListMessage'] ?? '',
-                'reference'        => $bvnResponse['verification']['reference'] ?? null,
-            ],
-        ]);
-    } else {
-        return response()->json([
-            'status'  => false,
-            'message' => $bvnResponse['message'] ?? "Failed to verify BVN",
-        ], 400);
-    }
+    // 1. Determine whether to verify via NIN or BVN
+    if ($request->has('nin')) { 
+        $response = $safehavenController->verifyNIN($request->nin, $request->company_id); 
+    } else { 
+        $response = $safehavenController->verifyBVN($request->bvn, $request->company_id); 
+    } 
+
+    // 2. Handle failed verification status
+    if (! ($response['status'] ?? false)) { 
+        return response()->json([ 
+            'status' => false, 
+            'message' => $response['message'] ?? 'Failed to verify identity', 
+        ], 400); 
+    } 
+
+    // 3. Handle pending verification / OTP requirements
+    if (($response['verification_pending'] ?? false) === true) { 
+        return response()->json([ 
+            'status' => true, 
+            'message' => $response['message'] ?? 'OTP sent successfully', 
+            'data' => [ 
+                'otp_required' => true, 
+                'otpId' => $response['otpId'] ?? null, 
+                'phoneAndDobVerified' => false, 
+            ], 
+        ]); 
+    } 
+
+    // 4. Return successful verification data
+    return response()->json([ 
+        'status' => true, 
+        'message' => 'Account Verified Successfully', 
+        'data' => [ 
+            'firstName' => $response['data']['firstName'] ?? null, 
+            'lastName' => $response['data']['lastName'] ?? null, 
+            'middleName' => $response['data']['middleName'] ?? null, 
+            'dateOfBirth' => $response['data']['dateOfBirth'] ?? null, 
+            'phoneNumber' => $response['data']['phoneNumber'] ?? null, 
+            'watchListed' => $response['data']['watchListed'] ?? false, 
+            'watchListMessage' => $response['data']['watchListMessage'] ?? '', 
+        ], 
+    ]); 
 }
+
 
 
     public function verifyBVNAlt(Request $request, $bvn)

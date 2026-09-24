@@ -559,7 +559,7 @@ Route::prefix('campaigns')->group(function () {
 Route::prefix('ajo')->group(function () {
 
     // Authenticated user's Ajo overview: current memberships, created groups and transactions
-    Route::get('/ajo/mine', [AjoController::class, 'mine'])
+    Route::get('/mine', [AjoController::class, 'mine'])
         ->name('ajo.mine');
 
     // Personal Ajo Account

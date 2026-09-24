@@ -4,6 +4,8 @@ namespace App\Http\Controllers\api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ajo;
+use App\Models\AjoMember;
+use App\Models\AjoTransaction;
 use App\Services\AjoService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -164,6 +166,173 @@ class AjoController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Unable to retrieve personal Ajo Account.',
+            ], 500);
+        }
+    }
+
+    #[OA\Get(
+        path: "/api/v1/ajo/mine",
+        summary: "Get the authenticated user's Ajo groups and transactions",
+        description: "Returns the authenticated user's current Ajo memberships, Ajos they created as overseer, their separate personal Ajo Account, and all Ajo transactions recorded against their user account. Creators are not treated as members; creator-owned Ajos are returned separately from current member Ajos.",
+        tags: ["Ajo"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Authenticated user's Ajo overview retrieved successfully",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "status", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Ajo overview retrieved successfully."),
+                        new OA\Property(
+                            property: "data",
+                            type: "object",
+                            properties: [
+                                new OA\Property(
+                                    property: "ajo_account",
+                                    type: "object",
+                                    nullable: true,
+                                    additionalProperties: true
+                                ),
+                                new OA\Property(
+                                    property: "member_ajos",
+                                    type: "array",
+                                    items: new OA\Items(type: "object", additionalProperties: true)
+                                ),
+                                new OA\Property(
+                                    property: "created_ajos",
+                                    type: "array",
+                                    items: new OA\Items(type: "object", additionalProperties: true)
+                                ),
+                                new OA\Property(
+                                    property: "transactions",
+                                    type: "array",
+                                    items: new OA\Items(type: "object", additionalProperties: true)
+                                ),
+                                new OA\Property(property: "member_ajo_count", type: "integer", example: 2),
+                                new OA\Property(property: "created_ajo_count", type: "integer", example: 1),
+                                new OA\Property(property: "transaction_count", type: "integer", example: 12)
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 500, description: "Unexpected server error")
+        ]
+    )]
+    public function mine(Request $request): JsonResponse
+    {
+        try {
+            $user = $this->authenticatedUser();
+
+            $ajoAccount = $this->ajoService->getOrCreateAjoAccount($user);
+
+            // The creator is NOT a member. Current membership therefore comes
+            // only from active or pending-early-leave member records.
+            $members = AjoMember::query()
+                ->where('user_id', $user->id)
+                ->whereIn('status', [
+                    'active',
+                    'leave_requested',
+                ])
+                ->latest('id')
+                ->get();
+
+            $memberAjoIds = $members
+                ->pluck('ajo_id')
+                ->filter()
+                ->unique()
+                ->values();
+
+            $memberAjoMap = Ajo::query()
+                ->whereIn('id', $memberAjoIds)
+                ->get()
+                ->keyBy('id');
+
+            $memberAjos = $members
+                ->map(function (AjoMember $member) use ($memberAjoMap) {
+                    $ajo = $memberAjoMap->get($member->ajo_id);
+
+                    if (!$ajo) {
+                        return null;
+                    }
+
+                    return [
+                        'id' => $ajo->id,
+                        'role' => 'member',
+                        'membership_id' => $member->id,
+                        'membership_status' => $member->status,
+                        'ajo_name' => $ajo->ajo_name,
+                        'description' => $ajo->description,
+                        'creator_user_id' => $ajo->creator_user_id,
+                        'collection_amount' => (float) $ajo->collection_amount,
+                        'collection_frequency' => $ajo->collection_frequency,
+                        'collection_interval' => $ajo->collection_interval,
+                        'collection_day' => $ajo->collection_day,
+                        'collection_time' => $ajo->collection_time,
+                        'start_date' => $ajo->start_date,
+                        'maturity_date' => $ajo->maturity_date,
+                        'next_collection_at' => $ajo->next_collection_at,
+                        'creation_fee' => (float) $ajo->creation_fee,
+                        'maturity_fee_percentage' => (float) $ajo->maturity_fee_percentage,
+                        'early_leave_penalty_type' => $ajo->early_leave_penalty_type,
+                        'early_leave_penalty_value' => (float) $ajo->early_leave_penalty_value,
+                        'insufficient_balance_fee_type' => $ajo->insufficient_balance_fee_type,
+                        'insufficient_balance_fee_value' => (float) $ajo->insufficient_balance_fee_value,
+                        'max_members' => $ajo->max_members,
+                        'visibility' => $ajo->visibility,
+                        'terms' => $ajo->terms,
+                        'terms_version' => $ajo->terms_version,
+                        'company_fee_share_percentage' => (float) $ajo->company_fee_share_percentage,
+                        'creator_fee_share_percentage' => (float) $ajo->creator_fee_share_percentage,
+                        'status' => $ajo->status,
+                        'member_balance' => (float) $member->balance,
+                        'total_contributed' => (float) $member->total_contributed,
+                        'insufficient_balance_count' => (int) $member->insufficient_balance_count,
+                        'total_insufficient_balance_fees' => (float) $member->total_insufficient_balance_fees,
+                        'total_maturity_fees' => (float) $member->total_maturity_fees,
+                        'total_early_leave_penalties' => (float) $member->total_early_leave_penalties,
+                        'joined_at' => $member->joined_at,
+                        'left_at' => $member->left_at,
+                    ];
+                })
+                ->filter()
+                ->values();
+
+            // Creators are overseers only, so these are deliberately returned
+            // separately and are never represented as member positions.
+            $createdAjos = Ajo::query()
+                ->where('creator_user_id', $user->id)
+                ->latest('id')
+                ->get();
+
+            $transactions = AjoTransaction::query()
+                ->where('user_id', $user->id)
+                ->latest('id')
+                ->get();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Ajo overview retrieved successfully.',
+                'data' => [
+                    'ajo_account' => $ajoAccount,
+                    'member_ajos' => $memberAjos,
+                    'created_ajos' => $createdAjos,
+                    'transactions' => $transactions,
+                    'member_ajo_count' => $memberAjos->count(),
+                    'created_ajo_count' => $createdAjos->count(),
+                    'transaction_count' => $transactions->count(),
+                ],
+            ], 200);
+        } catch (RuntimeException $e) {
+            return $this->businessError($e);
+        } catch (Throwable $e) {
+            report($e);
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to retrieve Ajo overview.',
             ], 500);
         }
     }

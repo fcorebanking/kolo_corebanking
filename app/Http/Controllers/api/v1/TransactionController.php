@@ -6985,12 +6985,6 @@ public function safeHavenIdentityCheckResponse(Request $request)
 {
     $safehavenController = new SafehavenController();
 
-    /*
-    |--------------------------------------------------------------------------
-    | Determine whether to verify via NIN or BVN
-    |--------------------------------------------------------------------------
-    */
-
     if ($request->filled('nin')) {
 
         $response = $safehavenController->verifyNIN(
@@ -7007,58 +7001,64 @@ public function safeHavenIdentityCheckResponse(Request $request)
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Handle failed verification
-    |--------------------------------------------------------------------------
-    */
-
     if (!($response['status'] ?? false)) {
         return response()->json([
             'status' => false,
-            'message' => $response['message'] ?? 'Failed to verify identity',
+            'message' => $response['message']
+                ?? 'Failed to verify identity',
         ], 400);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Handle pending verification / OTP requirement
-    |--------------------------------------------------------------------------
-    */
-
     if (($response['verification_pending'] ?? false) === true) {
+
         return response()->json([
             'status' => true,
-            'message' => $response['message'] ?? 'OTP sent successfully',
+            'message' => $response['message']
+                ?? 'OTP sent successfully',
 
             'data' => [
                 'otp_required' => true,
-                'otpId' => $response['otpId'] ?? null,
-                'phoneAndDobVerified' => $response['phoneAndDobVerified'] ?? false,
-            ],
-        ]);
-    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Return successful verification data
-    |--------------------------------------------------------------------------
-    */
+                'identityId' => $response['identityId']
+                    ?? null,
+
+                'otpId' => $response['otpId']
+                    ?? null,
+
+                'phoneAndDobVerified' =>
+                    $response['phoneAndDobVerified']
+                    ?? false,
+            ],
+        ], 200);
+    }
 
     return response()->json([
         'status' => true,
         'message' => 'Account Verified Successfully',
 
         'data' => [
-            'firstName' => $response['data']['firstName'] ?? null,
-            'lastName' => $response['data']['lastName'] ?? null,
-            'middleName' => $response['data']['middleName'] ?? null,
-            'dateOfBirth' => $response['data']['dateOfBirth'] ?? null,
-            'phoneNumber' => $response['data']['phoneNumber'] ?? null,
-            'watchListed' => $response['data']['watchListed'] ?? false,
-            'watchListMessage' => $response['data']['watchListMessage'] ?? '',
+            'firstName' =>
+                $response['data']['firstName'] ?? null,
+
+            'lastName' =>
+                $response['data']['lastName'] ?? null,
+
+            'middleName' =>
+                $response['data']['middleName'] ?? null,
+
+            'dateOfBirth' =>
+                $response['data']['dateOfBirth'] ?? null,
+
+            'phoneNumber' =>
+                $response['data']['phoneNumber'] ?? null,
+
+            'watchListed' =>
+                $response['data']['watchListed'] ?? false,
+
+            'watchListMessage' =>
+                $response['data']['watchListMessage'] ?? '',
         ],
-    ]);
+    ], 200);
 }
 
     public function verifyBVNAlt(Request $request, $bvn)

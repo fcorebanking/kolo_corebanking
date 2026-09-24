@@ -915,35 +915,27 @@ public function verifyBVN($bvn, $dob = null, $company_id = null)
 
     $loginResult = $this->getToken($company_id);
 
+    if (!($loginResult['status'] ?? false)) {
+        return [
+            'status'  => false,
+            'message' => 'Failed to connect to Server. Please contact support',
+        ];
+    }
+
     $body = [
-        "type" => "BVN",
-        "async" => false,
-        "number" => $bvn,
+        "type"               => "BVN",
+        "async"              => false,
+        "number"             => $bvn,
         "debitAccountNumber" => $this->debitAccount,
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Keep DOB available for the verification flow
-    |--------------------------------------------------------------------------
-    |
-    | Do NOT add DOB to the SafeHaven identity/v2 request body yet unless
-    | SafeHaven's API documentation confirms that identity/v2 accepts it.
-    |
-    */
-
     logInfo([
-        'bvn' => $bvn,
-        'dob' => $dob,
-        'company_id' => $company_id,
-    ], "Safehaven verify bvn request");
-
-    if (!$loginResult['status']) {
-        return [
-            'status' => false,
-            'message' => 'Failed to connect to Server. Please contact support'
-        ];
-    }
+        'type'               => 'BVN',
+        'async'              => false,
+        'number'             => $bvn,
+        'debitAccountNumber' => $this->debitAccount,
+        'company_id'         => $company_id,
+    ], "Safehaven verify bvn body request");
 
     try {
 
@@ -953,78 +945,73 @@ public function verifyBVN($bvn, $dob = null, $company_id = null)
 
         if (!isset($response['statusCode'])) {
             return [
-                'status' => false,
-                'message' => 'Failed to Verify BVN'
+                'status'  => false,
+                'message' => 'Failed to Verify BVN',
             ];
         }
 
-        if ($response['statusCode'] != 200) {
+        if ((int) $response['statusCode'] !== 200) {
             return [
-                'status' => false,
-                'message' => 'Failed to Verify BVN'
+                'status'  => false,
+                'message' => $response['message'] ?? 'Failed to Verify BVN',
             ];
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | SafeHaven identity response
-        |--------------------------------------------------------------------------
-        */
 
         $responseData = $response['data'] ?? [];
 
         /*
         |--------------------------------------------------------------------------
-        | SafeHaven can return phoneAndDobVerified separately from
-        | data.otpVerified. They are NOT the same thing.
+        | SafeHaven verification ID
         |--------------------------------------------------------------------------
+        |
+        | SafeHaven's current verification flow uses the `_id` from the
+        | initiation response as the identityId for OTP validation.
+        |
         */
-
-        $phoneAndDobVerified = $response['phoneAndDobVerified'] ?? false;
+        $identityId = $responseData['_id'] ?? null;
 
         /*
         |--------------------------------------------------------------------------
         | OTP / pending verification
         |--------------------------------------------------------------------------
         */
-
-        if (!$phoneAndDobVerified) {
+        if (($response['phoneAndDobVerified'] ?? false) !== true) {
 
             return [
                 'status' => true,
 
+                'verification_pending' => true,
+
                 'message' => $response['message']
                     ?? 'OTP sent successfully',
 
-                'verification_pending' => true,
+                'identityId' => $identityId,
 
                 'otpId' => $responseData['otpId'] ?? null,
 
-                'phoneAndDobVerified' => false,
+                'phoneAndDobVerified' =>
+                    (bool) ($response['phoneAndDobVerified'] ?? false),
 
                 'data' => $responseData,
 
-                /*
-                 * Keep DOB available to the caller if the next stage
-                 * requires it.
-                 */
                 'dob' => $dob,
             ];
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Fully verified
+        | Already fully verified
         |--------------------------------------------------------------------------
         */
-
         return [
             'status' => true,
 
-            'message' => $response['message']
-                ?? 'Identity verified successfully',
-
             'verification_pending' => false,
+
+            'message' => $response['message']
+                ?? 'BVN Verified Successfully',
+
+            'identityId' => $identityId,
 
             'otpId' => $responseData['otpId'] ?? null,
 
@@ -1039,12 +1026,12 @@ public function verifyBVN($bvn, $dob = null, $company_id = null)
 
         logInfo(
             $e->getMessage(),
-            "Safehaven Error"
+            "Safehaven Verify BVN Error"
         );
 
         return [
-            'status' => false,
-            'message' => 'Error verifying account'
+            'status'  => false,
+            'message' => 'Error verifying account',
         ];
     }
 }

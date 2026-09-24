@@ -1036,6 +1036,79 @@ public function verifyBVN($bvn, $dob = null, $company_id = null)
     }
 }
 
+public function verifyBVNOtp($identityId, $otp, $company_id = null)
+{
+    $url = "identity/v2/validate";
+
+    $loginResult = $this->getToken($company_id);
+
+    if (!($loginResult['status'] ?? false)) {
+        return [
+            'status'  => false,
+            'message' => 'Failed to connect to Server. Please contact support',
+        ];
+    }
+
+    $body = [
+        'identityId' => $identityId,
+        'type'       => 'BVN',
+        'otp'        => $otp,
+    ];
+
+    logInfo([
+        'identityId' => $identityId,
+        'type'       => 'BVN',
+        'otp'        => '******',
+        'company_id' => $company_id,
+    ], "Safehaven verify bvn otp request");
+
+    try {
+
+        $response = $this->safehavenPostRequest($url, $body);
+
+        logInfo([
+            'statusCode' => $response['statusCode'] ?? null,
+            'message'    => $response['message'] ?? null,
+            'data'       => $response['data'] ?? null,
+        ], "Safehaven verify bvn otp response");
+
+        if (!isset($response['statusCode'])) {
+            return [
+                'status'  => false,
+                'message' => 'Failed to Verify BVN',
+            ];
+        }
+
+        if ((int) $response['statusCode'] !== 200) {
+            return [
+                'status'  => false,
+                'message' => $response['message']
+                    ?? 'Failed to Verify BVN',
+                'data'    => $response['data'] ?? [],
+            ];
+        }
+
+        return [
+            'status'  => true,
+            'message' => $response['message']
+                ?? 'BVN Verified Successfully',
+            'data'    => $response['data'] ?? [],
+        ];
+
+    } catch (\Exception $e) {
+
+        logInfo(
+            $e->getMessage(),
+            "Safehaven Verify BVN OTP Error"
+        );
+
+        return [
+            'status'  => false,
+            'message' => 'Error verifying account',
+        ];
+    }
+}
+
     public function verifyNIN($nin, $company_id = null)
     {
 

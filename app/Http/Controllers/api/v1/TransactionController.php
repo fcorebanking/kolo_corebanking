@@ -6846,6 +6846,217 @@ public function verifyBVN(Request $request)
     };
 }
 
+#[OA\Post(
+    path: "/api/v1/verify-bvn/otp",
+
+    summary: "Complete BVN Verification with OTP",
+
+    description: "Completes a SafeHaven BVN verification initiated through the /verify-bvn endpoint. The identityId returned from the initial verification request and the OTP sent to the customer's registered phone number are submitted to complete the verification.",
+
+    tags: ["User"],
+
+    security: [["bearerAuth" => []]],
+
+    requestBody: new OA\RequestBody(
+        required: true,
+
+        content: new OA\JsonContent(
+            type: "object",
+
+            properties: [
+
+                new OA\Property(
+                    property: "identityId",
+                    type: "string",
+                    example: "6a044cc20f96d130c00975d5",
+                    description: "SafeHaven identity ID returned from the initial /verify-bvn verification request."
+                ),
+
+                new OA\Property(
+                    property: "otp",
+                    type: "string",
+                    example: "123456",
+                    description: "OTP sent to the customer's registered phone number by SafeHaven."
+                ),
+
+                new OA\Property(
+                    property: "company_id",
+                    type: "integer",
+                    example: 92,
+                    description: "Company ID. Used when the authenticated user's company ID is unavailable."
+                ),
+
+                new OA\Property(
+                    property: "dob",
+                    type: "string",
+                    example: "1996-09-29",
+                    description: "Customer's date of birth. Used to optionally compare the submitted date of birth with the verified identity details."
+                )
+
+            ]
+        )
+    ),
+
+    responses: [
+
+        new OA\Response(
+            response: 200,
+            description: "BVN verification completed successfully."
+        ),
+
+        new OA\Response(
+            response: 400,
+            description: "BVN OTP verification failed."
+        ),
+
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated."
+        ),
+
+        new OA\Response(
+            response: 406,
+            description: "Validation failed. Identity ID, OTP, or required company information is missing or invalid."
+        ),
+
+        new OA\Response(
+            response: 500,
+            description: "Internal server error."
+        )
+
+    ]
+)]
+public function verifyBVNOtp(Request $request)
+{
+    $validation = Validator::make($request->all(), [
+        'identityId' => 'required|string',
+        'otp'        => 'required|string',
+        'company_id' => 'required',
+        'dob'        => 'sometimes|date',
+    ]);
+
+    if ($validation->fails()) {
+        return response()->json([
+            'status'  => false,
+            'message' => $validation->errors()->first(),
+        ], 406);
+    }
+
+    logInfo([
+        'identityId' => $request->identityId,
+        'otp'        => '******',
+        'company_id' => $request->company_id,
+        'dob'        => $request->dob,
+    ], "Verify BVN OTP request");
+
+    $companyId = auth()->user()->company->id ?? $request->company_id;
+
+    $wallet = company_wallet::where('company_id', $companyId)->first();
+
+    if (!$wallet) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Company wallet not found',
+        ], 400);
+    }
+
+    $bankID = (int) $wallet->bank_id;
+
+    if ($bankID !== 190) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'SafeHaven BVN verification is not configured for this company.',
+        ], 400);
+    }
+
+    try {
+
+        $safehavenController = new SafehavenController();
+
+        $response = $safehavenController->verifyBVNOtp(
+            $request->identityId,
+            $request->otp,
+            $companyId
+        );
+
+        if (!($response['status'] ?? false)) {
+            return response()->json([
+                'status'  => false,
+                'message' => $response['message']
+                    ?? 'Failed to verify BVN',
+                'data'    => $response['data'] ?? [],
+            ], 400);
+        }
+
+        $data = $response['data'] ?? [];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Optional DOB verification
+        |--------------------------------------------------------------------------
+        | SafeHaven should return the verified date of birth.
+        | If the original request supplied DOB, compare it with the
+        | verified DOB before declaring the account verified.
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->filled('dob')) {
+
+            $returnedDob =
+                $data['dateOfBirth']
+                ?? $data['dob']
+                ?? null;
+
+            if ($returnedDob) {
+
+                try {
+
+                    $requestedDob = \Carbon\Carbon::parse(
+                        $request->dob
+                    )->format('Y-m-d');
+
+                    $verifiedDob = \Carbon\Carbon::parse(
+                        $returnedDob
+                    )->format('Y-m-d');
+
+                    if ($requestedDob !== $verifiedDob) {
+                        return response()->json([
+                            'status'  => false,
+                            'message' => 'BVN verified but date of birth does not match.',
+                            'data'    => $data,
+                        ], 400);
+                    }
+
+                } catch (\Exception $e) {
+
+                    logInfo(
+                        $e->getMessage(),
+                        "Safehaven BVN DOB comparison error"
+                    );
+                }
+            }
+        }
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Account Verified Successfully',
+            'data'    => $data,
+        ], 200);
+
+    } catch (\Exception $e) {
+
+        logInfo(
+            $e->getMessage(),
+            "Verify BVN OTP Controller Error"
+        );
+
+        return response()->json([
+            'status'  => false,
+            'message' => 'Error verifying account',
+        ], 400);
+    }
+}
+
     public function debitBVNFromCompany($debitCompanyWithCharge, $companyId, $charge)
     {
         $companyBalanceBefore       = $debitCompanyWithCharge['balance_before'];

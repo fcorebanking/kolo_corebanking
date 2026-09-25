@@ -32,13 +32,13 @@ class VTPassController extends Controller
                 "phone"      => $phoneNumber,
             ];
 
-logInfo([
-    'transaction_id' => $transactionId,
-    'network' => $network,
-    'amount' => $amount,
-    'phone' => $phoneNumber,
-    'body' => $body,
-], 'VTPass Airtime Request');
+     logInfo([
+     'transaction_id' => $transactionId,
+     'network' => $network,
+     'amount' => $amount,
+     'phone' => $phoneNumber,
+     'body' => $body,
+     ], 'VTPass Airtime Request');
 
             $buyAirtime = $this->vtpassPostRequest('pay', $body);
 

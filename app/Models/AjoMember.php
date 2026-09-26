@@ -19,10 +19,11 @@ class AjoMember extends Model
 
     protected $fillable = [
         'ajo_id',
-        'ajo_account_id',
         'user_id',
         'balance',
         'total_contributed',
+        'pending_collection_amount',
+        'pending_insufficient_balance_fees',
         'insufficient_balance_count',
         'total_insufficient_balance_fees',
         'total_maturity_fees',
@@ -42,6 +43,8 @@ class AjoMember extends Model
     protected $casts = [
         'balance' => 'decimal:2',
         'total_contributed' => 'decimal:2',
+        'pending_collection_amount' => 'decimal:2',
+        'pending_insufficient_balance_fees' => 'decimal:2',
         'total_insufficient_balance_fees' => 'decimal:2',
         'total_maturity_fees' => 'decimal:2',
         'total_early_leave_penalties' => 'decimal:2',
@@ -58,11 +61,6 @@ class AjoMember extends Model
         return $this->belongsTo(Ajo::class, 'ajo_id', 'id');
     }
 
-    public function ajoAccount()
-    {
-        return $this->belongsTo(AjoAccount::class, 'ajo_account_id', 'id');
-    }
-
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
@@ -75,19 +73,11 @@ class AjoMember extends Model
 
     public function collectionCycles()
     {
-        return $this->hasMany(
-            AjoCollectionCycle::class,
-            'ajo_member_id',
-            'id'
-        );
+        return $this->hasMany(AjoCollectionCycle::class, 'ajo_member_id', 'id');
     }
 
     public function transactions()
     {
-        return $this->hasMany(
-            AjoTransaction::class,
-            'ajo_member_id',
-            'id'
-        );
+        return $this->hasMany(AjoTransaction::class, 'ajo_member_id', 'id');
     }
 }

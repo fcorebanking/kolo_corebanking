@@ -559,25 +559,16 @@ Route::prefix('campaigns')->group(function () {
 
 Route::prefix('ajo')->group(function () {
 
-    // Authenticated user's Ajo overview: current memberships, created groups and transactions
+    // Authenticated user's Ajo overview.
     Route::get('/mine', [AjoController::class, 'mine'])
         ->name('ajo.mine');
 
-    // Personal Ajo Account
-    Route::get('/account', [AjoController::class, 'account'])
-        ->name('ajo.account');
-
-    Route::post('/account/deposit', [AjoController::class, 'depositToAccount'])
-        ->name('ajo.account.deposit');
-
-    Route::post('/account/withdraw', [AjoController::class, 'withdrawFromAccount'])
-        ->name('ajo.account.withdraw');
-
-    // Ajo creation
+    // Ajo creation.
     Route::post('/create', [AjoController::class, 'create'])
         ->name('ajo.create');
 
-    // Membership / invitations
+    // Membership / invitations.
+    // The creator may also use /{ajoId}/join to become a member of their own public Ajo.
     Route::post('/{ajoId}/invite', [AjoController::class, 'invite'])
         ->whereNumber('ajoId')
         ->name('ajo.invite');
@@ -594,7 +585,7 @@ Route::prefix('ajo')->group(function () {
         ->whereNumber('invitationId')
         ->name('ajo.invitation.decline');
 
-    // Early leave
+    // Early leave.
     Route::post('/{ajoId}/leave/request', [AjoController::class, 'requestEarlyLeave'])
         ->whereNumber('ajoId')
         ->name('ajo.leave.request');
@@ -607,7 +598,7 @@ Route::prefix('ajo')->group(function () {
         ->whereNumber('ajoMemberId')
         ->name('ajo.leave.reject');
 
-    // Ajo conditions / fee split
+    // Ajo conditions / fee split.
     Route::get('/{ajoId}/conditions', [AjoController::class, 'conditions'])
         ->whereNumber('ajoId')
         ->name('ajo.conditions');
@@ -616,11 +607,10 @@ Route::prefix('ajo')->group(function () {
         ->whereNumber('ajoId')
         ->name('ajo.fee-split');
 
-    // Administrative / internal processing endpoints
+    // Administrative / internal processing endpoints.
     Route::post('/system/process-collections', [AjoController::class, 'processCollections'])
         ->name('ajo.system.process-collections');
 
     Route::post('/system/process-maturity', [AjoController::class, 'processMaturity'])
         ->name('ajo.system.process-maturity');
-
 });

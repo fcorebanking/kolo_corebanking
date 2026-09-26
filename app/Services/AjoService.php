@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Ajo;
-use App\Models\AjoAccount;
 use App\Models\AjoCollectionCycle;
 use App\Models\AjoInvitation;
 use App\Models\AjoMember;
@@ -12,6 +11,7 @@ use App\Models\CompanyFinancialEntry;
 use App\Models\transactions;
 use App\Models\User;
 use App\Models\wb_account_details;
+use App\Models\user_wallet;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -26,20 +26,28 @@ use Throwable;
  *
  * IMPORTANT ACCOUNTING RULES
  * --------------------------
- * 1. AjoAccount is the user's separate personal Ajo wallet.
- * 2. AjoMember::balance is the user's committed balance inside a specific
- *    Ajo. It is NOT part of their spendable AjoAccount balance.
- * 3. The Ajo creator is NEVER an AjoMember. The creator is only the overseer.
- * 4. Scheduled collections debit the personal AjoAccount, not the main wallet.
- * 5. Scheduled collections are allowed to take the personal AjoAccount below 0.
- * 6. Every 3rd insufficient-balance event (3rd, 6th, 9th, ...) creates a fee.
+ * 1. There is NO personal Ajo wallet. All scheduled member collections debit
+ *    the member's main Finova wallet.
+ * 2. AjoMember::total_contributed is the historical gross amount actually
+ *    collected from the member's main wallet for this Ajo.
+ * 3. AjoMember::balance is the member's current unpaid/returnable contribution
+ *    position. It is zeroed only when early leave or maturity returns the money.
+ * 4. The Ajo creator may also join the Ajo and becomes an ordinary AjoMember.
+ *    Creator privileges (invite/approve) remain based on creator_user_id.
+ * 5. A scheduled collection never makes a main wallet negative. If the wallet
+ *    cannot cover all outstanding missed cycles plus the current cycle, nothing
+ *    is debited and the current cycle remains an outstanding missed cycle.
+ * 6. Every 3rd insufficient-balance event (3rd, 6th, 9th, ...) creates the
+ *    configured insufficient-balance fee obligation. The fee is tracked separately
+ *    from contribution and is only debited when the member's main wallet can
+ *    cover the fee without going negative.
  * 7. Insufficient-balance, maturity, and early-leave fees are split 40/60:
  *      Company = 40%
  *      Creator = 60%
- * 8. Creation fee belongs 100% to the company.
+ * 8. Creation fee belongs 100% to the company and is paid from the creator's main wallet.
  * 9. Company fee income is recognized with CompanyFinancialEntry. We do not
  *    directly mutate company_wallet.balance, matching TargetSavingsService.
- * 10. Maturity returns go to the member's personal AjoAccount, not the main wallet.
+ * 10. Maturity and early-leave net returns go to the member's main wallet.
  */
 class AjoService
 {
@@ -139,66 +147,35 @@ class AjoService
             $companySettings = $company?->setting;
 
             if (!$companySettings) {
-                throw new RuntimeException(
-                    'Company Ajo settings could not be found.'
-                );
+                throw new RuntimeException('Company Ajo settings could not be found.');
             }
 
-            $ajoAccount = $this->ensureAjoAccount($creator);
-
             $name = trim((string) ($data['ajo_name'] ?? ''));
-
             if ($name === '') {
                 throw new RuntimeException('Ajo name is required.');
             }
 
-            $collectionAmount = round(
-                (float) ($data['collection_amount'] ?? 0),
-                2
-            );
-
+            $collectionAmount = round((float) ($data['collection_amount'] ?? 0), 2);
             if ($collectionAmount <= 0) {
-                throw new RuntimeException(
-                    'Ajo collection amount must be greater than zero.'
-                );
+                throw new RuntimeException('Ajo collection amount must be greater than zero.');
             }
 
-            $frequency = strtolower(
-                trim((string) ($data['collection_frequency'] ?? ''))
-            );
-
+            $frequency = strtolower(trim((string) ($data['collection_frequency'] ?? '')));
             if (!in_array($frequency, ['daily', 'weekly', 'monthly'], true)) {
-                throw new RuntimeException(
-                    'Collection frequency must be daily, weekly or monthly.'
-                );
+                throw new RuntimeException('Collection frequency must be daily, weekly or monthly.');
             }
 
             $interval = (int) ($data['collection_interval'] ?? 1);
-
             if ($interval < 1) {
-                throw new RuntimeException(
-                    'Collection interval must be at least 1.'
-                );
+                throw new RuntimeException('Collection interval must be at least 1.');
             }
 
-            $collectionTime = $this->normaliseCollectionTime(
-                $data['collection_time'] ?? null
-            );
-
-            $startDate = $this->parseDate(
-                $data['start_date'] ?? null,
-                'Ajo start date'
-            )->startOfDay();
-
-            $maturityDate = $this->parseDate(
-                $data['maturity_date'] ?? null,
-                'Ajo maturity date'
-            )->startOfDay();
+            $collectionTime = $this->normaliseCollectionTime($data['collection_time'] ?? null);
+            $startDate = $this->parseDate($data['start_date'] ?? null, 'Ajo start date')->startOfDay();
+            $maturityDate = $this->parseDate($data['maturity_date'] ?? null, 'Ajo maturity date')->startOfDay();
 
             if ($maturityDate->lte($startDate)) {
-                throw new RuntimeException(
-                    'Ajo maturity date must be after the start date.'
-                );
+                throw new RuntimeException('Ajo maturity date must be after the start date.');
             }
 
             $collectionDay = $this->normaliseCollectionDay(
@@ -207,100 +184,34 @@ class AjoService
                 $startDate
             );
 
-            $creationFee = round(
-                (float) ($companySettings->ajo_creation_fee ?? 0),
-                2
-            );
-
+            $creationFee = round((float) ($companySettings->ajo_creation_fee ?? 0), 2);
             if ($creationFee < 0) {
-                throw new RuntimeException(
-                    'Invalid Ajo creation fee configured for this company.'
-                );
+                throw new RuntimeException('Invalid Ajo creation fee configured for this company.');
             }
 
-            $maturityFeePercentage = round(
-                (float) (
-                    $companySettings->ajo_maturity_fee_percentage
-                    ?? 0
-                ),
-                4
-            );
-
-            if (
-                $maturityFeePercentage < 0 ||
-                $maturityFeePercentage > 100
-            ) {
-                throw new RuntimeException(
-                    'Invalid Ajo maturity fee percentage configured for this company.'
-                );
+            $maturityFeePercentage = round((float) ($companySettings->ajo_maturity_fee_percentage ?? 0), 4);
+            if ($maturityFeePercentage < 0 || $maturityFeePercentage > 100) {
+                throw new RuntimeException('Invalid Ajo maturity fee percentage configured for this company.');
             }
 
-            $earlyLeavePenaltyType = strtolower(
-                trim((string) (
-                    $data['early_leave_penalty_type'] ?? 'percentage'
-                ))
-            );
+            $earlyLeavePenaltyType = strtolower(trim((string) ($data['early_leave_penalty_type'] ?? 'percentage')));
+            $earlyLeavePenaltyValue = round((float) ($data['early_leave_penalty_value'] ?? 0), 4);
+            $this->validateFeeConfiguration($earlyLeavePenaltyType, $earlyLeavePenaltyValue, 'early leave penalty');
 
-            $earlyLeavePenaltyValue = round(
-                (float) (
-                    $data['early_leave_penalty_value'] ?? 0
-                ),
-                4
-            );
+            $insufficientFeeType = strtolower(trim((string) ($data['insufficient_balance_fee_type'] ?? 'fixed')));
+            $insufficientFeeValue = round((float) ($data['insufficient_balance_fee_value'] ?? 0), 4);
+            $this->validateFeeConfiguration($insufficientFeeType, $insufficientFeeValue, 'insufficient-balance fee');
 
-            $this->validateFeeConfiguration(
-                $earlyLeavePenaltyType,
-                $earlyLeavePenaltyValue,
-                'early leave penalty'
-            );
-
-            $insufficientFeeType = strtolower(
-                trim((string) (
-                    $data['insufficient_balance_fee_type'] ?? 'fixed'
-                ))
-            );
-
-            $insufficientFeeValue = round(
-                (float) (
-                    $data['insufficient_balance_fee_value'] ?? 0
-                ),
-                4
-            );
-
-            $this->validateFeeConfiguration(
-                $insufficientFeeType,
-                $insufficientFeeValue,
-                'insufficient-balance fee'
-            );
-
-            if (
-                $insufficientFeeType === 'percentage' &&
-                $insufficientFeeValue > 100
-            ) {
-                throw new RuntimeException(
-                    'Insufficient-balance percentage fee cannot exceed 100%.'
-                );
-            }
-
-            $maxMembers = array_key_exists('max_members', $data)
-                && $data['max_members'] !== null
+            $maxMembers = array_key_exists('max_members', $data) && $data['max_members'] !== null
                 ? (int) $data['max_members']
                 : null;
-
             if ($maxMembers !== null && $maxMembers < 1) {
-                throw new RuntimeException(
-                    'Maximum members must be at least 1.'
-                );
+                throw new RuntimeException('Maximum members must be at least 1.');
             }
 
-            $visibility = strtolower(
-                trim((string) ($data['visibility'] ?? 'public'))
-            );
-
+            $visibility = strtolower(trim((string) ($data['visibility'] ?? 'public')));
             if (!in_array($visibility, ['public', 'private'], true)) {
-                throw new RuntimeException(
-                    'Ajo visibility must be public or private.'
-                );
+                throw new RuntimeException('Ajo visibility must be public or private.');
             }
 
             $nextCollectionAt = $this->calculateInitialCollectionAt(
@@ -331,18 +242,11 @@ class AjoService
                 maxMembers: $maxMembers
             );
 
-            /*
-             * Create the Ajo first as draft so the creation fee transaction
-             * can be linked to a real Ajo record inside this same DB transaction.
-             */
             $ajo = Ajo::create([
                 'creator_user_id' => $creator->id,
                 'company_id' => $creator->company_id,
-                'creator_ajo_account_id' => $ajoAccount->id,
                 'ajo_name' => $name,
-                'description' => !empty($data['description'])
-                    ? trim((string) $data['description'])
-                    : null,
+                'description' => !empty($data['description']) ? trim((string) $data['description']) : null,
                 'collection_amount' => $collectionAmount,
                 'collection_frequency' => $frequency,
                 'collection_interval' => $interval,
@@ -366,47 +270,30 @@ class AjoService
                 'status' => self::STATUS_DRAFT,
             ]);
 
-            /*
-             * Creation fee is paid from the creator's MAIN wallet.
-             * It belongs 100% to the company.
-             */
             $creationFeeTransaction = null;
             $creationFinancialEntry = null;
             $creationCoreTransaction = null;
 
             if ($creationFee > 0) {
                 $mainAccount = $this->getMainAccount($creator);
-
-                $debit = debitCustomerOnly(
-                    $mainAccount->id,
-                    $creationFee,
-                    $creator
-                );
+                $debit = debitCustomerOnly($mainAccount->id, $creationFee, $creator);
 
                 if (!($debit['status'] ?? false)) {
-                    throw new RuntimeException(
-                        $debit['message']
-                        ?? 'Unable to charge Ajo creation fee.'
-                    );
+                    throw new RuntimeException($debit['message'] ?? 'Unable to charge Ajo creation fee.');
                 }
 
                 $reference = $this->reference('AJC');
-
-                $creationCoreTransaction =
-                    $this->createCoreTransaction(
-                        companyId: (int) $creator->company_id,
-                        transactionTypeId:
-                            self::TRANSACTION_TYPE_AJO_CREATION_FEE,
-                        creditDebitTypeId: self::DEBIT,
-                        accountId: (int) $mainAccount->id,
-                        amount: $creationFee,
-                        balanceBefore: (float) $debit['balance_before'],
-                        balanceAfter: (float) $debit['balance_after'],
-                        description: 'Ajo Creation Fee',
-                        reference: $reference
-                    );
-
-                $creationTransactionReference = $this->reference('AJO-FEE');
+                $creationCoreTransaction = $this->createCoreTransaction(
+                    companyId: (int) $creator->company_id,
+                    transactionTypeId: self::TRANSACTION_TYPE_AJO_CREATION_FEE,
+                    creditDebitTypeId: self::DEBIT,
+                    accountId: (int) $mainAccount->id,
+                    amount: $creationFee,
+                    balanceBefore: (float) $debit['balance_before'],
+                    balanceAfter: (float) $debit['balance_after'],
+                    description: 'Ajo Creation Fee',
+                    reference: $reference
+                );
 
                 $creationFeeTransaction = AjoTransaction::create([
                     'ajo_id' => $ajo->id,
@@ -424,16 +311,13 @@ class AjoService
                     'fee' => $creationFee,
                     'company_fee_share' => $creationFee,
                     'creator_fee_share' => 0,
-                    'source_balance_before' =>
-                        (float) $debit['balance_before'],
-                    'source_balance_after' =>
-                        (float) $debit['balance_after'],
+                    'source_balance_before' => (float) $debit['balance_before'],
+                    'source_balance_after' => (float) $debit['balance_after'],
                     'destination_balance_before' => null,
                     'destination_balance_after' => null,
-                    'transaction_reference' => $creationTransactionReference,
+                    'transaction_reference' => $this->reference('AJO-FEE'),
                     'status' => 'successful',
-                    'description' =>
-                        'Ajo creation fee charged to creator.',
+                    'description' => 'Ajo creation fee charged to creator main wallet.',
                     'metadata' => [
                         'fee_type' => 'creation_fee',
                         'total_fee' => $creationFee,
@@ -445,29 +329,25 @@ class AjoService
                     ],
                 ]);
 
-                $creationFinancialEntry =
-                    $this->recordCompanyRevenue(
-                        ajo: $ajo,
-                        amount: $creationFee,
-                        category: self::CATEGORY_CREATION_FEE,
-                        description: 'Ajo creation fee revenue.',
-                        reference: $this->reference('AJCR'),
-                        transactionId: $creationCoreTransaction->id,
-                        metadata: [
-                            'ajo_id' => $ajo->id,
-                            'fee_type' => 'creation_fee',
-                            'total_fee' => $creationFee,
-                            'company_share' => $creationFee,
-                            'creator_share' => 0,
-                            'company_share_percentage' => 100,
-                            'creator_share_percentage' => 0,
-                            'ajo_transaction_id' => $creationFeeTransaction->id,
-                            'company_wallet_affected' => false,
-                        ]
-                    );
+                $creationFinancialEntry = $this->recordCompanyRevenue(
+                    ajo: $ajo,
+                    amount: $creationFee,
+                    category: self::CATEGORY_CREATION_FEE,
+                    description: 'Ajo creation fee revenue.',
+                    reference: $this->reference('AJCR'),
+                    transactionId: $creationCoreTransaction->id,
+                    metadata: [
+                        'ajo_id' => $ajo->id,
+                        'fee_type' => 'creation_fee',
+                        'total_fee' => $creationFee,
+                        'company_share' => $creationFee,
+                        'creator_share' => 0,
+                        'ajo_transaction_id' => $creationFeeTransaction->id,
+                        'company_wallet_affected' => false,
+                    ]
+                );
 
-                $creationFeeTransaction->company_financial_entry_id =
-                    $creationFinancialEntry->id;
+                $creationFeeTransaction->company_financial_entry_id = $creationFinancialEntry->id;
                 $creationFeeTransaction->save();
             }
 
@@ -485,14 +365,7 @@ class AjoService
      * before the registration flow was updated. New registration should still
      * create it automatically as part of registration as planned.
      */
-    public function getOrCreateAjoAccount($user): AjoAccount
-    {
-        return DB::transaction(function () use ($user) {
-            $this->validateUserForAjo($user);
 
-            return $this->ensureAjoAccount($user);
-        });
-    }
 
     /**
      * Voluntarily move money from the user's MAIN wallet to their personal
@@ -500,108 +373,7 @@ class AjoService
      *
      * This is NOT tied to any specific Ajo group.
      */
-    public function depositToAjoAccount($user, float $amount): array
-    {
-        if ($amount <= 0) {
-            throw new RuntimeException(
-                'Ajo Account deposit amount must be greater than zero.'
-            );
-        }
 
-        return DB::transaction(function () use ($user, $amount) {
-            $this->validateUserForAjo($user);
-
-            $ajoAccount = $this->ensureAjoAccount($user, true);
-            $mainAccount = $this->getMainAccount($user);
-
-            $debit = debitCustomerOnly(
-                $mainAccount->id,
-                $amount,
-                $user
-            );
-
-            if (!($debit['status'] ?? false)) {
-                throw new RuntimeException(
-                    $debit['message']
-                    ?? 'Unable to debit main account.'
-                );
-            }
-
-            $sourceBalanceBefore = (float) $debit['balance_before'];
-            $sourceBalanceAfter = (float) $debit['balance_after'];
-
-            $ajoAccount = AjoAccount::query()
-                ->where('id', $ajoAccount->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            $destinationBalanceBefore = round(
-                (float) $ajoAccount->balance,
-                2
-            );
-
-            $destinationBalanceAfter = round(
-                $destinationBalanceBefore + $amount,
-                2
-            );
-
-            $ajoAccount->balance = $destinationBalanceAfter;
-            $ajoAccount->save();
-
-            $reference = $this->reference('AJAD');
-
-            $coreTransaction = $this->createCoreTransaction(
-                companyId: (int) $user->company_id,
-                transactionTypeId:
-                    self::TRANSACTION_TYPE_AJO_ACCOUNT_DEPOSIT,
-                creditDebitTypeId: self::DEBIT,
-                accountId: (int) $mainAccount->id,
-                amount: $amount,
-                balanceBefore: $sourceBalanceBefore,
-                balanceAfter: $sourceBalanceAfter,
-                description: 'Ajo Account Deposit',
-                reference: $reference
-            );
-
-            $ajoTransaction = AjoTransaction::create([
-                'ajo_id' => null,
-                'ajo_member_id' => null,
-                'ajo_collection_cycle_id' => null,
-                'user_id' => $user->id,
-                'company_id' => $user->company_id,
-                'source_ajo_account_id' => null,
-                'destination_ajo_account_id' => $ajoAccount->id,
-                'main_account_id' => $mainAccount->id,
-                'finova_transaction_id' => $coreTransaction->id,
-                'company_financial_entry_id' => null,
-                'type' => AjoTransaction::TYPE_DEPOSIT,
-                'amount' => round($amount, 2),
-                'fee' => 0,
-                'company_fee_share' => 0,
-                'creator_fee_share' => 0,
-                'source_balance_before' => $sourceBalanceBefore,
-                'source_balance_after' => $sourceBalanceAfter,
-                'destination_balance_before' => $destinationBalanceBefore,
-                'destination_balance_after' => $destinationBalanceAfter,
-                'transaction_reference' => $reference,
-                'status' => 'successful',
-                'description' => 'Voluntary deposit into personal Ajo Account.',
-                'metadata' => [
-                    'movement' => 'main_to_ajo_account',
-                    'main_account_id' => $mainAccount->id,
-                    'ajo_account_id' => $ajoAccount->id,
-                    'company_wallet_affected' => false,
-                ],
-            ]);
-
-            return [
-                'ajo_account' => $ajoAccount->fresh(),
-                'ajo_transaction' => $ajoTransaction,
-                'core_transaction' => $coreTransaction,
-                'wallet_transaction' => $debit,
-            ];
-        });
-    }
 
     /**
      * Voluntarily move money from the user's personal Ajo Account back to
@@ -610,198 +382,47 @@ class AjoService
      * Funds already moved into an active AjoMember position are not included
      * in this balance and therefore cannot be withdrawn here.
      */
-    public function withdrawFromAjoAccount($user, float $amount): array
-    {
-        if ($amount <= 0) {
-            throw new RuntimeException(
-                'Ajo Account withdrawal amount must be greater than zero.'
-            );
-        }
 
-        return DB::transaction(function () use ($user, $amount) {
-            $this->validateUserForAjo($user);
-
-            $ajoAccount = AjoAccount::query()
-                ->where('user_id', $user->id)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$ajoAccount) {
-                throw new RuntimeException(
-                    'Personal Ajo Account could not be found.'
-                );
-            }
-
-            $sourceBalanceBefore = round(
-                (float) $ajoAccount->balance,
-                2
-            );
-
-            if ($sourceBalanceBefore <= 0) {
-                throw new RuntimeException(
-                    'Your Ajo Account has no available balance for withdrawal.'
-                );
-            }
-
-            if ($amount > $sourceBalanceBefore) {
-                throw new RuntimeException(
-                    'Withdrawal amount exceeds your available Ajo Account balance.'
-                );
-            }
-
-            $mainAccount = $this->getMainAccount($user);
-
-            $sourceBalanceAfter = round(
-                $sourceBalanceBefore - $amount,
-                2
-            );
-
-            $ajoAccount->balance = $sourceBalanceAfter;
-            $ajoAccount->save();
-
-            $credit = creditCustomerOnly(
-                $mainAccount->id,
-                $amount
-            );
-
-            if (!($credit['status'] ?? false)) {
-                throw new RuntimeException(
-                    $credit['message']
-                    ?? 'Unable to credit main account.'
-                );
-            }
-
-            $reference = $this->reference('AJAW');
-
-            $coreTransaction = $this->createCoreTransaction(
-                companyId: (int) $user->company_id,
-                transactionTypeId:
-                    self::TRANSACTION_TYPE_AJO_ACCOUNT_WITHDRAWAL,
-                creditDebitTypeId: self::CREDIT,
-                accountId: (int) $mainAccount->id,
-                amount: $amount,
-                balanceBefore: (float) $credit['balance_before'],
-                balanceAfter: (float) $credit['balance_after'],
-                description: 'Ajo Account Withdrawal',
-                reference: $reference
-            );
-
-            $ajoTransaction = AjoTransaction::create([
-                'ajo_id' => null,
-                'ajo_member_id' => null,
-                'ajo_collection_cycle_id' => null,
-                'user_id' => $user->id,
-                'company_id' => $user->company_id,
-                'source_ajo_account_id' => $ajoAccount->id,
-                'destination_ajo_account_id' => null,
-                'main_account_id' => $mainAccount->id,
-                'finova_transaction_id' => $coreTransaction->id,
-                'company_financial_entry_id' => null,
-                'type' => AjoTransaction::TYPE_WITHDRAWAL,
-                'amount' => round($amount, 2),
-                'fee' => 0,
-                'company_fee_share' => 0,
-                'creator_fee_share' => 0,
-                'source_balance_before' => $sourceBalanceBefore,
-                'source_balance_after' => $sourceBalanceAfter,
-                'destination_balance_before' =>
-                    (float) $credit['balance_before'],
-                'destination_balance_after' =>
-                    (float) $credit['balance_after'],
-                'transaction_reference' => $reference,
-                'status' => 'successful',
-                'description' => 'Withdrawal from personal Ajo Account.',
-                'metadata' => [
-                    'movement' => 'ajo_account_to_main',
-                    'main_account_id' => $mainAccount->id,
-                    'ajo_account_id' => $ajoAccount->id,
-                    'company_wallet_affected' => false,
-                ],
-            ]);
-
-            return [
-                'ajo_account' => $ajoAccount->fresh(),
-                'ajo_transaction' => $ajoTransaction,
-                'core_transaction' => $coreTransaction,
-                'wallet_transaction' => $credit,
-            ];
-        });
-    }
 
     /**
      * Invite a user by username.
      *
      * Only the Ajo creator can send invitations.
      */
-    public function inviteMember(
-        int $ajoId,
-        $creator,
-        string $username
-    ): AjoInvitation {
-        return DB::transaction(function () use (
-            $ajoId,
-            $creator,
-            $username
-        ) {
+    public function inviteMember(int $ajoId, $creator, string $username): AjoInvitation
+    {
+        return DB::transaction(function () use ($ajoId, $creator, $username) {
             $ajo = $this->getAjoForUpdate($ajoId);
-
             $this->assertCreator($ajo, $creator);
 
             if ($ajo->status !== self::STATUS_ACTIVE) {
-                throw new RuntimeException(
-                    'This Ajo is not accepting members.'
-                );
+                throw new RuntimeException('This Ajo is not accepting members.');
             }
 
             $username = trim($username);
-
             if ($username === '') {
                 throw new RuntimeException('Member username is required.');
             }
 
-            $invitee = User::query()
-                ->where('username', $username)
-                ->first();
-
+            $invitee = User::query()->where('username', $username)->first();
             if (!$invitee) {
-                throw new RuntimeException(
-                    'User with the supplied username could not be found.'
-                );
+                throw new RuntimeException('User with the supplied username could not be found.');
             }
 
-            if ((int) $invitee->id === (int) $creator->id) {
-                throw new RuntimeException(
-                    'The Ajo creator cannot be invited as a member.'
-                );
-            }
-
-            if (
-                $ajo->max_members !== null &&
-                $ajo->members()
-                    ->whereIn('status', [
-                        AjoMember::STATUS_ACTIVE,
-                        AjoMember::STATUS_LEAVE_REQUESTED,
-                    ])
-                    ->count() >= (int) $ajo->max_members
-            ) {
-                throw new RuntimeException(
-                    'This Ajo has reached its maximum member capacity.'
-                );
+            if ($ajo->max_members !== null && $ajo->members()
+                ->whereIn('status', [AjoMember::STATUS_ACTIVE, AjoMember::STATUS_LEAVE_REQUESTED])
+                ->count() >= (int) $ajo->max_members) {
+                throw new RuntimeException('This Ajo has reached its maximum member capacity.');
             }
 
             $alreadyMember = AjoMember::query()
                 ->where('ajo_id', $ajo->id)
                 ->where('user_id', $invitee->id)
-                ->whereIn('status', [
-                    AjoMember::STATUS_ACTIVE,
-                    AjoMember::STATUS_LEAVE_REQUESTED,
-                ])
+                ->whereIn('status', [AjoMember::STATUS_ACTIVE, AjoMember::STATUS_LEAVE_REQUESTED])
                 ->exists();
 
             if ($alreadyMember) {
-                throw new RuntimeException(
-                    'This user is already a member of the Ajo.'
-                );
+                throw new RuntimeException('This user is already a member of the Ajo.');
             }
 
             $pending = AjoInvitation::query()
@@ -810,9 +431,7 @@ class AjoService
                 ->where('status', AjoInvitation::STATUS_PENDING)
                 ->first();
 
-            if ($pending) {
-                return $pending;
-            }
+            if ($pending) return $pending;
 
             return AjoInvitation::create([
                 'ajo_id' => $ajo->id,
@@ -833,107 +452,52 @@ class AjoService
      * No money is taken during joining.
      * The user must explicitly confirm the terms.
      */
-    public function joinAjo(
-        int $ajoId,
-        $user,
-        bool $acceptTerms = false
-    ): AjoMember {
-        return DB::transaction(function () use (
-            $ajoId,
-            $user,
-            $acceptTerms
-        ) {
+    public function joinAjo(int $ajoId, $user, bool $acceptTerms = false): AjoMember
+    {
+        return DB::transaction(function () use ($ajoId, $user, $acceptTerms) {
             $this->validateUserForAjo($user);
-
             if (!$acceptTerms) {
-                throw new RuntimeException(
-                    'You must accept the Ajo terms and conditions before joining.'
-                );
+                throw new RuntimeException('You must accept the Ajo terms and conditions before joining.');
             }
 
             $ajo = $this->getAjoForUpdate($ajoId);
-
             if ($ajo->status !== self::STATUS_ACTIVE) {
-                throw new RuntimeException(
-                    'This Ajo is not accepting members.'
-                );
+                throw new RuntimeException('This Ajo is not accepting members.');
+            }
+            if (
+                $ajo->visibility !== 'public'
+                && (int) $ajo->creator_user_id !== (int) $user->id
+            ) {
+                throw new RuntimeException('This is a private Ajo. You must accept an invitation to join.');
             }
 
-            if ($ajo->visibility !== 'public') {
-                throw new RuntimeException(
-                    'This is a private Ajo. You must accept an invitation to join.'
-                );
-            }
-
-            if ((int) $ajo->creator_user_id === (int) $user->id) {
-                throw new RuntimeException(
-                    'The Ajo creator is the overseer and cannot join as a member.'
-                );
-            }
-
-            return $this->createMembership(
-                $ajo,
-                $user,
-                $ajo->terms,
-                $ajo->terms_version
-            );
+            return $this->createMembership($ajo, $user, $ajo->terms, $ajo->terms_version);
         });
     }
 
     /**
      * Accept a creator invitation.
      */
-    public function acceptInvitation(
-        int $invitationId,
-        $user,
-        bool $acceptTerms = false
-    ): AjoMember {
-        return DB::transaction(function () use (
-            $invitationId,
-            $user,
-            $acceptTerms
-        ) {
+    public function acceptInvitation(int $invitationId, $user, bool $acceptTerms = false): AjoMember
+    {
+        return DB::transaction(function () use ($invitationId, $user, $acceptTerms) {
             $this->validateUserForAjo($user);
-
             if (!$acceptTerms) {
-                throw new RuntimeException(
-                    'You must explicitly accept the Ajo terms and conditions.'
-                );
+                throw new RuntimeException('You must explicitly accept the Ajo terms and conditions.');
             }
 
-            $invitation = AjoInvitation::query()
-                ->where('id', $invitationId)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$invitation) {
-                throw new RuntimeException('Ajo invitation not found.');
-            }
-
+            $invitation = AjoInvitation::query()->where('id', $invitationId)->lockForUpdate()->first();
+            if (!$invitation) throw new RuntimeException('Ajo invitation not found.');
             if ((int) $invitation->invited_user_id !== (int) $user->id) {
-                throw new RuntimeException(
-                    'This invitation does not belong to you.'
-                );
+                throw new RuntimeException('This invitation does not belong to you.');
             }
-
             if ($invitation->status !== AjoInvitation::STATUS_PENDING) {
-                throw new RuntimeException(
-                    'This invitation has already been processed.'
-                );
+                throw new RuntimeException('This invitation has already been processed.');
             }
 
             $ajo = $this->getAjoForUpdate($invitation->ajo_id);
-
             if ($ajo->status !== self::STATUS_ACTIVE) {
-                throw new RuntimeException(
-                    'This Ajo is no longer accepting members.'
-                );
-            }
-
-            if ((int) $ajo->creator_user_id === (int) $user->id) {
-                throw new RuntimeException(
-                    'The Ajo creator cannot become a member.'
-                );
+                throw new RuntimeException('This Ajo is no longer accepting members.');
             }
 
             $membership = $this->createMembership(
@@ -1049,100 +613,59 @@ class AjoService
      *
      * Remaining member balance goes to the member's personal Ajo Account.
      */
-    public function approveEarlyLeave(
-        int $ajoMemberId,
-        $creator
-    ): array {
-        return DB::transaction(function () use (
-            $ajoMemberId,
-            $creator
-        ) {
-            $member = AjoMember::query()
-                ->where('id', $ajoMemberId)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$member) {
-                throw new RuntimeException('Ajo member not found.');
-            }
+    public function approveEarlyLeave(int $ajoMemberId, $creator): array
+    {
+        return DB::transaction(function () use ($ajoMemberId, $creator) {
+            $member = AjoMember::query()->where('id', $ajoMemberId)->lockForUpdate()->first();
+            if (!$member) throw new RuntimeException('Ajo member not found.');
 
             $ajo = $this->getAjoForUpdate($member->ajo_id);
             $this->assertCreator($ajo, $creator);
 
             if ($member->status !== AjoMember::STATUS_LEAVE_REQUESTED) {
-                throw new RuntimeException(
-                    'This member does not have a pending early-leave request.'
-                );
+                throw new RuntimeException('This member does not have a pending early-leave request.');
             }
-
             if ($ajo->status !== self::STATUS_ACTIVE) {
-                throw new RuntimeException(
-                    'This Ajo is not active.'
-                );
+                throw new RuntimeException('This Ajo is not active.');
             }
 
-            $memberBalance = round(
-                (float) $member->balance,
-                2
+            $gross = round((float) $member->balance, 2);
+            $penalty = min(
+                $this->calculateConfiguredFee(
+                    $ajo->early_leave_penalty_type,
+                    (float) $ajo->early_leave_penalty_value,
+                    $gross
+                ),
+                $gross
             );
+            $remaining = round($gross - $penalty, 2);
 
-            $memberAjoAccount = AjoAccount::query()
-                ->where('id', $member->ajo_account_id)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$memberAjoAccount) {
-                throw new RuntimeException(
-                    'Member personal Ajo Account could not be found.'
-                );
-            }
-
-            $creatorAjoAccount = AjoAccount::query()
-                ->where('id', $ajo->creator_ajo_account_id)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$creatorAjoAccount) {
-                throw new RuntimeException(
-                    'Creator personal Ajo Account could not be found.'
-                );
-            }
-
-            $penalty = $this->calculateConfiguredFee(
-                $ajo->early_leave_penalty_type,
-                (float) $ajo->early_leave_penalty_value,
-                $memberBalance
-            );
-
-            /*
-             * A member position cannot become negative.
-             */
-            $penalty = min($penalty, $memberBalance);
-
-            $remaining = round(
-                $memberBalance - $penalty,
-                2
-            );
-
+            $split = $ajo->splitFee($penalty);
             $penaltyTransaction = null;
             $penaltyFinancialEntry = null;
+            $creatorCredit = null;
 
             if ($penalty > 0) {
-                $split = $ajo->splitFee($penalty);
+                $creatorAccount = $this->getMainAccount($creator);
+                $creatorBefore = $this->getAccountBalance($creatorAccount);
+                $creatorCredit = creditCustomerOnly($creatorAccount->id, $split['creator_share']);
+                if (!($creatorCredit['status'] ?? false)) {
+                    throw new RuntimeException($creatorCredit['message'] ?? 'Unable to credit creator fee share.');
+                }
 
-                $creatorBalanceBefore = round(
-                    (float) $creatorAjoAccount->balance,
-                    2
+                $creatorFeeCoreTransaction = $this->createCoreTransaction(
+                    companyId: (int) $creator->company_id,
+                    transactionTypeId: self::TRANSACTION_TYPE_AJO_EARLY_LEAVE_PENALTY,
+                    creditDebitTypeId: self::CREDIT,
+                    accountId: (int) $creatorAccount->id,
+                    amount: $split['creator_share'],
+                    balanceBefore: $creatorBefore,
+                    balanceAfter: (float) $creatorCredit['balance_after'],
+                    description: 'Ajo Early Leave Creator Fee Share',
+                    reference: $this->reference('AJO-ELP-CR')
                 );
-
-                $creatorAjoAccount->balance = round(
-                    $creatorBalanceBefore + $split['creator_share'],
-                    2
-                );
-                $creatorAjoAccount->save();
 
                 $penaltyReference = $this->reference('AJO-ELP');
-
                 $penaltyTransaction = AjoTransaction::create([
                     'ajo_id' => $ajo->id,
                     'ajo_member_id' => $member->id,
@@ -1150,85 +673,85 @@ class AjoService
                     'user_id' => $member->user_id,
                     'company_id' => $ajo->company_id,
                     'source_ajo_account_id' => null,
-                    'destination_ajo_account_id' => $creatorAjoAccount->id,
-                    'main_account_id' => null,
-                    'finova_transaction_id' => null,
+                    'destination_ajo_account_id' => null,
+                    'main_account_id' => $this->getMainAccount($member->user)->id,
+                    'finova_transaction_id' => $creatorFeeCoreTransaction->id,
                     'company_financial_entry_id' => null,
                     'type' => AjoTransaction::TYPE_EARLY_LEAVE_PENALTY,
                     'amount' => $penalty,
                     'fee' => $penalty,
                     'company_fee_share' => $split['company_share'],
                     'creator_fee_share' => $split['creator_share'],
-                    'source_balance_before' => $memberBalance,
+                    'source_balance_before' => $gross,
                     'source_balance_after' => $remaining,
-                    'destination_balance_before' => $creatorBalanceBefore,
-                    'destination_balance_after' =>
-                        (float) $creatorAjoAccount->balance,
+                    'destination_balance_before' => $creatorBefore,
+                    'destination_balance_after' => (float) $creatorCredit['balance_after'],
                     'transaction_reference' => $penaltyReference,
                     'status' => 'successful',
-                    'description' =>
-                        'Ajo early-leave penalty charged to member.',
+                    'description' => 'Ajo early-leave penalty charged to member contribution.',
                     'metadata' => [
-                        'fee_type' => 'early_leave_penalty',
-                        'penalty_type' => $ajo->early_leave_penalty_type,
-                        'penalty_value' =>
-                            (float) $ajo->early_leave_penalty_value,
-                        'total_fee' => $split['total_fee'],
+                        'gross_contribution' => $gross,
+                        'penalty' => $penalty,
                         'company_share' => $split['company_share'],
                         'creator_share' => $split['creator_share'],
-                        'company_share_percentage' =>
-                            $split['company_percentage'],
-                        'creator_share_percentage' =>
-                            $split['creator_percentage'],
+                        'creator_share_destination' => 'main_wallet',
                         'company_wallet_affected' => false,
                     ],
                 ]);
 
-                $penaltyFinancialEntry =
-                    $this->recordCompanyRevenue(
-                        ajo: $ajo,
-                        amount: $split['company_share'],
-                        category: self::CATEGORY_EARLY_LEAVE_PENALTY,
-                        description:
-                            'Ajo early-leave penalty company revenue share.',
-                        reference: $this->reference('AJO-ELR'),
-                        transactionId: null,
-                        metadata: [
-                            'ajo_id' => $ajo->id,
-                            'ajo_member_id' => $member->id,
-                            'fee_type' => 'early_leave_penalty',
-                            'total_fee' => $split['total_fee'],
-                            'company_share' => $split['company_share'],
-                            'creator_share' => $split['creator_share'],
-                            'company_share_percentage' =>
-                                $split['company_percentage'],
-                            'creator_share_percentage' =>
-                                $split['creator_percentage'],
-                            'ajo_transaction_id' => $penaltyTransaction->id,
-                            'company_wallet_affected' => false,
-                        ]
-                    );
-
-                $penaltyTransaction->company_financial_entry_id =
-                    $penaltyFinancialEntry->id;
+                $penaltyFinancialEntry = $this->recordCompanyRevenue(
+                    ajo: $ajo,
+                    amount: $split['company_share'],
+                    category: self::CATEGORY_EARLY_LEAVE_PENALTY,
+                    description: 'Ajo early-leave penalty company revenue share.',
+                    reference: $this->reference('AJO-ELR'),
+                    transactionId: null,
+                    metadata: [
+                        'ajo_id' => $ajo->id,
+                        'ajo_member_id' => $member->id,
+                        'total_fee' => $penalty,
+                        'company_share' => $split['company_share'],
+                        'creator_share' => $split['creator_share'],
+                        'ajo_transaction_id' => $penaltyTransaction->id,
+                        'company_wallet_affected' => false,
+                    ]
+                );
+                $penaltyTransaction->company_financial_entry_id = $penaltyFinancialEntry->id;
                 $penaltyTransaction->save();
             }
 
-            $memberAccountBalanceBefore = round(
-                (float) $memberAjoAccount->balance,
-                2
-            );
+            $memberAccount = $this->getMainAccount($member->user);
+            $memberBefore = $this->getAccountBalance($memberAccount);
+            $returnCredit = null;
 
-            $memberAccountBalanceAfter = round(
-                $memberAccountBalanceBefore + $remaining,
-                2
-            );
-
-            $memberAjoAccount->balance = $memberAccountBalanceAfter;
-            $memberAjoAccount->save();
+            if ($remaining > 0) {
+                $returnCredit = creditCustomerOnly($memberAccount->id, $remaining);
+                if (!($returnCredit['status'] ?? false)) {
+                    throw new RuntimeException($returnCredit['message'] ?? 'Unable to return Ajo funds to member main wallet.');
+                }
+            } else {
+                $returnCredit = [
+                    'status' => true,
+                    'balance_before' => $memberBefore,
+                    'balance_after' => $memberBefore,
+                ];
+            }
 
             $returnReference = $this->reference('AJO-ELRETURN');
-
+            $returnCoreTransaction = null;
+            if ($remaining > 0) {
+                $returnCoreTransaction = $this->createCoreTransaction(
+                    companyId: (int) $member->user->company_id,
+                    transactionTypeId: self::TRANSACTION_TYPE_AJO_EARLY_LEAVE_RETURN,
+                    creditDebitTypeId: self::CREDIT,
+                    accountId: (int) $memberAccount->id,
+                    amount: $remaining,
+                    balanceBefore: $memberBefore,
+                    balanceAfter: (float) $returnCredit['balance_after'],
+                    description: 'Ajo Early Leave Return',
+                    reference: $returnReference
+                );
+            }
             $returnTransaction = AjoTransaction::create([
                 'ajo_id' => $ajo->id,
                 'ajo_member_id' => $member->id,
@@ -1236,9 +759,9 @@ class AjoService
                 'user_id' => $member->user_id,
                 'company_id' => $ajo->company_id,
                 'source_ajo_account_id' => null,
-                'destination_ajo_account_id' => $memberAjoAccount->id,
-                'main_account_id' => null,
-                'finova_transaction_id' => null,
+                'destination_ajo_account_id' => null,
+                'main_account_id' => $memberAccount->id,
+                'finova_transaction_id' => $returnCoreTransaction?->id,
                 'company_financial_entry_id' => null,
                 'type' => AjoTransaction::TYPE_EARLY_LEAVE_RETURN,
                 'amount' => $remaining,
@@ -1247,24 +770,22 @@ class AjoService
                 'creator_fee_share' => 0,
                 'source_balance_before' => $remaining,
                 'source_balance_after' => 0,
-                'destination_balance_before' => $memberAccountBalanceBefore,
-                'destination_balance_after' => $memberAccountBalanceAfter,
+                'destination_balance_before' => $memberBefore,
+                'destination_balance_after' => (float) $returnCredit['balance_after'],
                 'transaction_reference' => $returnReference,
                 'status' => 'successful',
-                'description' =>
-                    'Remaining Ajo member balance returned to personal Ajo Account.',
+                'description' => 'Remaining Ajo contribution returned to member main wallet.',
                 'metadata' => [
-                    'remaining_member_balance' => $remaining,
-                    'member_ajo_account_id' => $memberAjoAccount->id,
-                    'company_wallet_affected' => false,
+                    'gross_contribution' => $gross,
+                    'penalty' => $penalty,
+                    'net_return' => $remaining,
+                    'destination' => 'main_wallet',
+                    'historical_total_contributed_preserved' => true,
                 ],
             ]);
 
             $member->balance = 0;
-            $member->total_early_leave_penalties = round(
-                (float) $member->total_early_leave_penalties + $penalty,
-                2
-            );
+            $member->total_early_leave_penalties = round((float) $member->total_early_leave_penalties + $penalty, 2);
             $member->status = AjoMember::STATUS_LEFT;
             $member->left_at = now();
             $member->early_leave_processed_at = now();
@@ -1274,24 +795,15 @@ class AjoService
             return [
                 'ajo' => $ajo->fresh(),
                 'member' => $member->fresh(),
+                'gross_contributed' => $gross,
                 'penalty' => $penalty,
                 'remaining' => $remaining,
-                'fee_split' => $penalty > 0
-                    ? $split
-                    : [
-                        'total_fee' => 0,
-                        'company_percentage' =>
-                            (float) $ajo->company_fee_share_percentage,
-                        'creator_percentage' =>
-                            (float) $ajo->creator_fee_share_percentage,
-                        'company_share' => 0,
-                        'creator_share' => 0,
-                    ],
+                'fee_split' => $split,
                 'penalty_transaction' => $penaltyTransaction,
                 'return_transaction' => $returnTransaction,
                 'financial_entry' => $penaltyFinancialEntry,
-                'creator_ajo_account' => $creatorAjoAccount->fresh(),
-                'member_ajo_account' => $memberAjoAccount->fresh(),
+                'creator_wallet' => $creatorCredit,
+                'member_wallet' => $returnCredit,
             ];
         });
     }
@@ -1349,9 +861,7 @@ class AjoService
     public function processScheduledCollections(?Carbon $asOf = null): array
     {
         $asOf = ($asOf ?: now())->copy();
-        $processed = 0;
-        $failed = 0;
-        $skipped = 0;
+        $processed = 0; $failed = 0; $skipped = 0;
 
         Ajo::query()
             ->where('status', self::STATUS_ACTIVE)
@@ -1359,136 +869,46 @@ class AjoService
             ->where('next_collection_at', '<=', $asOf)
             ->whereDate('maturity_date', '>', $asOf->toDateString())
             ->orderBy('id')
-            ->chunkById(100, function ($ajos) use (
-                $asOf,
-                &$processed,
-                &$failed,
-                &$skipped
-            ) {
+            ->chunkById(100, function ($ajos) use ($asOf, &$processed, &$failed, &$skipped) {
                 foreach ($ajos as $ajoSnapshot) {
                     $guard = 0;
+                    while ($guard++ < 500) {
+                        $ajo = Ajo::query()->where('id', $ajoSnapshot->id)->lockForUpdate()->first();
+                        if (!$ajo || $ajo->status !== self::STATUS_ACTIVE) break;
 
-                    while ($guard < 500) {
-                        $guard++;
-
-                        $ajo = Ajo::query()
-                            ->where('id', $ajoSnapshot->id)
-                            ->lockForUpdate()
-                            ->first();
-
-                        if (!$ajo) {
-                            break;
-                        }
-
-                        if ($ajo->status !== self::STATUS_ACTIVE) {
-                            break;
-                        }
-
-                        $scheduledFor = $ajo->next_collection_at
-                            ? Carbon::parse($ajo->next_collection_at)
-                            : null;
-
-                        if (!$scheduledFor || $scheduledFor->gt($asOf)) {
-                            break;
-                        }
-
-                        /*
-                         * Once the maturity date arrives, processMaturity()
-                         * becomes responsible for the Ajo. Do not create a
-                         * new collection on/after the maturity date.
-                         */
-                        if ($scheduledFor->startOfDay()->gte(
-                            Carbon::parse($ajo->maturity_date)->startOfDay()
-                        )) {
-                            break;
-                        }
+                        $scheduledFor = $ajo->next_collection_at ? Carbon::parse($ajo->next_collection_at) : null;
+                        if (!$scheduledFor || $scheduledFor->gt($asOf)) break;
+                        if ($scheduledFor->startOfDay()->gte(Carbon::parse($ajo->maturity_date)->startOfDay())) break;
 
                         $members = AjoMember::query()
                             ->where('ajo_id', $ajo->id)
-                            ->whereIn('status', [
-                                AjoMember::STATUS_ACTIVE,
-                                AjoMember::STATUS_LEAVE_REQUESTED,
-                            ])
+                            ->whereIn('status', [AjoMember::STATUS_ACTIVE, AjoMember::STATUS_LEAVE_REQUESTED])
                             ->where('joined_at', '<=', $scheduledFor)
-                            ->orderBy('id')
-                            ->get();
+                            ->orderBy('id')->get();
 
                         foreach ($members as $memberSnapshot) {
                             try {
-                                $result = $this->processSingleCollection(
-                                    (int) $ajo->id,
-                                    (int) $memberSnapshot->id,
-                                    $scheduledFor
-                                );
-
-                                if (($result['status'] ?? null) === 'successful') {
-                                    $processed++;
-                                } else {
-                                    $skipped++;
-                                }
+                                $result = $this->processSingleCollection((int)$ajo->id, (int)$memberSnapshot->id, $scheduledFor);
+                                if (($result['status'] ?? null) === 'successful') $processed++; else $skipped++;
                             } catch (Throwable $e) {
                                 $failed++;
-
-                                $this->recordFailedCollection(
-                                    ajoId: (int) $ajo->id,
-                                    memberId: (int) $memberSnapshot->id,
-                                    scheduledFor: $scheduledFor,
-                                    error: $e
-                                );
+                                $this->recordFailedCollection((int)$ajo->id, (int)$memberSnapshot->id, $scheduledFor, $e);
                             }
                         }
 
-                        /*
-                         * Advance exactly once for this group schedule.
-                         * processSingleCollection() is idempotent against the
-                         * same Ajo + member + scheduled_for combination.
-                         */
                         DB::transaction(function () use ($ajo, $scheduledFor) {
-                            $lockedAjo = Ajo::query()
-                                ->where('id', $ajo->id)
-                                ->lockForUpdate()
-                                ->first();
-
-                            if (!$lockedAjo) {
-                                return;
-                            }
-
-                            if ($lockedAjo->status !== self::STATUS_ACTIVE) {
-                                return;
-                            }
-
-                            $currentNext = $lockedAjo->next_collection_at
-                                ? Carbon::parse($lockedAjo->next_collection_at)
-                                : null;
-
-                            /*
-                             * Only move forward if another process has not
-                             * already advanced this schedule.
-                             */
-                            if (
-                                !$currentNext ||
-                                !$currentNext->equalTo($scheduledFor)
-                            ) {
-                                return;
-                            }
-
-                            $lockedAjo->next_collection_at =
-                                $this->calculateNextCollectionAt(
-                                    $lockedAjo,
-                                    $scheduledFor
-                                );
-
+                            $lockedAjo = Ajo::query()->where('id', $ajo->id)->lockForUpdate()->first();
+                            if (!$lockedAjo || $lockedAjo->status !== self::STATUS_ACTIVE) return;
+                            $currentNext = $lockedAjo->next_collection_at ? Carbon::parse($lockedAjo->next_collection_at) : null;
+                            if (!$currentNext || !$currentNext->equalTo($scheduledFor)) return;
+                            $lockedAjo->next_collection_at = $this->calculateNextCollectionAt($lockedAjo, $scheduledFor);
                             $lockedAjo->save();
                         });
                     }
                 }
             });
 
-        return [
-            'processed' => $processed,
-            'failed' => $failed,
-            'skipped' => $skipped,
-        ];
+        return ['processed' => $processed, 'failed' => $failed, 'skipped' => $skipped];
     }
 
     /**
@@ -1497,135 +917,131 @@ class AjoService
      * This is intentionally idempotent. A scheduler can safely run multiple
      * times without collecting the same member twice for the same timestamp.
      */
-    protected function processSingleCollection(
-        int $ajoId,
-        int $memberId,
-        Carbon $scheduledFor
-    ): array {
-        return DB::transaction(function () use (
-            $ajoId,
-            $memberId,
-            $scheduledFor
-        ) {
-            $ajo = Ajo::query()
-                ->where('id', $ajoId)
-                ->lockForUpdate()
-                ->first();
+    protected function processSingleCollection(int $ajoId, int $memberId, Carbon $scheduledFor): array
+    {
+        return DB::transaction(function () use ($ajoId, $memberId, $scheduledFor) {
+            $ajo = Ajo::query()->where('id', $ajoId)->lockForUpdate()->first();
+            if (!$ajo || $ajo->status !== self::STATUS_ACTIVE) return ['status' => 'skipped'];
 
-            if (!$ajo || $ajo->status !== self::STATUS_ACTIVE) {
-                return ['status' => 'skipped'];
-            }
-
-            $member = AjoMember::query()
-                ->where('id', $memberId)
-                ->where('ajo_id', $ajoId)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$member) {
-                return ['status' => 'skipped'];
-            }
-
-            if (!in_array($member->status, [
-                AjoMember::STATUS_ACTIVE,
-                AjoMember::STATUS_LEAVE_REQUESTED,
-            ], true)) {
-                return ['status' => 'skipped'];
-            }
-
-            if (
-                !$member->joined_at ||
-                Carbon::parse($member->joined_at)->gt($scheduledFor)
-            ) {
-                return ['status' => 'skipped'];
-            }
+            $member = AjoMember::query()->where('id', $memberId)->where('ajo_id', $ajoId)->lockForUpdate()->first();
+            if (!$member) return ['status' => 'skipped'];
+            if (!in_array($member->status, [AjoMember::STATUS_ACTIVE, AjoMember::STATUS_LEAVE_REQUESTED], true)) return ['status' => 'skipped'];
+            if (!$member->joined_at || Carbon::parse($member->joined_at)->gt($scheduledFor)) return ['status' => 'skipped'];
 
             $existingCycle = AjoCollectionCycle::query()
-                ->where('ajo_id', $ajo->id)
+                ->where('ajo_id', $ajo->id)->where('ajo_member_id', $member->id)->where('scheduled_for', $scheduledFor)
+                ->lockForUpdate()->first();
+            if ($existingCycle) return ['status' => $existingCycle->status === AjoCollectionCycle::STATUS_SUCCESSFUL ? 'successful' : 'skipped', 'collection_cycle' => $existingCycle];
+
+            $collectionAmount = round((float)$ajo->collection_amount, 2);
+            if ($collectionAmount <= 0) throw new RuntimeException('Ajo collection amount is invalid.');
+
+            $pendingCycles = AjoCollectionCycle::query()
                 ->where('ajo_member_id', $member->id)
-                ->where('scheduled_for', $scheduledFor)
-                ->lockForUpdate()
-                ->first();
+                ->where('status', AjoCollectionCycle::STATUS_FAILED)
+                ->where('insufficient_balance', true)
+                ->get()
+                ->filter(function ($cycle) {
+                    return !array_key_exists(
+                        'settled_by_collection_cycle_id',
+                        (array) $cycle->metadata
+                    );
+                })
+                ->values();
+            $pendingBefore = round($pendingCycles->sum(fn($c) => (float)$c->amount), 2);
+            $required = round($pendingBefore + $collectionAmount, 2);
 
-            if ($existingCycle) {
-                return [
-                    'status' => $existingCycle->status ===
-                        AjoCollectionCycle::STATUS_SUCCESSFUL
-                        ? 'successful'
-                        : 'skipped',
-                    'collection_cycle' => $existingCycle,
-                ];
-            }
+            $mainAccount = $this->getMainAccount($member->user);
+            $mainAccount = wb_account_details::query()->where('id', $mainAccount->id)->lockForUpdate()->first();
+            $sourceBalanceBefore = $this->getAccountBalance($mainAccount);
 
-            $memberAjoAccount = AjoAccount::query()
-                ->where('id', $member->ajo_account_id)
-                ->lockForUpdate()
-                ->first();
+            $cycleNumber = (int)(AjoCollectionCycle::query()->where('ajo_member_id', $member->id)->max('cycle_number') ?? 0) + 1;
 
-            if (!$memberAjoAccount) {
-                throw new RuntimeException(
-                    'Member personal Ajo Account could not be found.'
+            if ($sourceBalanceBefore < $required) {
+                $newCount = (int)$member->insufficient_balance_count + 1;
+                $reference = $this->reference('AJCOLMISS');
+                $cycle = AjoCollectionCycle::create([
+                    'ajo_id' => $ajo->id,
+                    'ajo_member_id' => $member->id,
+                    'cycle_number' => $cycleNumber,
+                    'scheduled_for' => $scheduledFor,
+                    'processed_at' => now(),
+                    'amount' => $collectionAmount,
+                    'source_balance_before' => $sourceBalanceBefore,
+                    'source_balance_after' => $sourceBalanceBefore,
+                    'member_balance_before' => (float)$member->balance,
+                    'member_balance_after' => (float)$member->balance,
+                    'insufficient_balance' => true,
+                    'insufficient_balance_count' => $newCount,
+                    'fee_amount' => 0,
+                    'company_fee_share' => 0,
+                    'creator_fee_share' => 0,
+                    'status' => AjoCollectionCycle::STATUS_FAILED,
+                    'failure_reason' => 'Insufficient main wallet balance for this collection and all outstanding missed collections.',
+                    'transaction_reference' => $reference,
+                    'metadata' => [
+                        'required_for_catch_up' => $required,
+                        'previous_missed_amount' => $pendingBefore,
+                        'current_collection_amount' => $collectionAmount,
+                        'actual_debited' => 0,
+                        'main_wallet_balance' => $sourceBalanceBefore,
+                        'fee_separate_from_contribution' => true,
+                    ],
+                ]);
+                $member->insufficient_balance_count = $newCount;
+
+                $newPending = round(
+                    (float) $member->pending_collection_amount + $collectionAmount,
+                    2
                 );
+                $member->pending_collection_amount = $newPending;
+
+                if (
+                    $newCount > 0 &&
+                    $newCount % self::INSUFFICIENT_BALANCE_FEE_EVERY === 0
+                ) {
+                    $feeDue = $this->calculateConfiguredFee(
+                        $ajo->insufficient_balance_fee_type,
+                        (float) $ajo->insufficient_balance_fee_value,
+                        $collectionAmount
+                    );
+
+                    $member->pending_insufficient_balance_fees = round(
+                        (float) $member->pending_insufficient_balance_fees + $feeDue,
+                        2
+                    );
+
+                    $metadata = (array) $cycle->metadata;
+                    $metadata['insufficient_fee_due'] = $feeDue;
+                    $cycle->metadata = $metadata;
+                    $cycle->save();
+                }
+
+                $member->save();
+
+                return ['status' => 'skipped', 'reason' => 'insufficient_balance', 'collection_cycle' => $cycle];
             }
 
-            $sourceBalanceBefore = round(
-                (float) $memberAjoAccount->balance,
-                2
-            );
+            $memberBalanceBefore = round((float)$member->balance, 2);
+            $memberBalanceAfter = round($memberBalanceBefore + $required, 2);
+            $debit = debitCustomerOnly($mainAccount->id, $required, $member->user);
+            if (!($debit['status'] ?? false)) throw new RuntimeException($debit['message'] ?? 'Unable to debit member main wallet.');
 
-            $collectionAmount = round(
-                (float) $ajo->collection_amount,
-                2
-            );
-
-            if ($collectionAmount <= 0) {
-                throw new RuntimeException(
-                    'Ajo collection amount is invalid.'
-                );
-            }
-
-            $sourceBalanceAfterCollection = round(
-                $sourceBalanceBefore - $collectionAmount,
-                2
-            );
-
-            $memberBalanceBefore = round(
-                (float) $member->balance,
-                2
-            );
-
-            $memberBalanceAfter = round(
-                $memberBalanceBefore + $collectionAmount,
-                2
-            );
-
-            $insufficient = $sourceBalanceBefore < $collectionAmount;
-
-            $newInsufficientCount = (int) $member->insufficient_balance_count;
-
-            if ($insufficient) {
-                $newInsufficientCount++;
-            }
-
-            $cycleNumber = (int) (
-                AjoCollectionCycle::query()
-                    ->where('ajo_member_id', $member->id)
-                    ->max('cycle_number')
-                ?? 0
-            ) + 1;
-
+            $actualBefore = (float)$debit['balance_before'];
+            $actualAfter = (float)$debit['balance_after'];
             $collectionReference = $this->reference('AJCOL');
 
-            $memberAjoAccount->balance = $sourceBalanceAfterCollection;
-            $memberAjoAccount->save();
-
-            $member->balance = $memberBalanceAfter;
-            $member->total_contributed = round(
-                (float) $member->total_contributed + $collectionAmount,
-                2
+            $collectionCoreTransaction = $this->createCoreTransaction(
+                companyId: (int) $member->user->company_id,
+                transactionTypeId: self::TRANSACTION_TYPE_AJO_SCHEDULED_COLLECTION,
+                creditDebitTypeId: self::DEBIT,
+                accountId: (int) $mainAccount->id,
+                amount: $required,
+                balanceBefore: $actualBefore,
+                balanceAfter: $actualAfter,
+                description: 'Ajo Scheduled Collection',
+                reference: $collectionReference
             );
-            $member->insufficient_balance_count = $newInsufficientCount;
-            $member->save();
 
             $cycle = AjoCollectionCycle::create([
                 'ajo_id' => $ajo->id,
@@ -1634,12 +1050,12 @@ class AjoService
                 'scheduled_for' => $scheduledFor,
                 'processed_at' => now(),
                 'amount' => $collectionAmount,
-                'source_balance_before' => $sourceBalanceBefore,
-                'source_balance_after' => $sourceBalanceAfterCollection,
+                'source_balance_before' => $actualBefore,
+                'source_balance_after' => $actualAfter,
                 'member_balance_before' => $memberBalanceBefore,
                 'member_balance_after' => $memberBalanceAfter,
-                'insufficient_balance' => $insufficient,
-                'insufficient_balance_count' => $newInsufficientCount,
+                'insufficient_balance' => $pendingBefore > 0,
+                'insufficient_balance_count' => (int)$member->insufficient_balance_count,
                 'fee_amount' => 0,
                 'company_fee_share' => 0,
                 'creator_fee_share' => 0,
@@ -1647,10 +1063,13 @@ class AjoService
                 'failure_reason' => null,
                 'transaction_reference' => $collectionReference,
                 'metadata' => [
-                    'scheduled_for' => $scheduledFor->toIso8601String(),
-                    'collection_amount' => $collectionAmount,
-                    'source_ajo_account_id' => $memberAjoAccount->id,
-                    'insufficient_balance' => $insufficient,
+                    'previous_missed_amount' => $pendingBefore,
+                    'current_collection_amount' => $collectionAmount,
+                    'actual_debited' => $required,
+                    'main_wallet_balance_before' => $actualBefore,
+                    'main_wallet_balance_after' => $actualAfter,
+                    'catch_up' => $pendingBefore > 0,
+                    'missed_cycle_ids' => $pendingCycles->pluck('id')->values()->all(),
                 ],
             ]);
 
@@ -1660,117 +1079,69 @@ class AjoService
                 'ajo_collection_cycle_id' => $cycle->id,
                 'user_id' => $member->user_id,
                 'company_id' => $ajo->company_id,
-                'source_ajo_account_id' => $memberAjoAccount->id,
+                'source_ajo_account_id' => null,
                 'destination_ajo_account_id' => null,
-                'main_account_id' => null,
-                'finova_transaction_id' => null,
+                'main_account_id' => $mainAccount->id,
+                'finova_transaction_id' => $collectionCoreTransaction->id,
                 'company_financial_entry_id' => null,
                 'type' => AjoTransaction::TYPE_SCHEDULED_COLLECTION,
-                'amount' => $collectionAmount,
+                'amount' => $required,
                 'fee' => 0,
                 'company_fee_share' => 0,
                 'creator_fee_share' => 0,
-                'source_balance_before' => $sourceBalanceBefore,
-                'source_balance_after' => $sourceBalanceAfterCollection,
+                'source_balance_before' => $actualBefore,
+                'source_balance_after' => $actualAfter,
                 'destination_balance_before' => $memberBalanceBefore,
                 'destination_balance_after' => $memberBalanceAfter,
                 'transaction_reference' => $collectionReference,
                 'status' => 'successful',
-                'description' =>
-                    'Automatic scheduled collection into Ajo membership.',
+                'description' => $pendingBefore > 0 ? 'Ajo scheduled collection with missed-cycle catch-up from main wallet.' : 'Automatic scheduled Ajo collection from main wallet.',
                 'metadata' => [
                     'collection_cycle_id' => $cycle->id,
                     'scheduled_for' => $scheduledFor->toIso8601String(),
-                    'insufficient_balance' => $insufficient,
-                    'insufficient_balance_count' => $newInsufficientCount,
-                    'source_ajo_account_id' => $memberAjoAccount->id,
-                    'company_wallet_affected' => false,
+                    'previous_missed_amount' => $pendingBefore,
+                    'current_collection_amount' => $collectionAmount,
+                    'actual_debited' => $required,
+                    'main_wallet_affected' => true,
+                    'missed_cycle_ids' => $pendingCycles->pluck('id')->values()->all(),
                 ],
             ]);
 
-            $cycle->metadata = array_merge(
-                (array) $cycle->metadata,
-                [
-                    'ajo_transaction_id' => $collectionTransaction->id,
-                ]
-            );
-            $cycle->save();
+            $member->balance = $memberBalanceAfter;
+            $member->total_contributed = round((float)$member->total_contributed + $required, 2);
+            $member->pending_collection_amount = 0;
 
-            $insufficientFee = 0.0;
-            $feeSplit = [
-                'total_fee' => 0,
-                'company_percentage' =>
-                    (float) $ajo->company_fee_share_percentage,
-                'creator_percentage' =>
-                    (float) $ajo->creator_fee_share_percentage,
-                'company_share' => 0,
-                'creator_share' => 0,
-            ];
-
+            $pendingFee = round((float) $member->pending_insufficient_balance_fees, 2);
             $feeTransaction = null;
             $feeFinancialEntry = null;
-
-            /*
-             * Every third insufficient event creates the configured fee:
-             * 3rd, 6th, 9th, ...
-             */
-            if (
-                $insufficient &&
-                $newInsufficientCount > 0 &&
-                $newInsufficientCount % self::INSUFFICIENT_BALANCE_FEE_EVERY === 0
-            ) {
-                $insufficientFee = $this->calculateConfiguredFee(
-                    $ajo->insufficient_balance_fee_type,
-                    (float) $ajo->insufficient_balance_fee_value,
-                    $collectionAmount
-                );
-
-                if ($insufficientFee > 0) {
-                    $feeSplit = $ajo->splitFee($insufficientFee);
-
-                    /*
-                     * The insufficient-balance fee is also charged to the
-                     * personal Ajo Account, so that account can become even
-                     * more negative.
-                     */
-                    $feeSourceBefore = round(
-                        (float) $memberAjoAccount->balance,
-                        2
-                    );
-
-                    $feeSourceAfter = round(
-                        $feeSourceBefore - $insufficientFee,
-                        2
-                    );
-
-                    $memberAjoAccount->balance = $feeSourceAfter;
-                    $memberAjoAccount->save();
-
-                    $creatorAjoAccount = AjoAccount::query()
-                        ->where('id', $ajo->creator_ajo_account_id)
-                        ->lockForUpdate()
-                        ->first();
-
-                    if (!$creatorAjoAccount) {
-                        throw new RuntimeException(
-                            'Creator personal Ajo Account could not be found.'
-                        );
+            if ($pendingFee > 0) {
+                $walletAfterCollection = (float) $actualAfter;
+                if ($walletAfterCollection >= $pendingFee) {
+                    $feeDebit = debitCustomerOnly($mainAccount->id, $pendingFee, $member->user);
+                    if (!($feeDebit['status'] ?? false)) {
+                        throw new RuntimeException($feeDebit['message'] ?? 'Unable to debit insufficient-balance fee.');
                     }
 
-                    $creatorBalanceBefore = round(
-                        (float) $creatorAjoAccount->balance,
-                        2
-                    );
-
-                    $creatorBalanceAfter = round(
-                        $creatorBalanceBefore + $feeSplit['creator_share'],
-                        2
-                    );
-
-                    $creatorAjoAccount->balance = $creatorBalanceAfter;
-                    $creatorAjoAccount->save();
-
                     $feeReference = $this->reference('AJIBF');
+                    $feeCoreTransaction = $this->createCoreTransaction(
+                        companyId: (int) $member->user->company_id,
+                        transactionTypeId: self::TRANSACTION_TYPE_AJO_INSUFFICIENT_BALANCE_FEE,
+                        creditDebitTypeId: self::DEBIT,
+                        accountId: (int) $mainAccount->id,
+                        amount: $pendingFee,
+                        balanceBefore: (float) $feeDebit['balance_before'],
+                        balanceAfter: (float) $feeDebit['balance_after'],
+                        description: 'Ajo Insufficient Balance Fee',
+                        reference: $feeReference
+                    );
+
+                    $feeSplit = $ajo->splitFee($pendingFee);
+                    $creator = User::query()->find($ajo->creator_user_id);
+                    if (!$creator) throw new RuntimeException('Ajo creator could not be found.');
+                    $creatorAccount = $this->getMainAccount($creator);
+                    $creatorBefore = $this->getAccountBalance($creatorAccount);
+                    $creatorCredit = creditCustomerOnly($creatorAccount->id, $feeSplit['creator_share']);
+                    if (!($creatorCredit['status'] ?? false)) throw new RuntimeException($creatorCredit['message'] ?? 'Unable to credit creator insufficient-balance fee share.');
 
                     $feeTransaction = AjoTransaction::create([
                         'ajo_id' => $ajo->id,
@@ -1778,96 +1149,82 @@ class AjoService
                         'ajo_collection_cycle_id' => $cycle->id,
                         'user_id' => $member->user_id,
                         'company_id' => $ajo->company_id,
-                        'source_ajo_account_id' => $memberAjoAccount->id,
-                        'destination_ajo_account_id' =>
-                            $creatorAjoAccount->id,
-                        'main_account_id' => null,
-                        'finova_transaction_id' => null,
+                        'source_ajo_account_id' => null,
+                        'destination_ajo_account_id' => null,
+                        'main_account_id' => $mainAccount->id,
+                        'finova_transaction_id' => $feeCoreTransaction->id,
                         'company_financial_entry_id' => null,
                         'type' => AjoTransaction::TYPE_INSUFFICIENT_BALANCE_FEE,
-                        'amount' => $insufficientFee,
-                        'fee' => $insufficientFee,
+                        'amount' => $pendingFee,
+                        'fee' => $pendingFee,
                         'company_fee_share' => $feeSplit['company_share'],
                         'creator_fee_share' => $feeSplit['creator_share'],
-                        'source_balance_before' => $feeSourceBefore,
-                        'source_balance_after' => $feeSourceAfter,
-                        'destination_balance_before' =>
-                            $creatorBalanceBefore,
-                        'destination_balance_after' =>
-                            $creatorBalanceAfter,
+                        'source_balance_before' => (float) $feeDebit['balance_before'],
+                        'source_balance_after' => (float) $feeDebit['balance_after'],
+                        'destination_balance_before' => $creatorBefore,
+                        'destination_balance_after' => (float) $creatorCredit['balance_after'],
                         'transaction_reference' => $feeReference,
                         'status' => 'successful',
-                        'description' =>
-                            'Ajo insufficient-balance fee charged on threshold event.',
+                        'description' => 'Ajo insufficient-balance fee collected separately from contribution.',
                         'metadata' => [
                             'fee_type' => 'insufficient_balance_fee',
-                            'threshold' => self::INSUFFICIENT_BALANCE_FEE_EVERY,
-                            'insufficient_balance_count' => $newInsufficientCount,
-                            'fee_calculation_type' =>
-                                $ajo->insufficient_balance_fee_type,
-                            'configured_fee_value' =>
-                                (float) $ajo->insufficient_balance_fee_value,
-                            'calculation_base' => $collectionAmount,
-                            'total_fee' => $feeSplit['total_fee'],
+                            'fee_paid_from_main_wallet' => true,
                             'company_share' => $feeSplit['company_share'],
                             'creator_share' => $feeSplit['creator_share'],
-                            'company_share_percentage' =>
-                                $feeSplit['company_percentage'],
-                            'creator_share_percentage' =>
-                                $feeSplit['creator_percentage'],
                             'company_wallet_affected' => false,
                         ],
                     ]);
 
-                    $feeFinancialEntry =
-                        $this->recordCompanyRevenue(
-                            ajo: $ajo,
-                            amount: $feeSplit['company_share'],
-                            category: self::CATEGORY_INSUFFICIENT_BALANCE_FEE,
-                            description:
-                                'Ajo insufficient-balance fee company revenue share.',
-                            reference: $this->reference('AJO-IBFR'),
-                            transactionId: null,
-                            metadata: [
-                                'ajo_id' => $ajo->id,
-                                'ajo_member_id' => $member->id,
-                                'collection_cycle_id' => $cycle->id,
-                                'fee_type' => 'insufficient_balance_fee',
-                                'insufficient_balance_count' => $newInsufficientCount,
-                                'total_fee' => $feeSplit['total_fee'],
-                                'company_share' => $feeSplit['company_share'],
-                                'creator_share' => $feeSplit['creator_share'],
-                                'company_share_percentage' =>
-                                    $feeSplit['company_percentage'],
-                                'creator_share_percentage' =>
-                                    $feeSplit['creator_percentage'],
-                                'ajo_transaction_id' => $feeTransaction->id,
-                                'company_wallet_affected' => false,
-                            ]
-                        );
-
-                    $feeTransaction->company_financial_entry_id =
-                        $feeFinancialEntry->id;
-                    $feeTransaction->save();
-
-                    $cycle->fee_amount = $insufficientFee;
-                    $cycle->company_fee_share =
-                        $feeSplit['company_share'];
-                    $cycle->creator_fee_share =
-                        $feeSplit['creator_share'];
-                    $cycle->source_balance_after = $feeSourceAfter;
-                    $cycle->metadata = array_merge(
-                        (array) $cycle->metadata,
-                        [
-                            'insufficient_fee_transaction_id' =>
-                                $feeTransaction->id,
-                            'company_financial_entry_id' =>
-                                $feeFinancialEntry->id,
+                    $feeFinancialEntry = $this->recordCompanyRevenue(
+                        ajo: $ajo,
+                        amount: $feeSplit['company_share'],
+                        category: self::CATEGORY_INSUFFICIENT_BALANCE_FEE,
+                        description: 'Ajo insufficient-balance fee company revenue share.',
+                        reference: $this->reference('AJO-IBFR'),
+                        transactionId: null,
+                        metadata: [
+                            'ajo_id' => $ajo->id,
+                            'ajo_member_id' => $member->id,
+                            'total_fee' => $pendingFee,
+                            'company_share' => $feeSplit['company_share'],
+                            'creator_share' => $feeSplit['creator_share'],
+                            'ajo_transaction_id' => $feeTransaction->id,
+                            'company_wallet_affected' => false,
                         ]
                     );
+                    $feeTransaction->company_financial_entry_id = $feeFinancialEntry->id;
+                    $feeTransaction->save();
+                    $member->total_insufficient_balance_fees = round(
+                        (float) $member->total_insufficient_balance_fees + $pendingFee,
+                        2
+                    );
+                    $member->pending_insufficient_balance_fees = 0;
+                    $actualAfter = (float) $feeDebit['balance_after'];
+                    $cycle->fee_amount = $pendingFee;
+                    $cycle->company_fee_share = $feeSplit['company_share'];
+                    $cycle->creator_fee_share = $feeSplit['creator_share'];
+                    $cycle->source_balance_after = $actualAfter;
+                    $cycle->metadata = array_merge((array) $cycle->metadata, [
+                        'insufficient_fee_transaction_id' => $feeTransaction->id,
+                        'company_financial_entry_id' => $feeFinancialEntry->id,
+                    ]);
                     $cycle->save();
                 }
             }
+
+            $member->save();
+
+            // Mark the old missed cycles as settled without rewriting their historical status.
+            foreach ($pendingCycles as $missed) {
+                $metadata = (array)$missed->metadata;
+                $metadata['settled_by_collection_cycle_id'] = $cycle->id;
+                $metadata['settled_at'] = now()->toIso8601String();
+                $missed->metadata = $metadata;
+                $missed->save();
+            }
+
+            $cycle->metadata = array_merge((array)$cycle->metadata, ['ajo_transaction_id' => $collectionTransaction->id]);
+            $cycle->save();
 
             return [
                 'status' => 'successful',
@@ -1875,11 +1232,11 @@ class AjoService
                 'member' => $member->fresh(),
                 'collection_cycle' => $cycle->fresh(),
                 'collection_transaction' => $collectionTransaction,
-                'fee_transaction' => $feeTransaction,
-                'financial_entry' => $feeFinancialEntry,
-                'fee' => $insufficientFee,
-                'fee_split' => $feeSplit,
-                'ajo_account' => $memberAjoAccount->fresh(),
+                'actual_debited' => $required,
+                'previous_missed_amount' => $pendingBefore,
+                'current_collection_amount' => $collectionAmount,
+                'insufficient_fee_transaction' => $feeTransaction,
+                'insufficient_fee_financial_entry' => $feeFinancialEntry,
             ];
         });
     }
@@ -1982,143 +1339,54 @@ class AjoService
      * Remaining funds go to the member's personal Ajo Account.
      * Creator receives no maturity payout because creator is not a member.
      */
-public function processMaturity(?Carbon $asOf = null): array
-{
-    $asOf = ($asOf ?: now())->copy();
+    public function processMaturity(?Carbon $asOf = null): array
+    {
+        $asOf = ($asOf ?: now())->copy();
+        $processed = 0; $failed = 0; $skipped = 0;
 
-    $processed = 0;
-    $failed = 0;
-    $skipped = 0;
-
-    Ajo::query()
-        ->where('status', self::STATUS_ACTIVE)
-        ->whereDate(
-            'maturity_date',
-            '<=',
-            $asOf->toDateString()
-        )
-        ->orderBy('id')
-        ->chunkById(
-            100,
-            function ($ajos) use (
-                &$processed,
-                &$failed,
-                &$skipped,
-                $asOf
-            ) {
+        Ajo::query()->where('status', self::STATUS_ACTIVE)
+            ->whereDate('maturity_date', '<=', $asOf->toDateString())
+            ->orderBy('id')->chunkById(100, function ($ajos) use (&$processed, &$failed, &$skipped) {
                 foreach ($ajos as $ajoSnapshot) {
                     try {
-                        $result = DB::transaction(function () use ($ajoSnapshot, $asOf) {
-                            $ajo = Ajo::query()
-                                ->where('id', $ajoSnapshot->id)
-                                ->lockForUpdate()
-                                ->first();
-
-                            if (!$ajo) {
-                                return ['status' => 'skipped'];
-                            }
-
-                            if ($ajo->status !== self::STATUS_ACTIVE) {
-                                return ['status' => 'skipped'];
-                            }
-
-                            $maturityDate = Carbon::parse(
-                                $ajo->maturity_date
-                            )->startOfDay();
-
-                            if ($asOf->copy()->startOfDay()->lt($maturityDate)) {
-                                return ['status' => 'skipped'];
-                            }
-
-                            $creatorAjoAccount = AjoAccount::query()
-                                ->where('id', $ajo->creator_ajo_account_id)
-                                ->lockForUpdate()
-                                ->first();
-
-                            if (!$creatorAjoAccount) {
-                                throw new RuntimeException(
-                                    'Creator personal Ajo Account could not be found.'
-                                );
-                            }
+                        $result = DB::transaction(function () use ($ajoSnapshot) {
+                            $ajo = Ajo::query()->where('id', $ajoSnapshot->id)->lockForUpdate()->first();
+                            if (!$ajo || $ajo->status !== self::STATUS_ACTIVE) return ['status' => 'skipped'];
 
                             $members = AjoMember::query()
                                 ->where('ajo_id', $ajo->id)
-                                ->whereIn('status', [
-                                    AjoMember::STATUS_ACTIVE,
-                                    AjoMember::STATUS_LEAVE_REQUESTED,
-                                ])
-                                ->orderBy('id')
-                                ->lockForUpdate()
-                                ->get();
+                                ->whereIn('status', [AjoMember::STATUS_ACTIVE, AjoMember::STATUS_LEAVE_REQUESTED])
+                                ->orderBy('id')->lockForUpdate()->get();
 
                             $memberResults = [];
-
                             foreach ($members as $member) {
-                                $memberAjoAccount = AjoAccount::query()
-                                    ->where('id', $member->ajo_account_id)
-                                    ->lockForUpdate()
-                                    ->first();
-
-                                if (!$memberAjoAccount) {
-                                    throw new RuntimeException(
-                                        'Member personal Ajo Account could not be found.'
-                                    );
-                                }
-
-                                $memberBalance = round(
-                                    (float) $member->balance,
-                                    2
-                                );
-
-                                $fee = round(
-                                    $memberBalance
-                                    * (
-                                        (float)
-                                        $ajo->maturity_fee_percentage
-                                        / 100
-                                    ),
-                                    2
-                                );
-
-                                $fee = min($fee, $memberBalance);
-
-                                $remaining = round(
-                                    $memberBalance - $fee,
-                                    2
-                                );
-
-                                $feeSplit = [
-                                    'total_fee' => 0,
-                                    'company_percentage' =>
-                                        (float) $ajo->company_fee_share_percentage,
-                                    'creator_percentage' =>
-                                        (float) $ajo->creator_fee_share_percentage,
-                                    'company_share' => 0,
-                                    'creator_share' => 0,
-                                ];
+                                $gross = round((float)$member->total_contributed, 2);
+                                $fee = min(round($gross * ((float)$ajo->maturity_fee_percentage / 100), 2), $gross);
+                                $remaining = round($gross - $fee, 2);
+                                $split = $ajo->splitFee($fee);
 
                                 $feeTransaction = null;
                                 $financialEntry = null;
+                                $creatorCredit = null;
 
                                 if ($fee > 0) {
-                                    $feeSplit = $ajo->splitFee($fee);
-
-                                    $creatorBalanceBefore = round(
-                                        (float) $creatorAjoAccount->balance,
-                                        2
+                                    $creator = User::query()->find($ajo->creator_user_id);
+                                    if (!$creator) throw new RuntimeException('Ajo creator could not be found.');
+                                    $creatorAccount = $this->getMainAccount($creator);
+                                    $creatorBefore = $this->getAccountBalance($creatorAccount);
+                                    $creatorCredit = creditCustomerOnly($creatorAccount->id, $split['creator_share']);
+                                    if (!($creatorCredit['status'] ?? false)) throw new RuntimeException($creatorCredit['message'] ?? 'Unable to credit creator maturity fee share.');
+                                    $creatorFeeCoreTransaction = $this->createCoreTransaction(
+                                        companyId: (int) $creator->company_id,
+                                        transactionTypeId: self::TRANSACTION_TYPE_AJO_MATURITY_FEE,
+                                        creditDebitTypeId: self::CREDIT,
+                                        accountId: (int) $creatorAccount->id,
+                                        amount: $split['creator_share'],
+                                        balanceBefore: $creatorBefore,
+                                        balanceAfter: (float) $creatorCredit['balance_after'],
+                                        description: 'Ajo Maturity Creator Fee Share',
+                                        reference: $this->reference('AJMFEE-CR')
                                     );
-
-                                    $creatorBalanceAfter = round(
-                                        $creatorBalanceBefore
-                                        + $feeSplit['creator_share'],
-                                        2
-                                    );
-
-                                    $creatorAjoAccount->balance =
-                                        $creatorBalanceAfter;
-                                    $creatorAjoAccount->save();
-
-                                    $feeReference = $this->reference('AJMFEE');
 
                                     $feeTransaction = AjoTransaction::create([
                                         'ajo_id' => $ajo->id,
@@ -2127,98 +1395,74 @@ public function processMaturity(?Carbon $asOf = null): array
                                         'user_id' => $member->user_id,
                                         'company_id' => $ajo->company_id,
                                         'source_ajo_account_id' => null,
-                                        'destination_ajo_account_id' =>
-                                            $creatorAjoAccount->id,
-                                        'main_account_id' => null,
-                                        'finova_transaction_id' => null,
+                                        'destination_ajo_account_id' => null,
+                                        'main_account_id' => $creatorAccount->id,
+                                        'finova_transaction_id' => $creatorFeeCoreTransaction->id,
                                         'company_financial_entry_id' => null,
                                         'type' => AjoTransaction::TYPE_MATURITY_FEE,
                                         'amount' => $fee,
                                         'fee' => $fee,
-                                        'company_fee_share' =>
-                                            $feeSplit['company_share'],
-                                        'creator_fee_share' =>
-                                            $feeSplit['creator_share'],
-                                        'source_balance_before' =>
-                                            $memberBalance,
+                                        'company_fee_share' => $split['company_share'],
+                                        'creator_fee_share' => $split['creator_share'],
+                                        'source_balance_before' => $gross,
                                         'source_balance_after' => $remaining,
-                                        'destination_balance_before' =>
-                                            $creatorBalanceBefore,
-                                        'destination_balance_after' =>
-                                            $creatorBalanceAfter,
-                                        'transaction_reference' => $feeReference,
+                                        'destination_balance_before' => $creatorBefore,
+                                        'destination_balance_after' => (float)$creatorCredit['balance_after'],
+                                        'transaction_reference' => $this->reference('AJMFEE'),
                                         'status' => 'successful',
-                                        'description' =>
-                                            'Ajo maturity fee charged to member.',
+                                        'description' => 'Ajo maturity fee charged from member contribution.',
                                         'metadata' => [
-                                            'fee_type' => 'maturity_fee',
-                                            'maturity_fee_percentage' =>
-                                                (float)
-                                                $ajo->maturity_fee_percentage,
-                                            'total_fee' => $feeSplit['total_fee'],
-                                            'company_share' =>
-                                                $feeSplit['company_share'],
-                                            'creator_share' =>
-                                                $feeSplit['creator_share'],
-                                            'company_share_percentage' =>
-                                                $feeSplit['company_percentage'],
-                                            'creator_share_percentage' =>
-                                                $feeSplit['creator_percentage'],
+                                            'gross_contribution' => $gross,
+                                            'maturity_fee_percentage' => (float)$ajo->maturity_fee_percentage,
+                                            'company_share' => $split['company_share'],
+                                            'creator_share' => $split['creator_share'],
+                                            'creator_share_destination' => 'main_wallet',
                                             'company_wallet_affected' => false,
                                         ],
                                     ]);
 
-                                    $financialEntry =
-                                        $this->recordCompanyRevenue(
-                                            ajo: $ajo,
-                                            amount: $feeSplit['company_share'],
-                                            category: self::CATEGORY_MATURITY_FEE,
-                                            description:
-                                                'Ajo maturity fee company revenue share.',
-                                            reference: $this->reference('AJMFR'),
-                                            transactionId: null,
-                                            metadata: [
-                                                'ajo_id' => $ajo->id,
-                                                'ajo_member_id' => $member->id,
-                                                'fee_type' => 'maturity_fee',
-                                                'maturity_fee_percentage' =>
-                                                    (float)
-                                                    $ajo->maturity_fee_percentage,
-                                                'total_fee' =>
-                                                    $feeSplit['total_fee'],
-                                                'company_share' =>
-                                                    $feeSplit['company_share'],
-                                                'creator_share' =>
-                                                    $feeSplit['creator_share'],
-                                                'company_share_percentage' =>
-                                                    $feeSplit['company_percentage'],
-                                                'creator_share_percentage' =>
-                                                    $feeSplit['creator_percentage'],
-                                                'ajo_transaction_id' =>
-                                                    $feeTransaction->id,
-                                                'company_wallet_affected' => false,
-                                            ]
-                                        );
-
-                                    $feeTransaction->company_financial_entry_id =
-                                        $financialEntry->id;
+                                    $financialEntry = $this->recordCompanyRevenue(
+                                        ajo: $ajo,
+                                        amount: $split['company_share'],
+                                        category: self::CATEGORY_MATURITY_FEE,
+                                        description: 'Ajo maturity fee company revenue share.',
+                                        reference: $this->reference('AJO-MFR'),
+                                        transactionId: null,
+                                        metadata: [
+                                            'ajo_id' => $ajo->id,
+                                            'ajo_member_id' => $member->id,
+                                            'total_fee' => $fee,
+                                            'company_share' => $split['company_share'],
+                                            'creator_share' => $split['creator_share'],
+                                            'ajo_transaction_id' => $feeTransaction->id,
+                                            'company_wallet_affected' => false,
+                                        ]
+                                    );
+                                    $feeTransaction->company_financial_entry_id = $financialEntry->id;
                                     $feeTransaction->save();
                                 }
 
-                                $memberAccountBefore = round(
-                                    (float) $memberAjoAccount->balance,
-                                    2
-                                );
+                                $memberAccount = $this->getMainAccount($member->user);
+                                $memberBefore = $this->getAccountBalance($memberAccount);
+                                $returnCredit = $remaining > 0
+                                    ? creditCustomerOnly($memberAccount->id, $remaining)
+                                    : ['status'=>true,'balance_before'=>$memberBefore,'balance_after'=>$memberBefore];
+                                if (!($returnCredit['status'] ?? false)) throw new RuntimeException($returnCredit['message'] ?? 'Unable to return maturity funds to member main wallet.');
 
-                                $memberAccountAfter = round(
-                                    $memberAccountBefore + $remaining,
-                                    2
-                                );
-
-                                $memberAjoAccount->balance = $memberAccountAfter;
-                                $memberAjoAccount->save();
-
-                                $returnReference = $this->reference('AJMRETURN');
+                                $returnCoreTransaction = null;
+                                if ($remaining > 0) {
+                                    $returnCoreTransaction = $this->createCoreTransaction(
+                                        companyId: (int) $member->user->company_id,
+                                        transactionTypeId: self::TRANSACTION_TYPE_AJO_MATURITY_RETURN,
+                                        creditDebitTypeId: self::CREDIT,
+                                        accountId: (int) $memberAccount->id,
+                                        amount: $remaining,
+                                        balanceBefore: $memberBefore,
+                                        balanceAfter: (float) $returnCredit['balance_after'],
+                                        description: 'Ajo Maturity Return',
+                                        reference: $this->reference('AJMRETURN')
+                                    );
+                                }
 
                                 $returnTransaction = AjoTransaction::create([
                                     'ajo_id' => $ajo->id,
@@ -2227,10 +1471,9 @@ public function processMaturity(?Carbon $asOf = null): array
                                     'user_id' => $member->user_id,
                                     'company_id' => $ajo->company_id,
                                     'source_ajo_account_id' => null,
-                                    'destination_ajo_account_id' =>
-                                        $memberAjoAccount->id,
-                                    'main_account_id' => null,
-                                    'finova_transaction_id' => null,
+                                    'destination_ajo_account_id' => null,
+                                    'main_account_id' => $memberAccount->id,
+                                    'finova_transaction_id' => $returnCoreTransaction?->id,
                                     'company_financial_entry_id' => null,
                                     'type' => AjoTransaction::TYPE_MATURITY_RETURN,
                                     'amount' => $remaining,
@@ -2239,39 +1482,32 @@ public function processMaturity(?Carbon $asOf = null): array
                                     'creator_fee_share' => 0,
                                     'source_balance_before' => $remaining,
                                     'source_balance_after' => 0,
-                                    'destination_balance_before' =>
-                                        $memberAccountBefore,
-                                    'destination_balance_after' =>
-                                        $memberAccountAfter,
-                                    'transaction_reference' => $returnReference,
+                                    'destination_balance_before' => $memberBefore,
+                                    'destination_balance_after' => (float)$returnCredit['balance_after'],
+                                    'transaction_reference' => $this->reference('AJMRETURN'),
                                     'status' => 'successful',
-                                    'description' =>
-                                        'Ajo matured and remaining member funds returned to personal Ajo Account.',
+                                    'description' => 'Ajo matured and net contribution returned to member main wallet.',
                                     'metadata' => [
-                                        'gross_member_balance' => $memberBalance,
+                                        'gross_contribution' => $gross,
                                         'maturity_fee' => $fee,
-                                        'remaining_amount' => $remaining,
-                                        'member_ajo_account_id' =>
-                                            $memberAjoAccount->id,
-                                        'company_wallet_affected' => false,
+                                        'net_return' => $remaining,
+                                        'destination' => 'main_wallet',
+                                        'historical_total_contributed_preserved' => true,
                                     ],
                                 ]);
 
                                 $member->balance = 0;
-                                $member->total_maturity_fees = round(
-                                    (float) $member->total_maturity_fees + $fee,
-                                    2
-                                );
+                                $member->total_maturity_fees = round((float)$member->total_maturity_fees + $fee, 2);
                                 $member->status = AjoMember::STATUS_MATURED;
                                 $member->left_at = null;
                                 $member->save();
 
                                 $memberResults[] = [
                                     'member_id' => $member->id,
-                                    'gross_balance' => $memberBalance,
+                                    'gross_contributed' => $gross,
                                     'maturity_fee' => $fee,
                                     'remaining' => $remaining,
-                                    'fee_split' => $feeSplit,
+                                    'fee_split' => $split,
                                     'fee_transaction' => $feeTransaction,
                                     'return_transaction' => $returnTransaction,
                                     'financial_entry' => $financialEntry,
@@ -2281,38 +1517,18 @@ public function processMaturity(?Carbon $asOf = null): array
                             $ajo->status = self::STATUS_MATURED;
                             $ajo->next_collection_at = null;
                             $ajo->save();
-
-                            return [
-                                'status' => 'successful',
-                                'ajo' => $ajo->fresh(),
-                                'members' => $memberResults,
-                                'creator_ajo_account' =>
-                                    $creatorAjoAccount->fresh(),
-                            ];
+                            return ['status'=>'successful','ajo'=>$ajo->fresh(),'members'=>$memberResults];
                         });
 
-                        if (($result['status'] ?? null) === 'successful') {
-                            $processed++;
-                        } else {
-                            $skipped++;
-                        }
+                        if (($result['status'] ?? null) === 'successful') $processed++; else $skipped++;
                     } catch (Throwable $e) {
                         $failed++;
-
-                        logInfo([
-                            'ajo_id' => $ajoSnapshot->id,
-                            'error' => $e->getMessage(),
-                            'line' => $e->getLine(),
-                        ], 'Ajo maturity processing error');
+                        logInfo(['ajo_id'=>$ajoSnapshot->id,'error'=>$e->getMessage(),'line'=>$e->getLine()], 'Ajo maturity processing error');
                     }
                 }
             });
 
-        return [
-            'processed' => $processed,
-            'failed' => $failed,
-            'skipped' => $skipped,
-        ];
+        return ['processed'=>$processed,'failed'=>$failed,'skipped'=>$skipped];
     }
 
     /**
@@ -2335,34 +1551,7 @@ public function processMaturity(?Carbon $asOf = null): array
     /**
      * Ensure a user's personal Ajo Account exists.
      */
-    protected function ensureAjoAccount($user, bool $lock = true): AjoAccount
-    {
-        $query = AjoAccount::query()
-            ->where('user_id', $user->id);
 
-        if ($lock) {
-            $query->lockForUpdate();
-        }
-
-        $account = $query->first();
-
-        if ($account) {
-            if ((int) $account->company_id !== (int) $user->company_id) {
-                throw new RuntimeException(
-                    'Your personal Ajo Account is linked to a different company.'
-                );
-            }
-
-            return $account;
-        }
-
-        return AjoAccount::create([
-            'user_id' => $user->id,
-            'company_id' => $user->company_id,
-            'balance' => 0,
-            'status' => 'active',
-        ]);
-    }
 
     /**
      * Resolve a user's first main/wallet account using the same relationship
@@ -2381,6 +1570,20 @@ public function processMaturity(?Carbon $asOf = null): array
         }
 
         return $account;
+    }
+
+    protected function getAccountBalance(wb_account_details $account): float
+    {
+        $wallet = user_wallet::query()
+            ->where('wb_account_detail_id', $account->id)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$wallet) {
+            throw new RuntimeException('Customer main wallet could not be found.');
+        }
+
+        return round((float) $wallet->balance, 2);
     }
 
     /**
@@ -2403,58 +1606,28 @@ public function processMaturity(?Carbon $asOf = null): array
     /**
      * Create an Ajo membership.
      */
-    protected function createMembership(
-        Ajo $ajo,
-        $user,
-        ?string $termsSnapshot,
-        ?string $termsVersion
-    ): AjoMember {
-        if ((int) $ajo->creator_user_id === (int) $user->id) {
-            throw new RuntimeException(
-                'The Ajo creator is the overseer and cannot be a member.'
-            );
-        }
-
+    protected function createMembership(Ajo $ajo, $user, ?string $termsSnapshot, ?string $termsVersion): AjoMember
+    {
         $existing = AjoMember::query()
             ->where('ajo_id', $ajo->id)
             ->where('user_id', $user->id)
-            ->whereIn('status', [
-                AjoMember::STATUS_ACTIVE,
-                AjoMember::STATUS_LEAVE_REQUESTED,
-            ])
+            ->whereIn('status', [AjoMember::STATUS_ACTIVE, AjoMember::STATUS_LEAVE_REQUESTED])
             ->first();
+        if ($existing) throw new RuntimeException('You are already a member of this Ajo.');
 
-        if ($existing) {
-            throw new RuntimeException(
-                'You are already a member of this Ajo.'
-            );
+        $activeMembers = AjoMember::query()->where('ajo_id', $ajo->id)
+            ->whereIn('status', [AjoMember::STATUS_ACTIVE, AjoMember::STATUS_LEAVE_REQUESTED])->count();
+        if ($ajo->max_members !== null && $activeMembers >= (int)$ajo->max_members) {
+            throw new RuntimeException('This Ajo has reached its maximum member capacity.');
         }
-
-        $activeMembers = AjoMember::query()
-            ->where('ajo_id', $ajo->id)
-            ->whereIn('status', [
-                AjoMember::STATUS_ACTIVE,
-                AjoMember::STATUS_LEAVE_REQUESTED,
-            ])
-            ->count();
-
-        if (
-            $ajo->max_members !== null &&
-            $activeMembers >= (int) $ajo->max_members
-        ) {
-            throw new RuntimeException(
-                'This Ajo has reached its maximum member capacity.'
-            );
-        }
-
-        $ajoAccount = $this->ensureAjoAccount($user);
 
         return AjoMember::create([
             'ajo_id' => $ajo->id,
-            'ajo_account_id' => $ajoAccount->id,
             'user_id' => $user->id,
             'balance' => 0,
             'total_contributed' => 0,
+            'pending_collection_amount' => 0,
+            'pending_insufficient_balance_fees' => 0,
             'insufficient_balance_count' => 0,
             'total_insufficient_balance_fees' => 0,
             'total_maturity_fees' => 0,
@@ -2805,94 +1978,66 @@ public function processMaturity(?Carbon $asOf = null): array
         string $visibility,
         ?int $maxMembers
     ): string {
-        $lines = [];
-
-        $lines[] = 'AJO TERMS AND CONDITIONS';
-        $lines[] = 'Ajo Name: ' . $name;
-        $lines[] = '';
-
+        $lines = [
+            "AJO TERMS AND CONDITIONS",
+            "Ajo Name: {$name}",
+            "",
+        ];
         if ($description) {
-            $lines[] = 'Description: ' . trim($description);
-            $lines[] = '';
+            $lines[] = "Description: " . trim($description);
+            $lines[] = "";
         }
-
-        $lines[] = '1. ROLE OF CREATOR';
-        $lines[] = 'The Ajo creator is the overseer of the Ajo and is NOT an Ajo member.';
-        $lines[] = 'The creator is therefore not subject to the scheduled member collections or the maturity fee charged to members.';
-        $lines[] = '';
-
-        $lines[] = '2. PERSONAL AJO ACCOUNT';
-        $lines[] = 'Every user has a separate personal Ajo Account.';
-        $lines[] = 'Users voluntarily fund their personal Ajo Account from their main account and may withdraw available funds from it back to their main account.';
-        $lines[] = 'Money already moved into an active Ajo member position is not part of the personal Ajo Account balance and is not available for ordinary Ajo Account withdrawal.';
-        $lines[] = '';
-
-        $lines[] = '3. SCHEDULED COLLECTION';
-        $lines[] = 'Collection amount: ₦' . number_format($collectionAmount, 2);
-        $lines[] = 'Collection frequency: ' . ucfirst($collectionFrequency);
-        $lines[] = 'Collection interval: every ' . $collectionInterval . ' ' . $collectionFrequency . ($collectionInterval === 1 ? '' : 's') . '.';
-        $lines[] = 'Collection time: ' . $collectionTime;
-        $lines[] = 'Start date: ' . $startDate->toDateString();
-        $lines[] = 'Maturity date: ' . $maturityDate->toDateString();
-
+        $lines[] = "1. CREATOR AND MEMBERS";
+        $lines[] = "The Ajo creator is the overseer and may also join this Ajo as a member.";
+        $lines[] = "When the creator joins, the creator has an ordinary member position and all member collections are taken from the creator's main wallet.";
+        $lines[] = "";
+        $lines[] = "2. COLLECTION";
+        $lines[] = "Collection amount: ₦" . number_format($collectionAmount, 2);
+        $lines[] = "Collection frequency: " . ucfirst($collectionFrequency);
+        $lines[] = "Collection interval: every {$collectionInterval} {$collectionFrequency}" . ($collectionInterval === 1 ? "" : "s") . ".";
+        $lines[] = "Collection time: {$collectionTime}";
+        $lines[] = "Start date: " . $startDate->toDateString();
+        $lines[] = "Maturity date: " . $maturityDate->toDateString();
         if ($collectionDay !== null) {
-            $dayDescription = $collectionFrequency === 'weekly'
-                ? $this->weekdayLabel($collectionDay)
-                : 'day ' . $collectionDay . ' of the month';
-
-            $lines[] = 'Scheduled collection day: ' . $dayDescription . '.';
+            $lines[] = "Scheduled collection day: " . ($collectionFrequency === 'weekly' ? $this->weekdayLabel($collectionDay) : "day {$collectionDay} of the month") . ".";
         }
-
-        $lines[] = 'Scheduled collections are taken from the member\'s personal Ajo Account, NOT from the member\'s main wallet.';
-        $lines[] = 'If the member\'s personal Ajo Account does not have enough funds, the full scheduled amount is still collected and the personal Ajo Account may become negative.';
-        $lines[] = '';
-
-        $lines[] = '4. INSUFFICIENT-BALANCE FEE';
-        $lines[] = 'Every 3rd insufficient-balance event (3rd, 6th, 9th, and so on) attracts an insufficient-balance fee.';
-        $lines[] = 'Fee configuration: ' . $this->feeLabel($insufficientFeeType, $insufficientFeeValue, $collectionAmount) . '.';
-        $lines[] = '';
-
-        $lines[] = '5. MATURITY FEE';
-        $lines[] = 'At maturity, each member pays a maturity fee of ' . number_format($maturityFeePercentage, 4) . '% of that member\'s Ajo balance.';
-        $lines[] = 'The creator is not a member and therefore does not pay or receive a maturity payout as a member.';
-        $lines[] = 'After the maturity fee, the remaining member balance is credited to the member\'s personal Ajo Account, not the member\'s main wallet.';
-        $lines[] = '';
-
-        $lines[] = '6. EARLY LEAVE';
-        $lines[] = 'A member may request to leave before maturity, but the creator must approve the request.';
-        $lines[] = 'Early-leave penalty: ' . $this->feeLabel($earlyLeavePenaltyType, $earlyLeavePenaltyValue, null) . '.';
-        $lines[] = 'The penalty is deducted from the member\'s Ajo position.';
-        $lines[] = 'After the penalty is deducted, the remaining balance is returned to the member\'s personal Ajo Account.';
-        $lines[] = '';
-
-        $lines[] = '7. FEE SHARING';
-        $lines[] = 'Insufficient-balance fees, maturity fees and early-leave penalties are shared as follows:';
-        $lines[] = 'Company: 40% of the applicable fee.';
-        $lines[] = 'Ajo Creator: 60% of the applicable fee.';
-        $lines[] = 'The creator\'s 60% share is credited to the creator\'s personal Ajo Account.';
-        $lines[] = 'The company\'s 40% share is recognized as company revenue.';
-        $lines[] = 'The Ajo creation fee is different: 100% of the creation fee belongs to the company and 0% belongs to the creator.';
-        $lines[] = '';
-
-        $lines[] = '8. CREATION FEE';
-        $lines[] = 'Ajo creation fee: ₦' . number_format($creationFee, 2) . '.';
-        $lines[] = 'This fee is paid by the creator from the creator\'s main account when the Ajo is created.';
-        $lines[] = '100% of the creation fee belongs to the company.';
-        $lines[] = '';
-
-        $lines[] = '9. VISIBILITY';
-        $lines[] = 'Ajo visibility: ' . ucfirst($visibility) . '.';
-
-        if ($maxMembers !== null) {
-            $lines[] = 'Maximum members: ' . $maxMembers . '.';
-        } else {
-            $lines[] = 'Maximum members: No fixed maximum configured.';
-        }
-
-        $lines[] = '';
-        $lines[] = '10. MEMBER ACCEPTANCE';
-        $lines[] = 'By joining the Ajo, a member confirms that they have reviewed and accepted these terms, including the collection schedule, the treatment of insufficient balances, all applicable fees, and the 40% company / 60% creator fee-sharing arrangement.';
-
+        $lines[] = "Every scheduled collection is debited from the member's MAIN WALLET.";
+        $lines[] = "A main wallet is never allowed to become negative because of an Ajo collection.";
+        $lines[] = "If the wallet cannot cover all outstanding missed collections plus the current collection, nothing is debited and the obligation remains outstanding.";
+        $lines[] = "";
+        $lines[] = "3. CONTRIBUTION HISTORY";
+        $lines[] = "A member's total contributed amount is the exact cumulative amount successfully debited from that member's main wallet for this Ajo.";
+        $lines[] = "Amounts that were scheduled but not successfully debited are not counted as contributions.";
+        $lines[] = "When funds become sufficient, missed collections are caught up together with the current collection in one auditable debit.";
+        $lines[] = "";
+        $lines[] = "4. INSUFFICIENT-BALANCE FEE";
+        $lines[] = "Every 3rd insufficient-balance event (3rd, 6th, 9th, and so on) creates the configured insufficient-balance fee obligation.";
+        $lines[] = "Fee configuration: " . $this->feeLabel($insufficientFeeType, $insufficientFeeValue, $collectionAmount) . ".";
+        $lines[] = "Insufficient-balance fees are separate from member contribution amounts and do not increase total_contributed.";
+        $lines[] = "";
+        $lines[] = "5. MATURITY";
+        $lines[] = "At maturity, the maturity fee is calculated from the member's actual gross total_contributed amount.";
+        $lines[] = "Net maturity return = gross total_contributed minus the applicable maturity fee.";
+        $lines[] = "The net maturity return is credited to the member's main wallet.";
+        $lines[] = "";
+        $lines[] = "6. EARLY LEAVE";
+        $lines[] = "A member may request early leave, subject to creator approval.";
+        $lines[] = "The early-leave penalty is calculated from the member's current contributed position.";
+        $lines[] = "After the penalty, the remaining amount is credited to the member's main wallet.";
+        $lines[] = "Historical total_contributed is never rewritten by the penalty or return.";
+        $lines[] = "";
+        $lines[] = "7. FEE SHARING";
+        $lines[] = "Insufficient-balance fees, maturity fees and early-leave penalties are split 40% to the company and 60% to the Ajo creator.";
+        $lines[] = "The creator's 60% fee share is credited to the creator's main wallet.";
+        $lines[] = "The company's 40% share is recognized as company revenue.";
+        $lines[] = "The creation fee of ₦" . number_format($creationFee, 2) . " belongs 100% to the company and is paid by the creator from the creator's main wallet.";
+        $lines[] = "";
+        $lines[] = "8. VISIBILITY AND CAPACITY";
+        $lines[] = "Visibility: " . ucfirst($visibility) . ".";
+        $lines[] = $maxMembers !== null ? "Maximum members: {$maxMembers}." : "Maximum members: No fixed maximum configured.";
+        $lines[] = "";
+        $lines[] = "9. ACCEPTANCE";
+        $lines[] = "By joining, a member confirms acceptance of the collection schedule, main-wallet debit rules, missed-cycle catch-up rules, applicable fees and the 40% company / 60% creator fee-sharing arrangement.";
         return implode("\n", $lines);
     }
 
@@ -2914,7 +2059,7 @@ public function processMaturity(?Carbon $asOf = null): array
         }
 
         return number_format($value, 4)
-            . '% of the member\'s Ajo balance';
+            . "% of the member's Ajo balance";
     }
 
     /**

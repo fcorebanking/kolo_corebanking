@@ -217,29 +217,119 @@ class AjoController extends Controller
         }
     }
 
-    #[OA\Post(
-        path: "/api/v1/ajo/{ajoId}/invite",
-        summary: "Invite a member to an Ajo",
-        tags: ["Ajo Membership"],
-        security: [["bearerAuth" => []]],
-        parameters: [new OA\Parameter(name: "ajoId", in: "path", required: true, schema: new OA\Schema(type: "integer"))],
-        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(required: ["username"], properties: [new OA\Property(property: "username", type: "string")]))
-    )]
-    public function invite(Request $request, int $ajoId): JsonResponse
-    {
-        $validator = Validator::make($request->all(), ['username' => ['required', 'string', 'max:255']]);
-        if ($validator->fails()) return $this->validationResponse($validator);
 
-        try {
-            $invitation = $this->ajoService->inviteMember($ajoId, $this->authenticatedUser(), $request->username);
-            return response()->json(['status' => true, 'message' => 'Ajo invitation created successfully.', 'data' => $invitation], 201);
-        } catch (RuntimeException $e) {
-            return $this->businessError($e);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to create Ajo invitation.'], 500);
-        }
+/**
+ * @OA\Post(
+ *     path="/api/v1/ajo/{ajoId}/invite",
+ *     summary="Invite a member to an Ajo",
+ *     tags={"Ajo"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="ajoId",
+ *         in="path",
+ *         required=true,
+ *         description="Ajo ID",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"username"},
+ *             @OA\Property(
+ *                 property="username",
+ *                 type="string",
+ *                 example="john.doe"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Member invitation sent successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Invitation sent successfully"
+ *             ),
+ *             @OA\Property(
+ *                 property="data",
+ *                 type="object"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Validation or business rule error"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=403,
+ *         description="Unauthorized"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Ajo not found"
+ *     )
+ * )
+ */
+public function invite(Request $request, int $ajoId): JsonResponse
+{
+    $validator = Validator::make(
+        $request->all(),
+        [
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+        ]
+    );
+
+    if ($validator->fails()) {
+        return $this->validationResponse($validator);
     }
+
+    try {
+        $invitation = $this->ajoService->inviteMember(
+            $ajoId,
+            $this->authenticatedUser(),
+            $request->username
+        );
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Ajo invitation created successfully.',
+            'data' => $invitation,
+        ], 201);
+
+    } catch (RuntimeException $e) {
+        return $this->businessError($e);
+
+    } catch (Throwable $e) {
+        report($e);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to create Ajo invitation.',
+        ], 500);
+    }
+}
 
     #[OA\Post(
         path: "/api/v1/ajo/{ajoId}/join",

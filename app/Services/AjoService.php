@@ -56,8 +56,8 @@ class AjoService
      *
      * These should exist in transaction_types / the application's ledger setup.
      */
-    private const TRANSACTION_TYPE_AJO_ACCOUNT_DEPOSIT = 131;
-    private const TRANSACTION_TYPE_AJO_ACCOUNT_WITHDRAWAL = 132;
+    // private const TRANSACTION_TYPE_AJO_ACCOUNT_DEPOSIT = 131;
+    // private const TRANSACTION_TYPE_AJO_ACCOUNT_WITHDRAWAL = 132;
     private const TRANSACTION_TYPE_AJO_SCHEDULED_COLLECTION = 133;
     private const TRANSACTION_TYPE_AJO_MATURITY_FEE = 134;
     private const TRANSACTION_TYPE_AJO_MATURITY_RETURN = 135;
@@ -1241,93 +1241,112 @@ class AjoService
         });
     }
 
-    /**
-     * Record a failed collection attempt without mutating balances.
-     */
-    protected function recordFailedCollection(
-        int $ajoId,
-        int $memberId,
-        Carbon $scheduledFor,
-        Throwable $error
-    ): void {
-        DB::transaction(function () use (
-            $ajoId,
-            $memberId,
-            $scheduledFor,
-            $error
-        ) {
-            $ajo = Ajo::query()
-                ->where('id', $ajoId)
-                ->lockForUpdate()
-                ->first();
+/**
+ * Record a failed collection attempt without mutating balances.
+ *
+ * The source account is the member's normal/main wallet because Ajo
+ * collections no longer use a Personal Ajo Account.
+ */
+protected function recordFailedCollection(
+    int $ajoId,
+    int $memberId,
+    Carbon $scheduledFor,
+    Throwable $error
+): void {
+    DB::transaction(function () use (
+        $ajoId,
+        $memberId,
+        $scheduledFor,
+        $error
+    ) {
+        $ajo = Ajo::query()
+            ->where('id', $ajoId)
+            ->lockForUpdate()
+            ->first();
 
-            if (!$ajo) {
-                return;
-            }
+        if (!$ajo) {
+            return;
+        }
 
-            $member = AjoMember::query()
-                ->where('id', $memberId)
-                ->where('ajo_id', $ajoId)
-                ->lockForUpdate()
-                ->first();
+        $member = AjoMember::query()
+            ->where('id', $memberId)
+            ->where('ajo_id', $ajoId)
+            ->lockForUpdate()
+            ->first();
 
-            if (!$member) {
-                return;
-            }
+        if (!$member) {
+            return;
+        }
 
-            $existing = AjoCollectionCycle::query()
-                ->where('ajo_id', $ajoId)
+        $existing = AjoCollectionCycle::query()
+            ->where('ajo_id', $ajoId)
+            ->where('ajo_member_id', $memberId)
+            ->where('scheduled_for', $scheduledFor)
+            ->first();
+
+        if ($existing) {
+            return;
+        }
+
+        $mainAccount = $this->getMainAccount($member->user);
+
+        $mainAccount = wb_account_details::query()
+            ->where('id', $mainAccount->id)
+            ->lockForUpdate()
+            ->first();
+
+        $mainWalletBalance = $this->getAccountBalance($mainAccount);
+
+        $cycleNumber = (int) (
+            AjoCollectionCycle::query()
                 ->where('ajo_member_id', $memberId)
-                ->where('scheduled_for', $scheduledFor)
-                ->first();
+                ->max('cycle_number')
+            ?? 0
+        ) + 1;
 
-            if ($existing) {
-                return;
-            }
+        $reference = $this->reference('AJCOLFAIL');
 
-            $cycleNumber = (int) (
-                AjoCollectionCycle::query()
-                    ->where('ajo_member_id', $memberId)
-                    ->max('cycle_number')
-                ?? 0
-            ) + 1;
+        AjoCollectionCycle::create([
+            'ajo_id' => $ajoId,
+            'ajo_member_id' => $memberId,
+            'cycle_number' => $cycleNumber,
+            'scheduled_for' => $scheduledFor,
+            'processed_at' => now(),
 
-            $reference = $this->reference('AJCOLFAIL');
+            'amount' => round(
+                (float) $ajo->collection_amount,
+                2
+            ),
 
-            AjoCollectionCycle::create([
-                'ajo_id' => $ajoId,
-                'ajo_member_id' => $memberId,
-                'cycle_number' => $cycleNumber,
-                'scheduled_for' => $scheduledFor,
-                'processed_at' => now(),
-                'amount' => round((float) $ajo->collection_amount, 2),
-                'source_balance_before' =>
-                    $member->ajoAccount
-                    ? (float) $member->ajoAccount->balance
-                    : 0,
-                'source_balance_after' =>
-                    $member->ajoAccount
-                    ? (float) $member->ajoAccount->balance
-                    : 0,
-                'member_balance_before' =>
-                    (float) $member->balance,
-                'member_balance_after' =>
-                    (float) $member->balance,
-                'insufficient_balance' => false,
-                'insufficient_balance_count' =>
-                    (int) $member->insufficient_balance_count,
-                'fee_amount' => 0,
-                'company_fee_share' => 0,
-                'creator_fee_share' => 0,
-                'status' => AjoCollectionCycle::STATUS_FAILED,
-                'failure_reason' => $error->getMessage(),
-                'transaction_reference' => $reference,
-                'metadata' => [
-                    'error_line' => $error->getLine(),
-                ],
-            ]);
-        });
-    }
+            'source_balance_before' => $mainWalletBalance,
+            'source_balance_after' => $mainWalletBalance,
+
+            'member_balance_before' => (float) $member->balance,
+            'member_balance_after' => (float) $member->balance,
+
+            'insufficient_balance' => false,
+
+            'insufficient_balance_count' =>
+                (int) $member->insufficient_balance_count,
+
+            'fee_amount' => 0,
+            'company_fee_share' => 0,
+            'creator_fee_share' => 0,
+
+            'status' => AjoCollectionCycle::STATUS_FAILED,
+
+            'failure_reason' => $error->getMessage(),
+
+            'transaction_reference' => $reference,
+
+            'metadata' => [
+                'error_line' => $error->getLine(),
+                'source_account' => 'main_wallet',
+                'main_wallet_balance' => $mainWalletBalance,
+            ],
+        ]);
+    });
+}
 
     /**
      * Process all Ajos whose maturity date has arrived.

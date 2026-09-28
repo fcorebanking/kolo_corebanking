@@ -11,10 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Dropping the child table first to avoid foreign key constraint errors
+        // 1. Disable foreign key constraints
+        Schema::disableForeignKeyConstraints();
+
+        // 2. Drop the tables safely
         Schema::dropIfExists('fixed_savings_transactions');
         Schema::dropIfExists('fixed_savings');
+
+        // 3. Re-enable foreign key constraints
+        Schema::enableForeignKeyConstraints();
     }
+
 
     /**
      * Reverse the migrations.

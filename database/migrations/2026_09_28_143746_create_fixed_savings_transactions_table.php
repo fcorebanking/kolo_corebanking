@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('fixed_savings_transactions', function (Blueprint $table) {
     $table->id();
 
-    $table->unsignedBigInteger('fixed_saving_id');
+    $table->unsignedBigInteger('fixed_savings_id');
     $table->unsignedBigInteger('user_id');
     $table->unsignedBigInteger('company_id');
 

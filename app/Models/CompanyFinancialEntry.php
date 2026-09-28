@@ -16,6 +16,7 @@ class CompanyFinancialEntry extends Model
         'company_id',
         'user_id',
         'target_savings_id',
+        'fixed_savings_id',
         'campaign_id',
         'transaction_id',
         'type',

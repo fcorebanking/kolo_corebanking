@@ -12,48 +12,50 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('fixed_savings_transactions', function (Blueprint $table) {
-    $table->id();
+            $table->id();
 
-    $table->unsignedBigInteger('fixed_saving_id');
-    $table->unsignedBigInteger('user_id');
-    $table->unsignedBigInteger('company_id');
+            // Changed from fixed_saving_id to fixed_savings_id to match the indexes below
+            $table->unsignedBigInteger('fixed_savings_id');
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('company_id');
 
-    $table->string('type');
+            $table->string('type');
 
-    $table->decimal('amount', 18, 2)->default(0);
-    $table->decimal('fee', 18, 2)->default(0);
+            $table->decimal('amount', 18, 2)->default(0);
+            $table->decimal('fee', 18, 2)->default(0);
 
-    $table->decimal('balance_before', 18, 2)->default(0);
-    $table->decimal('balance_after', 18, 2)->default(0);
+            $table->decimal('balance_before', 18, 2)->default(0);
+            $table->decimal('balance_after', 18, 2)->default(0);
 
-    /*
-     * For interest entries this stores the calendar day
-     * that the interest represents.
-     */
-    $table->date('interest_date')->nullable();
+            /*
+             * For interest entries this stores the calendar day
+             * that the interest represents.
+             */
+            $table->date('interest_date')->nullable();
 
-    $table->string('transaction_reference')->unique();
+            $table->string('transaction_reference')->unique();
 
-    $table->string('status')->default('successful');
-    $table->text('description')->nullable();
+            $table->string('status')->default('successful');
+            $table->text('description')->nullable();
 
-    $table->json('metadata')->nullable();
+            $table->json('metadata')->nullable();
 
-    $table->timestamps();
+            $table->timestamps();
 
-    $table->index('fixed_savings_id');
-    $table->index(['fixed_savings_id', 'type']);
-    $table->index(['company_id', 'type']);
+            // These will now work perfectly
+            $table->index('fixed_savings_id');
+            $table->index(['fixed_savings_id', 'type']);
+            $table->index(['company_id', 'type']);
 
-    /*
-     * Prevent the same target from receiving
-     * interest twice for the same day.
-     */
-    $table->unique(
-        ['fixed_savings_id', 'type', 'interest_date'],
-        'fixed_savings_daily_interest_unique'
-    );
-});
+            /*
+             * Prevent the same target from receiving
+             * interest twice for the same day.
+             */
+            $table->unique(
+                ['fixed_savings_id', 'type', 'interest_date'],
+                'fixed_savings_daily_interest_unique'
+            );
+        });
     }
 
     /**

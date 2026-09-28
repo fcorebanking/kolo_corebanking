@@ -477,6 +477,18 @@ Route::prefix('/target-savings')->middleware('auth:api')->group(function () {
     [TargetSavingsController::class, 'companyIndex']
 );
 
+Route::get(
+    '/company/settings',
+    [TargetSavingsController::class, 'companySettings']
+);
+
+Route::put(
+    '/company/settings',
+    [TargetSavingsController::class, 'updateCompanySettings']
+);
+
+});
+
 Route::prefix('/fixed-savings')->middleware('auth:api')->group(function () {
 
     Route::post('/create', [FixedSavingsController::class, 'store']);
@@ -506,18 +518,6 @@ Route::get(
 Route::put(
     '/company/settings',
     [FixedSavingsController::class, 'updateCompanySettings']
-);
-
-});
-
-Route::get(
-    '/company/settings',
-    [TargetSavingsController::class, 'companySettings']
-);
-
-Route::put(
-    '/company/settings',
-    [TargetSavingsController::class, 'updateCompanySettings']
 );
 
 });

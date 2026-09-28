@@ -33,7 +33,14 @@ class AjoController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["ajo_name", "collection_amount", "collection_frequency", "collection_time", "start_date", "maturity_date"],
+                required: [
+                    "ajo_name",
+                    "collection_amount",
+                    "collection_frequency",
+                    "collection_time",
+                    "start_date",
+                    "maturity_date"
+                ],
                 properties: [
                     new OA\Property(property: "ajo_name", type: "string", example: "Friends Monthly Ajo"),
                     new OA\Property(property: "description", type: "string", nullable: true),
@@ -62,7 +69,7 @@ class AjoController extends Controller
             new OA\Response(response: 500, description: "Unexpected server error"),
         ]
     )]
-    public function create(Request $request): JsonResponse
+public function create(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'ajo_name' => ['required', 'string', 'max:150'],
@@ -122,7 +129,7 @@ class AjoController extends Controller
             new OA\Response(response: 500, description: "Unexpected server error"),
         ]
     )]
-    public function mine(Request $request): JsonResponse
+public function mine(Request $request): JsonResponse
     {
         try {
             $user = $this->authenticatedUser();
@@ -218,76 +225,43 @@ class AjoController extends Controller
     }
 
 
-/**
- * @OA\Post(
- *     path="/api/v1/ajo/{ajoId}/invite",
- *     summary="Invite a member to an Ajo",
- *     tags={"Ajo"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="ajoId",
- *         in="path",
- *         required=true,
- *         description="Ajo ID",
- *         @OA\Schema(type="integer")
- *     ),
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"username"},
- *             @OA\Property(
- *                 property="username",
- *                 type="string",
- *                 example="john.doe"
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Member invitation sent successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(
- *                 property="status",
- *                 type="boolean",
- *                 example=true
- *             ),
- *             @OA\Property(
- *                 property="message",
- *                 type="string",
- *                 example="Invitation sent successfully"
- *             ),
- *             @OA\Property(
- *                 property="data",
- *                 type="object"
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="Validation or business rule error"
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthenticated"
- *     ),
- *
- *     @OA\Response(
- *         response=403,
- *         description="Unauthorized"
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Ajo not found"
- *     )
- * )
- */
+    #[OA\Post(
+        path: "/api/v1/ajo/{ajoId}/invite",
+        summary: "Invite a member to an Ajo",
+        description: "Creates an invitation for a user to join the specified Ajo.",
+        tags: ["Ajo"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "ajoId",
+                in: "path",
+                required: true,
+                description: "Ajo ID",
+                schema: new OA\Schema(type: "integer")
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["username"],
+                properties: [
+                    new OA\Property(
+                        property: "username",
+                        type: "string",
+                        example: "john.doe"
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: "Ajo invitation created successfully"),
+            new OA\Response(response: 400, description: "Validation or business rule error"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Unauthorized"),
+            new OA\Response(response: 404, description: "Ajo not found"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
+    )]
 public function invite(Request $request, int $ajoId): JsonResponse
 {
     $validator = Validator::make(
@@ -337,10 +311,36 @@ public function invite(Request $request, int $ajoId): JsonResponse
         description: "Joins a public Ajo after accepting its terms. The creator may also use this endpoint to join their own public Ajo. Joining does not move money.",
         tags: ["Ajo Membership"],
         security: [["bearerAuth" => []]],
-        parameters: [new OA\Parameter(name: "ajoId", in: "path", required: true, schema: new OA\Schema(type: "integer"))],
-        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(required: ["accept_terms"], properties: [new OA\Property(property: "accept_terms", type: "boolean", example: true)]))
+        parameters: [
+            new OA\Parameter(
+                name: "ajoId",
+                in: "path",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["accept_terms"],
+                properties: [
+                    new OA\Property(
+                        property: "accept_terms",
+                        type: "boolean",
+                        example: true
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: "Joined Ajo successfully"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 400, description: "Unable to join Ajo"),
+            new OA\Response(response: 422, description: "Validation failed"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
     )]
-    public function join(Request $request, int $ajoId): JsonResponse
+public function join(Request $request, int $ajoId): JsonResponse
     {
         $validator = Validator::make($request->all(), ['accept_terms' => ['required', 'accepted']]);
         if ($validator->fails()) return $this->validationResponse($validator);
@@ -356,8 +356,40 @@ public function invite(Request $request, int $ajoId): JsonResponse
         }
     }
 
-    #[OA\Post(path: "/api/v1/ajo/invitations/{invitationId}/accept", summary: "Accept an Ajo invitation", tags: ["Ajo Membership"], security: [["bearerAuth" => []]], parameters: [new OA\Parameter(name: "invitationId", in: "path", required: true, schema: new OA\Schema(type: "integer"))], requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(required: ["accept_terms"], properties: [new OA\Property(property: "accept_terms", type: "boolean", example: true)])))]
-    public function acceptInvitation(Request $request, int $invitationId): JsonResponse
+    #[OA\Post(
+        path: "/api/v1/ajo/invitations/{invitationId}/accept",
+        summary: "Accept an Ajo invitation",
+        tags: ["Ajo Membership"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "invitationId",
+                in: "path",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["accept_terms"],
+                properties: [
+                    new OA\Property(
+                        property: "accept_terms",
+                        type: "boolean",
+                        example: true
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Ajo invitation accepted successfully"),
+            new OA\Response(response: 400, description: "Validation or business rule error"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
+    )]
+public function acceptInvitation(Request $request, int $invitationId): JsonResponse
     {
         $validator = Validator::make($request->all(), ['accept_terms' => ['required', 'accepted']]);
         if ($validator->fails()) return $this->validationResponse($validator);
@@ -372,8 +404,27 @@ public function invite(Request $request, int $ajoId): JsonResponse
         }
     }
 
-    #[OA\Post(path: "/api/v1/ajo/invitations/{invitationId}/decline", summary: "Decline an Ajo invitation", tags: ["Ajo Membership"], security: [["bearerAuth" => []]], parameters: [new OA\Parameter(name: "invitationId", in: "path", required: true, schema: new OA\Schema(type: "integer"))])]
-    public function declineInvitation(Request $request, int $invitationId): JsonResponse
+    #[OA\Post(
+        path: "/api/v1/ajo/invitations/{invitationId}/decline",
+        summary: "Decline an Ajo invitation",
+        tags: ["Ajo Membership"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "invitationId",
+                in: "path",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            ),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Ajo invitation declined successfully"),
+            new OA\Response(response: 400, description: "Validation or business rule error"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
+    )]
+public function declineInvitation(Request $request, int $invitationId): JsonResponse
     {
         try {
             $invitation = $this->ajoService->declineInvitation($invitationId, $this->authenticatedUser());
@@ -386,8 +437,39 @@ public function invite(Request $request, int $ajoId): JsonResponse
         }
     }
 
-    #[OA\Post(path: "/api/v1/ajo/{ajoId}/leave/request", summary: "Request early leave from an Ajo", tags: ["Ajo Early Leave"], security: [["bearerAuth" => []]], parameters: [new OA\Parameter(name: "ajoId", in: "path", required: true, schema: new OA\Schema(type: "integer"))], requestBody: new OA\RequestBody(required: false, content: new OA\JsonContent(properties: [new OA\Property(property: "reason", type: "string", nullable: true)])))]
-    public function requestEarlyLeave(Request $request, int $ajoId): JsonResponse
+    #[OA\Post(
+        path: "/api/v1/ajo/{ajoId}/leave/request",
+        summary: "Request early leave from an Ajo",
+        tags: ["Ajo Early Leave"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "ajoId",
+                in: "path",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: false,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "reason",
+                        type: "string",
+                        nullable: true
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Early-leave request submitted successfully"),
+            new OA\Response(response: 400, description: "Validation or business rule error"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
+    )]
+public function requestEarlyLeave(Request $request, int $ajoId): JsonResponse
     {
         $validator = Validator::make($request->all(), ['reason' => ['nullable', 'string', 'max:1000']]);
         if ($validator->fails()) return $this->validationResponse($validator);
@@ -402,8 +484,29 @@ public function invite(Request $request, int $ajoId): JsonResponse
         }
     }
 
-    #[OA\Post(path: "/api/v1/ajo/members/{ajoMemberId}/leave/approve", summary: "Approve Ajo member early leave", description: "Approves early leave. The historical total_contributed is preserved; the penalty is recorded separately and the net return is credited to the member's main wallet.", tags: ["Ajo Early Leave"], security: [["bearerAuth" => []]], parameters: [new OA\Parameter(name: "ajoMemberId", in: "path", required: true, schema: new OA\Schema(type: "integer"))])]
-    public function approveEarlyLeave(Request $request, int $ajoMemberId): JsonResponse
+    #[OA\Post(
+        path: "/api/v1/ajo/members/{ajoMemberId}/leave/approve",
+        summary: "Approve Ajo member early leave",
+        description: "Approves early leave. The historical total_contributed is preserved; the penalty is recorded separately and the net return is credited to the member's main wallet.",
+        tags: ["Ajo Early Leave"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "ajoMemberId",
+                in: "path",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            ),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Ajo member early leave approved successfully"),
+            new OA\Response(response: 400, description: "Validation or business rule error"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Unauthorized"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
+    )]
+public function approveEarlyLeave(Request $request, int $ajoMemberId): JsonResponse
     {
         try {
             $result = $this->ajoService->approveEarlyLeave($ajoMemberId, $this->authenticatedUser());
@@ -416,8 +519,40 @@ public function invite(Request $request, int $ajoId): JsonResponse
         }
     }
 
-    #[OA\Post(path: "/api/v1/ajo/members/{ajoMemberId}/leave/reject", summary: "Reject Ajo member early leave", tags: ["Ajo Early Leave"], security: [["bearerAuth" => []]], parameters: [new OA\Parameter(name: "ajoMemberId", in: "path", required: true, schema: new OA\Schema(type: "integer"))], requestBody: new OA\RequestBody(required: false, content: new OA\JsonContent(properties: [new OA\Property(property: "reason", type: "string", nullable: true)])))]
-    public function rejectEarlyLeave(Request $request, int $ajoMemberId): JsonResponse
+    #[OA\Post(
+        path: "/api/v1/ajo/members/{ajoMemberId}/leave/reject",
+        summary: "Reject Ajo member early leave",
+        tags: ["Ajo Early Leave"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "ajoMemberId",
+                in: "path",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: false,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "reason",
+                        type: "string",
+                        nullable: true
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Ajo member early leave rejected successfully"),
+            new OA\Response(response: 400, description: "Validation or business rule error"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Unauthorized"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
+    )]
+public function rejectEarlyLeave(Request $request, int $ajoMemberId): JsonResponse
     {
         $validator = Validator::make($request->all(), ['reason' => ['nullable', 'string', 'max:1000']]);
         if ($validator->fails()) return $this->validationResponse($validator);
@@ -432,8 +567,32 @@ public function invite(Request $request, int $ajoId): JsonResponse
         }
     }
 
-    #[OA\Post(path: "/api/v1/ajo/system/process-collections", summary: "Process due Ajo collections", tags: ["Ajo System"], security: [["bearerAuth" => []]], requestBody: new OA\RequestBody(required: false, content: new OA\JsonContent(properties: [new OA\Property(property: "as_of", type: "string", format: "date-time", nullable: true)])))]
-    public function processCollections(Request $request): JsonResponse
+    #[OA\Post(
+        path: "/api/v1/ajo/system/process-collections",
+        summary: "Process due Ajo collections",
+        tags: ["Ajo System"],
+        security: [["bearerAuth" => []]],
+        requestBody: new OA\RequestBody(
+            required: false,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "as_of",
+                        type: "string",
+                        format: "date-time",
+                        nullable: true
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Ajo scheduled collections processed successfully"),
+            new OA\Response(response: 403, description: "Administrator access required"),
+            new OA\Response(response: 422, description: "Validation failed"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
+    )]
+public function processCollections(Request $request): JsonResponse
     {
         if (!$this->isAdmin()) return $this->forbiddenResponse();
         $validator = Validator::make($request->all(), ['as_of' => ['nullable', 'date']]);
@@ -447,8 +606,33 @@ public function invite(Request $request, int $ajoId): JsonResponse
         }
     }
 
-    #[OA\Post(path: "/api/v1/ajo/system/process-maturity", summary: "Process matured Ajos", description: "Processes matured Ajos. Maturity is calculated from each member's actual total contribution and the net return is credited to the member's main wallet.", tags: ["Ajo System"], security: [["bearerAuth" => []]], requestBody: new OA\RequestBody(required: false, content: new OA\JsonContent(properties: [new OA\Property(property: "as_of", type: "string", format: "date-time", nullable: true)])))]
-    public function processMaturity(Request $request): JsonResponse
+    #[OA\Post(
+        path: "/api/v1/ajo/system/process-maturity",
+        summary: "Process matured Ajos",
+        description: "Processes matured Ajos. Maturity is calculated from each member's actual total contribution and the net return is credited to the member's main wallet.",
+        tags: ["Ajo System"],
+        security: [["bearerAuth" => []]],
+        requestBody: new OA\RequestBody(
+            required: false,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "as_of",
+                        type: "string",
+                        format: "date-time",
+                        nullable: true
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Ajo maturity processing completed successfully"),
+            new OA\Response(response: 403, description: "Administrator access required"),
+            new OA\Response(response: 422, description: "Validation failed"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
+    )]
+public function processMaturity(Request $request): JsonResponse
     {
         if (!$this->isAdmin()) return $this->forbiddenResponse();
         $validator = Validator::make($request->all(), ['as_of' => ['nullable', 'date']]);
@@ -462,8 +646,28 @@ public function invite(Request $request, int $ajoId): JsonResponse
         }
     }
 
-    #[OA\Get(path: "/api/v1/ajo/{ajoId}/conditions", summary: "Get Ajo conditions", tags: ["Ajo"], security: [["bearerAuth" => []]], parameters: [new OA\Parameter(name: "ajoId", in: "path", required: true, schema: new OA\Schema(type: "integer"))])]
-    public function conditions(Request $request, int $ajoId): JsonResponse
+    #[OA\Get(
+        path: "/api/v1/ajo/{ajoId}/conditions",
+        summary: "Get Ajo conditions",
+        tags: ["Ajo"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "ajoId",
+                in: "path",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            ),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Ajo conditions retrieved successfully"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Unauthorized"),
+            new OA\Response(response: 404, description: "Ajo not found"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
+    )]
+public function conditions(Request $request, int $ajoId): JsonResponse
     {
         try {
             $user = $this->authenticatedUser();
@@ -490,8 +694,44 @@ public function invite(Request $request, int $ajoId): JsonResponse
         }
     }
 
-    #[OA\Post(path: "/api/v1/ajo/{ajoId}/fee-split", summary: "Calculate Ajo fee split", tags: ["Ajo"], security: [["bearerAuth" => []]], parameters: [new OA\Parameter(name: "ajoId", in: "path", required: true, schema: new OA\Schema(type: "integer"))], requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(required: ["amount"], properties: [new OA\Property(property: "amount", type: "number", format: "float", minimum: 0)])))]
-    public function feeSplit(Request $request, int $ajoId): JsonResponse
+    #[OA\Post(
+        path: "/api/v1/ajo/{ajoId}/fee-split",
+        summary: "Calculate Ajo fee split",
+        tags: ["Ajo"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "ajoId",
+                in: "path",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["amount"],
+                properties: [
+                    new OA\Property(
+                        property: "amount",
+                        type: "number",
+                        format: "float",
+                        minimum: 0
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Ajo fee split calculated successfully"),
+            new OA\Response(response: 400, description: "Unable to calculate Ajo fee split"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Unauthorized"),
+            new OA\Response(response: 404, description: "Ajo not found"),
+            new OA\Response(response: 422, description: "Validation failed"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
+    )]
+public function feeSplit(Request $request, int $ajoId): JsonResponse
     {
         $validator = Validator::make($request->all(), ['amount' => ['required', 'numeric', 'min:0']]);
         if ($validator->fails()) return $this->validationResponse($validator);

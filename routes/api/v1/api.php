@@ -22,6 +22,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ThirdParty\GTBController;
 use App\Http\Controllers\api\v1\TargetSavingsController;
+use App\Http\Controllers\api\v1\FixedSavingsController;
 use App\Http\Controllers\api\v1\CampaignController;
 use App\Http\Controllers\api\v1\AjoController;
 
@@ -475,6 +476,39 @@ Route::prefix('/target-savings')->middleware('auth:api')->group(function () {
     '/company/list',
     [TargetSavingsController::class, 'companyIndex']
 );
+
+Route::prefix('/fixed-savings')->middleware('auth:api')->group(function () {
+
+    Route::post('/create', [FixedSavingsController::class, 'store']);
+
+    Route::get('/list', [FixedSavingsController::class, 'index']);
+
+    Route::get('/summary', [FixedSavingsController::class, 'summary']);
+
+    Route::get('/details/{id}', [FixedSavingsController::class, 'show']);
+
+    Route::post('/deposit/{id}', [FixedSavingsController::class, 'deposit']);
+
+    Route::post('/withdraw/{id}', [FixedSavingsController::class, 'withdraw']);
+
+    Route::get('/transactions/{id}', [FixedSavingsController::class, 'transactions']);
+
+    Route::get(
+    '/company/list',
+    [FixedSavingsController::class, 'companyIndex']
+);
+
+Route::get(
+    '/company/settings',
+    [FixedSavingsController::class, 'companySettings']
+);
+
+Route::put(
+    '/company/settings',
+    [FixedSavingsController::class, 'updateCompanySettings']
+);
+
+});
 
 Route::get(
     '/company/settings',

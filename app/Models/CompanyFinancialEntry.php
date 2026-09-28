@@ -59,6 +59,14 @@ class CompanyFinancialEntry extends Model
         );
     }
 
+        public function fixedSavings(): BelongsTo
+    {
+        return $this->belongsTo(
+            FixedSaving::class,
+            'target_savings_id'
+        );
+    }
+
     /**
      * Main Finova transaction associated with this entry.
      */

@@ -199,13 +199,6 @@ class RegisterController extends Controller
                     description: "Identity verification reference used by supported virtual account providers."
                 ),
                 new OA\Property(
-                    property: "otp",
-                    type: "string",
-                    nullable: true,
-                    example: "123456",
-                    description: "OTP used by supported identity/account creation flows."
-                ),
-                new OA\Property(
                     property: "identityNumber",
                     type: "string",
                     nullable: true,

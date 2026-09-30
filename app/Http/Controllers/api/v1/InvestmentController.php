@@ -47,22 +47,89 @@ class InvestmentController extends Controller
         $calculate = (app('App\Http\Controllers\InvestmentController')->calculateinvestment($request));
         return $calculate;
     }
-    
-    public function bookinvestment(Request $request)
-    {
-        //makeinvestment
-        // return auth()->user()->id;
-        $request->status = 1;
-        $request->uuid   = auth()->user()->uuid;
-        $request->merge([
-            'platform' => "mobile",
 
-        ]);
+public function bookinvestment(Request $request)
+{
+    $traceId = (string) \Illuminate\Support\Str::uuid();
+    $authUser = auth()->user();
 
-        $send = (app('App\Http\Controllers\InvestmentController')->makeinvestment($request));
-        
-        return $send;
+    logInfo([
+        'trace_id' => $traceId,
+        'stage' => 'bookinvestment_wrapper_start',
+        'authenticated' => (bool) $authUser,
+        'auth_user_id' => $authUser?->id,
+        'auth_company_id' => $authUser?->company_id,
+        'auth_uuid' => $authUser?->uuid,
+        'incoming_amount' => $request->amount,
+        'incoming_account_type' => $request->account_type,
+        'incoming_investmentproduct' => $request->investmentproduct,
+        'incoming_status' => $request->status,
+        'incoming_platform' => $request->platform,
+    ], 'INVESTMENT DEBUG WRAPPER');
+
+    if (! $authUser) {
+        logInfo([
+            'trace_id' => $traceId,
+            'stage' => 'wrapper_auth_failed',
+        ], 'INVESTMENT DEBUG WRAPPER ERROR');
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthenticated.',
+            'trace_id' => $traceId,
+        ], 401);
     }
+
+    $request->merge([
+        'status' => 1,
+        'uuid' => $authUser->uuid,
+        'platform' => 'mobile',
+        'trace_id' => $traceId,
+    ]);
+
+    logInfo([
+        'trace_id' => $traceId,
+        'stage' => 'bookinvestment_wrapper_after_merge',
+        'uuid' => $request->uuid,
+        'status' => $request->status,
+        'platform' => $request->platform,
+        'account_type' => $request->account_type,
+        'amount' => $request->amount,
+        'investmentproduct' => $request->investmentproduct,
+    ], 'INVESTMENT DEBUG WRAPPER MERGED REQUEST');
+
+    try {
+        $send = app(\App\Http\Controllers\InvestmentController::class)
+            ->makeinvestment($request);
+
+        logInfo([
+            'trace_id' => $traceId,
+            'stage' => 'bookinvestment_wrapper_response',
+            'response' => $send instanceof \Illuminate\Http\JsonResponse
+                ? $send->getData(true)
+                : $send,
+        ], 'INVESTMENT DEBUG WRAPPER RESPONSE');
+
+        return $send;
+
+    } catch (\Throwable $e) {
+        logInfo([
+            'trace_id' => $traceId,
+            'stage' => 'bookinvestment_wrapper_exception',
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ], 'INVESTMENT DEBUG WRAPPER EXCEPTION');
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Error processing investment request.',
+            'trace_id' => $traceId,
+        ], 500);
+    }
+}
+
 
     public function viewInvestment()
     {

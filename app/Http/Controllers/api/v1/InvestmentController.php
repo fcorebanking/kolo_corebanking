@@ -47,6 +47,7 @@ class InvestmentController extends Controller
         $calculate = (app('App\Http\Controllers\InvestmentController')->calculateinvestment($request));
         return $calculate;
     }
+    
     public function bookinvestment(Request $request)
     {
         //makeinvestment
@@ -62,6 +63,7 @@ class InvestmentController extends Controller
         
         return $send;
     }
+
     public function viewInvestment()
     {
         $Investmentbooking = Investmentbooking::with('plan') //->join('wb_account_details','wb_account_details.id','=','investmentbooking.wb_accountdetails_id')

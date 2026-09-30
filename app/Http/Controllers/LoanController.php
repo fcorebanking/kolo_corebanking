@@ -339,214 +339,676 @@ class LoanController extends Controller
     }
     public function doProcessing($request)
     {
-        $company  = auth()->user()->company_id;
-        $branchid = Crypt::decryptString($request->branch);
+        $traceId = $request->trace_id ?? (string) \Illuminate\Support\Str::uuid();
+        $request->merge(['trace_id' => $traceId]);
 
-        $productid = Crypt::decryptString($request->loan_products);
+        logInfo([
+            'trace_id' => $traceId,
+            'stage' => 'DO PROCESSING START',
+            'authenticated' => auth()->check(),
+            'auth_user_id' => auth()->id(),
+            'auth_company_id' => auth()->user()->company_id ?? null,
+            'request_fields' => [
+                'customer_type' => gettype($request->customer),
+                'customer_count' => is_array($request->customer) ? count($request->customer) : ($request->customer ? 1 : 0),
+                'loan_products_present' => !empty($request->loan_products),
+                'loan_type' => $request->loan_type,
+                'branch_present' => !empty($request->branch),
+                'officer' => $request->officer,
+                'period_present' => !empty($request->period),
+                'duration' => $request->Duration,
+                'duration_period' => $request->DurationPeriod,
+                'principal' => $request->principal,
+                'guarantor_option' => $request->guarantorOption,
+                'loan_id_present' => !empty($request->loanID),
+                'platform' => $request->platform ?? null,
+            ],
+        ], 'LOAN DEBUG START');
 
-        $LoanType     = $request->loan_type;
-        $RepaymentAmt = $request->RepaymentAmt;
-        logInfo(json_encode($branchid), "loan user branchid");
-        logInfo(json_encode($productid), "loan user productid");
-        logInfo(json_encode($LoanType), "loan LoanType");
-        logInfo(json_encode($RepaymentAmt), "loan user RepaymentAmt");
+        try {
+            $authUser = auth()->user();
 
-        $checkProducts = loan_product::where(['id' => $productid, 'status_id' => 1, 'company_id' => $company])->first();
-        logInfo(json_encode($checkProducts), "loan user checkProducts");
-        if ($checkProducts) {
-            $pickguarantor = [];
-            $branch        = branch::where(['id' => $branchid, 'company_id' => $company])->first();
-            if ($branch) {
-                $user_data = User::where(['uuid' => $request->officer, 'company_id' => $company])->first();
-                if ($user_data) {
-                    $period         = Crypt::decryptString($request->period);
-                    $decimaPoint    = $checkProducts->approximate_status;
-                    $maxPrincipal   = $checkProducts->maxPrincipal;
-                    $minPrincipal   = $checkProducts->minPrincipal;
-                    $maxDuration    = $checkProducts->maxDuration;
-                    $principal      = $request->principal;
-                    $duration       = $request->Duration;
-                    $DurationPeriod = $request->DurationPeriod;
-                    $finalRepayment = 0;
-                    if ($LoanType == 2 && $period != 4) {
-                        return json_encode([
-                            'status'  => 0,
-                            'message' => "Reducing balance is only available monthly!",
-                        ]);
-                    }
-                    $convertinterest = $checkProducts->interest_rate;
-                    $periodRepay     = loan_period::where('id', $period)->first();
-                    $looper          = calculatePeriodByPeriod($periodRepay->name, $DurationPeriod) * $duration;
+            if (!$authUser) {
+                logInfo([
+                    'trace_id' => $traceId,
+                    'stage' => 'AUTHENTICATION FAILED',
+                ], 'LOAN DEBUG FAILURE');
 
-                    if ($checkProducts->loan_interest_type == 2) {
-                        $checkProducts->interest_rate = $checkProducts->interest_rate * $duration;
-                    }
-                    $interestRate = $checkProducts->interest_rate;
-
-                    if ($LoanType == 2) {
-                        $RepaymentAmt = $this->EMI($principal, $interestRate, $looper);
-                    }
-
-                    if ($principal < $minPrincipal && $minPrincipal != null) {
-                        return json_encode([
-                            'status'  => 0,
-                            'message' => 'Principal amount is below minimum amount  for this product!',
-                        ]);
-                    }
-                    if ($principal > $maxPrincipal && $maxPrincipal != null) {
-                        return json_encode([
-                            'status'  => 0,
-                            'message' => 'Principal Amount exceed maximum amount  for this product!',
-                        ]);
-                    }
-
-                    $TotalLoanInterest = ($interestRate / 100) * ($request->principal);
-                    if ($duration < 1) {
-                        return json_encode([
-                            'status'  => 0,
-                            'message' => "Maximum Duration is $maxDuration!",
-                        ]);
-                    }
-                    if ($LoanType != 1 && $LoanType != 2) {
-                        return json_encode([
-                            'status'  => 0,
-                            'message' => 'Invalid Loan Type!',
-                        ]);
-                    }
-                    $Principel_Interest = ($LoanType == 1) ? ($TotalLoanInterest + $principal) : $principal;
-                    $FirstRepayment     = ($Principel_Interest / $duration);
-                    if ($duration > $maxDuration && $maxDuration != null) {
-                        return json_encode([
-                            'status'  => 0,
-                            'message' => "Maximum Duration is $maxDuration!",
-                        ]);
-                    }
-                    $repayData              = ($request->loan_type == 1) ? $this->FlatRepaymentBreakdown($decimaPoint, $principal, $Principel_Interest, $periodRepay, $looper, $interestRate, "$duration $DurationPeriod", $convertinterest) : $this->ReducingRepaymentBreakdown($decimaPoint, $principal, $periodRepay, $looper, $interestRate, $RepaymentAmt, "$duration $DurationPeriod", $convertinterest);
-                    $finalRepayment         = $repayData[0]['PI'];
-                    $managementFeeMethodTXT = '';
-                    if ($request->managementFeeMethod == 1) {
-                        $managementFeeMethodTXT = 'No Management Charges';
-                    } else if ($request->managementFeeMethod == 2) {
-                        $managementFeeMethodTXT = $request->managementFee . ' Management Charge from Principal';
-                    } else if ($request->managementFeeMethod == 3) {
-                        $managementFeeMethodTXT = $request->managementFee . 'Management Charge from Interest';
-                    } else if ($request->managementFeeMethod == 4) {
-                        $managementFeeMethodTXT = $request->managementFee . 'Management Charge from Principal + Interest';
-                    }
-                    $loanFeeMethodTXT = '';
-                    if ($request->loanFeeMethod == 1) {
-                        $loanFeeMethodTXT = 'No Loan Fee Charges';
-                    } else if ($request->loanFeeMethod == 2) {
-                        $loanFeeMethodTXT = $request->loanFee . '% Loan Fee Charge from Principal';
-                    } else if ($request->loanFeeMethod == 3) {
-                        $loanFeeMethodTXT = $request->loanFee . '% Loan Fee Charge from Interest';
-                    } else if ($request->loanFeeMethod == 4) {
-                        $loanFeeMethodTXT = $request->loanFee . '% Loan Fee Charge from Principal + Interest';
-                    }
-
-                    if ($request->loanID != null) {
-                        $cid                      = Crypt::decryptString($request->loanID);
-                        $loanrec                  = loan::where('id', $cid)->first();
-                        $request->customer        = [$loanrec->user->uuid];
-                        $request->guarantorOption = $loanrec->on_guarantor;
-                        if ($request->guarantorOption == 1) {
-                            // LoanGuarantor
-                            $guarantors = [];
-                            foreach ($loanrec->Guarantor as $guarant) {
-                                $guarantors[] = Crypt::encryptString($guarant->guarantor_id);
-                            }
-                            $request->guarantor = $guarantors;
-                        } else {
-                            $request->guarantor = [];
-                        }
-                    }
-                    $guarantorOption = $request->guarantorOption;
-                    $guarantor       = $request->guarantor;
-                    $customer        = $request->customer;
-                    $borrowerRay     = [];
-
-                    foreach ($customer as $customerData) {
-                        $borrowerRay[] = $userrec = User::where(['uuid' => $customerData, 'company_id' => $company])->first();
-                        if ($guarantorOption == 1) {
-                            if ($guarantor == null) {
-                                return json_encode([
-                                    'status'  => 0,
-                                    'message' => 'Guarantor required for all borrowers!',
-                                ]);
-                            }
-                            $ihave = 0;
-                            foreach ($guarantor as $guarantorData) {
-                                $guarantorDataid = Crypt::decryptString($guarantorData);
-                                $guarantorRec    = guarantor::where(['id' => $guarantorDataid, 'user_id' => $userrec->id])->first();
-                                if ($guarantorRec) {
-                                    $ihave++;
-                                    $guarantorRec->id    = Crypt::encryptString($guarantorRec->id);
-                                    $guarantorRec->owner = "$userrec->first_name $userrec->last_name";
-                                    $pickguarantor[]     = $guarantorRec;
-                                }
-                            }
-                            if ($ihave == 0) {
-                                return json_encode([
-                                    'status'  => 0,
-                                    'message' => "$userrec->first_name $userrec->last_name does not have a guarantor!",
-                                ]);
-                            }
-                        }
-                    }
-                    $loan_response = json_encode([
-                        'status'              => 1,
-                        'response_status'     => 'success',
-                        'repayData'           => $repayData,
-                        'EachRepayment'       => $finalRepayment,
-                        'duration'            => $duration,
-                        'LoanType'            => $LoanType,
-                        'FirstRepayment'      => $FirstRepayment,
-                        'TotalLoanInterest'   => $TotalLoanInterest,
-                        'interestRate'        => $convertinterest,
-                        'principal'           => $principal,
-                        'Principel_Interest'  => $Principel_Interest,
-                        'loanFee'             => $request->loanFee,
-                        'managementFee'       => $request->managementFee,
-                        'loanFeeMethod'       => $loanFeeMethodTXT,
-                        'managementFeeMethod' => $managementFeeMethodTXT,
-                        'ExtendDuration'      => ($request->ExtendDuration > 0) ? $request->ExtendDuration : 'No extension for missed loan',
-                        'guarantor'           => $pickguarantor,
-                        'borrower'            => $borrowerRay,
-                    ]);
-                    logInfo(json_encode($loan_response), "loan user response");
-                    return json_encode([
-                        'status'              => 1,
-                        'response_status'     => 'success',
-                        'repayData'           => $repayData,
-                        'EachRepayment'       => $finalRepayment,
-                        'duration'            => $duration,
-                        'LoanType'            => $LoanType,
-                        'FirstRepayment'      => $FirstRepayment,
-                        'TotalLoanInterest'   => $TotalLoanInterest,
-                        'interestRate'        => $convertinterest,
-                        'principal'           => $principal,
-                        'Principel_Interest'  => $Principel_Interest,
-                        'loanFee'             => $request->loanFee,
-                        'managementFee'       => $request->managementFee,
-                        'loanFeeMethod'       => $loanFeeMethodTXT,
-                        'managementFeeMethod' => $managementFeeMethodTXT,
-                        'ExtendDuration'      => ($request->ExtendDuration > 0) ? $request->ExtendDuration : 'No extension for missed loan',
-                        'guarantor'           => $pickguarantor,
-                        'borrower'            => $borrowerRay,
-                    ]);
-
-                } else {
-                    return json_encode(['message' => 'User Account is invalid!' . $request->officer, 'status' => 0]);
-                }
-            } else {
-                return json_encode(['message' => 'Branch is invalid!', 'status' => 0]);
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Unauthenticated request.',
+                ]);
             }
-        } else {
-            return json_encode(['message' => 'Invalid Product!', 'status' => 0]);
+
+            $company = $authUser->company_id;
+
+            logInfo([
+                'trace_id' => $traceId,
+                'user_id' => $authUser->id,
+                'uuid' => $authUser->uuid,
+                'company_id' => $company,
+                'stage' => 'AUTHENTICATION PASSED',
+            ], 'LOAN DEBUG AUTH');
+
+            // -------------------------------------------------------------
+            // Decrypt branch
+            // -------------------------------------------------------------
+            try {
+                $branchid = Crypt::decryptString($request->branch);
+            } catch (\Throwable $e) {
+                logInfo([
+                    'trace_id' => $traceId,
+                    'field' => 'branch',
+                    'value_present' => !empty($request->branch),
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ], 'LOAN DEBUG DECRYPT FAILURE');
+
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Invalid branch value.',
+                ]);
+            }
+
+            logInfo([
+                'trace_id' => $traceId,
+                'encrypted_field' => 'branch',
+                'decrypted_id' => $branchid,
+            ], 'LOAN DEBUG DECRYPT SUCCESS');
+
+            // -------------------------------------------------------------
+            // Decrypt product
+            // -------------------------------------------------------------
+            try {
+                $productid = Crypt::decryptString($request->loan_products);
+            } catch (\Throwable $e) {
+                logInfo([
+                    'trace_id' => $traceId,
+                    'field' => 'loan_products',
+                    'value_present' => !empty($request->loan_products),
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ], 'LOAN DEBUG DECRYPT FAILURE');
+
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Invalid loan product value.',
+                ]);
+            }
+
+            logInfo([
+                'trace_id' => $traceId,
+                'encrypted_field' => 'loan_products',
+                'decrypted_id' => $productid,
+            ], 'LOAN DEBUG DECRYPT SUCCESS');
+
+            $LoanType     = $request->loan_type;
+            $RepaymentAmt = $request->RepaymentAmt ?? 0;
+
+            logInfo([
+                'trace_id' => $traceId,
+                'branch_id' => $branchid,
+                'product_id' => $productid,
+                'loan_type' => $LoanType,
+                'repayment_amount_input' => $RepaymentAmt,
+            ], 'LOAN DEBUG INPUT RESOLVED');
+
+            // -------------------------------------------------------------
+            // Product lookup
+            // -------------------------------------------------------------
+            $checkProducts = loan_product::where([
+                'id' => $productid,
+                'status_id' => 1,
+                'company_id' => $company,
+            ])->first();
+
+            logInfo([
+                'trace_id' => $traceId,
+                'company_id' => $company,
+                'product_id' => $productid,
+                'product_found' => (bool) $checkProducts,
+                'product_name' => $checkProducts->product_name ?? null,
+                'product_company_id' => $checkProducts->company_id ?? null,
+                'product_status_id' => $checkProducts->status_id ?? null,
+            ], 'LOAN DEBUG PRODUCT LOOKUP');
+
+            if (!$checkProducts) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Invalid Product!',
+                ]);
+            }
+
+            // -------------------------------------------------------------
+            // Branch lookup
+            // -------------------------------------------------------------
+            $branch = branch::where([
+                'id' => $branchid,
+                'company_id' => $company,
+            ])->first();
+
+            logInfo([
+                'trace_id' => $traceId,
+                'branch_id' => $branchid,
+                'company_id' => $company,
+                'branch_found' => (bool) $branch,
+                'branch_name' => $branch->branch_name ?? null,
+            ], 'LOAN DEBUG BRANCH LOOKUP');
+
+            if (!$branch) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Branch is invalid!',
+                ]);
+            }
+
+            // -------------------------------------------------------------
+            // Loan officer lookup
+            // -------------------------------------------------------------
+            $user_data = User::where([
+                'uuid' => $request->officer,
+                'company_id' => $company,
+            ])->first();
+
+            logInfo([
+                'trace_id' => $traceId,
+                'officer_uuid' => $request->officer,
+                'company_id' => $company,
+                'officer_found' => (bool) $user_data,
+                'officer_id' => $user_data->id ?? null,
+                'officer_branch_id' => $user_data->branch_id ?? null,
+            ], 'LOAN DEBUG OFFICER LOOKUP');
+
+            if (!$user_data) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'User Account is invalid!' . $request->officer,
+                ]);
+            }
+
+            // -------------------------------------------------------------
+            // Decrypt repayment period
+            // -------------------------------------------------------------
+            try {
+                $period = Crypt::decryptString($request->period);
+            } catch (\Throwable $e) {
+                logInfo([
+                    'trace_id' => $traceId,
+                    'field' => 'period',
+                    'value_present' => !empty($request->period),
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ], 'LOAN DEBUG DECRYPT FAILURE');
+
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Invalid repayment period value.',
+                ]);
+            }
+
+            $periodRepay = loan_period::where('id', $period)->first();
+
+            logInfo([
+                'trace_id' => $traceId,
+                'period_id' => $period,
+                'period_found' => (bool) $periodRepay,
+                'period_name' => $periodRepay->name ?? null,
+            ], 'LOAN DEBUG PERIOD LOOKUP');
+
+            if (!$periodRepay) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Invalid repayment period!',
+                ]);
+            }
+
+            $decimaPoint    = $checkProducts->approximate_status;
+            $maxPrincipal   = $checkProducts->maxPrincipal;
+            $minPrincipal   = $checkProducts->minPrincipal;
+            $maxDuration    = $checkProducts->maxDuration;
+            $principal      = (float) $request->principal;
+            $duration       = (int) $request->Duration;
+            $DurationPeriod = $request->DurationPeriod;
+            $finalRepayment = 0;
+
+            logInfo([
+                'trace_id' => $traceId,
+                'principal' => $principal,
+                'min_principal' => $minPrincipal,
+                'max_principal' => $maxPrincipal,
+                'duration' => $duration,
+                'max_duration' => $maxDuration,
+                'duration_period' => $DurationPeriod,
+                'loan_type' => $LoanType,
+                'repayment_period_id' => $period,
+            ], 'LOAN DEBUG LOAN PARAMETERS');
+
+            if ($LoanType == 2 && $period != 4) {
+                logInfo([
+                    'trace_id' => $traceId,
+                    'reason' => 'Reducing balance requires monthly repayment period.',
+                    'loan_type' => $LoanType,
+                    'period_id' => $period,
+                ], 'LOAN DEBUG BUSINESS RULE FAILURE');
+
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Reducing balance is only available monthly!',
+                ]);
+            }
+
+            $convertinterest = $checkProducts->interest_rate;
+            $interestRate    = $checkProducts->interest_rate;
+
+            if ($checkProducts->loan_interest_type == 2) {
+                $interestRate = $checkProducts->interest_rate * $duration;
+            }
+
+            try {
+                $looper = calculatePeriodByPeriod($periodRepay->name, $DurationPeriod) * $duration;
+            } catch (\Throwable $e) {
+                logInfo([
+                    'trace_id' => $traceId,
+                    'period_name' => $periodRepay->name,
+                    'duration_period' => $DurationPeriod,
+                    'duration' => $duration,
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ], 'LOAN DEBUG PERIOD CALCULATION FAILURE');
+
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Unable to calculate loan repayment period.',
+                ]);
+            }
+
+            logInfo([
+                'trace_id' => $traceId,
+                'interest_rate_original' => $convertinterest,
+                'interest_rate_effective' => $interestRate,
+                'loan_interest_type' => $checkProducts->loan_interest_type,
+                'looper' => $looper,
+            ], 'LOAN DEBUG INTEREST AND DURATION');
+
+            if ($LoanType == 2) {
+                if ($looper <= 0) {
+                    return json_encode([
+                        'status' => 0,
+                        'message' => 'Invalid loan repayment period.',
+                    ]);
+                }
+
+                $RepaymentAmt = $this->EMI($principal, $interestRate, $looper);
+            }
+
+            if ($principal < $minPrincipal && $minPrincipal != null) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Principal amount is below minimum amount for this product!',
+                ]);
+            }
+
+            if ($principal > $maxPrincipal && $maxPrincipal != null) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Principal Amount exceed maximum amount for this product!',
+                ]);
+            }
+
+            if ($duration < 1) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => "Maximum Duration is $maxDuration!",
+                ]);
+            }
+
+            if ($LoanType != 1 && $LoanType != 2) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Invalid Loan Type!',
+                ]);
+            }
+
+            if ($maxDuration != null && $duration > $maxDuration) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => "Maximum Duration is $maxDuration!",
+                ]);
+            }
+
+            $TotalLoanInterest = ($interestRate / 100) * $principal;
+            $Principel_Interest = ($LoanType == 1)
+                ? ($TotalLoanInterest + $principal)
+                : $principal;
+
+            $FirstRepayment = $duration > 0
+                ? ($Principel_Interest / $duration)
+                : 0;
+
+            // -------------------------------------------------------------
+            // Repayment calculation
+            // -------------------------------------------------------------
+            try {
+                $repayData = ($LoanType == 1)
+                    ? $this->FlatRepaymentBreakdown(
+                        $decimaPoint,
+                        $principal,
+                        $Principel_Interest,
+                        $periodRepay,
+                        $looper,
+                        $interestRate,
+                        "$duration $DurationPeriod",
+                        $convertinterest
+                    )
+                    : $this->ReducingRepaymentBreakdown(
+                        $decimaPoint,
+                        $principal,
+                        $periodRepay,
+                        $looper,
+                        $interestRate,
+                        $RepaymentAmt,
+                        "$duration $DurationPeriod",
+                        $convertinterest
+                    );
+            } catch (\Throwable $e) {
+                logInfo([
+                    'trace_id' => $traceId,
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                ], 'LOAN DEBUG REPAYMENT CALCULATION FAILURE');
+
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Unable to calculate repayment schedule.',
+                ]);
+            }
+
+            if (empty($repayData) || !isset($repayData[0]['PI'])) {
+                logInfo([
+                    'trace_id' => $traceId,
+                    'repay_data_valid' => false,
+                ], 'LOAN DEBUG REPAYMENT DATA INVALID');
+
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Unable to generate repayment schedule.',
+                ]);
+            }
+
+            $finalRepayment = $repayData[0]['PI'];
+
+            logInfo([
+                'trace_id' => $traceId,
+                'repayment_rows' => count($repayData),
+                'first_repayment' => $finalRepayment,
+                'total_interest' => $TotalLoanInterest,
+                'principal_interest' => $Principel_Interest,
+            ], 'LOAN DEBUG REPAYMENT CALCULATED');
+
+            // -------------------------------------------------------------
+            // Fee display values
+            // -------------------------------------------------------------
+            $managementFeeMethodTXT = '';
+            if ($request->managementFeeMethod == 1) {
+                $managementFeeMethodTXT = 'No Management Charges';
+            } elseif ($request->managementFeeMethod == 2) {
+                $managementFeeMethodTXT = $request->managementFee . ' Management Charge from Principal';
+            } elseif ($request->managementFeeMethod == 3) {
+                $managementFeeMethodTXT = $request->managementFee . ' Management Charge from Interest';
+            } elseif ($request->managementFeeMethod == 4) {
+                $managementFeeMethodTXT = $request->managementFee . ' Management Charge from Principal + Interest';
+            }
+
+            $loanFeeMethodTXT = '';
+            if ($request->loanFeeMethod == 1) {
+                $loanFeeMethodTXT = 'No Loan Fee Charges';
+            } elseif ($request->loanFeeMethod == 2) {
+                $loanFeeMethodTXT = $request->loanFee . '% Loan Fee Charge from Principal';
+            } elseif ($request->loanFeeMethod == 3) {
+                $loanFeeMethodTXT = $request->loanFee . '% Loan Fee Charge from Interest';
+            } elseif ($request->loanFeeMethod == 4) {
+                $loanFeeMethodTXT = $request->loanFee . '% Loan Fee Charge from Principal + Interest';
+            }
+
+            // -------------------------------------------------------------
+            // Pending loan edit/approval path
+            // -------------------------------------------------------------
+            if ($request->loanID != null) {
+                try {
+                    $cid = Crypt::decryptString($request->loanID);
+                } catch (\Throwable $e) {
+                    logInfo([
+                        'trace_id' => $traceId,
+                        'field' => 'loanID',
+                        'exception' => get_class($e),
+                        'message' => $e->getMessage(),
+                    ], 'LOAN DEBUG DECRYPT FAILURE');
+
+                    return json_encode([
+                        'status' => 0,
+                        'message' => 'Invalid loan ID.',
+                    ]);
+                }
+
+                $loanrec = loan::where('id', $cid)
+                    ->whereHas('user', function ($query) use ($company) {
+                        $query->where('company_id', $company);
+                    })
+                    ->first();
+
+                logInfo([
+                    'trace_id' => $traceId,
+                    'loan_id' => $cid,
+                    'loan_found' => (bool) $loanrec,
+                    'company_id' => $company,
+                ], 'LOAN DEBUG EXISTING LOAN LOOKUP');
+
+                if (!$loanrec) {
+                    return json_encode([
+                        'status' => 0,
+                        'message' => 'Invalid Loan ID!',
+                    ]);
+                }
+
+                $request->customer = [$loanrec->user->uuid];
+                $request->guarantorOption = $loanrec->on_guarantor;
+
+                if ($request->guarantorOption == 1) {
+                    $guarantors = [];
+                    foreach ($loanrec->Guarantor as $guarant) {
+                        $guarantors[] = Crypt::encryptString($guarant->guarantor_id);
+                    }
+                    $request->guarantor = $guarantors;
+                } else {
+                    $request->guarantor = [];
+                }
+
+                logInfo([
+                    'trace_id' => $traceId,
+                    'loan_id' => $cid,
+                    'borrower_uuid' => $loanrec->user->uuid,
+                    'guarantor_option' => $request->guarantorOption,
+                    'guarantor_count' => is_array($request->guarantor) ? count($request->guarantor) : 0,
+                ], 'LOAN DEBUG EXISTING LOAN DATA RESOLVED');
+            }
+
+            // -------------------------------------------------------------
+            // Normalize borrower list
+            // -------------------------------------------------------------
+            $guarantorOption = $request->guarantorOption;
+            $guarantor       = $request->guarantor ?? [];
+            $customer        = $request->customer;
+
+            if (!is_array($customer)) {
+                $customer = $customer !== null && $customer !== '' ? [$customer] : [];
+            }
+
+            if (empty($customer)) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'At least one borrower is required.',
+                ]);
+            }
+
+            logInfo([
+                'trace_id' => $traceId,
+                'customer_count' => count($customer),
+                'guarantor_option' => $guarantorOption,
+                'guarantor_count' => is_array($guarantor) ? count($guarantor) : 0,
+            ], 'LOAN DEBUG BORROWER INPUT');
+
+            $pickguarantor = [];
+            $borrowerRay   = [];
+
+            foreach ($customer as $customerIndex => $customerData) {
+                $userrec = User::where([
+                    'uuid' => $customerData,
+                    'company_id' => $company,
+                ])->first();
+
+                logInfo([
+                    'trace_id' => $traceId,
+                    'borrower_index' => $customerIndex,
+                    'borrower_uuid' => $customerData,
+                    'company_id' => $company,
+                    'borrower_found' => (bool) $userrec,
+                    'borrower_id' => $userrec->id ?? null,
+                    'borrower_company_id' => $userrec->company_id ?? null,
+                ], 'LOAN DEBUG BORROWER LOOKUP');
+
+                if (!$userrec) {
+                    return json_encode([
+                        'status' => 0,
+                        'message' => 'Borrower account is invalid: ' . $customerData,
+                    ]);
+                }
+
+                $borrowerRay[] = $userrec;
+
+                if ($guarantorOption == 1) {
+                    if (!is_array($guarantor) || count($guarantor) === 0) {
+                        logInfo([
+                            'trace_id' => $traceId,
+                            'borrower_id' => $userrec->id,
+                            'reason' => 'Guarantor option enabled but no guarantor list supplied.',
+                        ], 'LOAN DEBUG GUARANTOR FAILURE');
+
+                        return json_encode([
+                            'status' => 0,
+                            'message' => 'Guarantor required for all borrowers!',
+                        ]);
+                    }
+
+                    $ihave = 0;
+
+                    foreach ($guarantor as $guarantorData) {
+                        try {
+                            $guarantorDataid = Crypt::decryptString($guarantorData);
+                        } catch (\Throwable $e) {
+                            logInfo([
+                                'trace_id' => $traceId,
+                                'borrower_id' => $userrec->id,
+                                'exception' => get_class($e),
+                                'message' => $e->getMessage(),
+                            ], 'LOAN DEBUG GUARANTOR DECRYPT FAILURE');
+
+                            continue;
+                        }
+
+                        $guarantorRec = guarantor::where([
+                            'id' => $guarantorDataid,
+                            'user_id' => $userrec->id,
+                        ])->first();
+
+                        if ($guarantorRec) {
+                            $ihave++;
+                            $guarantorRec->id    = Crypt::encryptString($guarantorRec->id);
+                            $guarantorRec->owner = "$userrec->first_name $userrec->last_name";
+                            $pickguarantor[]     = $guarantorRec;
+                        }
+                    }
+
+                    logInfo([
+                        'trace_id' => $traceId,
+                        'borrower_id' => $userrec->id,
+                        'valid_guarantor_count' => $ihave,
+                    ], 'LOAN DEBUG GUARANTOR CHECK');
+
+                    if ($ihave == 0) {
+                        return json_encode([
+                            'status' => 0,
+                            'message' => "$userrec->first_name $userrec->last_name does not have a guarantor!",
+                        ]);
+                    }
+                }
+            }
+
+            $response = [
+                'status'              => 1,
+                'response_status'     => 'success',
+                'repayData'           => $repayData,
+                'EachRepayment'       => $finalRepayment,
+                'duration'            => $duration,
+                'LoanType'            => $LoanType,
+                'FirstRepayment'      => $FirstRepayment,
+                'TotalLoanInterest'   => $TotalLoanInterest,
+                'interestRate'        => $convertinterest,
+                'principal'           => $principal,
+                'Principel_Interest'  => $Principel_Interest,
+                'loanFee'             => $request->loanFee,
+                'managementFee'       => $request->managementFee,
+                'loanFeeMethod'       => $loanFeeMethodTXT,
+                'managementFeeMethod' => $managementFeeMethodTXT,
+                'ExtendDuration'      => ($request->ExtendDuration > 0) ? $request->ExtendDuration : 'No extension for missed loan',
+                'guarantor'           => $pickguarantor,
+                'borrower'            => $borrowerRay,
+            ];
+
+            logInfo([
+                'trace_id' => $traceId,
+                'stage' => 'DO PROCESSING SUCCESS',
+                'borrower_count' => count($borrowerRay),
+                'guarantor_count' => count($pickguarantor),
+                'principal' => $principal,
+                'loan_type' => $LoanType,
+                'duration' => $duration,
+                'period_id' => $period,
+                'product_id' => $productid,
+                'branch_id' => $branchid,
+            ], 'LOAN DEBUG SUCCESS');
+
+            return json_encode($response);
+
+        } catch (\Throwable $e) {
+            logInfo([
+                'trace_id' => $traceId,
+                'stage' => 'DO PROCESSING EXCEPTION',
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], 'LOAN DEBUG EXCEPTION');
+
+            return json_encode([
+                'status' => 0,
+                'message' => 'Error processing loan request.',
+            ]);
         }
     }
     public function processLoan(Request $request)
     {
+        $traceId = $request->trace_id ?? (string) \Illuminate\Support\Str::uuid();
+        $request->merge(['trace_id' => $traceId]);
+
+        logInfo([
+            'trace_id' => $traceId,
+            'stage' => 'PROCESS LOAN START',
+            'method' => $request->method(),
+            'authenticated' => auth()->check(),
+            'auth_user_id' => auth()->id(),
+            'auth_company_id' => auth()->user()->company_id ?? null,
+        ], 'LOAN DEBUG PROCESS START');
 
         $validator = Validator::make($request->all(), [
             'customer'                       => 'required',
@@ -568,17 +1030,59 @@ class LoanController extends Controller
             'missedFee'                      => 'required',
             'DurationPeriod'                 => 'required',
         ]);
+
         if ($validator->fails()) {
             $errors = '';
+
             foreach ($validator->messages()->getMessages() as $field_name => $messages) {
-                // Go through each message for this field.
                 foreach ($messages as $message) {
                     $errors .= "$message <br>";
                 }
             }
-            return json_encode(['message' => $errors, 'status' => 0]);
+
+            logInfo([
+                'trace_id' => $traceId,
+                'stage' => 'PROCESS LOAN VALIDATION FAILED',
+                'errors' => $validator->errors()->toArray(),
+            ], 'LOAN DEBUG VALIDATION FAILURE');
+
+            return json_encode([
+                'message' => $errors,
+                'status' => 0,
+            ]);
         }
-        return $this->doProcessing($request);
+
+        logInfo([
+            'trace_id' => $traceId,
+            'stage' => 'PROCESS LOAN VALIDATION PASSED',
+        ], 'LOAN DEBUG VALIDATION SUCCESS');
+
+        try {
+            $result = $this->doProcessing($request);
+
+            logInfo([
+                'trace_id' => $traceId,
+                'stage' => 'PROCESS LOAN → DO PROCESSING RESPONSE',
+                'response' => is_string($result) ? json_decode($result, true) : $result,
+            ], 'LOAN DEBUG PROCESS RESPONSE');
+
+            return $result;
+
+        } catch (\Throwable $e) {
+            logInfo([
+                'trace_id' => $traceId,
+                'stage' => 'PROCESS LOAN EXCEPTION',
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], 'LOAN DEBUG PROCESS EXCEPTION');
+
+            return json_encode([
+                'status' => 0,
+                'message' => 'Error processing loan request.',
+            ]);
+        }
     }
     public function FlatRepaymentBreakdown($decimaPoint, $principal, $Principel_Interest, $period, $duration, $Interest, $totalDuration = null, $loan_interest_type = null)
     {

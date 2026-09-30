@@ -57,16 +57,110 @@ class LoanController extends Controller
         logInfo(json_encode($request), "loan user reqest");
         return $request;
     }
-    public function processLoan(Request $request)
-    {
+public function processLoan(Request $request)
+{
+    $traceId = (string) \Illuminate\Support\Str::uuid();
+    $request->merge(['trace_id' => $traceId]);
+
+    logInfo([
+        'trace_id' => $traceId,
+        'stage' => 'API PROCESS LOAN START',
+        'authenticated' => auth()->check(),
+        'auth_user_id' => auth()->id(),
+        'auth_company_id' => auth()->user()->company_id ?? null,
+        'request_summary' => [
+            'customer_type' => gettype($request->customer),
+            'customer_count' => is_array($request->customer) ? count($request->customer) : ($request->customer ? 1 : 0),
+            'loan_products_present' => !empty($request->loan_products),
+            'loan_type' => $request->loan_type,
+            'branch_present' => !empty($request->branch),
+            'officer' => $request->officer,
+            'period_present' => !empty($request->period),
+            'duration' => $request->Duration,
+            'duration_period' => $request->DurationPeriod,
+            'principal' => $request->principal,
+        ],
+    ], 'API LOAN DEBUG START');
+
+    try {
+        // postDataProcessing() is outside the supplied LoanController.
+        // This log tells us whether the request is being denied before
+        // LoanController::doProcessing() is even reached.
         $newrequest = $this->postDataProcessing($request);
-        if ($newrequest->status == 1) {
-            $repayment = json_decode(app('App\Http\Controllers\LoanController')->doProcessing($newrequest));
-            return ($repayment);
-        } else {
+
+        $newRequestStatus = is_object($newrequest)
+            ? ($newrequest->status ?? null)
+            : (is_array($newrequest) ? ($newrequest['status'] ?? null) : null);
+
+        $newRequestMessage = is_object($newrequest)
+            ? ($newrequest->message ?? null)
+            : (is_array($newrequest) ? ($newrequest['message'] ?? null) : null);
+
+        logInfo([
+            'trace_id' => $traceId,
+            'stage' => 'POST DATA PROCESSING RESULT',
+            'result_class' => is_object($newrequest) ? get_class($newrequest) : gettype($newrequest),
+            'status' => $newRequestStatus,
+            'message' => $newRequestMessage,
+        ], 'API LOAN DEBUG POST PROCESSING');
+
+        if ((string) $newRequestStatus !== '1') {
+            logInfo([
+                'trace_id' => $traceId,
+                'stage' => 'STOPPED BEFORE LOAN CONTROLLER',
+                'status' => $newRequestStatus,
+                'message' => $newRequestMessage,
+            ], 'API LOAN DEBUG FAILURE');
+
             return response()->json($newrequest);
         }
+
+        logInfo([
+            'trace_id' => $traceId,
+            'stage' => 'CALLING LOAN CONTROLLER DO PROCESSING',
+            'loan_controller' => 'App\\Http\\Controllers\\LoanController',
+        ], 'API LOAN DEBUG ROUTING');
+
+        $loanController = app('App\\Http\\Controllers\\LoanController');
+        $rawResult = $loanController->doProcessing($newrequest);
+
+        $decodedResult = is_string($rawResult)
+            ? json_decode($rawResult, true)
+            : (is_array($rawResult) ? $rawResult : null);
+
+        logInfo([
+            'trace_id' => $traceId,
+            'stage' => 'LOAN CONTROLLER RESPONSE',
+            'response' => $decodedResult ?? $rawResult,
+        ], 'API LOAN DEBUG RESPONSE');
+
+        if (is_string($rawResult)) {
+            $decoded = json_decode($rawResult);
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $decoded;
+            }
+        }
+
+        return $rawResult;
+
+    } catch (\Throwable $e) {
+        logInfo([
+            'trace_id' => $traceId,
+            'stage' => 'API LOAN EXCEPTION',
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ], 'API LOAN DEBUG EXCEPTION');
+
+        return response()->json([
+            'status' => 0,
+            'message' => 'Error processing loan request.',
+        ], 500);
     }
+}
+
     public function loanData()
     {
         $data = [

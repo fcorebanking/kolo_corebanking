@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TargetSavingsTransaction extends Model
 {
@@ -13,7 +14,7 @@ class TargetSavingsTransaction extends Model
     protected $table = 'target_savings_transactions';
 
     protected $fillable = [
-        'target_saving_id',
+        'target_savings_id',
         'user_id',
         'company_id',
         'type',
@@ -39,7 +40,24 @@ class TargetSavingsTransaction extends Model
 
     public function targetSavings(): BelongsTo
     {
-        return $this->belongsTo(TargetSaving::class);
+        return $this->belongsTo(
+            TargetSaving::class,
+            'target_savings_id',
+            'id'
+        );
+    }
+
+    /**
+     * The recurring schedule associated with this target.
+     * Multiple transactions for one Target Savings share the same schedule.
+     */
+    public function schedule(): HasOne
+    {
+        return $this->hasOne(
+            TargetSavingsSchedule::class,
+            'target_saving_id',
+            'target_savings_id'
+        );
     }
 
     public function user(): BelongsTo

@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -260,4 +261,13 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->belongsTo(user_wallet::class, 'settlement_wallet_id', 'id');
     }
+public function targetSavings(): HasMany
+{
+    return $this->hasMany(TargetSaving::class, 'user_id', 'id');
+}
+
+public function targetSavingsSchedules(): HasMany
+{
+    return $this->hasMany(TargetSavingsSchedule::class, 'user_id', 'id');
+}
 }

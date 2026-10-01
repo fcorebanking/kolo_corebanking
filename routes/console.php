@@ -21,6 +21,15 @@ Artisan::command('inspire', function () {
 })->describe('Display an inspiring quote');
 
 Schedule::command('target-savings:process')
-    ->dailyAt('00:00')
+    ->dailyAt('00:05')
+    ->withoutOverlapping()
     ->timezone('Africa/Lagos');
+
+Schedule::command('target-savings:process-recurring')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+Schedule::command('fixed-savings:process')
+    ->dailyAt('00:00')
+    ->withoutOverlapping();
 

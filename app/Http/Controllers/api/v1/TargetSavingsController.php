@@ -33,7 +33,14 @@ class TargetSavingsController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["target_name", "target_amount", "withdrawal_date"],
+                required: [
+                    "target_name",
+                    "target_amount",
+                    "withdrawal_date",
+                    "auto_deposit_amount",
+                    "auto_deposit_frequency",
+                    "first_deposit_at"
+                ],
                 properties: [
                     new OA\Property(
                         property: "target_name",
@@ -51,6 +58,25 @@ class TargetSavingsController extends Controller
                         type: "string",
                         format: "date",
                         example: "2026-12-31"
+                    ),
+                    new OA\Property(
+                        property: "auto_deposit_amount",
+                        type: "number",
+                        format: "float",
+                        minimum: 0.01,
+                        example: 20000
+                    ),
+                    new OA\Property(
+                        property: "auto_deposit_frequency",
+                        type: "string",
+                        enum: ["daily", "weekly", "monthly"],
+                        example: "weekly"
+                    ),
+                    new OA\Property(
+                        property: "first_deposit_at",
+                        type: "string",
+                        format: "date-time",
+                        example: "2026-10-05 09:00:00"
                     )
                 ]
             )
@@ -96,6 +122,24 @@ class TargetSavingsController extends Controller
                     'date',
                     'after:today',
                 ],
+
+                'auto_deposit_amount' => [
+                    'required',
+                    'numeric',
+                    'gt:0',
+                    'lte:target_amount',
+                ],
+
+                'auto_deposit_frequency' => [
+                    'required',
+                    'string',
+                    'in:daily,weekly,monthly',
+                ],
+
+                'first_deposit_at' => [
+                    'required',
+                    'date',
+                ],
             ]);
 
             if ($validator->fails()) {
@@ -119,7 +163,10 @@ class TargetSavingsController extends Controller
                 $user,
                 $request->target_name,
                 (float) $request->target_amount,
-                $request->withdrawal_date
+                $request->withdrawal_date,
+                (float) $request->auto_deposit_amount,
+                $request->auto_deposit_frequency,
+                $request->first_deposit_at
             );
 
             return response()->json([
@@ -189,6 +236,7 @@ class TargetSavingsController extends Controller
             }
 
             $query = TargetSaving::query()
+                ->with('schedule')
                 ->where('user_id', $user->id)
                 ->orderByDesc('id');
 
@@ -371,6 +419,7 @@ class TargetSavingsController extends Controller
             }
 
             $targetSavings = TargetSaving::query()
+                ->with(['schedule', 'transactions'])
                 ->where('id', $id)
                 ->where('user_id', $user->id)
                 ->first();

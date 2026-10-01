@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -9,32 +10,24 @@ class UserTranserThrottle
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure(\Illuminate\Http\Request): (\Illuminate\Http\Response|\Illuminate\Http\RedirectResponse)  $next
-     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
      */
     public function handle(Request $request, Closure $next)
     {
         $userId = auth()->user()->id;
 
-        $key = "user:last_request:{$userId}";
-        $now = now()->timestamp;
+        $key = "user:transfer_attempts:{$userId}";
 
-        // If there is a previous timestamp
-        if (Cache::has($key)) {
-            $last = Cache::get($key);
+        $attempts = Cache::get($key, 0);
 
-            if (($now - $last) < 1) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'Please wait 10 seconds before trying again.',
-                ], 429);
-            }
+        if ($attempts >= 4) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Too many attempts. Please try again in a minute.',
+            ], 429);
         }
 
-        // store timestamp for 20 seconds (just needs to live longer than 10s)
-        Cache::put($key, $now, 20);
+        Cache::put($key, $attempts + 1, now()->addMinute());
+
         return $next($request);
     }
 }

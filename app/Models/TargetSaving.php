@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TargetSaving extends Model
 {
@@ -57,6 +58,19 @@ class TargetSaving extends Model
 
     public function transactions(): HasMany
     {
-        return $this->hasMany(TargetSavingsTransaction::class);
+        return $this->hasMany(
+            TargetSavingsTransaction::class,
+            'target_savings_id',
+            'id'
+        );
+    }
+
+    public function schedule(): HasOne
+    {
+        return $this->hasOne(
+            TargetSavingsSchedule::class,
+            'target_saving_id',
+            'id'
+        );
     }
 }

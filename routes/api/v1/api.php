@@ -457,36 +457,16 @@ Route::post('/test/gtb/create-virtual-account', [ GTBController::class, 'testCre
 Route::post('/test/kuda/create-virtual-account', [KudaController::class, 'testCreateAccount']);
 
 Route::prefix('/target-savings')->middleware('auth:api')->group(function () {
-
     Route::post('/create', [TargetSavingsController::class, 'store']);
-
     Route::get('/list', [TargetSavingsController::class, 'index']);
-
     Route::get('/summary', [TargetSavingsController::class, 'summary']);
-
     Route::get('/details/{id}', [TargetSavingsController::class, 'show']);
-
-    Route::post('/deposit/{id}', [TargetSavingsController::class, 'deposit']);
-
     Route::post('/withdraw/{id}', [TargetSavingsController::class, 'withdraw']);
-
     Route::get('/transactions/{id}', [TargetSavingsController::class, 'transactions']);
 
-    Route::get(
-    '/company/list',
-    [TargetSavingsController::class, 'companyIndex']
-);
-
-Route::get(
-    '/company/settings',
-    [TargetSavingsController::class, 'companySettings']
-);
-
-Route::put(
-    '/company/settings',
-    [TargetSavingsController::class, 'updateCompanySettings']
-);
-
+    Route::get('/company/list', [TargetSavingsController::class, 'companyIndex']);
+    Route::get('/company/settings', [TargetSavingsController::class, 'companySettings']);
+    Route::put('/company/settings', [TargetSavingsController::class, 'updateCompanySettings']);
 });
 
 Route::prefix('/fixed-savings')->middleware('auth:api')->group(function () {

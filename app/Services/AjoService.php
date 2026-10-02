@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Ajo;
 use App\Models\AjoCollectionCycle;
+use App\Models\AjoAccount;
 use App\Models\AjoInvitation;
 use App\Models\AjoMember;
 use App\Models\AjoTransaction;
@@ -143,6 +144,8 @@ class AjoService
         return DB::transaction(function () use ($creator, $data) {
             $this->validateUserForAjo($creator);
 
+            $ajoAccount = $this->ensureAjoAccount($creator, true);
+
             $company = $creator->company;
             $companySettings = $company?->setting;
 
@@ -244,6 +247,7 @@ class AjoService
 
             $ajo = Ajo::create([
                 'creator_user_id' => $creator->id,
+                'creator_ajo_account_id' => $ajoAccount->id,
                 'company_id' => $creator->company_id,
                 'ajo_name' => $name,
                 'description' => !empty($data['description']) ? trim((string) $data['description']) : null,
@@ -357,6 +361,38 @@ class AjoService
             return $ajo->fresh();
         });
     }
+
+    /**
+ * Ensure a user's personal Ajo Account exists.
+ */
+protected function ensureAjoAccount($user, bool $lock = true): AjoAccount
+{
+    $query = AjoAccount::query()
+        ->where('user_id', $user->id);
+
+    if ($lock) {
+        $query->lockForUpdate();
+    }
+
+    $account = $query->first();
+
+    if ($account) {
+        if ((int) $account->company_id !== (int) $user->company_id) {
+            throw new RuntimeException(
+                'Your personal Ajo Account is linked to a different company.'
+            );
+        }
+
+        return $account;
+    }
+
+    return AjoAccount::create([
+        'user_id' => $user->id,
+        'company_id' => $user->company_id,
+        'balance' => 0,
+        'status' => 'active',
+    ]);
+}
 
     /**
      * Return a user's permanent personal Ajo Account.

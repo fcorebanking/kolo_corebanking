@@ -69,17 +69,22 @@ public function processLoan(Request $request)
         'auth_user_id' => auth()->id(),
         'auth_company_id' => auth()->user()->company_id ?? null,
         'request_summary' => [
-            'customer_type' => gettype($request->customer),
-            'customer_count' => is_array($request->customer) ? count($request->customer) : ($request->customer ? 1 : 0),
-            'loan_products_present' => !empty($request->loan_products),
-            'loan_type' => $request->loan_type,
-            'branch_present' => !empty($request->branch),
-            'officer' => $request->officer,
-            'period_present' => !empty($request->period),
-            'duration' => $request->Duration,
-            'duration_period' => $request->DurationPeriod,
-            'principal' => $request->principal,
-        ],
+    'customer_type' => gettype($request->customer),
+    'customer_count' => is_array($request->customer)
+        ? count($request->customer)
+        : ($request->customer ? 1 : 0),
+
+    'amount' => $request->amount,
+
+    'loan_products_present' => !empty($request->loan_products),
+    'loan_type' => $request->loan_type,
+    'branch_present' => !empty($request->branch),
+    'officer' => $request->officer,
+    'period_present' => !empty($request->period),
+    'duration' => $request->Duration,
+    'duration_period' => $request->DurationPeriod,
+    'principal' => $request->principal,
+],
     ], 'API LOAN DEBUG START');
 
     try {

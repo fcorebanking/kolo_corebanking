@@ -1007,6 +1007,8 @@ logInfo([
     'method' => $request->method(),
     'content_type' => $request->header('Content-Type'),
     'all_input' => $request->all(),
+    'amount' => $request->input('amount'),
+    'principal' => $request->input('principal'),
 ], 'API LOAN RAW REQUEST');
 
         $validator = Validator::make($request->all(), [

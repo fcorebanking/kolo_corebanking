@@ -57,10 +57,25 @@ class LoanController extends Controller
         logInfo(json_encode($request), "loan user reqest");
         return $request;
     }
+    
 public function processLoan(Request $request)
 {
     $traceId = (string) \Illuminate\Support\Str::uuid();
-    $request->merge(['trace_id' => $traceId]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ensure amount is passed/stored as a string
+    |--------------------------------------------------------------------------
+    */
+    if ($request->has('amount') && $request->amount !== null) {
+        $request->merge([
+            'amount' => (string) $request->amount,
+        ]);
+    }
+
+    $request->merge([
+        'trace_id' => $traceId,
+    ]);
 
     logInfo([
         'trace_id' => $traceId,
@@ -68,23 +83,27 @@ public function processLoan(Request $request)
         'authenticated' => auth()->check(),
         'auth_user_id' => auth()->id(),
         'auth_company_id' => auth()->user()->company_id ?? null,
+
         'request_summary' => [
-    'customer_type' => gettype($request->customer),
-    'customer_count' => is_array($request->customer)
-        ? count($request->customer)
-        : ($request->customer ? 1 : 0),
+            'customer_type' => gettype($request->customer),
 
-    'amount' => $request->amount,
+            'customer_count' => is_array($request->customer)
+                ? count($request->customer)
+                : ($request->customer ? 1 : 0),
 
-    'loan_products_present' => !empty($request->loan_products),
-    'loan_type' => $request->loan_type,
-    'branch_present' => !empty($request->branch),
-    'officer' => $request->officer,
-    'period_present' => !empty($request->period),
-    'duration' => $request->Duration,
-    'duration_period' => $request->DurationPeriod,
-    'principal' => $request->principal,
-],
+            'amount' => $request->amount,
+            'amount_type' => gettype($request->amount),
+
+            'loan_products_present' => !empty($request->loan_products),
+            'loan_type' => $request->loan_type,
+            'branch_present' => !empty($request->branch),
+            'officer' => $request->officer,
+            'period_present' => !empty($request->period),
+            'duration' => $request->Duration,
+            'duration_period' => $request->DurationPeriod,
+            'principal' => $request->principal,
+            'principal_type' => gettype($request->principal),
+        ],
     ], 'API LOAN DEBUG START');
 
     try {
@@ -92,6 +111,24 @@ public function processLoan(Request $request)
         // This log tells us whether the request is being denied before
         // LoanController::doProcessing() is even reached.
         $newrequest = $this->postDataProcessing($request);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Re-enforce amount as string after postDataProcessing()
+        |--------------------------------------------------------------------------
+        | If postDataProcessing() modifies/rebuilds the request, this makes
+        | sure amount remains a string before entering LoanController.
+        |--------------------------------------------------------------------------
+        */
+        if (
+            is_object($newrequest) &&
+            isset($newrequest->amount) &&
+            $newrequest->amount !== null
+        ) {
+            $newrequest->merge([
+                'amount' => (string) $newrequest->amount,
+            ]);
+        }
 
         $newRequestStatus = is_object($newrequest)
             ? ($newrequest->status ?? null)
@@ -104,9 +141,20 @@ public function processLoan(Request $request)
         logInfo([
             'trace_id' => $traceId,
             'stage' => 'POST DATA PROCESSING RESULT',
-            'result_class' => is_object($newrequest) ? get_class($newrequest) : gettype($newrequest),
+            'result_class' => is_object($newrequest)
+                ? get_class($newrequest)
+                : gettype($newrequest),
+
             'status' => $newRequestStatus,
             'message' => $newRequestMessage,
+
+            'amount' => is_object($newrequest)
+                ? ($newrequest->amount ?? null)
+                : null,
+
+            'amount_type' => is_object($newrequest) && isset($newrequest->amount)
+                ? gettype($newrequest->amount)
+                : null,
         ], 'API LOAN DEBUG POST PROCESSING');
 
         if ((string) $newRequestStatus !== '1') {
@@ -124,9 +172,15 @@ public function processLoan(Request $request)
             'trace_id' => $traceId,
             'stage' => 'CALLING LOAN CONTROLLER DO PROCESSING',
             'loan_controller' => 'App\\Http\\Controllers\\LoanController',
+
+            'amount' => $newrequest->amount ?? null,
+            'amount_type' => isset($newrequest->amount)
+                ? gettype($newrequest->amount)
+                : null,
         ], 'API LOAN DEBUG ROUTING');
 
         $loanController = app('App\\Http\\Controllers\\LoanController');
+
         $rawResult = $loanController->doProcessing($newrequest);
 
         $decodedResult = is_string($rawResult)

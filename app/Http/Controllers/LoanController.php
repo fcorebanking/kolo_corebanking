@@ -26,7 +26,7 @@ use App\Models\user_wallet;
 use App\Models\wb_account_details;
 use App\Services\FlutterWave;
 use App\Services\LipilaService;
-use DB;
+use Illuminate\Support\Facades\DB;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -337,33 +337,51 @@ class LoanController extends Controller
         $query      = loan_product::where(['id' => $id, 'status_id' => 1, 'company_id' => $company_id])->first();
         return json_encode(['maxPrincipal' => $query->maxPrincipal, 'maxInterest' => $query->maxInterest, 'maxDuration' => $query->maxDuration]);
     }
-    public function doProcessing($request)
-    {
-        $traceId = $request->trace_id ?? (string) \Illuminate\Support\Str::uuid();
-        $request->merge(['trace_id' => $traceId]);
 
-        logInfo([
-            'trace_id' => $traceId,
-            'stage' => 'DO PROCESSING START',
-            'authenticated' => auth()->check(),
-            'auth_user_id' => auth()->id(),
-            'auth_company_id' => auth()->user()->company_id ?? null,
-            'request_fields' => [
-                'customer_type' => gettype($request->customer),
-                'customer_count' => is_array($request->customer) ? count($request->customer) : ($request->customer ? 1 : 0),
-                'loan_products_present' => !empty($request->loan_products),
-                'loan_type' => $request->loan_type,
-                'branch_present' => !empty($request->branch),
-                'officer' => $request->officer,
-                'period_present' => !empty($request->period),
-                'duration' => $request->Duration,
-                'duration_period' => $request->DurationPeriod,
-                'principal' => $request->principal,
-                'guarantor_option' => $request->guarantorOption,
-                'loan_id_present' => !empty($request->loanID),
-                'platform' => $request->platform ?? null,
-            ],
-        ], 'LOAN DEBUG START');
+ public function doProcessing($request)
+ {
+    $traceId = $request->trace_id ?? (string) \Illuminate\Support\Str::uuid();
+
+    $request->merge([
+        'trace_id' => $traceId,
+
+        // Keep amount as a string.
+        'amount' => $request->amount !== null
+            ? (string) $request->amount
+            : null,
+    ]);
+
+    logInfo([
+        'trace_id' => $traceId,
+        'stage' => 'DO PROCESSING START',
+        'authenticated' => auth()->check(),
+        'auth_user_id' => auth()->id(),
+        'auth_company_id' => auth()->user()->company_id ?? null,
+
+        'request_fields' => [
+            'customer_type' => gettype($request->customer),
+
+            'customer_count' => is_array($request->customer)
+                ? count($request->customer)
+                : ($request->customer ? 1 : 0),
+
+            'amount' => $request->amount,
+            'amount_type' => gettype($request->amount),
+
+            'loan_products_present' => !empty($request->loan_products),
+            'loan_type' => $request->loan_type,
+            'branch_present' => !empty($request->branch),
+            'officer' => $request->officer,
+            'period_present' => !empty($request->period),
+            'duration' => $request->Duration,
+            'duration_period' => $request->DurationPeriod,
+            'principal' => $request->principal,
+            'principal_type' => gettype($request->principal),
+            'guarantor_option' => $request->guarantorOption,
+            'loan_id_present' => !empty($request->loanID),
+            'platform' => $request->platform ?? null,
+        ],
+    ], 'LOAN DEBUG START');
 
         try {
             $authUser = auth()->user();
@@ -995,13 +1013,14 @@ class LoanController extends Controller
                 'message' => 'Error processing loan request.',
             ]);
         }
-    }
+}
+    
     public function processLoan(Request $request)
     {
         $traceId = $request->trace_id ?? (string) \Illuminate\Support\Str::uuid();
         $request->merge(['trace_id' => $traceId]);
 
-logInfo([
+  logInfo([
     'trace_id' => $traceId,
     'stage' => 'RAW API REQUEST',
     'method' => $request->method(),
@@ -1009,7 +1028,7 @@ logInfo([
     'all_input' => $request->all(),
     'amount' => $request->input('amount'),
     'principal' => $request->input('principal'),
-], 'API LOAN RAW REQUEST');
+  ], 'API LOAN RAW REQUEST');
 
         $validator = Validator::make($request->all(), [
             'customer'                       => 'required',
@@ -1085,6 +1104,7 @@ logInfo([
             ]);
         }
     }
+
     public function FlatRepaymentBreakdown($decimaPoint, $principal, $Principel_Interest, $period, $duration, $Interest, $totalDuration = null, $loan_interest_type = null)
     {
         $repay                = [];

@@ -138,11 +138,14 @@ public function mine(Request $request): JsonResponse
 
             $members = AjoMember::query()
                 ->where('user_id', $user->id)
+                // Only current member positions belong in the user's
+                // active "Groups I'm In" response. A completed early leave is
+                // retained in the database as STATUS_LEFT for financial and
+                // transaction history, but is no longer a membership.
                 ->whereIn('status', [
                     AjoMember::STATUS_ACTIVE,
                     AjoMember::STATUS_LEAVE_REQUESTED,
                     AjoMember::STATUS_MATURED,
-                    AjoMember::STATUS_LEFT,
                 ])
                 ->latest('id')
                 ->get();
@@ -892,7 +895,13 @@ public function feeSplit(Request $request, int $ajoId): JsonResponse
 
         return $ajo->members()
             ->where('user_id', $user->id)
-            ->whereIn('status', [AjoMember::STATUS_ACTIVE, AjoMember::STATUS_LEAVE_REQUESTED, AjoMember::STATUS_MATURED, AjoMember::STATUS_LEFT])
+            // A member whose early leave has been approved is no longer
+            // considered part of the Ajo for membership access.
+            ->whereIn('status', [
+                AjoMember::STATUS_ACTIVE,
+                AjoMember::STATUS_LEAVE_REQUESTED,
+                AjoMember::STATUS_MATURED,
+            ])
             ->exists()
             || $ajo->invitations()->where('invited_user_id', $user->id)->where('status', 'pending')->exists();
     }

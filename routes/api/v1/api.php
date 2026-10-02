@@ -571,60 +571,21 @@ Route::prefix('campaigns')->group(function () {
     ]);
 });
 
-Route::prefix('ajo')->group(function () {
 
-    // Authenticated user's Ajo overview.
-    Route::get('/mine', [AjoController::class, 'mine'])
-        ->name('ajo.mine');
-
-    // Ajo creation.
-    Route::post('/create', [AjoController::class, 'create'])
-        ->name('ajo.create');
-
-    // Membership / invitations.
-    // The creator may also use /{ajoId}/join to become a member of their own public Ajo.
-    Route::post('/{ajoId}/invite', [AjoController::class, 'invite'])
-        ->whereNumber('ajoId')
-        ->name('ajo.invite');
-
-    Route::post('/{ajoId}/join', [AjoController::class, 'join'])
-        ->whereNumber('ajoId')
-        ->name('ajo.join');
-
-    Route::post('/invitations/{invitationId}/accept', [AjoController::class, 'acceptInvitation'])
-        ->whereNumber('invitationId')
-        ->name('ajo.invitation.accept');
-
-    Route::post('/invitations/{invitationId}/decline', [AjoController::class, 'declineInvitation'])
-        ->whereNumber('invitationId')
-        ->name('ajo.invitation.decline');
-
-    // Early leave.
-    Route::post('/{ajoId}/leave/request', [AjoController::class, 'requestEarlyLeave'])
-        ->whereNumber('ajoId')
-        ->name('ajo.leave.request');
-
-    Route::post('/members/{ajoMemberId}/leave/approve', [AjoController::class, 'approveEarlyLeave'])
-        ->whereNumber('ajoMemberId')
-        ->name('ajo.leave.approve');
-
-    Route::post('/members/{ajoMemberId}/leave/reject', [AjoController::class, 'rejectEarlyLeave'])
-        ->whereNumber('ajoMemberId')
-        ->name('ajo.leave.reject');
-
-    // Ajo conditions / fee split.
-    Route::get('/{ajoId}/conditions', [AjoController::class, 'conditions'])
-        ->whereNumber('ajoId')
-        ->name('ajo.conditions');
-
-    Route::post('/{ajoId}/fee-split', [AjoController::class, 'feeSplit'])
-        ->whereNumber('ajoId')
-        ->name('ajo.fee-split');
-
-    // Administrative / internal processing endpoints.
-    Route::post('/system/process-collections', [AjoController::class, 'processCollections'])
-        ->name('ajo.system.process-collections');
-
-    Route::post('/system/process-maturity', [AjoController::class, 'processMaturity'])
-        ->name('ajo.system.process-maturity');
-});
+    Route::get('/ajo/mine', [AjoController::class, 'mine'])->name('ajo.mine');
+    Route::get('/ajo/pending-actions', [AjoController::class, 'pendingActions'])->name('ajo.pending-actions');
+    Route::get('/ajo/account', [AjoController::class, 'account'])->name('ajo.account');
+    Route::post('/ajo/account/deposit', [AjoController::class, 'depositToAccount'])->name('ajo.account.deposit');
+    Route::post('/ajo/account/withdraw', [AjoController::class, 'withdrawFromAccount'])->name('ajo.account.withdraw');
+    Route::post('/ajo/create', [AjoController::class, 'create'])->name('ajo.create');
+    Route::post('/ajo/{ajoId}/invite', [AjoController::class, 'invite'])->whereNumber('ajoId')->name('ajo.invite');
+    Route::post('/ajo/{ajoId}/join', [AjoController::class, 'join'])->whereNumber('ajoId')->name('ajo.join');
+    Route::post('/ajo/invitations/{invitationId}/accept', [AjoController::class, 'acceptInvitation'])->whereNumber('invitationId')->name('ajo.invitation.accept');
+    Route::post('/ajo/invitations/{invitationId}/decline', [AjoController::class, 'declineInvitation'])->whereNumber('invitationId')->name('ajo.invitation.decline');
+    Route::post('/ajo/{ajoId}/leave/request', [AjoController::class, 'requestEarlyLeave'])->whereNumber('ajoId')->name('ajo.leave.request');
+    Route::post('/ajo/members/{ajoMemberId}/leave/approve', [AjoController::class, 'approveEarlyLeave'])->whereNumber('ajoMemberId')->name('ajo.leave.approve');
+    Route::post('/ajo/members/{ajoMemberId}/leave/reject', [AjoController::class, 'rejectEarlyLeave'])->whereNumber('ajoMemberId')->name('ajo.leave.reject');
+    Route::get('/ajo/{ajoId}/conditions', [AjoController::class, 'conditions'])->whereNumber('ajoId')->name('ajo.conditions');
+    Route::post('/ajo/{ajoId}/fee-split', [AjoController::class, 'feeSplit'])->whereNumber('ajoId')->name('ajo.fee-split');
+    Route::post('/ajo/system/process-collections', [AjoController::class, 'processCollections'])->name('ajo.system.process-collections');
+    Route::post('/ajo/system/process-maturity', [AjoController::class, 'processMaturity'])->name('ajo.system.process-maturity');

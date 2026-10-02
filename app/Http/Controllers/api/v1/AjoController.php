@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 use RuntimeException;
 use Throwable;
+use App\Models\AjoInvitation;
+use App\Models\User;
 
 class AjoController extends Controller
 {
@@ -603,6 +605,130 @@ public function processCollections(Request $request): JsonResponse
         } catch (Throwable $e) {
             report($e);
             return response()->json(['status' => false, 'message' => 'Unable to process Ajo scheduled collections.'], 500);
+        }
+    }
+
+        #[OA\Get(
+        path: "/api/v1/ajo/pending-actions",
+        summary: "Get the authenticated user's pending Ajo actions",
+        description: "Returns pending Ajo invitations for the authenticated user and pending early-leave requests in Ajos created by the authenticated user.",
+        tags: ["Ajo Membership"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Pending Ajo actions retrieved successfully"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 500, description: "Unexpected server error"),
+        ]
+    )]
+    public function pendingActions(Request $request): JsonResponse
+    {
+        try {
+            $user = $this->authenticatedUser();
+
+            $pendingInvitations = AjoInvitation::query()
+                ->where('invited_user_id', $user->id)
+                ->where('status', AjoInvitation::STATUS_PENDING)
+                ->latest('id')
+                ->get();
+
+            $invitationAjoIds = $pendingInvitations
+                ->pluck('ajo_id')
+                ->filter()
+                ->unique()
+                ->values();
+
+            $invitationAjos = Ajo::query()
+                ->whereIn('id', $invitationAjoIds)
+                ->get()
+                ->keyBy('id');
+
+            $inviterIds = $pendingInvitations
+                ->pluck('invited_by')
+                ->filter()
+                ->unique()
+                ->values();
+
+            $inviters = User::query()
+                ->whereIn('id', $inviterIds)
+                ->get()
+                ->keyBy('id');
+
+            $invitations = $pendingInvitations->map(function (AjoInvitation $invitation) use ($invitationAjos, $inviters) {
+                $ajo = $invitationAjos->get($invitation->ajo_id);
+                $inviter = $inviters->get($invitation->invited_by);
+
+                return [
+                    'invitation_id' => $invitation->id,
+                    'status' => $invitation->status,
+                    'ajo_id' => $ajo?->id,
+                    'ajo_name' => $ajo?->ajo_name,
+                    'ajo_description' => $ajo?->description,
+                    'creator_user_id' => $ajo?->creator_user_id,
+                    'creator_name' => $inviter?->name ?? $inviter?->username ?? 'Ajo creator',
+                    'creator_username' => $inviter?->username,
+                    'collection_amount' => $ajo ? (float) $ajo->collection_amount : 0,
+                    'collection_frequency' => $ajo?->collection_frequency,
+                    'collection_interval' => $ajo?->collection_interval,
+                    'collection_day' => $ajo?->collection_day,
+                    'collection_time' => $ajo?->collection_time,
+                    'start_date' => $ajo?->start_date,
+                    'maturity_date' => $ajo?->maturity_date,
+                    'visibility' => $ajo?->visibility,
+                    'terms_snapshot' => $invitation->terms_snapshot,
+                    'terms_version' => $invitation->terms_version,
+                    'sent_at' => $invitation->sent_at,
+                ];
+            })->values();
+
+            $leaveRequests = AjoMember::query()
+                ->where('status', AjoMember::STATUS_LEAVE_REQUESTED)
+                ->whereHas('ajo', function ($query) use ($user) {
+                    $query->where('creator_user_id', $user->id)
+                        ->where('status', Ajo::STATUS_ACTIVE);
+                })
+                ->with(['ajo', 'user'])
+                ->latest('id')
+                ->get()
+                ->map(function (AjoMember $member) {
+                    return [
+                        'ajo_member_id' => $member->id,
+                        'status' => $member->status,
+                        'ajo_id' => $member->ajo?->id,
+                        'ajo_name' => $member->ajo?->ajo_name,
+                        'creator_user_id' => $member->ajo?->creator_user_id,
+                        'member_user_id' => $member->user_id,
+                        'member_name' => $member->user?->name ?? $member->user?->username ?? 'Ajo member',
+                        'member_username' => $member->user?->username,
+                        'current_balance' => (float) $member->balance,
+                        'total_contributed' => (float) $member->total_contributed,
+                        'early_leave_penalty_type' => $member->ajo?->early_leave_penalty_type,
+                        'early_leave_penalty_value' => $member->ajo ? (float) $member->ajo->early_leave_penalty_value : 0,
+                        'early_leave_reason' => $member->early_leave_reason,
+                        'requested_at' => $member->early_leave_requested_at,
+                        'maturity_date' => $member->ajo?->maturity_date,
+                    ];
+                })
+                ->values();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Pending Ajo actions retrieved successfully.',
+                'data' => [
+                    'pending_invitations' => $invitations,
+                    'early_leave_requests' => $leaveRequests,
+                    'pending_invitation_count' => $invitations->count(),
+                    'early_leave_request_count' => $leaveRequests->count(),
+                    'total_pending_actions' => $invitations->count() + $leaveRequests->count(),
+                ],
+            ]);
+        } catch (RuntimeException $e) {
+            return $this->businessError($e);
+        } catch (Throwable $e) {
+            report($e);
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to retrieve pending Ajo actions.',
+            ], 500);
         }
     }
 

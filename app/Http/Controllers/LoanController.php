@@ -1001,14 +1001,13 @@ class LoanController extends Controller
         $traceId = $request->trace_id ?? (string) \Illuminate\Support\Str::uuid();
         $request->merge(['trace_id' => $traceId]);
 
-        logInfo([
-            'trace_id' => $traceId,
-            'stage' => 'PROCESS LOAN START',
-            'method' => $request->method(),
-            'authenticated' => auth()->check(),
-            'auth_user_id' => auth()->id(),
-            'auth_company_id' => auth()->user()->company_id ?? null,
-        ], 'LOAN DEBUG PROCESS START');
+logInfo([
+    'trace_id' => $traceId,
+    'stage' => 'RAW API REQUEST',
+    'method' => $request->method(),
+    'content_type' => $request->header('Content-Type'),
+    'all_input' => $request->all(),
+], 'API LOAN RAW REQUEST');
 
         $validator = Validator::make($request->all(), [
             'customer'                       => 'required',

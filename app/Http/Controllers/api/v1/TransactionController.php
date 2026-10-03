@@ -7149,12 +7149,13 @@ public function verifyWithIdentityPass(Request $request)
                 ],
             ]);
         } else {
-            return response()->json([
-                'status'  => false,
-                'message' => "Failed to verify BVN with Date of birth",
-                'data'    => $request->bvn,
-            ], 400);
-        }
+
+    return response()->json([
+        'status'        => false,
+        'message'       => $bvnResponse['message'] ?? 'Failed to verify BVN',
+        'response_code' => $bvnResponse['response_code'] ?? null,
+    ], 400);
+}
     } else {
         return response()->json([
             'status'  => false,

@@ -480,15 +480,15 @@ class RegisterController extends Controller
                 $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
             }
 
-if ($request->account_bank == '090286') {
-    $virtualAccount->companyID = $companyRecord->id;
-    $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
-}
+     if ($request->account_bank == '090286') {
+     $virtualAccount->companyID = $companyRecord->id;
+     $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
+     }
 
-if ($selectedBank->bank_code == '000013') {
-    $virtualAccount->companyID = $companyRecord->id;
-    $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
-}
+     if ($selectedBank->bank_code == '000013') {
+     $virtualAccount->companyID = $companyRecord->id;
+     $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
+     }
             \logInfo(json_encode($virtualAccount), "virtualAccount Register Bank code ");
             $createAccountService = new AccountCreationService();
 

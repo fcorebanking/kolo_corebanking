@@ -64,36 +64,65 @@ class IdentityPassController extends Controller
         }
     }
 
-    public function verifyBVNMobile($bvn)
-    {
-        logInfo($bvn, "BVN Number");
+public function verifyBVNMobile($bvn)
+{
+    logInfo([
+        'bvn' => $bvn,
+        'bvn_type' => gettype($bvn),
+    ], "BVN Number");
 
-        $url = "{$this->baseUrl}verification/bvn_validation";
+    $url = "{$this->baseUrl}verification/bvn_validation";
 
-        $body = [
-            'number' => $bvn,
+    $body = [
+        'number' => (string) $bvn,
+    ];
 
+    logInfo([
+        'url' => $url,
+        'body' => $body,
+    ], "Prembly BVN Request");
+
+    try {
+
+        $bvn_response = $this->identitypassPostRequest($url, $body);
+
+        logInfo($bvn_response, "Verify BVN");
+
+        if (
+            isset($bvn_response['response_code'])
+            && $bvn_response['response_code'] == "00"
+        ) {
+            return [
+                'status'  => true,
+                'message' => 'BVN Verified Successfully',
+                'data'    => $bvn_response,
+            ];
+        }
+
+        return [
+            'status'        => false,
+            'response_code' => $bvn_response['response_code'] ?? null,
+            'message'       => $bvn_response['message']
+                ?? $bvn_response['detail']
+                ?? 'Failed to verify BVN',
+            'data'          => $bvn_response,
         ];
 
-        try {
-            $bvn_response = $this->identitypassPostRequest($url, $body);
+    } catch (\Throwable $e) {
 
-            logInfo($bvn_response, "Verify BVN");
+        logInfo([
+            'exception' => get_class($e),
+            'message'   => $e->getMessage(),
+            'file'      => $e->getFile(),
+            'line'      => $e->getLine(),
+        ], "Identitypass Error");
 
-            if (isset($bvn_response['response_code']) && $bvn_response['response_code'] == "00") {
-                return [
-                    'status'  => true,
-                    'message' => 'BVN Verified Successfuly', 'data' => $bvn_response,
-                ];
-            } else {
-                return ['status' => false, 'message' => 'Failed to verify BVN'];
-            }
-        } catch (Exception $e) {
-            logInfo($e->getMessage(), "Identitypass Error");
-
-            return ['status' => false, 'message' => 'Failed to Verify BVN'];
-        }
+        return [
+            'status'  => false,
+            'message' => 'Failed to verify BVN',
+        ];
     }
+}
 
     public function verifyNIN($nin)
     {

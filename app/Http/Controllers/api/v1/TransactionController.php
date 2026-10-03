@@ -7091,102 +7091,365 @@ public function verifyWithIdentityPass(Request $request)
 {
     $identityPassController = new IdentityPassController();
 
-    $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
+    logInfo([
+        'bvn' => substr((string) $request->bvn, 0, 3)
+            . '******'
+            . substr((string) $request->bvn, -2),
+        'dob' => $request->dob,
+    ], "Starting Prembly BVN verification");
 
-    // If the response is an object, convert it to an array
+
+    $bvnResponse = $identityPassController->verifyBVNMobile(
+        $request->bvn
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Convert object response to array if necessary
+    |--------------------------------------------------------------------------
+    */
+
     if (is_object($bvnResponse)) {
-        $bvnResponse = json_decode(json_encode($bvnResponse), true);
+
+        $bvnResponse = json_decode(
+            json_encode($bvnResponse),
+            true
+        );
     }
 
-    $time = strtotime($request->dob);
 
-    // Look at the top level status from your wrapper
-    $status = $bvnResponse['status'] ?? false;
-    
-    if ($status === true || $status === 'true') {
-        
-        // FIX: Extracting from the deeply nested data block shown in your Postman output
-        $apiDataBlock = $bvnResponse['data']['data'] ?? null;
-
-        if (!$apiDataBlock) {
-            return response()->json([
-                'status'  => false,
-                'message' => "Internal payload data array is missing.",
-                'debug'   => $bvnResponse
-            ], 422);
-        }
-
-        $firstName       = $apiDataBlock["firstName"] ?? null;
-        $lastName        = $apiDataBlock["lastName"] ?? null;
-        $dob             = $apiDataBlock["dateOfBirth"] ?? $apiDataBlock["dob"] ?? null;
-        $bvnFromResponse = $request->bvn;
-        $phone           = $apiDataBlock["phoneNumber"] ?? null;
-        $address         = $apiDataBlock["residentialAddress"] ?? null;
-
-        if (!$firstName || !$lastName || !$dob) {
-            return response()->json([
-                'status'  => false,
-                'message' => "Provider returned invalid or incomplete data structure.",
-                'debug'   => $bvnResponse
-            ], 422);
-        }
-
-        // Standardize both dates to Y-m-d to ensure clean string comparison
-        $inputDateStandardized = date('Y-m-d', $time); 
-        $bvnDateStandardized   = date('Y-m-d', strtotime($dob));
-
-        if ($inputDateStandardized === $bvnDateStandardized) {
-            return response()->json([
-                'status'  => true,
-                'message' => "Account Verified Successfully",
-                'data'    => [
-                    'first_name' => trim($firstName),
-                    "last_name"  => trim($lastName),
-                    "dob"        => $inputDateStandardized,
-                    "bvn"        => trim($bvnFromResponse),
-                    "phone"      => trim($phone),
-                    "address"    => trim($address),
-                ],
-            ]);
-        } else {
-
-    return response()->json([
-        'status'        => false,
-        'message'       => $bvnResponse['message'] ?? 'Failed to verify BVN',
+    logInfo([
+        'status' => $bvnResponse['status'] ?? null,
+        'message' => $bvnResponse['message'] ?? null,
         'response_code' => $bvnResponse['response_code'] ?? null,
-    ], 400);
-}
-    } else {
+    ], "Prembly BVN verification result");
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider verification failed
+    |--------------------------------------------------------------------------
+    */
+
+    $status = $bvnResponse['status'] ?? false;
+
+    if ($status !== true && $status !== 'true') {
+
         return response()->json([
-            'status'  => false,
-            'message' => "Failed to verify BVN",
+            'status' => false,
+            'message' => $bvnResponse['message']
+                ?? 'Failed to verify BVN',
+
+            'response_code' => $bvnResponse['response_code']
+                ?? null,
         ], 400);
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider verification succeeded
+    |--------------------------------------------------------------------------
+    */
+
+    $apiDataBlock = $bvnResponse['data']['data'] ?? null;
+
+
+    if (!$apiDataBlock) {
+
+        logInfo([
+            'response' => $bvnResponse,
+        ], "Prembly BVN successful response missing data");
+
+        return response()->json([
+            'status' => false,
+            'message' => "Internal payload data array is missing.",
+        ], 422);
+    }
+
+
+    $firstName = $apiDataBlock["firstName"] ?? null;
+
+    $lastName = $apiDataBlock["lastName"] ?? null;
+
+    $dob = $apiDataBlock["dateOfBirth"]
+        ?? $apiDataBlock["dob"]
+        ?? null;
+
+    $bvnFromResponse = $request->bvn;
+
+    $phone = $apiDataBlock["phoneNumber"] ?? null;
+
+    $address = $apiDataBlock["residentialAddress"] ?? null;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Make sure provider returned the required identity information
+    |--------------------------------------------------------------------------
+    */
+
+    if (!$firstName || !$lastName || !$dob) {
+
+        logInfo([
+            'data' => $apiDataBlock,
+        ], "Prembly BVN incomplete response");
+
+        return response()->json([
+            'status' => false,
+            'message' => "Provider returned invalid or incomplete data structure.",
+        ], 422);
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Compare DOB
+    |--------------------------------------------------------------------------
+    */
+
+    try {
+
+        $inputDateStandardized = \Carbon\Carbon::parse(
+            $request->dob
+        )->format('Y-m-d');
+
+        $bvnDateStandardized = \Carbon\Carbon::parse(
+            $dob
+        )->format('Y-m-d');
+
+    } catch (\Throwable $e) {
+
+        logInfo([
+            'message' => $e->getMessage(),
+            'request_dob' => $request->dob,
+            'provider_dob' => $dob,
+        ], "Prembly BVN DOB parsing error");
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to validate date of birth.',
+        ], 400);
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | DOB mismatch = verification failure
+    |--------------------------------------------------------------------------
+    | Because debit happens AFTER this function succeeds, the company
+    | will NOT be charged here.
+    |--------------------------------------------------------------------------
+    */
+
+    if ($inputDateStandardized !== $bvnDateStandardized) {
+
+        logInfo([
+            'requested_dob' => $inputDateStandardized,
+            'verified_dob' => $bvnDateStandardized,
+        ], "Prembly BVN DOB mismatch");
+
+        return response()->json([
+            'status' => false,
+            'message' => 'BVN verified but date of birth does not match.',
+        ], 400);
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Everything passed
+    |--------------------------------------------------------------------------
+    */
+
+    return response()->json([
+        'status' => true,
+        'message' => "Account Verified Successfully",
+
+        'data' => [
+            'first_name' => trim($firstName),
+
+            'last_name' => trim($lastName),
+
+            'dob' => $inputDateStandardized,
+
+            'bvn' => trim($bvnFromResponse),
+
+            'phone' => $phone
+                ? trim($phone)
+                : null,
+
+            'address' => $address
+                ? trim($address)
+                : null,
+        ],
+    ], 200);
 }
 
 
 
 
-    public function debitCompanyWithSubscriptionBVN(Request $request, $companyId)
-    {
-        $charge = 50;
+public function debitCompanyWithSubscriptionBVN(Request $request, $companyId)
+{
+    try {
 
         logInfo($companyId, "Debit company id");
 
-        $debitCompany = debitCompanyWithSubscriptionBalance($companyId, $charge, 0, );
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 1: VERIFY BVN FIRST
+        |--------------------------------------------------------------------------
+        | Do NOT debit the company before the external verification succeeds.
+        */
 
-        if (! $debitCompany['status']) {
-            return response()->json(['status' => false, 'message' => 'Switcher Error. Kindly contact support'], 400);
+        logInfo([
+            'company_id' => $companyId,
+            'bvn' => substr((string) $request->bvn, 0, 3) . '******' . substr((string) $request->bvn, -2),
+        ], "BVN verification before company debit");
+
+
+        $verificationResponse = $this->verifyWithIdentityPass($request);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Convert JsonResponse to array so we can inspect the result.
+        |--------------------------------------------------------------------------
+        */
+
+        if ($verificationResponse instanceof \Illuminate\Http\JsonResponse) {
+
+            $verificationData = $verificationResponse->getData(true);
+
+        } elseif (is_array($verificationResponse)) {
+
+            $verificationData = $verificationResponse;
+
+        } else {
+
+            logInfo([
+                'response_type' => gettype($verificationResponse),
+            ], "Unexpected BVN verification response");
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to verify BVN',
+            ], 400);
         }
 
-        logInfo($debitCompany, "Debit company log");
 
-        $this->debitBVNFromCompany($debitCompany, $companyId, $charge);
+        logInfo([
+            'status' => $verificationData['status'] ?? null,
+            'message' => $verificationData['message'] ?? null,
+        ], "BVN verification result before debit");
 
-        $time = strtotime($request->dob);
 
-        return $this->verifyWithIdentityPass($request);
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 2: IF VERIFICATION FAILED, DO NOT CHARGE
+        |--------------------------------------------------------------------------
+        */
+
+        if (($verificationData['status'] ?? false) !== true) {
+
+            logInfo([
+                'company_id' => $companyId,
+                'message' => $verificationData['message'] ?? 'BVN verification failed',
+            ], "BVN verification failed - company NOT debited");
+
+            return response()->json([
+                'status' => false,
+                'message' => $verificationData['message']
+                    ?? 'Failed to verify BVN',
+            ], 400);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 3: BVN VERIFIED SUCCESSFULLY
+        |--------------------------------------------------------------------------
+        | Only now do we charge the company.
+        */
+
+        $charge = 50;
+
+        logInfo([
+            'company_id' => $companyId,
+            'charge' => $charge,
+        ], "BVN verified - proceeding with company debit");
+
+
+        $debitCompany = debitCompanyWithSubscriptionBalance(
+            $companyId,
+            $charge,
+            0
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 4: MAKE SURE THE COMPANY HAS ENOUGH BALANCE
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$debitCompany['status']) {
+
+            logInfo([
+                'company_id' => $companyId,
+                'message' => $debitCompany['message'] ?? null,
+            ], "BVN verification succeeded but company debit failed");
+
+            return response()->json([
+                'status' => false,
+                'message' => $debitCompany['message']
+                    ?? 'Unable to process BVN verification charge',
+            ], 400);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 5: RECORD THE BVN CHARGE
+        |--------------------------------------------------------------------------
+        */
+
+        $this->debitBVNFromCompany(
+            $debitCompany,
+            $companyId,
+            $charge
+        );
+
+
+        logInfo([
+            'company_id' => $companyId,
+            'charge' => $charge,
+        ], "BVN company debit successful");
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 6: RETURN THE SUCCESSFUL VERIFICATION RESPONSE
+        |--------------------------------------------------------------------------
+        */
+
+        return $verificationResponse;
+
+    } catch (\Throwable $e) {
+
+        logInfo([
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ], "debitCompanyWithSubscriptionBVN Error");
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Failed to process BVN verification',
+        ], 400);
     }
+}
 
 public function verifyIdentityWithSafeHaven(Request $request)
 {

@@ -223,12 +223,44 @@ public function verifyBVNMobile($bvn)
         }
     }
 
-    public function identitypassPostRequest($endpoint, $body)
-    {
-        \logInfo("$endpoint");
-        $response = Http::withHeaders($this->identitypassHeader())->post("$endpoint", $body);
+public function identitypassPostRequest($endpoint, $body)
+{
+    logInfo([
+        'endpoint' => $endpoint,
+        'body' => $body,
+    ], "IdentityPass HTTP Request");
+
+    try {
+
+        $response = Http::withHeaders(
+            $this->identitypassHeader()
+        )
+        ->connectTimeout(10)
+        ->timeout(30)
+        ->post($endpoint, $body);
+
+
+        logInfo([
+            'http_status' => $response->status(),
+            'successful' => $response->successful(),
+            'failed' => $response->failed(),
+            'body' => $response->json(),
+        ], "IdentityPass HTTP Response");
+
+
         return $response->json();
+
+    } catch (\Throwable $e) {
+
+        logInfo([
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+            'endpoint' => $endpoint,
+        ], "IdentityPass HTTP Error");
+
+        throw $e;
     }
+}
 
     public function identitypassGetRequest($endpoint)
     {

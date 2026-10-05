@@ -901,7 +901,7 @@ public function noBvnRegister(Request $request)
         ], 406);
     }
 
-    \logInfo($request->except(['password', 'pin']), "Registration request");
+    \logInfo($request->except(['password', 'pin']), "No BVNRegistration request");
 
     /*
     |--------------------------------------------------------------------------
@@ -1181,6 +1181,15 @@ public function noBvnRegister(Request $request)
 
         $user->assignRole([4]);
 
+        
+        /*
+        |--------------------------------------------------------------------------
+        | Generate Access Token
+        |--------------------------------------------------------------------------
+        */
+
+        $accessToken = $user->createToken('authToken')->accessToken;
+
         /*
         |--------------------------------------------------------------------------
         | Commit
@@ -1212,7 +1221,7 @@ public function noBvnRegister(Request $request)
                 'user_reference' => $customerReference,
                 'user_id'        => $user->id,
                 'phone_number'   => $user->phone,
-
+                'access_token'  => $accessToken,
                 /*
                  * No account exists yet.
                  */
@@ -1224,6 +1233,8 @@ public function noBvnRegister(Request $request)
                  */
                 'otp_code'       => $user->otp ?? null,
                 'pin'            => $user->pin ?? null,
+                'bvn_verified' => false,
+                'kyc_required' => true,
             ],
         ], 200);
         

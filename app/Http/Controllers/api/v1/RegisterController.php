@@ -706,6 +706,546 @@ class RegisterController extends Controller
 
     }
 
+    #[OA\Post(
+    path: "/api/v1/users/create-account",
+    summary: "Create a user account",
+    description: "Creates a new customer user record under a specified company. BVN/NIN verification and virtual account creation are not performed during registration. The customer can complete identity verification and account creation later.",
+    tags: ["User"],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            type: "object",
+            required: [
+                "first_name",
+                "last_name",
+                "phone",
+                "email",
+                "dob",
+                "username",
+                "company",
+                "pin",
+                "password"
+            ],
+            properties: [
+                new OA\Property(
+                    property: "first_name",
+                    type: "string",
+                    minLength: 2,
+                    maxLength: 50,
+                    example: "John",
+                    description: "Customer's first name."
+                ),
+                new OA\Property(
+                    property: "last_name",
+                    type: "string",
+                    minLength: 2,
+                    maxLength: 50,
+                    example: "Doe",
+                    description: "Customer's last name."
+                ),
+                new OA\Property(
+                    property: "phone",
+                    type: "string",
+                    example: "08012345678",
+                    description: "Customer's phone number."
+                ),
+                new OA\Property(
+                    property: "email",
+                    type: "string",
+                    format: "email",
+                    example: "john.doe@example.com",
+                    description: "Customer's email address."
+                ),
+                new OA\Property(
+                    property: "dob",
+                    type: "string",
+                    format: "date",
+                    example: "1995-08-15",
+                    description: "Customer's date of birth."
+                ),
+                new OA\Property(
+                    property: "username",
+                    type: "string",
+                    example: "johndoe",
+                    description: "Unique username for the customer."
+                ),
+                new OA\Property(
+                    property: "company",
+                    type: "string",
+                    example: "46",
+                    description: "Company ID or company reference under which the user will be registered."
+                ),
+                new OA\Property(
+                    property: "pin",
+                    type: "string",
+                    example: "1234",
+                    description: "Customer's transaction PIN."
+                ),
+                new OA\Property(
+                    property: "password",
+                    type: "string",
+                    format: "password",
+                    example: "Password@123",
+                    description: "Customer's login password."
+                ),
+                new OA\Property(
+                    property: "gender",
+                    type: "string",
+                    nullable: true,
+                    example: "Male",
+                    description: "Customer's gender."
+                ),
+                new OA\Property(
+                    property: "address",
+                    type: "string",
+                    nullable: true,
+                    example: "12 Allen Avenue, Ikeja, Lagos",
+                    description: "Customer's residential address."
+                ),
+                new OA\Property(
+                    property: "branch",
+                    type: "integer",
+                    nullable: true,
+                    example: 2,
+                    description: "Branch ID. If omitted, the company's first branch is used."
+                ),
+                new OA\Property(
+                    property: "referral",
+                    type: "string",
+                    nullable: true,
+                    example: "johndoe123",
+                    description: "Referral username or user ID."
+                )
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Registration successful.",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Registration Successful"
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        type: "object",
+                        properties: [
+                            new OA\Property(
+                                property: "user_reference",
+                                type: "string",
+                                example: "CUS1234567890"
+                            ),
+                            new OA\Property(
+                                property: "user_id",
+                                type: "integer",
+                                example: 12345
+                            ),
+                            new OA\Property(
+                                property: "phone_number",
+                                type: "string",
+                                example: "08012345678"
+                            )
+                        ]
+                    )
+                ]
+            )
+        ),
+        new OA\Response(
+            response: 400,
+            description: "Registration failed or invalid company."
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Validation failed."
+        ),
+        new OA\Response(
+            response: 409,
+            description: "Conflict. Email, phone number, or username already exists."
+        ),
+        new OA\Response(
+            response: 500,
+            description: "Internal server error."
+        )
+    ]
+)]
+public function noBvnRegister(Request $request)
+{
+    $rules = [
+        'first_name' => 'required|string|max:50|min:2',
+        'last_name'  => 'required|string|max:50|min:2',
+        'phone'      => 'required|string',
+        'email'      => 'required|email|string',
+        'dob'        => 'required|date',
+        'username'   => 'required|string',
+        'company'    => 'required|string',
+        'pin'        => 'required|numeric|gt:0',
+        'password'   => 'required|string',
+    ];
+
+    $validator = Validator::make($request->all(), $rules);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status'  => false,
+            'message' => $validator->errors()->all()[0],
+        ], 406);
+    }
+
+    \logInfo($request->except(['password', 'pin']), "Registration request");
+
+    /*
+    |--------------------------------------------------------------------------
+    | Find Company
+    |--------------------------------------------------------------------------
+    */
+
+    $companyRecord = Company::where('company_reference', $request->company)
+        ->orWhere('id', $request->company)
+        ->first();
+
+    if (! $companyRecord || $companyRecord->id == 27) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Invalid company provided',
+        ], 400);
+    }
+
+    \logInfo($companyRecord->id, "Current company ID");
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate Company Status
+    |--------------------------------------------------------------------------
+    */
+
+    if ($companyRecord->status_id != 1) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Encounter error while trying to connect to institution.. please try again later',
+        ], 400);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Determine Branch
+    |--------------------------------------------------------------------------
+    */
+
+    $branch = $request->branch;
+
+    if (! $branch) {
+        $branch = $companyRecord->branch[0]->id ?? null;
+    }
+
+    if (! $branch) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'No branch found for this company',
+        ], 400);
+    }
+
+    $branchData = branch::where('id', $branch)->first();
+
+    if (! $branchData) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Invalid branch selected',
+        ], 400);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check Duplicate Email
+    |--------------------------------------------------------------------------
+    */
+
+    $existingUser = User::where([
+        ['email', $request->email],
+        ['company_id', $companyRecord->id],
+    ])->first();
+
+    if ($existingUser) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Email already exists',
+        ], 409);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check Duplicate Phone
+    |--------------------------------------------------------------------------
+    */
+
+    $existingUser = User::where([
+        ['phone', $request->phone],
+        ['company_id', $companyRecord->id],
+    ])->first();
+
+    if ($existingUser) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Phone number already exists',
+        ], 409);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check Duplicate Username
+    |--------------------------------------------------------------------------
+    */
+
+    $existingUser = User::where(
+        'username',
+        $request->username
+    )->first();
+
+    if ($existingUser) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Username already exists',
+        ], 409);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Account Officer
+    |--------------------------------------------------------------------------
+    */
+
+    $accountOfficer = User::where(
+        'company_id',
+        $companyRecord->id
+    )->first();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Generate Customer Reference + OTP
+    |--------------------------------------------------------------------------
+    */
+
+    $customerReference = generateAccountReference();
+
+    $otp = generateOtp();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create User
+    |--------------------------------------------------------------------------
+    |
+    | IMPORTANT:
+    |
+    | No BVN verification.
+    | No NIN verification.
+    | No AccountCreationService.
+    | No virtual account creation.
+    | No wb_account_details.
+    | No user_wallet.
+    |
+    | BVN and NIN remain NULL until the customer completes verification.
+    |
+    */
+
+    DB::beginTransaction();
+
+    try {
+
+        $userData = [
+            'first_name'                   => $request->first_name,
+            'last_name'                    => $request->last_name,
+            'company_id'                   => $companyRecord->id,
+            'email'                        => $request->email,
+
+            // KYC is performed later.
+            'bvn'                          => null,
+            'nin'                          => null,
+
+            'phone'                        => $request->phone,
+            'otp'                          => null,
+            // 'otp'                          => $otp,
+            'bank_id'                      => null,
+            'pin'                          => $request->pin,
+            'address'                      => $request->address ?? null,
+            'dob'                          => $request->dob,
+            'gender'                       => $request->gender ?? null,
+
+            'sms'                          => 1,
+            'kyc_level_id'                 => 1,
+
+            'status_id' => $companyRecord->setting->account_approval == 0
+                ? 7
+                : 1,
+
+            'branch_id'                    => $branch,
+            'profile_pic'                  => 'https://safe.wbalite.com/passports/default_image.jpg',
+
+            'user_type_id'                 => 1,
+
+            /*
+             * No virtual account exists yet.
+             */
+            'virtual_account'              => null,
+            'account_reference'             => null,
+
+            'otp_expiration_date'           => null,
+
+            // 'otp_expiration_date'           => Carbon::now()->addMinutes(10),
+
+            'username'                      => $request->username,
+
+            'account_officer_id'            => $accountOfficer->id ?? null,
+
+            /*
+             * uuid can still identify the user before
+             * the financial account is created.
+             */
+            'uuid'                          => $customerReference,
+
+            'password'                      => Hash::make($request->password),
+
+            'phone_verification_status_id'  => (
+                isset($branchData->currency_id)
+                && $branchData->currency_id == 1
+            )
+                ? null
+                : 1,
+        ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Referral
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->filled('referral')) {
+
+            $refeUser = User::where(
+                'company_id',
+                $companyRecord->id
+            )
+                ->where(function ($query) use ($request) {
+                    $query->where(
+                        'username',
+                        $request->referral
+                    )->orWhere(
+                        'id',
+                        $request->referral
+                    );
+                })
+                ->first();
+
+            if (! $refeUser) {
+                DB::rollBack();
+
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Invalid referral username',
+                ], 400);
+            }
+
+            $userData['referral_id'] = $refeUser->id;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create User
+        |--------------------------------------------------------------------------
+        */
+
+        $user = User::create($userData);
+
+        if (! $user) {
+            DB::rollBack();
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to complete Registration Err::09',
+            ], 400);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Assign Default Customer Role
+        |--------------------------------------------------------------------------
+        */
+
+        $user->assignRole([4]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Commit
+        |--------------------------------------------------------------------------
+        */
+
+        DB::commit();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Referral Processing
+        |--------------------------------------------------------------------------
+        */
+
+        if (isset($user->referral_id)) {
+            $this->referralProcessJob($user);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Registration Response
+        |--------------------------------------------------------------------------
+        */
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Registration Successful',
+            'data'    => [
+                'user_reference' => $customerReference,
+                'user_id'        => $user->id,
+                'phone_number'   => $user->phone,
+
+                /*
+                 * No account exists yet.
+                 */
+                'account_number' => null,
+                'bank'           => null,
+
+                /*
+                 * Keep the existing OTP behavior.
+                 */
+                'otp_code'       => $user->otp ?? null,
+                'pin'            => $user->pin ?? null,
+            ],
+        ], 200);
+        
+
+    } catch (\Throwable $e) {
+
+        DB::rollBack();
+
+        \logInfo([
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+            'trace'   => $e->getTraceAsString(),
+        ], "Registration failure");
+
+        return response()->json([
+            'status'  => false,
+            'message' => 'Failed to complete Registration',
+        ], 400);
+    }
+}
+
     public function ussdRegister(Request $request)
     {
 
@@ -1137,6 +1677,16 @@ class RegisterController extends Controller
         $identityPassController = new IdentityPassController();
 
         $bvnResponse = $identityPassController->verifyBVNMobile($request->bvn);
+
+        return $bvnResponse;
+
+    }
+
+        public function verifyBVN2(Request $request)
+    {
+        $identityPassController = new IdentityPassController();
+
+        $bvnResponse = $identityPassController->verifyBVNMobile2($request->bvn);
 
         return $bvnResponse;
 

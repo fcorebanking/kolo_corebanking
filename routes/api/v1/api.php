@@ -64,6 +64,7 @@ Route::prefix('/users')->group(function () {
     Route::post('/pin-login', [LoginController::class, 'loginPin'])->middleware('log.route');
 
     Route::post('/register', [RegisterController::class, 'register']);
+    Route::post('/create-account', [RegisterController::class, 'noBvnRegister']);
     Route::get('/branchs', [RegisterController::class, 'branch']);
     Route::get('/company-product', [RegisterController::class, 'product']);
 
@@ -132,6 +133,7 @@ Route::post('/verify-bank-account-test', [TransactionController::class, 'verifyB
 Route::post('/verify-account-full', [TransactionController::class, 'verifyBankAccountFullname'])->name('v1-verify-account-full');
 //Route::middleware('auth:api')->post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
 Route::post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
+Route::post('/verify-bvn-v2', [RegisterController::class, 'verifyBVN2'])->name('verify-bvn-v2');
 Route::post('/verify-bvn/otp', [TransactionController::class, 'verifyBVNOtp'])->name('verify-bvn.otp');
 Route::middleware('checkApiKey')->get('/verify-bvn/{bvn}', [TransactionController::class, 'verifyBVNAlt'])->name('verify-bvn-alt');
 Route::get('/get-banks', [TransactionController::class, 'getAllBanks'])->name('v1-get-banks');

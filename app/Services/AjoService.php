@@ -482,6 +482,82 @@ protected function ensureAjoAccount($user, bool $lock = true): AjoAccount
         });
     }
 
+/**
+ * Get all pending Ajo invitations sent to a user.
+ *
+ * Only invitations belonging to the supplied user are returned.
+ */
+public function getPendingInvitations($user)
+{
+    $invitations = AjoInvitation::query()
+        ->where('invited_user_id', $user->id)
+        ->where('status', AjoInvitation::STATUS_PENDING)
+        ->latest('id')
+        ->get();
+
+    $ajoIds = $invitations
+        ->pluck('ajo_id')
+        ->filter()
+        ->unique()
+        ->values();
+
+    $inviterIds = $invitations
+        ->pluck('invited_by')
+        ->filter()
+        ->unique()
+        ->values();
+
+    $ajos = Ajo::query()
+        ->whereIn('id', $ajoIds)
+        ->get()
+        ->keyBy('id');
+
+    $inviters = User::query()
+        ->whereIn('id', $inviterIds)
+        ->get()
+        ->keyBy('id');
+
+    return $invitations->map(function (AjoInvitation $invitation) use ($ajos, $inviters) {
+        $ajo = $ajos->get($invitation->ajo_id);
+        $inviter = $inviters->get($invitation->invited_by);
+
+        return [
+            'invitation_id' => $invitation->id,
+            'status' => $invitation->status,
+
+            'ajo_id' => $ajo?->id,
+            'ajo_name' => $ajo?->ajo_name,
+            'ajo_description' => $ajo?->description,
+            'creator_user_id' => $ajo?->creator_user_id,
+
+            'creator_name' => $inviter?->name
+                ?? $inviter?->username
+                ?? 'Ajo creator',
+
+            'creator_username' => $inviter?->username,
+
+            'collection_amount' => $ajo
+                ? (float) $ajo->collection_amount
+                : 0,
+
+            'collection_frequency' => $ajo?->collection_frequency,
+            'collection_interval' => $ajo?->collection_interval,
+            'collection_day' => $ajo?->collection_day,
+            'collection_time' => $ajo?->collection_time,
+
+            'start_date' => $ajo?->start_date,
+            'maturity_date' => $ajo?->maturity_date,
+
+            'visibility' => $ajo?->visibility,
+
+            'terms_snapshot' => $invitation->terms_snapshot,
+            'terms_version' => $invitation->terms_version,
+
+            'sent_at' => $invitation->sent_at,
+        ];
+    })->values();
+}
+
     /**
      * Join a public Ajo directly.
      *

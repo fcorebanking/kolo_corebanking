@@ -592,3 +592,4 @@ Route::prefix('campaigns')->group(function () {
     Route::post('/ajo/{ajoId}/fee-split', [AjoController::class, 'feeSplit'])->whereNumber('ajoId')->name('ajo.fee-split');
     Route::post('/ajo/system/process-collections', [AjoController::class, 'processCollections'])->name('ajo.system.process-collections');
     Route::post('/ajo/system/process-maturity', [AjoController::class, 'processMaturity'])->name('ajo.system.process-maturity');
+    Route::get('/ajo/invitations/pending',[AjoController::class, 'pendingInvitations'])->name('ajo.invitations.pending');

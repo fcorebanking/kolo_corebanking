@@ -14,7 +14,7 @@ class TargetSavingsTransaction extends Model
     protected $table = 'target_savings_transactions';
 
     protected $fillable = [
-        'target_savings_id',
+        'target_saving_id',
         'user_id',
         'company_id',
         'type',
@@ -42,7 +42,7 @@ class TargetSavingsTransaction extends Model
     {
         return $this->belongsTo(
             TargetSaving::class,
-            'target_savings_id',
+            'target_saving_id',
             'id'
         );
     }
@@ -56,7 +56,7 @@ class TargetSavingsTransaction extends Model
         return $this->hasOne(
             TargetSavingsSchedule::class,
             'target_saving_id',
-            'target_savings_id'
+            'target_saving_id'
         );
     }
 

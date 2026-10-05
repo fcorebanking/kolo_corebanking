@@ -923,4 +923,56 @@ public function feeSplit(Request $request, int $ajoId): JsonResponse
     {
         return response()->json(['status' => false, 'message' => 'Administrator access required.'], 403);
     }
+
+    #[OA\Get(
+    path: "/api/v1/ajo/invitations/pending",
+    summary: "Get the authenticated user's pending Ajo invitations",
+    description: "Returns all pending Ajo invitations that have been sent to the authenticated user.",
+    tags: ["Ajo Membership"],
+    security: [["bearerAuth" => []]],
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Pending Ajo invitations retrieved successfully"
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        ),
+        new OA\Response(
+            response: 500,
+            description: "Unexpected server error"
+        ),
+    ]
+)]
+public function pendingInvitations(Request $request): JsonResponse
+{
+    try {
+        $user = $this->authenticatedUser();
+
+        $invitations = $this->ajoService->getPendingInvitations($user);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Pending Ajo invitations retrieved successfully.',
+            'data' => [
+                'invitations' => $invitations,
+                'invitation_count' => $invitations->count(),
+            ],
+        ]);
+
+    } catch (RuntimeException $e) {
+
+        return $this->businessError($e);
+
+    } catch (Throwable $e) {
+
+        report($e);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to retrieve pending Ajo invitations.',
+        ], 500);
+    }
+}
 }

@@ -855,139 +855,153 @@ class CampaignController extends Controller
         }
     }
 
-    /**
-     * Get Campaign transaction history.
-     */
-    #[OA\Get(
-        path: "/api/v1/campaigns/transactions/{id}",
-        summary: "Get Campaign transactions",
-        description: "Fetches the transaction history for a Campaign, including contributions and withdrawals.",
-        tags: ["Campaigns"],
-        security: [["bearerAuth" => []]],
-        parameters: [
-            new OA\Parameter(
-                name: "id",
-                in: "path",
-                required: true,
-                description: "Campaign ID.",
-                schema: new OA\Schema(
-                    type: "integer",
-                    example: 1
-                )
-            ),
-            new OA\Parameter(
-                name: "per_page",
-                in: "query",
-                required: false,
-                description: "Number of transaction records per page.",
-                schema: new OA\Schema(
-                    type: "integer",
-                    minimum: 1,
-                    maximum: 100,
-                    example: 20
-                )
+/**
+ * Get Campaign transaction history.
+ */
+#[OA\Get(
+    path: "/api/v1/campaigns/transactions/{id}",
+    summary: "Get Campaign transactions",
+    description: "Fetches the authenticated user's transaction history for a Campaign, including their contributions and withdrawals.",
+    tags: ["Campaigns"],
+    security: [["bearerAuth" => []]],
+    parameters: [
+        new OA\Parameter(
+            name: "id",
+            in: "path",
+            required: true,
+            description: "Campaign ID.",
+            schema: new OA\Schema(
+                type: "integer",
+                example: 1
             )
-        ],
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: "Campaign transactions retrieved successfully"
-            ),
-            new OA\Response(
-                response: 401,
-                description: "Unauthenticated"
-            ),
-            new OA\Response(
-                response: 404,
-                description: "Campaign not found"
-            ),
-            new OA\Response(
-                response: 422,
-                description: "Validation failed"
-            ),
-            new OA\Response(
-                response: 500,
-                description: "Unable to retrieve Campaign transactions"
+        ),
+        new OA\Parameter(
+            name: "per_page",
+            in: "query",
+            required: false,
+            description: "Number of transaction records per page.",
+            schema: new OA\Schema(
+                type: "integer",
+                minimum: 1,
+                maximum: 100,
+                example: 20
             )
-        ]
-    )]
-    public function transactions(
-        Request $request,
-        $id
-    ): JsonResponse {
-        try {
+        )
+    ],
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Campaign transactions retrieved successfully"
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        ),
+        new OA\Response(
+            response: 404,
+            description: "Campaign not found"
+        ),
+        new OA\Response(
+            response: 422,
+            description: "Validation failed"
+        ),
+        new OA\Response(
+            response: 500,
+            description: "Unable to retrieve Campaign transactions"
+        )
+    ]
+)]
+public function transactions(
+    Request $request,
+    $id
+): JsonResponse {
+    try {
 
-            $user = auth('api')->user();
+        $user = auth('api')->user();
 
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'per_page' => [
-                    'nullable',
-                    'integer',
-                    'min:1',
-                    'max:100',
-                ],
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation failed.',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            $campaign = Campaign::query()
-                ->where('id', $id)
-                ->first();
-
-            if (!$campaign) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Campaign not found.',
-                ], 404);
-            }
-
-            $perPage = min(
-                max(
-                    (int) $request->get('per_page', 20),
-                    1
-                ),
-                100
-            );
-
-            $transactions = $campaign
-                ->transactions()
-                ->with([
-                    'user:id,uuid,first_name,last_name,username,email,phone',
-                ])
-                ->latest()
-                ->paginate($perPage);
-
-            return response()->json([
-                'status' => true,
-                'message' =>
-                    'Campaign transactions retrieved successfully.',
-                'data' => $transactions,
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
+        if (!$user) {
             return response()->json([
                 'status' => false,
-                'message' =>
-                    'Unable to retrieve Campaign transactions.',
-            ], 500);
+                'message' => 'Unauthenticated.',
+            ], 401);
         }
+
+        $validator = Validator::make($request->all(), [
+            'per_page' => [
+                'nullable',
+                'integer',
+                'min:1',
+                'max:100',
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $campaign = Campaign::query()
+            ->where('id', $id)
+            ->first();
+
+        if (!$campaign) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Campaign not found.',
+            ], 404);
+        }
+
+        $perPage = min(
+            max(
+                (int) $request->get('per_page', 20),
+                1
+            ),
+            100
+        );
+
+        /*
+         * IMPORTANT:
+         *
+         * Only return transactions belonging to the
+         * authenticated Core user.
+         *
+         * This prevents another authenticated user from
+         * seeing everybody else's contributions/withdrawals
+         * simply by supplying the Campaign ID.
+         */
+        $transactions = $campaign
+            ->transactions()
+            ->where(
+                'user_id',
+                $user->id
+            )
+            ->with([
+                'user:id,uuid,first_name,last_name,username,email,phone',
+            ])
+            ->latest()
+            ->paginate($perPage);
+
+        return response()->json([
+            'status' => true,
+            'message' =>
+                'Campaign transactions retrieved successfully.',
+            'data' => $transactions,
+        ], 200);
+
+    } catch (Throwable $e) {
+
+        report($e);
+
+        return response()->json([
+            'status' => false,
+            'message' =>
+                'Unable to retrieve Campaign transactions.',
+        ], 500);
     }
+}
 
     /**
      * Get all Campaigns belonging to users in the

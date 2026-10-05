@@ -9,9 +9,9 @@ use App\Models\LoanRepayment;
 use App\Models\loan_period;
 use App\Models\transactions;
 use App\Models\User;
-use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class LoanController extends Controller
@@ -20,6 +20,7 @@ class LoanController extends Controller
     {
         $user = (auth()->check()) ? auth()->user() : User::where('id', $request->userid)->first();
         logInfo(json_encode($user), "loan user");
+        logInfo(json_encode($request), "User's Loan Request Data");
         $officer     = User::where('id', $user->account_officer_id)->first();
         $eligibility = $this->eligibility();
         if ($eligibility->status == 0) {
@@ -54,7 +55,6 @@ class LoanController extends Controller
         $request->missedFee                      = 0;
         $request->DurationPeriod                 = $eligibility->durationPeriod;
         $request->status                         = 1;
-        logInfo(json_encode($request), "loan user reqest");
         return $request;
     }
     
@@ -270,6 +270,7 @@ public function processLoan(Request $request)
 
         return $req;
     }
+
     public function PostBooklLoan(Request $request)
     {
         $user = null;
@@ -405,6 +406,7 @@ public function processLoan(Request $request)
             return response()->json(['message' => $e->getMessage() . $e->getLine(), 'status' => 0]);
         }
     }
+
     public function listUserLoan()
     { //loan_repayments
         logInfo(json_encode(auth()->user()->id), "User Loan");

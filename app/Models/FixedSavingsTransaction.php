@@ -13,7 +13,7 @@ class FixedSavingsTransaction extends Model
     protected $table = 'fixed_savings_transactions';
 
     protected $fillable = [
-        'fixed_savings_id',
+        'fixed_saving_id',
         'user_id',
         'company_id',
         'type',

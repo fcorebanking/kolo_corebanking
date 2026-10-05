@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('fixed_savings_transactions', function (Blueprint $table) {
     $table->id();
 
-    $table->unsignedBigInteger('fixed_savings_id');
+    $table->unsignedBigInteger('fixed_saving_id');
     $table->unsignedBigInteger('user_id');
     $table->unsignedBigInteger('company_id');
 
@@ -41,8 +41,8 @@ return new class extends Migration
 
     $table->timestamps();
 
-    $table->index('fixed_savings_id');
-    $table->index(['fixed_savings_id', 'type']);
+    $table->index('fixed_saving_id');
+    $table->index(['fixed_saving_id', 'type']);
     $table->index(['company_id', 'type']);
 
     /*
@@ -50,7 +50,7 @@ return new class extends Migration
      * interest twice for the same day.
      */
     $table->unique(
-        ['fixed_savings_id', 'type', 'interest_date'],
+        ['fixed_saving_id', 'type', 'interest_date'],
         'fixed_savings_daily_interest_unique'
     );
 });

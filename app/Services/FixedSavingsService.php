@@ -249,7 +249,7 @@ class FixedSavingsService
              * Fixed Savings product ledger.
              */
             $fixedTransaction = FixedSavingsTransaction::create([
-                'fixed_savings_id' =>
+                'fixed_saving_id' =>
                     $fixed->id,
 
                 'user_id' =>
@@ -489,7 +489,7 @@ class FixedSavingsService
              */
             $withdrawalTransaction =
                 FixedSavingsTransaction::create([
-                    'fixed_savings_id' =>
+                    'fixed_saving_id' =>
                         $fixed->id,
 
                     'user_id' =>
@@ -552,7 +552,7 @@ class FixedSavingsService
 
                 $feeTransaction =
                     FixedSavingsTransaction::create([
-                        'fixed_savings_id' =>
+                        'fixed_saving_id' =>
                             $fixed->id,
 
                         'user_id' =>
@@ -849,7 +849,7 @@ class FixedSavingsService
                             $existing =
                                 FixedSavingsTransaction::query()
                                     ->where(
-                                        'fixed_savings_id',
+                                        'fixed_saving_id',
                                         $fixed->id
                                     )
                                     ->where(
@@ -1005,7 +1005,7 @@ class FixedSavingsService
                              */
                             $fixedTransaction =
                                 FixedSavingsTransaction::create([
-                                    'fixed_savings_id' =>
+                                    'fixed_saving_id' =>
                                         $fixed->id,
 
                                     'user_id' =>
@@ -1264,7 +1264,7 @@ class FixedSavingsService
                          * Record maturity in Fixed Savings ledger.
                          */
                         FixedSavingsTransaction::create([
-                            'fixed_savings_id' =>
+                            'fixed_saving_id' =>
                                 $fixed->id,
 
                             'user_id' =>
@@ -1374,7 +1374,7 @@ class FixedSavingsService
             'user_id' =>
                 $fixed->user_id,
 
-            'fixed_savings_id' =>
+            'fixed_saving_id' =>
                 $fixed->id,
 
             'transaction_id' =>
@@ -1442,7 +1442,7 @@ class FixedSavingsService
             'user_id' =>
                 $fixed->user_id,
 
-            'fixed_savings_id' =>
+            'fixed_saving_id' =>
                 $fixed->id,
 
             'transaction_id' =>

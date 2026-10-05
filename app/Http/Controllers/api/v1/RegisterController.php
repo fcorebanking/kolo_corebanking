@@ -901,7 +901,7 @@ public function noBvnRegister(Request $request)
         ], 406);
     }
 
-    \logInfo($request->except(['password', 'pin']), "No BVNRegistration request");
+    \logInfo($request->except(['password', 'pin']), "No BVN Registration request");
 
     /*
     |--------------------------------------------------------------------------

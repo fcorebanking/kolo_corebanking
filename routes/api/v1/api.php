@@ -61,6 +61,7 @@ Route::get('/get-company-setting-with-version/{id}', [UtilityController::class, 
 
 Route::prefix('/users')->group(function () {
     Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/login-v2', [LoginController::class, 'loginV2']);
     Route::post('/pin-login', [LoginController::class, 'loginPin'])->middleware('log.route');
 
     Route::post('/register', [RegisterController::class, 'register']);

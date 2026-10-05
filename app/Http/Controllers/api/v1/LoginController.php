@@ -798,6 +798,367 @@ class LoginController extends Controller
     }
 }
 
+#[OA\Post(
+    path: "/api/v1/users/login-v2",
+    summary: "User Login V2",
+    description: "Authenticates a customer using their email and password and returns a fresh access token. This endpoint does not perform phone verification, OTP verification, or any other verification step. A new access token is generated on every successful login.",
+    tags: ["User"],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            type: "object",
+            required: [
+                "email",
+                "password"
+            ],
+            properties: [
+                new OA\Property(
+                    property: "email",
+                    type: "string",
+                    format: "email",
+                    example: "john.doe@example.com",
+                    description: "Customer's email address."
+                ),
+                new OA\Property(
+                    property: "password",
+                    type: "string",
+                    format: "password",
+                    example: "Password\@123",
+                    description: "Customer's login password."
+                )
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Login successful and a new access token has been generated.",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Login Successful"
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        type: "object",
+                        properties: [
+                            new OA\Property(
+                                property: "user",
+                                type: "object",
+                                properties: [
+                                    new OA\Property(
+                                        property: "first_name",
+                                        type: "string",
+                                        example: "John"
+                                    ),
+                                    new OA\Property(
+                                        property: "last_name",
+                                        type: "string",
+                                        example: "Doe"
+                                    ),
+                                    new OA\Property(
+                                        property: "uuid",
+                                        type: "string",
+                                        example: "CUS123456789"
+                                    ),
+                                    new OA\Property(
+                                        property: "phone",
+                                        type: "string",
+                                        example: "08012345678"
+                                    ),
+                                    new OA\Property(
+                                        property: "email",
+                                        type: "string",
+                                        format: "email",
+                                        example: "john.doe@example.com"
+                                    ),
+                                    new OA\Property(
+                                        property: "company_id",
+                                        type: "integer",
+                                        example: 46
+                                    ),
+                                    new OA\Property(
+                                        property: "status_id",
+                                        type: "integer",
+                                        example: 1
+                                    )
+                                ]
+                            ),
+                            new OA\Property(
+                                property: "access_token",
+                                type: "string",
+                                example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+                            )
+                        ]
+                    )
+                ]
+            )
+        ),
+        new OA\Response(
+            response: 400,
+            description: "Login unavailable because the company's subscription has expired."
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Authentication failed, account is blocked, company is inactive, or the account is not permitted to log in."
+        ),
+        new OA\Response(
+            response: 404,
+            description: "Invalid login credentials because the user's company has been deleted."
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Validation failed. Email and password are required."
+        )
+    ]
+)]
+public function loginV2(Request $request)
+{
+    logInfo($request->all(), "LOGIN V2 REQUEST");
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate request
+    |--------------------------------------------------------------------------
+    */
+
+    $validate = Validator::make($request->all(), [
+        'email' => ['required', 'string', 'email'],
+        'password' => ['required', 'string'],
+    ]);
+
+    if ($validate->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Email and password fields are required'
+        ], 406);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authenticate using EMAIL + PASSWORD
+    |--------------------------------------------------------------------------
+    */
+
+    $login = [
+        'email' => $request->email,
+        'password' => $request->password
+    ];
+
+    if (!Auth::attempt($login)) {
+
+        $user = User::where('email', $request->email)
+            ->where('status_id', '!=', 13)
+            ->first();
+
+        if ($user) {
+
+            if ($user->login_fails == 4) {
+                $user->status_id = 6;
+            } else {
+                $user->login_fails += 1;
+            }
+
+            $user->save();
+
+            if ($user->status_id == 6) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'User Account has been blocked. Please contact admin to unlock Account'
+                ], 401);
+            }
+
+            $attemptTxt = $user->login_fails == 3
+                ? 'attempt'
+                : 'attempts';
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid Login credentials. Your account will be deactivated after ' .
+                    (5 - $user->login_fails) . " wrong $attemptTxt"
+            ], 401);
+        }
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid Login Credentials'
+        ], 401);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get authenticated user
+    |--------------------------------------------------------------------------
+    */
+
+    $user = Auth::user();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Company checks
+    |--------------------------------------------------------------------------
+    */
+
+    if ($user->company->status_id == 13) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid Login Credentials'
+        ], 404);
+    }
+
+    if ($user->company->status_id != 1) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Encounter error while trying to connect to institution.. please try again later'
+        ], 401);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Restricted companies
+    |--------------------------------------------------------------------------
+    */
+
+    if (in_array($user->company->id, [26, 32, 37, 51, 52, 54, 57, 83])) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Encounter error while trying to connect to institution.. please try again later'
+        ], 401);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Customer account check
+    |--------------------------------------------------------------------------
+    */
+
+    if ($user->user_type_id == 2) {
+        return response()->json([
+            'status' => false,
+            'message' => 'This Account is not a Customer Account'
+        ], 401);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Account status checks
+    |--------------------------------------------------------------------------
+    */
+
+    if ($user->status_id == 7) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Your Account is currently being reviewed and will be approved soon'
+        ], 401);
+    }
+
+    if ($user->status_id == 5) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Your account has been blocked. Kindly contact support to unblock.'
+        ], 401);
+    }
+
+    if ($user->status_id == 6) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Your account has been blocked. Kindly Reset Password'
+        ], 401);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Subscription check
+    |--------------------------------------------------------------------------
+    */
+
+    if ($user->company->sub->end_date < Date('Y-m-d')) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Please hold on we are carrying out a quick maintenance on our system'
+        ], 400);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reset failed login counter
+    |--------------------------------------------------------------------------
+    */
+
+    $user->login_fails = 0;
+    $user->save();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Generate fresh access token
+    |--------------------------------------------------------------------------
+    |
+    | IMPORTANT:
+    | No phone verification
+    | No OTP
+    | No email verification
+    | No verification status check
+    |
+    */
+
+    $accessToken = $user
+        ->createToken('authToken')
+        ->accessToken;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Return user information
+    |--------------------------------------------------------------------------
+    */
+
+    $userDetails = [
+        "first_name" => $user->first_name,
+        "last_name" => $user->last_name,
+        "uuid" => $user->uuid,
+        "phone" => $user->phone,
+        "profile_pic" => $user->profile_pic ?? "",
+        "username" => $user->username,
+        "bvn" => $user->bvn,
+        "dob" => $user->dob,
+        "bvn_status_id" => $user->bvn_status_id,
+        "referral_id" => $user->id,
+        "nin" => $user->nin,
+        "email" => $user->email,
+        "address" => $user->address,
+        "sex" => $user->sex,
+        "is_agent" => $user->is_agent,
+        "virtual_account" => $user->virtual_account,
+        "account_reference" => $user->account_reference,
+        "bank_id" => $user->bank_id,
+        "validID_file" => $user->validID_file,
+        "otherID_file" => $user->otherID_file,
+        "company_id" => $user->company_id,
+        "status_id" => $user->status_id,
+        "phone_verification_status_id" => $user->phone_verification_status_id,
+        "account_officer_id" => $user->account_officer_id,
+        "branch_id" => $user->branch_id,
+        "tier" => $user->kyc_level_id,
+    ];
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Login Successful',
+        'data' => [
+            'user' => $userDetails,
+            'access_token' => $accessToken
+        ]
+    ], 200);
+}
+
+
     public function getTokenAndRefreshToken($email, $password)
     {
 

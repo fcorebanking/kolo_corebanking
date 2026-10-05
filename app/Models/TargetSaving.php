@@ -60,7 +60,7 @@ class TargetSaving extends Model
     {
         return $this->hasMany(
             TargetSavingsTransaction::class,
-            'target_saving_id',
+            'target_savings_id',
             'id'
         );
     }
@@ -69,7 +69,7 @@ class TargetSaving extends Model
     {
         return $this->hasOne(
             TargetSavingsSchedule::class,
-            'target_saving_id',
+            'target_savings_id',
             'id'
         );
     }

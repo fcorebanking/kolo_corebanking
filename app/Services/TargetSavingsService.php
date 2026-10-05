@@ -191,7 +191,7 @@ class TargetSavingsService
              * Create the automatic recurring debit schedule.
              */
             TargetSavingsSchedule::create([
-                'target_saving_id' => $target->id,
+                'target_savings_id' => $target->id,
                 'user_id' => $user->id,
                 'source_account_id' => $account->id,
                 'amount' => round($autoDepositAmount, 2),
@@ -588,7 +588,7 @@ class TargetSavingsService
              * Any withdrawal ends future automatic debit attempts.
              */
             TargetSavingsSchedule::query()
-                ->where('target_saving_id', $target->id)
+                ->where('target_savings_id', $target->id)
                 ->update([
                     'is_active' => false,
                     'next_deposit_at' => null,
@@ -901,7 +901,7 @@ class TargetSavingsService
 
                             $target = TargetSaving::query()
                                 ->lockForUpdate()
-                                ->find($schedule->target_saving_id);
+                                ->find($schedule->target_savings_id);
 
                             if (!$target || $target->status !== 'active') {
                                 $schedule->is_active = false;
@@ -1030,7 +1030,7 @@ class TargetSavingsService
 
                             $target = TargetSaving::query()
                                 ->lockForUpdate()
-                                ->find($schedule->target_saving_id);
+                                ->find($schedule->target_savings_id);
 
                             if (!$target || $target->status !== 'active') {
                                 $this->deactivateSchedule($schedule);
@@ -1870,7 +1870,7 @@ class TargetSavingsService
                          * Stop future automatic debit attempts.
                          */
                         TargetSavingsSchedule::query()
-                            ->where('target_saving_id', $target->id)
+                            ->where('target_savings_id', $target->id)
                             ->update([
                                 'is_active' => false,
                                 'next_deposit_at' => null,

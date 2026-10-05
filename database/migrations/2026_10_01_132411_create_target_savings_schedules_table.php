@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('target_savings_schedules', function (Blueprint $table) {
             $table->id();
 
-            $table->unsignedBigInteger('target_saving_id')->unique();
+            $table->unsignedBigInteger('target_savings_id')->unique();
             $table->unsignedBigInteger('user_id')->index();
             $table->unsignedBigInteger('source_account_id')->index();
 
@@ -40,7 +40,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->foreign('target_saving_id')
+            $table->foreign('target_savings_id')
                 ->references('id')
                 ->on('target_savings')
                 ->cascadeOnDelete();

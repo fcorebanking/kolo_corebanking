@@ -13,7 +13,7 @@ class TargetSavingsSchedule extends Model
     protected $table = 'target_savings_schedules';
 
     protected $fillable = [
-        'target_saving_id',
+        'target_savings_id',
         'user_id',
         'source_account_id',
         'amount',
@@ -42,7 +42,7 @@ class TargetSavingsSchedule extends Model
 
     public function targetSaving(): BelongsTo
     {
-        return $this->belongsTo(TargetSaving::class, 'target_saving_id', 'id');
+        return $this->belongsTo(TargetSaving::class, 'target_savings_id', 'id');
     }
 
     public function user(): BelongsTo

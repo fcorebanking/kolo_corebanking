@@ -1693,15 +1693,84 @@ public function noBvnRegister(Request $request)
 
     }
 
-        public function verifyBVN2(Request $request)
-    {
-        $identityPassController = new IdentityPassController();
+#[OA\Post(
+    path: "/api/v1/users/verify-bvn-v2",
+    summary: "Verify BVN and create user's virtual account",
+    description: "Verifies the authenticated user's BVN and, if successful, provisions a virtual account for the user using the bank configured for the user's company.",
+    tags: ["User"],
+    security: [["bearerAuth" => []]],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            type: "object",
+            required: ["bvn"],
+            properties: [
+                new OA\Property(
+                    property: "bvn",
+                    type: "string",
+                    minLength: 11,
+                    maxLength: 11,
+                    example: "22123456789",
+                    description: "The user's 11-digit Bank Verification Number."
+                )
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "BVN verified and virtual account created successfully."
+        ),
+        new OA\Response(
+            response: 400,
+            description: "BVN verification or virtual account creation failed."
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated."
+        ),
+        new OA\Response(
+            response: 409,
+            description: "User has already verified BVN or already has a virtual account."
+        ),
+        new OA\Response(
+            response: 422,
+            description: "Invalid BVN."
+        )
+    ]
+)]
+public function verifyBVN2(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'bvn' => [
+            'required',
+            'digits:11',
+        ],
+    ]);
 
-        $bvnResponse = $identityPassController->verifyBVNMobile2($request->bvn);
-
-        return $bvnResponse;
-
+    if ($validator->fails()) {
+        return response()->json([
+            'status'  => false,
+            'message' => $validator->errors()->first('bvn'),
+        ], 422);
     }
+
+    $user = auth('api')->user();
+
+    if (!$user) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Unauthenticated',
+        ], 401);
+    }
+
+    $bvnResponse = (new IdentityPassController())
+        ->verifyBVNMobile2($request->bvn);
+
+    $statusCode = !empty($bvnResponse['status']) ? 200 : 400;
+
+    return response()->json($bvnResponse, $statusCode);
+}
 
     private function sendTransactionReportEmail($subtext, $msg, $reason, $user)
     {

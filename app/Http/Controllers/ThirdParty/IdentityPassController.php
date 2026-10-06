@@ -133,7 +133,7 @@ public function verifyBVNMobile2($bvn)
 
     /*
     |--------------------------------------------------------------------------
-    | 1. Get the authenticated user
+    | 1. Get authenticated user
     |--------------------------------------------------------------------------
     */
 
@@ -155,14 +155,26 @@ public function verifyBVNMobile2($bvn)
 
     /*
     |--------------------------------------------------------------------------
-    | 2. Prevent creating another account if the user already has one
+    | 2. Prevent duplicate BVN/account verification
     |--------------------------------------------------------------------------
     */
+
+    if (!empty($user->bvn_verified_at)) {
+        return [
+            'status'  => false,
+            'message' => 'Your BVN has already been verified.',
+            'data'    => [
+                'bvn_verified_at' => $user->bvn_verified_at,
+                'virtual_account' => $user->virtual_account,
+                'account_reference' => $user->account_reference,
+            ],
+        ];
+    }
 
     if (!empty($user->virtual_account)) {
         return [
             'status'  => false,
-            'message' => 'User already has a virtual account',
+            'message' => 'Your virtual account already exists.',
             'data'    => [
                 'virtual_account'   => $user->virtual_account,
                 'account_reference' => $user->account_reference,
@@ -190,28 +202,35 @@ public function verifyBVNMobile2($bvn)
 
     try {
 
-        $bvn_response = $this->identitypassPostRequest($url, $body);
+        $bvnResponse = $this->identitypassPostRequest(
+            $url,
+            $body
+        );
 
-        logInfo($bvn_response, "Verify BVN - Account Creation Flow");
+        logInfo(
+            $bvnResponse,
+            "Verify BVN - Account Creation Flow"
+        );
+
 
         /*
         |--------------------------------------------------------------------------
-        | 4. Stop immediately if BVN verification failed
+        | 4. Stop if BVN verification failed
         |--------------------------------------------------------------------------
         */
 
         if (
-            !isset($bvn_response['response_code']) ||
-            $bvn_response['response_code'] != "00"
+            !isset($bvnResponse['response_code']) ||
+            $bvnResponse['response_code'] !== "00"
         ) {
 
             return [
                 'status'        => false,
-                'response_code' => $bvn_response['response_code'] ?? null,
-                'message'       => $bvn_response['message']
-                    ?? $bvn_response['detail']
+                'response_code' => $bvnResponse['response_code'] ?? null,
+                'message'       => $bvnResponse['message']
+                    ?? $bvnResponse['detail']
                     ?? 'Failed to verify BVN',
-                'data'          => $bvn_response,
+                'data'          => $bvnResponse,
             ];
         }
 
@@ -222,7 +241,9 @@ public function verifyBVNMobile2($bvn)
         |--------------------------------------------------------------------------
         */
 
-        $company = \App\Models\Company::find($user->company_id);
+        $company = \App\Models\Company::find(
+            $user->company_id
+        );
 
         if (!$company) {
             return [
@@ -231,18 +252,15 @@ public function verifyBVNMobile2($bvn)
             ];
         }
 
-        logInfo($company->id, "BVN Account Creation Company ID");
+        logInfo(
+            $company->id,
+            "BVN Account Creation Company ID"
+        );
 
 
         /*
         |--------------------------------------------------------------------------
-        | 6. Get the company's configured bank
-        |
-        | Same logic used in the old registration:
-        |
-        | preferred_bank_id
-        |       OR
-        | company_wallet.bank_id
+        | 6. Determine company's bank
         |--------------------------------------------------------------------------
         */
 
@@ -253,7 +271,8 @@ public function verifyBVNMobile2($bvn)
 
         $walletBankId = $companyWallet->bank_id ?? null;
 
-        $bankId = $company->setting->preferred_bank_id ?? $walletBankId;
+        $bankId = $company->setting->preferred_bank_id
+            ?? $walletBankId;
 
         if (!$bankId) {
             return [
@@ -262,16 +281,19 @@ public function verifyBVNMobile2($bvn)
             ];
         }
 
-        logInfo($bankId, "BVN Account Creation Bank ID");
+        logInfo(
+            $bankId,
+            "BVN Account Creation Bank ID"
+        );
 
 
         /*
         |--------------------------------------------------------------------------
-        | 7. Get bank record
+        | 7. Get bank
         |--------------------------------------------------------------------------
         */
 
-        $selectedBank = \App\Models\banks::where('id', $bankId)->first();
+        $selectedBank = \App\Models\banks::find($bankId);
 
         if (!$selectedBank) {
             return [
@@ -289,7 +311,7 @@ public function verifyBVNMobile2($bvn)
 
         /*
         |--------------------------------------------------------------------------
-        | 8. Check whether the company is allowed to create virtual accounts
+        | 8. Check virtual account creation permission
         |--------------------------------------------------------------------------
         */
 
@@ -321,9 +343,13 @@ public function verifyBVNMobile2($bvn)
         $virtualAccount->currencyCode =
             $company->currency->code ?? 'NGN';
 
+
         /*
-         * Keep the same account-name logic from the old registration.
-         */
+        |--------------------------------------------------------------------------
+        | Account name
+        |--------------------------------------------------------------------------
+        */
+
         if (in_array($company->id, [47])) {
 
             $virtualAccount->firstName =
@@ -343,8 +369,7 @@ public function verifyBVNMobile2($bvn)
         $virtualAccount->companyShortName =
             $company->short_name;
 
-        $virtualAccount->lastName =
-            "";
+        $virtualAccount->lastName = "";
 
         $virtualAccount->email =
             $user->email;
@@ -396,54 +421,127 @@ public function verifyBVNMobile2($bvn)
 
         /*
         |--------------------------------------------------------------------------
-        | 10. Create virtual account through AccountCreationService
+        | 10. Create virtual account
         |--------------------------------------------------------------------------
         */
 
-        $accountCreationService = new \App\Services\AccountCreationService();
-        $accountResponse = $accountCreationService->createVirtualAccount($virtualAccount);
+        $accountCreationService =
+            new \App\Services\AccountCreationService();
 
-        logInfo($accountResponse, "Account Creation Service Response");
+        $accountResponse =
+            $accountCreationService->createVirtualAccount(
+                $virtualAccount
+            );
 
-        // Check if the service actually succeeded before saving anything
-        if (!isset($accountResponse['status']) || $accountResponse['status'] !== true) {
-            return [
-                'status'  => false,
-                'message' => $accountResponse['message'] ?? 'Failed to provision virtual account',
-                'data'    => $accountResponse
-            ];
-        }
+        logInfo(
+            $accountResponse,
+            "Account Creation Service Response"
+        );
+
 
         /*
         |--------------------------------------------------------------------------
-        | 11. Update the User Model (The actual model instance has the save method!)
+        | 11. Stop if account creation failed
         |--------------------------------------------------------------------------
         */
-        // Extract the generated account data from the response array
-        $virtualAccountNumber = $accountResponse['data']['virtual_account'] ?? null;
-        $accountReference = $accountResponse['data']['account_reference'] ?? null;
 
-        // Assign values to the Eloquent model
-        $user->virtual_account = $virtualAccountNumber;
-        $user->account_reference = $accountReference;
-        $user->bvn = $bvn; // Optional: Save the BVN to the user if needed
+        if (
+            !isset($accountResponse['status']) ||
+            $accountResponse['status'] !== true
+        ) {
 
-        $user->save(); 
+            return [
+                'status'  => false,
+                'message' => $accountResponse['message']
+                    ?? 'Failed to provision virtual account',
+                'data'    => $accountResponse,
+            ];
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 12. Extract account information
+        |--------------------------------------------------------------------------
+        */
+
+        $virtualAccountNumber =
+            $accountResponse['data']['virtual_account']
+            ?? null;
+
+        $accountReference =
+            $accountResponse['data']['account_reference']
+            ?? null;
+
+        if (!$virtualAccountNumber) {
+
+            logInfo(
+                $accountResponse,
+                "Account Creation Missing Virtual Account Number"
+            );
+
+            return [
+                'status'  => false,
+                'message' => 'Virtual account was created but no account number was returned.',
+                'data'    => $accountResponse,
+            ];
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 13. Save user verification/account details
+        |--------------------------------------------------------------------------
+        */
+
+        $user->bvn = (string) $bvn;
+
+        $user->bvn_verified_at = now();
+
+        $user->virtual_account =
+            $virtualAccountNumber;
+
+        $user->account_reference =
+            $accountReference;
+
+        $user->save();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 14. Return success
+        |--------------------------------------------------------------------------
+        */
 
         return [
             'status'  => true,
-            'message' => 'Virtual account created successfully',
+            'message' => 'BVN verified and virtual account created successfully.',
             'data'    => [
-                'virtual_account'   => $user->virtual_account,
-                'account_reference' => $user->account_reference,
-            ]
+                'virtual_account' =>
+                    $user->virtual_account,
+
+                'account_reference' =>
+                    $user->account_reference,
+
+                'bvn_verified_at' =>
+                    $user->bvn_verified_at,
+            ],
         ];
 
     } catch (\Exception $e) {
-        logInfo(['error' => $e->getMessage()], "BVN Account Creation Exception Error");
+
+        logInfo([
+            'message' => $e->getMessage(),
+            'line'    => $e->getLine(),
+            'file'    => $e->getFile(),
+        ], "BVN Account Creation Exception Error");
+
         return [
             'status'  => false,
-            'message' => 'An error occurred during account creation: ' . $e->getMessage(),
+            'message' => 'An error occurred during account creation.',
+            'data'    => [
+                'error' => $e->getMessage(),
+            ],
         ];
     }
 }

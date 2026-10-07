@@ -200,9 +200,24 @@ function apiCando($permission)
         return false;
     }
 
-    $staffPermissions = [];
+        $staffPermissions = [];
+
+    // DEBUG LOG 1: Check if has_permissions collection has records
+    logInfo([
+        'has_permissions_count' => $userRole->staffrole->has_permissions ? $userRole->staffrole->has_permissions->count() : 0,
+        'raw_has_permissions_data' => $userRole->staffrole->has_permissions ? $userRole->staffrole->has_permissions->toArray() : []
+    ], 'DEBUG: Step 1 - Check Role Permissions Pivot');
 
     foreach ($userRole->staffrole->has_permissions as $rolePermission) {
+        // DEBUG LOG 2: Check if relation exists but 'permission' belongsTo is null
+        if (!$rolePermission->permission) {
+            logInfo([
+                'role_permission_id' => $rolePermission->id,
+                'expected_permission_id' => $rolePermission->permission_id ?? 'unknown',
+                'reason' => 'The permission relationship returned null. Check if the permission row was deleted from the permissions table.'
+            ], 'DEBUG: Step 2 - Missing Permission Relation');
+        }
+
         if ($rolePermission->permission) {
             $staffPermissions[] = $rolePermission->permission->name;
         }

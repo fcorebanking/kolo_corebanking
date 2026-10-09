@@ -235,7 +235,7 @@ function apiCando($permission)
         'staffrole_name' => $userRole->staffrole->name,
         'required_permissions' => $permissions,
         'available_permissions' => $staffPermissions,
-    ], 'API Permission Check');
+    ], 'API Permission Final Check');
 
     return count(array_intersect($permissions, $staffPermissions)) > 0;
 }

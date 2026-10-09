@@ -593,3 +593,6 @@ Route::prefix('campaigns')->group(function () {
     Route::post('/ajo/system/process-collections', [AjoController::class, 'processCollections'])->name('ajo.system.process-collections');
     Route::post('/ajo/system/process-maturity', [AjoController::class, 'processMaturity'])->name('ajo.system.process-maturity');
     Route::get('/ajo/invitations/pending',[AjoController::class, 'pendingInvitations'])->name('ajo.invitations.pending');
+    Route::get('/ajo/settings/creation-fee', [AjoController::class, 'creationFee']);
+    Route::put('/ajo/settings/creation-fee', [AjoController::class, 'updateCreationFee']);
+

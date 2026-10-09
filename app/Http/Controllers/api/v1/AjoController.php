@@ -975,4 +975,108 @@ public function pendingInvitations(Request $request): JsonResponse
         ], 500);
     }
 }
+
+#[OA\Get(
+    path: "/api/v1/ajo/settings/creation-fee",
+    summary: "Get the authenticated user's Ajo creation fee",
+    description: "Returns the current Ajo creation fee for the authenticated user's company.",
+    tags: ["Ajo System"],
+    security: [["bearerAuth" => []]],
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Ajo Creation Fee retrieved successfully"
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        ),
+        new OA\Response(
+            response: 500,
+            description: "Unexpected server error"
+        ),
+    ]
+)]
+    /**
+     * Read the authenticated user's company's current Ajo creation fee.
+     */
+    public function creationFee(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $settings = $user->company?->setting;
+
+        if (!$settings) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Company Ajo settings could not be found.',
+            ], 422);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Ajo creation fee retrieved successfully.',
+            'data' => [
+                'creation_fee' => round((float) ($settings->ajo_creation_fee ?? 0), 2),
+            ],
+        ]);
+    }
+
+    /**
+     * Update the authenticated user's company's Ajo creation fee.
+     * Protect this with Core's own admin role, not only KoloPay's UI check.
+     */
+    public function updateCreationFee(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $isCoreAdmin = method_exists($user, 'hasRole')
+            && ($user->hasRole('admin') || $user->hasRole('root'));
+
+        if (!$isCoreAdmin) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Administrator access required.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'creation_fee' => ['required', 'numeric', 'min:0', 'max:1000000000'],
+        ]);
+
+        $settings = $user->company?->setting;
+
+        if (!$settings) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Company Ajo settings could not be found.',
+            ], 422);
+        }
+
+        $settings->ajo_creation_fee = round((float) $validated['creation_fee'], 2);
+        $settings->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Ajo creation fee updated successfully.',
+            'data' => [
+                'creation_fee' => (float) $settings->ajo_creation_fee,
+            ],
+        ]);
+    }
+
 }

@@ -60,6 +60,7 @@ class AjoController extends Controller
                     new OA\Property(property: "max_members", type: "integer", nullable: true, example: 10),
                     new OA\Property(property: "visibility", type: "string", enum: ["public", "private"], example: "public"),
                     new OA\Property(property: "terms", type: "string", nullable: true),
+                    new OA\Property(property: "is_member", type: "boolean", nullable: true, example: false),
                 ]
             )
         ),

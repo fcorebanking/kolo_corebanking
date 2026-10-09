@@ -46,6 +46,7 @@ class Ajo extends Model
         'terms',
         'terms_version',
         'status',
+        'is_member',
     ];
 
     protected $casts = [
@@ -61,6 +62,7 @@ class Ajo extends Model
         'company_fee_share_percentage' => 'decimal:2',
         'creator_fee_share_percentage' => 'decimal:2',
         'max_members' => 'integer',
+        'is_member' => 'boolean',
     ];
 
     public function creator()

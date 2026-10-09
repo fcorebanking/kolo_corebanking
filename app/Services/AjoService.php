@@ -272,6 +272,7 @@ class AjoService
                 'terms' => $terms,
                 'terms_version' => '1.0',
                 'status' => self::STATUS_DRAFT,
+                'is_member' => false
             ]);
 
             $creationFeeTransaction = null;

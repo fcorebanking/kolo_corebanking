@@ -137,18 +137,13 @@ public function mine(Request $request): JsonResponse
             $user = $this->authenticatedUser();
 
             $members = AjoMember::query()
-                ->where('user_id', $user->id)
-                // Only current member positions belong in the user's
-                // active "Groups I'm In" response. A completed early leave is
-                // retained in the database as STATUS_LEFT for financial and
-                // transaction history, but is no longer a membership.
-                ->whereIn('status', [
-                    AjoMember::STATUS_ACTIVE,
-                    AjoMember::STATUS_LEAVE_REQUESTED,
-                    AjoMember::STATUS_MATURED,
-                ])
-                ->latest('id')
-                ->get();
+     ->where('user_id', $user->id)
+     ->whereIn('status', [
+        AjoMember::STATUS_ACTIVE,
+        AjoMember::STATUS_LEAVE_REQUESTED,
+        AjoMember::STATUS_MATURED,
+     ])
+     ->get();
 
             $memberAjoIds = $members->pluck('ajo_id')->filter()->unique()->values();
             $memberAjoMap = Ajo::query()->whereIn('id', $memberAjoIds)->get()->keyBy('id');
@@ -161,6 +156,7 @@ public function mine(Request $request): JsonResponse
                     'id' => $ajo->id,
                     'role' => (int) $ajo->creator_user_id === (int) $user->id ? 'creator_member' : 'member',
                     'membership_id' => $member->id,
+                    'is_member' => true,
                     'membership_status' => $member->status,
                     'ajo_name' => $ajo->ajo_name,
                     'description' => $ajo->description,
@@ -200,9 +196,20 @@ public function mine(Request $request): JsonResponse
             })->filter()->values();
 
             $createdAjos = Ajo::query()
-                ->where('creator_user_id', $user->id)
-                ->latest('id')
-                ->get();
+        ->where('creator_user_id', $user->id)
+        ->latest('id')
+        ->get()
+        ->map(function (Ajo $ajo) use ($memberAjoIds) {
+            // Being the creator does not automatically mean the user joined.
+            // is_member becomes true only if a current membership exists.
+            $ajo->setAttribute(
+                'is_member',
+                $memberAjoIds->contains((int) $ajo->id)
+            );
+
+            return $ajo;
+        })
+        ->values();
 
             $transactions = AjoTransaction::query()
                 ->where('user_id', $user->id)
@@ -1040,6 +1047,8 @@ public function updateCreationFee(Request $request)
     $user = auth('api')->user();
 
     if (!$user) {
+        // Logging authentication failure reason
+        logInfo('Ajo creation fee update failed: Unauthenticated user attempt.');
         return response()->json([
             'status' => false,
             'message' => 'Unauthenticated.',
@@ -1048,6 +1057,10 @@ public function updateCreationFee(Request $request)
 
     // Use Core's staff-permission system.
     if (!apiCando('admin|root')) {
+        // Logging permission failure reason
+        logInfo('Ajo creation fee update failed: Unauthorized permission attempt.', [
+            'user_id' => $user->id,
+        ]);
         return response()->json([
             'status' => false,
             'message' => 'Administrator access required.',
@@ -1063,29 +1076,59 @@ public function updateCreationFee(Request $request)
         ],
     ]);
 
-    $settings = $user->company?->setting;
+    try {
+        $settings = $user->company?->setting;
 
-    if (!$settings) {
+        if (!$settings) {
+            // Logging application logic failure reason
+            logInfo('Ajo creation fee update failed: Company settings missing.', [
+                'user_id' => $user->id,
+                'company_id' => $user->company_id,
+            ]);
+            return response()->json([
+                'status' => false,
+                'message' => 'Company Ajo settings could not be found.',
+            ], 422);
+        }
+
+        $settings->ajo_creation_fee = round(
+            (float) $validated['creation_fee'],
+            2
+        );
+
+        $settings->save();
+
+        logInfo('Ajo creation fee updated successfully', [
+            'user_id' => $user->id,
+            'company_id' => $user->company_id,
+            'new_creation_fee' => $settings->ajo_creation_fee,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Ajo creation fee updated successfully.',
+            'data' => [
+                'creation_fee' => (float) $settings->ajo_creation_fee,
+            ],
+        ]);
+
+    } catch (\Exception $e) {
+        // Logging unexpected database/system failures with exception details
+        logInfo('Ajo creation fee update failed: System Exception thrown.', [
+            'user_id' => $user->id,
+            'company_id' => $user->company_id ?? null,
+            'error_message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ]);
+
         return response()->json([
             'status' => false,
-            'message' => 'Company Ajo settings could not be found.',
-        ], 422);
+            'message' => 'An error occurred while updating the creation fee.',
+            'error' => config('app.debug') ? $e->getMessage() : 'Server Error',
+        ], 500);
     }
-
-    $settings->ajo_creation_fee = round(
-        (float) $validated['creation_fee'],
-        2
-    );
-
-    $settings->save();
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Ajo creation fee updated successfully.',
-        'data' => [
-            'creation_fee' => (float) $settings->ajo_creation_fee,
-        ],
-    ]);
 }
+
 
 }

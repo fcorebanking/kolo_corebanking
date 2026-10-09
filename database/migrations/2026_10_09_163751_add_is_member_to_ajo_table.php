@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('ajo', function (Blueprint $table) {
-            //
+            $table->boolean('is_member')->default(false)->after('status');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('ajo', function (Blueprint $table) {
-            //
+            $table->dropColumn('is_member');
         });
     }
 };

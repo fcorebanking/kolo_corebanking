@@ -1029,54 +1029,63 @@ public function pendingInvitations(Request $request): JsonResponse
         ]);
     }
 
-    /**
-     * Update the authenticated user's company's Ajo creation fee.
-     * Protect this with Core's own admin role, not only KoloPay's UI check.
-     */
-    public function updateCreationFee(Request $request)
-    {
-        $user = $request->user();
 
-        if (!$user) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
+/**
+ * Update the authenticated user's company's Ajo creation fee.
+ *
+ * Access is controlled by Core's apiCando() staff-permission helper.
+ */
+public function updateCreationFee(Request $request)
+{
+    $user = auth('api')->user();
 
-        $isCoreAdmin = method_exists($user, 'hasRole')
-            && ($user->hasRole('admin') || $user->hasRole('root'));
-
-        if (!$isCoreAdmin) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Administrator access required.',
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'creation_fee' => ['required', 'numeric', 'min:0', 'max:1000000000'],
-        ]);
-
-        $settings = $user->company?->setting;
-
-        if (!$settings) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Company Ajo settings could not be found.',
-            ], 422);
-        }
-
-        $settings->ajo_creation_fee = round((float) $validated['creation_fee'], 2);
-        $settings->save();
-
+    if (!$user) {
         return response()->json([
-            'status' => true,
-            'message' => 'Ajo creation fee updated successfully.',
-            'data' => [
-                'creation_fee' => (float) $settings->ajo_creation_fee,
-            ],
-        ]);
+            'status' => false,
+            'message' => 'Unauthenticated.',
+        ], 401);
     }
+
+    // Use Core's staff-permission system.
+    if (!apiCando('admin|root')) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Administrator access required.',
+        ], 403);
+    }
+
+    $validated = $request->validate([
+        'creation_fee' => [
+            'required',
+            'numeric',
+            'min:0',
+            'max:1000000000',
+        ],
+    ]);
+
+    $settings = $user->company?->setting;
+
+    if (!$settings) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Company Ajo settings could not be found.',
+        ], 422);
+    }
+
+    $settings->ajo_creation_fee = round(
+        (float) $validated['creation_fee'],
+        2
+    );
+
+    $settings->save();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Ajo creation fee updated successfully.',
+        'data' => [
+            'creation_fee' => (float) $settings->ajo_creation_fee,
+        ],
+    ]);
+}
 
 }

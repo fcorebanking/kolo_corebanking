@@ -1132,4 +1132,155 @@ public function updateCreationFee(Request $request)
 }
 
 
+#[OA\Get(
+    path: "/api/v1/ajo/{ajoId}/members",
+    summary: "Get all members of an Ajo",
+    description: "Returns the members of a specific Ajo. Only the creator of that Ajo can access the full member list.",
+    tags: ["Ajo Membership"],
+    security: [["bearerAuth" => []]],
+    parameters: [
+        new OA\Parameter(
+            name: "ajoId",
+            in: "path",
+            required: true,
+            description: "ID of the Ajo group",
+            schema: new OA\Schema(type: "integer", minimum: 1)
+        ),
+    ],
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Ajo members retrieved successfully",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Ajo members retrieved successfully."
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        type: "object",
+                        properties: [
+                            new OA\Property(
+                                property: "ajo_id",
+                                type: "integer",
+                                example: 12
+                            ),
+                            new OA\Property(
+                                property: "ajo_name",
+                                type: "string",
+                                example: "Friends Monthly Ajo"
+                            ),
+                            new OA\Property(
+                                property: "member_count",
+                                type: "integer",
+                                example: 3
+                            ),
+                            new OA\Property(
+                                property: "members",
+                                type: "array",
+                                items: new OA\Items(
+                                    type: "object",
+                                    properties: [
+                                        new OA\Property(property: "membership_id", type: "integer", example: 5),
+                                        new OA\Property(property: "user_id", type: "integer", example: 24),
+                                        new OA\Property(property: "name", type: "string", nullable: true, example: "John Doe"),
+                                        new OA\Property(property: "username", type: "string", nullable: true, example: "john.doe"),
+                                        new OA\Property(property: "status", type: "string", example: "active"),
+                                        new OA\Property(property: "balance", type: "number", format: "float", example: 100000),
+                                        new OA\Property(property: "total_contributed", type: "number", format: "float", example: 150000),
+                                        new OA\Property(property: "joined_at", type: "string", nullable: true, example: "2026-10-01T08:00:00.000000Z"),
+                                    ]
+                                )
+                            ),
+                        ]
+                    ),
+                ]
+            )
+        ),
+        new OA\Response(response: 401, description: "Unauthenticated"),
+        new OA\Response(response: 403, description: "Only the Ajo creator can view all members"),
+        new OA\Response(response: 404, description: "Ajo not found"),
+        new OA\Response(response: 500, description: "Unexpected server error"),
+    ]
+)]
+public function members(Request $request, int $ajoId): JsonResponse
+{
+    try {
+        $user = $this->authenticatedUser();
+
+        // Find the requested Ajo group.
+        $ajo = Ajo::query()->find($ajoId);
+
+        if (!$ajo) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Ajo not found.',
+            ], 404);
+        }
+
+        // Only the creator can see the complete member list.
+        if ((int) $ajo->creator_user_id !== (int) $user->id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Only the Ajo creator can view all members.',
+            ], 403);
+        }
+
+        // Return all membership records that still exist for this Ajo.
+        // This includes members with different membership statuses.
+        $members = AjoMember::query()
+            ->where('ajo_id', $ajo->id)
+            ->with('user:id,name,username')
+            ->orderBy('id')
+            ->get()
+            ->map(function (AjoMember $member) {
+                return [
+                    'membership_id' => $member->id,
+                    'user_id' => $member->user_id,
+                    'name' => $member->user?->name,
+                    'username' => $member->user?->username,
+                    'status' => $member->status,
+                    'balance' => (float) $member->balance,
+                    'total_contributed' => (float) $member->total_contributed,
+                    'pending_collection_amount' => (float) ($member->pending_collection_amount ?? 0),
+                    'insufficient_balance_count' => (int) $member->insufficient_balance_count,
+                    'pending_insufficient_balance_fees' => (float) ($member->pending_insufficient_balance_fees ?? 0),
+                    'total_insufficient_balance_fees' => (float) $member->total_insufficient_balance_fees,
+                    'total_maturity_fees' => (float) $member->total_maturity_fees,
+                    'total_early_leave_penalties' => (float) $member->total_early_leave_penalties,
+                    'joined_at' => $member->joined_at,
+                    'left_at' => $member->left_at,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Ajo members retrieved successfully.',
+            'data' => [
+                'ajo_id' => $ajo->id,
+                'ajo_name' => $ajo->ajo_name,
+                'member_count' => $members->count(),
+                'members' => $members,
+            ],
+        ]);
+    } catch (RuntimeException $e) {
+        return $this->businessError($e);
+    } catch (Throwable $e) {
+        report($e);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to retrieve Ajo members.',
+        ], 500);
+    }
+}
+
 }

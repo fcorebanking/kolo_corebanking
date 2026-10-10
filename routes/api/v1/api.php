@@ -595,4 +595,5 @@ Route::prefix('campaigns')->group(function () {
     Route::get('/ajo/invitations/pending',[AjoController::class, 'pendingInvitations'])->name('ajo.invitations.pending');
     Route::get('/ajo/settings/creation-fee', [AjoController::class, 'creationFee']);
     Route::put('/ajo/settings/creation-fee', [AjoController::class, 'updateCreationFee']);
+    Route::get('/ajo/{ajoId}/members', [AjoController::class, 'members'])->whereNumber('ajoId');
 

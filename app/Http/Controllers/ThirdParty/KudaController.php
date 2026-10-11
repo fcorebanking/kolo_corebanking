@@ -1029,6 +1029,15 @@ public function loginForMaintenance()
                 ];
             }
 
+            logInfo(
+                [
+                    'requestRef'  => $requestReference,
+                    'serviceType' => $body['serviceType'],
+                    'data'        => $body['data'],
+                ],
+                'Kuda Bank Transfer Successful Response'
+            );
+
             return [
                 'status'  => true,
                 'message' => 'Bank Transfer Successful',

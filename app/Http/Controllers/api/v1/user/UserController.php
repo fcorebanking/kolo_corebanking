@@ -701,7 +701,7 @@ public function resetPassword(Request $request)
     }
 }
 
-    #[OA\Post(
+#[OA\Post(
     path: "/api/v1/users/change-password",
     summary: "Change Password",
     description: "Changes the authenticated user's password after validating the current password. The new password is securely hashed before being saved.",
@@ -735,30 +735,45 @@ public function resetPassword(Request $request)
     responses: [
         new OA\Response(
             response: 200,
-            description: "Password changed successfully",
+            description: "Password change request processed",
             content: new OA\JsonContent(
-                properties: [
-                    new OA\Property(
-                        property: "status",
-                        type: "boolean",
-                        example: true
+                oneOf: [
+                    new OA\Schema(
+                        properties: [
+                            new OA\Property(
+                                property: "status",
+                                type: "boolean",
+                                example: true
+                            ),
+                            new OA\Property(
+                                property: "message",
+                                type: "string",
+                                example: "Password changed successfully"
+                            ),
+                        ],
+                        type: "object"
                     ),
-                    new OA\Property(
-                        property: "message",
-                        type: "string",
-                        example: "Password changed successfully"
+                    new OA\Schema(
+                        properties: [
+                            new OA\Property(
+                                property: "status",
+                                type: "boolean",
+                                example: false
+                            ),
+                            new OA\Property(
+                                property: "message",
+                                type: "string",
+                                example: "Invalid current password provided"
+                            ),
+                        ],
+                        type: "object"
                     ),
-                ],
-                type: "object"
+                ]
             )
         ),
         new OA\Response(
             response: 406,
-            description: "Validation failed because the current password or new password was not provided"
-        ),
-        new OA\Response(
-            response: 200,
-            description: "Current password is invalid",
+            description: "Validation failed because the current password or new password was not provided",
             content: new OA\JsonContent(
                 properties: [
                     new OA\Property(
@@ -769,7 +784,7 @@ public function resetPassword(Request $request)
                     new OA\Property(
                         property: "message",
                         type: "string",
-                        example: "Invalid current password provided"
+                        example: "The current_password field is required."
                     ),
                 ],
                 type: "object"
@@ -781,33 +796,39 @@ public function resetPassword(Request $request)
         )
     ]
 )]
-    public function changePassword(Request $request)
-    {
-        \logInfo($request->all(), "changePassword request log");
+public function changePassword(Request $request)
+{
+    \logInfo($request->all(), "changePassword request log");
 
-        $validate = Validator::make($request->all(), [
-            'current_password' => 'required',
-            'new_password'     => 'required',
-        ]);
+    $validate = Validator::make($request->all(), [
+        'current_password' => 'required',
+        'new_password'     => 'required',
+    ]);
 
-        if ($validate->fails()) {
-            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
-            return response()->json($ra, 406);
-        }
-
-        $userAccunt = User::where(['id' => \auth()->user()->id])->first();
-
-        if (Hash::check($request->current_password, $userAccunt->password)) {
-
-            $userAccunt->password   = Hash::make($request->new_password);
-            $userAccunt->updated_at = Carbon::now();
-            $userAccunt->save();
-
-            return response(['status' => true, 'message' => 'Password changed successfully']);
-        } else {
-            return response(['status' => false, 'message' => 'Invalid current password provided']);
-        }
+    if ($validate->fails()) {
+        $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
+        return response()->json($ra, 406);
     }
+
+    $userAccunt = User::where(['id' => \auth()->user()->id])->first();
+
+    if (Hash::check($request->current_password, $userAccunt->password)) {
+
+        $userAccunt->password   = Hash::make($request->new_password);
+        $userAccunt->updated_at = Carbon::now();
+        $userAccunt->save();
+
+        return response([
+            'status' => true,
+            'message' => 'Password changed successfully'
+        ]);
+    } else {
+        return response([
+            'status' => false,
+            'message' => 'Invalid current password provided'
+        ]);
+    }
+}
 
     #[OA\Put(
     path: "/api/v1/users/update-profile",

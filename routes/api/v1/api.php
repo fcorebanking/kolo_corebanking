@@ -596,4 +596,5 @@ Route::prefix('campaigns')->group(function () {
     Route::get('/ajo/settings/creation-fee', [AjoController::class, 'creationFee']);
     Route::put('/ajo/settings/creation-fee', [AjoController::class, 'updateCreationFee']);
     Route::get('/ajo/{ajoId}/members', [AjoController::class, 'members'])->whereNumber('ajoId');
+    Route::get('/ajo/my-memberships', [AjoController::class, 'myMemberships']);
 

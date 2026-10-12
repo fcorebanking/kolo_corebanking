@@ -1283,4 +1283,148 @@ public function members(Request $request, int $ajoId): JsonResponse
     }
 }
 
+
+#[OA\Get(
+    path: "/api/v1/ajo/my-memberships",
+    summary: "Get Ajos the authenticated user currently belongs to",
+    description: "Returns Ajos where the authenticated user has an active, leave-requested, or matured membership. Ajos created by the user are included only if the user has actually joined them.",
+    tags: ["Ajo Membership"],
+    security: [["bearerAuth" => []]],
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Ajo memberships retrieved successfully",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "status", type: "boolean", example: true),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Your Ajo memberships were retrieved successfully."
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        type: "object",
+                        properties: [
+                            new OA\Property(
+                                property: "membership_count",
+                                type: "integer",
+                                example: 2
+                            ),
+                            new OA\Property(
+                                property: "memberships",
+                                type: "array",
+                                items: new OA\Items(
+                                    type: "object",
+                                    properties: [
+                                        new OA\Property(property: "ajo_id", type: "integer", example: 12),
+                                        new OA\Property(property: "ajo_name", type: "string", example: "Friends Monthly Ajo"),
+                                        new OA\Property(property: "description", type: "string", nullable: true),
+                                        new OA\Property(property: "creator_user_id", type: "integer", example: 4),
+                                        new OA\Property(property: "role", type: "string", enum: ["member", "creator_member"]),
+                                        new OA\Property(property: "membership_id", type: "integer", example: 25),
+                                        new OA\Property(property: "membership_status", type: "string", example: "active"),
+                                        new OA\Property(property: "collection_amount", type: "number", format: "float", example: 50000),
+                                        new OA\Property(property: "collection_frequency", type: "string", example: "monthly"),
+                                        new OA\Property(property: "collection_interval", type: "integer", nullable: true, example: 1),
+                                        new OA\Property(property: "collection_day", type: "integer", nullable: true, example: 15),
+                                        new OA\Property(property: "collection_time", type: "string", example: "08:00"),
+                                        new OA\Property(property: "start_date", type: "string", format: "date", nullable: true),
+                                        new OA\Property(property: "maturity_date", type: "string", format: "date", nullable: true),
+                                        new OA\Property(property: "next_collection_at", type: "string", format: "date-time", nullable: true),
+                                        new OA\Property(property: "ajo_status", type: "string", example: "active"),
+                                        new OA\Property(property: "current_contribution_balance", type: "number", format: "float", example: 100000),
+                                        new OA\Property(property: "total_contributed", type: "number", format: "float", example: 150000),
+                                        new OA\Property(property: "joined_at", type: "string", nullable: true),
+                                        new OA\Property(property: "left_at", type: "string", nullable: true)
+                                    ]
+                                )
+                            )
+                        ]
+                    )
+                ]
+            )
+        ),
+        new OA\Response(response: 401, description: "Unauthenticated"),
+        new OA\Response(response: 500, description: "Unexpected server error")
+    ]
+)]
+public function myMemberships(Request $request): JsonResponse
+{
+    try {
+        $user = $this->authenticatedUser();
+
+        $memberships = AjoMember::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', [
+                AjoMember::STATUS_ACTIVE,
+                AjoMember::STATUS_LEAVE_REQUESTED,
+                AjoMember::STATUS_MATURED,
+            ])
+            ->with('ajo')
+            ->latest('id')
+            ->get()
+            ->filter(fn (AjoMember $member) => $member->ajo !== null)
+            ->map(function (AjoMember $member) use ($user) {
+                $ajo = $member->ajo;
+
+                return [
+                    'ajo_id' => $ajo->id,
+                    'ajo_name' => $ajo->ajo_name,
+                    'description' => $ajo->description,
+                    'creator_user_id' => $ajo->creator_user_id,
+
+                    'role' => (int) $ajo->creator_user_id === (int) $user->id
+                        ? 'creator_member'
+                        : 'member',
+
+                    'membership_id' => $member->id,
+                    'membership_status' => $member->status,
+
+                    'collection_amount' => (float) $ajo->collection_amount,
+                    'collection_frequency' => $ajo->collection_frequency,
+                    'collection_interval' => $ajo->collection_interval,
+                    'collection_day' => $ajo->collection_day,
+                    'collection_time' => $ajo->collection_time,
+                    'start_date' => $ajo->start_date,
+                    'maturity_date' => $ajo->maturity_date,
+                    'next_collection_at' => $ajo->next_collection_at,
+                    'ajo_status' => $ajo->status,
+
+                    'current_contribution_balance' => (float) $member->balance,
+                    'total_contributed' => (float) $member->total_contributed,
+                    'pending_collection_amount' => (float) ($member->pending_collection_amount ?? 0),
+
+                    'insufficient_balance_count' => (int) $member->insufficient_balance_count,
+                    'pending_insufficient_balance_fees' => (float) ($member->pending_insufficient_balance_fees ?? 0),
+                    'total_insufficient_balance_fees' => (float) $member->total_insufficient_balance_fees,
+                    'total_maturity_fees' => (float) $member->total_maturity_fees,
+                    'total_early_leave_penalties' => (float) $member->total_early_leave_penalties,
+
+                    'joined_at' => $member->joined_at,
+                    'left_at' => $member->left_at,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Your Ajo memberships were retrieved successfully.',
+            'data' => [
+                'membership_count' => $memberships->count(),
+                'memberships' => $memberships,
+            ],
+        ]);
+    } catch (RuntimeException $e) {
+        return $this->businessError($e);
+    } catch (Throwable $e) {
+        report($e);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to retrieve your Ajo memberships.',
+        ], 500);
+    }
+}
+
 }

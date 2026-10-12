@@ -412,6 +412,68 @@ class UserController extends Controller
             return response(['status' => false, 'message' => 'Invalid User Id or Account Number']);
         }
     }
+
+    #[OA\Post(
+    path: "/api/v1/users/reset-pin",
+    summary: "Reset Transaction PIN",
+    description: "Resets the authenticated user's transaction PIN after validating the current PIN and ensuring that the new PIN is different from the current PIN.",
+    tags: ["User"],
+    security: [["bearerAuth" => []]],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: [
+                "current_pin",
+                "new_pin"
+            ],
+            properties: [
+                new OA\Property(
+                    property: "current_pin",
+                    type: "string",
+                    format: "password",
+                    example: "1234",
+                    description: "The user's current 4-digit transaction PIN."
+                ),
+                new OA\Property(
+                    property: "new_pin",
+                    type: "string",
+                    format: "password",
+                    example: "5678",
+                    description: "The new 4-digit transaction PIN."
+                ),
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "PIN reset successfully",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Pin Reset Successful"
+                    ),
+                ],
+                type: "object"
+            )
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Validation failed, new PIN matches current PIN, or current PIN is invalid"
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        )
+    ]
+)]
     public function resetPin(Request $request)
     {
 
@@ -494,6 +556,87 @@ class UserController extends Controller
         ]);
     }
 
+    #[OA\Post(
+    path: "/api/v1/users/reset-password",
+    summary: "Reset Password",
+    description: "Resets a user's password after validating their phone number and OTP code. The OTP must correspond to the supplied phone number and must not be expired.",
+    tags: ["User"],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: [
+                "phone_number",
+                "otp_code",
+                "password"
+            ],
+            properties: [
+                new OA\Property(
+                    property: "phone_number",
+                    type: "string",
+                    example: "08012345678",
+                    description: "Phone number associated with the user's account."
+                ),
+                new OA\Property(
+                    property: "otp_code",
+                    type: "integer",
+                    example: 123456,
+                    description: "OTP code sent to the user's phone number."
+                ),
+                new OA\Property(
+                    property: "password",
+                    type: "string",
+                    format: "password",
+                    example: "NewPassword123!",
+                    description: "The new password for the user's account."
+                ),
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Password reset successfully",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Password Reset Successfully"
+                    ),
+                ],
+                type: "object"
+            )
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Phone number, OTP code, or password validation failed"
+        ),
+        new OA\Response(
+            response: 200,
+            description: "Invalid or expired OTP or invalid phone number",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: false
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Invalid or Expired OTP"
+                    ),
+                ],
+                type: "object"
+            )
+        )
+    ]
+)]
     public function resetPassword(Request $request)
     {
         \logInfo($request->all(), "resetPassword request log");
@@ -531,6 +674,86 @@ class UserController extends Controller
         }
     }
 
+    #[OA\Post(
+    path: "/api/v1/users/change-password",
+    summary: "Change Password",
+    description: "Changes the authenticated user's password after validating the current password. The new password is securely hashed before being saved.",
+    tags: ["User"],
+    security: [["bearerAuth" => []]],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: [
+                "current_password",
+                "new_password"
+            ],
+            properties: [
+                new OA\Property(
+                    property: "current_password",
+                    type: "string",
+                    format: "password",
+                    example: "CurrentPassword123!",
+                    description: "The user's current password."
+                ),
+                new OA\Property(
+                    property: "new_password",
+                    type: "string",
+                    format: "password",
+                    example: "NewPassword123!",
+                    description: "The new password for the user's account."
+                ),
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Password changed successfully",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Password changed successfully"
+                    ),
+                ],
+                type: "object"
+            )
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Validation failed because the current password or new password was not provided"
+        ),
+        new OA\Response(
+            response: 200,
+            description: "Current password is invalid",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: false
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Invalid current password provided"
+                    ),
+                ],
+                type: "object"
+            )
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        )
+    ]
+)]
     public function changePassword(Request $request)
     {
         \logInfo($request->all(), "changePassword request log");
@@ -559,6 +782,140 @@ class UserController extends Controller
         }
     }
 
+    #[OA\Put(
+    path: "/api/v1/users/update-profile",
+    summary: "Update User Profile",
+    description: "Updates the authenticated user's profile information including phone number, email, date of birth, profile picture, NIN, signature, sex, BVN, valid identification document, and other supporting documents.",
+    tags: ["User"],
+    security: [["bearerAuth" => []]],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: [
+                "phone",
+                "email",
+                "dob"
+            ],
+            properties: [
+                new OA\Property(
+                    property: "phone",
+                    type: "string",
+                    example: "08012345678",
+                    description: "User's phone number."
+                ),
+                new OA\Property(
+                    property: "email",
+                    type: "string",
+                    format: "email",
+                    example: "john.doe@example.com",
+                    description: "User's email address."
+                ),
+                new OA\Property(
+                    property: "dob",
+                    type: "string",
+                    format: "date",
+                    example: "1995-06-15",
+                    description: "User's date of birth."
+                ),
+                new OA\Property(
+                    property: "profile_pic_url",
+                    type: "string",
+                    example: "https://example.com/profile.jpg",
+                    description: "URL of the user's profile picture."
+                ),
+                new OA\Property(
+                    property: "nin",
+                    type: "string",
+                    example: "12345678901",
+                    description: "User's National Identification Number."
+                ),
+                new OA\Property(
+                    property: "signature_url",
+                    type: "string",
+                    example: "https://example.com/signature.png",
+                    description: "URL of the user's signature image."
+                ),
+                new OA\Property(
+                    property: "sex",
+                    type: "string",
+                    example: "Male",
+                    description: "User's sex."
+                ),
+                new OA\Property(
+                    property: "bvn",
+                    type: "string",
+                    example: "22334455667",
+                    description: "User's Bank Verification Number."
+                ),
+                new OA\Property(
+                    property: "valid_id_url",
+                    type: "string",
+                    example: "https://example.com/valid-id.jpg",
+                    description: "URL of the user's valid identification document."
+                ),
+                new OA\Property(
+                    property: "other_doc_url",
+                    type: "string",
+                    example: "https://example.com/document.pdf",
+                    description: "URL of any additional supporting document."
+                ),
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Profile updated successfully",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Profile Updated Successfuls"
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        type: "object",
+                        description: "Updated authenticated user profile."
+                    ),
+                ],
+                type: "object"
+            )
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Validation failed"
+        ),
+        new OA\Response(
+            response: 200,
+            description: "Failed to update profile",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: false
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Failed to Update Profile"
+                    ),
+                ],
+                type: "object"
+            )
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        )
+    ]
+)]
     public function updateProfile(Request $request)
     {
         \logInfo($request->all(), "updateProfile request log");

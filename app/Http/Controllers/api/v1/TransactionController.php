@@ -7894,7 +7894,7 @@ public function getAllBanks(Request $request)
     path: "/api/v1/get-data-bundles/{networkProvider}",
     summary: "Get Data Bundles",
     description: "Returns the available data bundles for the specified network provider. The network provider is passed as a path parameter and the bundles are fetched through the VTpass service.",
-    tags: ["Data Bundles"],
+    tags: ["Data"],
     security: [["bearerAuth" => []]],
     parameters: [
         new OA\Parameter(

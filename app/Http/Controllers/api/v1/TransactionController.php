@@ -5431,7 +5431,7 @@ public function safeHavenWebhook(Request $request)
                 new OA\Property(
                     property: "network_provider",
                     type: "string",
-                    example: "MTN",
+                    example: "mtn",
                     description: "Mobile network provider."
                 ),
 
@@ -5837,7 +5837,7 @@ public function safeHavenWebhook(Request $request)
                 new OA\Property(
                     property: "network_provider",
                     type: "string",
-                    example: "MTN",
+                    example: "mtn-data",
                     description: "Mobile network provider/service ID."
                 ),
 

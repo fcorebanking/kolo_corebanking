@@ -91,7 +91,7 @@ class TransactionController extends Controller
     path: "/verify-bank-account",
     summary: "Verify a bank account",
     description: "Verifies a destination bank account and returns the account holder's name and bank name.",
-    tags: ["Transfer"],
+    tags: ["Transfer - Wallet To Bank"],
     security: [["bearerAuth" => []]],
     requestBody: new OA\RequestBody(
         required: true,
@@ -1107,6 +1107,90 @@ public function creditDebitCustomerAccount(Request $request)
         }
     }
 
+#[OA\Post(
+    path: "/api/v1/transactions/verify-wallet-account",
+    summary: "Verify Wallet Account",
+    description: "Verifies whether a destination wallet account number is valid before proceeding with a wallet-to-wallet transfer. The endpoint checks both customer wallet accounts and company wallet accounts and returns the beneficiary's details when the account is successfully verified.",
+    tags: ["Transfer - Wallet To Wallet"],
+    security: [["bearerAuth" => []]],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ["account_number"],
+            properties: [
+                new OA\Property(
+                    property: "account_number",
+                    type: "string",
+                    example: "1234567890",
+                    description: "Destination wallet account number to be verified."
+                ),
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Wallet account verified successfully",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Account Verified Successfully"
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        properties: [
+                            new OA\Property(
+                                property: "first_name",
+                                type: "string",
+                                example: "John"
+                            ),
+                            new OA\Property(
+                                property: "last_name",
+                                type: "string",
+                                example: "Doe"
+                            ),
+                            new OA\Property(
+                                property: "bank_name",
+                                type: "string",
+                                example: "Example Bank"
+                            ),
+                            new OA\Property(
+                                property: "currency_id",
+                                type: "integer",
+                                example: 1
+                            ),
+                        ],
+                        type: "object"
+                    ),
+                ],
+                type: "object"
+            )
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Validation failed because the account number is missing"
+        ),
+        new OA\Response(
+            response: 409,
+            description: "Cannot transfer to the authenticated user's own wallet account"
+        ),
+        new OA\Response(
+            response: 400,
+            description: "Failed to verify Wallet account"
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        )
+    ]
+)]
     public function verifyWalletAccount(Request $request)
     {
 
@@ -1179,7 +1263,7 @@ public function creditDebitCustomerAccount(Request $request)
     path: "/transactions/bank-transfer",
     summary: "Complete a bank transfer",
     description: "Completes a bank transfer using the transaction reference returned by the initiate-transaction endpoint. The request field receipient_name is intentionally spelled as currently required by the backend.",
-    tags: ["Transfer"],
+    tags: ["Transfer - Wallet To Bank"],
     security: [["bearerAuth" => []]],
     requestBody: new OA\RequestBody(
         required: true,
@@ -1533,7 +1617,7 @@ public function transferToBankAccount(Request $request)
     path: "/transactions/get-beneficiaries",
     summary: "Get saved bank transfer beneficiaries",
     description: "Retrieves the authenticated user's saved bank beneficiaries for reuse during bank transfers.",
-    tags: ["Transfer"],
+    tags: ["Transfer - Wallet To Bank"],
     security: [["bearerAuth" => []]],
     responses: [
         new OA\Response(
@@ -1692,6 +1776,113 @@ public function getBeneficiaries(Request $request)
         return response()->json($bankAccount);
     }
 
+    #[OA\Post(
+    path: "/api/v1/transactions/wallet-transfer",
+    summary: "Complete Wallet to Wallet Transfer",
+    description: "Finalizes a wallet-to-wallet transfer after the transaction has been initiated and the destination wallet has been verified. The endpoint validates the transaction reference, destination wallet, transaction PIN, available balance, transfer restrictions, and then debits the sender's wallet and credits the destination wallet.",
+    tags: ["Transfer - Wallet To Wallet"],
+    security: [["bearerAuth" => []]],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: [
+                "transaction_reference",
+                "destination_account",
+                "transaction_pin"
+            ],
+            properties: [
+                new OA\Property(
+                    property: "final_amount",
+                    type: "number",
+                    format: "float",
+                    example: 5000.00,
+                    description: "Amount to transfer."
+                ),
+                new OA\Property(
+                    property: "transaction_type",
+                    type: "string",
+                    example: "4",
+                    description: "Transaction type identifier."
+                ),
+                new OA\Property(
+                    property: "description",
+                    type: "string",
+                    example: "Transfer for groceries",
+                    description: "Description or narration for the transfer."
+                ),
+                new OA\Property(
+                    property: "destination_account",
+                    type: "string",
+                    example: "1234567890",
+                    description: "Destination wallet account number."
+                ),
+                new OA\Property(
+                    property: "transaction_reference",
+                    type: "string",
+                    example: "TXN-REF-12345",
+                    description: "Transaction reference generated during the transfer initiation process."
+                ),
+                new OA\Property(
+                    property: "transaction_pin",
+                    type: "string",
+                    format: "password",
+                    example: "1234",
+                    description: "Transaction PIN used to authorize the transfer."
+                ),
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Wallet Transfer Successful",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Wallet Transfer Successful"
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        properties: [
+                            new OA\Property(
+                                property: "balance",
+                                type: "number",
+                                format: "float",
+                                example: 45000.00,
+                                description: "Sender's wallet balance after the transfer."
+                            ),
+                        ],
+                        type: "object"
+                    ),
+                ],
+                type: "object"
+            )
+        ),
+        new OA\Response(
+            response: 400,
+            description: "Wallet transfer failed, invalid transaction reference, insufficient balance, restricted account, invalid destination wallet, or invalid transaction PIN"
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Validation failed or required transfer information is missing"
+        ),
+        new OA\Response(
+            response: 409,
+            description: "Transaction has already been completed or transfer is being made to the sender's own wallet"
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        )
+    ]
+)]
     public function walletTransfer(Request $request)
     {
         $description   = $request->description;
@@ -1927,7 +2118,7 @@ public function getBeneficiaries(Request $request)
     path: "/transactions/initiate-transaction",
     summary: "Initiate a transaction",
     description: "Initializes a transaction and returns the transaction reference, applicable charge, transfer amount, and total. Use transaction_type 8 for the bank-transfer flow.",
-    tags: ["Transfer"],
+    tags: ["Transfer - Wallet To Bank"],
     security: [["bearerAuth" => []]],
     requestBody: new OA\RequestBody(
         required: true,
@@ -1988,10 +2179,654 @@ public function getBeneficiaries(Request $request)
         )
     ]
 )]
-public function initiateTransaction(Request $request)
-{
-    // Keep your existing initiateTransaction() implementation here unchanged.
-}
+    public function initiateTransaction(Request $request)
+    {
+
+        $transactionId = generateTransactionReference();
+
+        $validation = Validator::make($request->all(), [
+            "final_amount"     => "required|numeric|gt:0",
+            "transaction_type" => "required|numeric|gt:0",
+            "description"      => "string",
+        ]);
+
+        if ($validation->fails()) {
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
+            return response()->json($ra, 406);
+        }
+
+        $checkAllowedTransaction = checkCompanyAllowedTransactionStatus(auth()->user()->company_id); // adding for schedule transfer
+
+        if ($checkAllowedTransaction['status'] != 1) {
+            $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
+            return response()->json($checkAllowedTransaction, 400);
+        }
+
+        $description = $request->description;
+
+        if ($request->final_amount > 0) {
+
+            if ($request->transaction_type == 3) {
+                $companyName     = auth()->user()->company->company_name;
+                $ledger_cr       = null;
+                $ledger_dr       = null;
+                $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
+                if ($ledger_Settings) {
+                    $ledger_cr = $ledger_Settings->ledger_cr;
+                    $ledger_dr = $ledger_Settings->ledger_dr;
+                }
+                $transaction = transactions::create([
+                    "balance_before"         => auth()->user()->company->wallet->balance,
+                    "amount"                 => $request->amount,
+                    "description"            => "Funding Admin Wallet",
+                    "transaction_reference"  => $transactionId,
+                    "branch_id"              => \auth()->user()->branch_id,
+                    "transaction_remarks_id" => 6,
+                    "company_id"             => auth()->user()->company_id,
+                    "transaction_type_id"    => $request->transaction_type,
+                    "credit_debit_type_id"   => 1,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => auth()->user()->id,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
+                ]);
+
+                $header = ['Authorization' => 'Bearer ' . $this->flutterwaveSecretKey];
+                $body   = [
+                    "tx_ref"          => $transactionId,
+                    "amount"          => $request->amount,
+                    "currency"        => auth()->user()->company->currency->code,
+                    "redirect_url"    => $this->baseUrl . "/" . "company/" . auth()->user()->company->short_name . "/transaction/verify-fund-wallet",
+                    "payment_options" => "card",
+                    "customer"        => [
+                        "email"       => Auth()->user()->email,
+                        "phonenumber" => Auth()->user()->phone,
+                        "name"        => Auth()->user()->first_name . ' ' . Auth()->user()->last_name,
+                    ],
+                    "customizations"  => [
+                        "title"       => "Funding WBA Wallet",
+                        "description" => "Fund Wired Banking Wallet",
+                        "logo"        => "https://wiredbanking.ng/img/logo/logo-dark.png",
+                    ],
+                ];
+                $url = 'https://api.flutterwave.com/v3/payments';
+
+                $jsonData = \postRequest($header, $body, $url);
+
+                // {"status":"success","message":"Hosted Link","data":{"link":"https:\/\/ravemodal-dev.herokuapp.com\/v3\/hosted\/pay\/79d6b15bf0bcb701e77d"}}
+                return response()->json(["status" => true, "transactionId" => $transactionId, 'link' => $jsonData['data']['link'], 'message' => " " . generateTransactionReference()]);
+            } else if ($request->transaction_type == 5) {
+
+                $description = $description ?? "Company Wallet Transfer";
+
+                if ($request->final_amount > 0) {
+
+                    if (auth()->user()->company->wallet->balance >= $request->final_amount) {
+
+                        $charge          = 0;
+                        $ledger_cr       = null;
+                        $ledger_dr       = null;
+                        $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
+                        if ($ledger_Settings) {
+                            $ledger_cr = $ledger_Settings->ledger_cr;
+                            $ledger_dr = $ledger_Settings->ledger_dr;
+                        }
+                        $transaction = transactions::create([
+                            "balance_before"         => auth()->user()->company->wallet->balance,
+                            "amount"                 => $request->final_amount,
+                            "description"            => $description,
+                            "transaction_reference"  => $transactionId,
+                            "branch_id"              => \auth()->user()->branch_id,
+                            "company_id"             => auth()->user()->company_id,
+                            "transaction_remarks_id" => 6,
+                            "transaction_type_id"    => $request->transaction_type,
+                            "credit_debit_type_id"   => 2,
+                            "created_date"           => date('Y-m-d'),
+                            "created_by"             => auth()->user()->id,
+                            "ledger_cr"              => $ledger_cr,
+                            "ledger_dr"              => $ledger_dr,
+                        ]);
+
+                        return response()->json(
+                            [
+                                "status"  => true,
+                                'message' => "Transaction initialized",
+                                'data'    => [
+                                    'charge'            => $charge ?? 0.00,
+                                    'transactionId'     => $transaction->id,
+                                    'transactionTypeId' => $request->transaction_type,
+                                    'exchangeAmount'    => $request->final_amount,
+                                    'total'             => $request->finalAmount,
+                                ],
+                            ]
+                        );
+                    } else {
+                        return response()->json(["status" => false, 'message' => "Insufficient Balance"], 400);
+                    }
+                } else {
+                    return response()->json(["status" => false, 'message' => "Invalid Transfer amount"], 400);
+                }
+            } else if ($request->transaction_type == 8 || $request->transaction_type == 19) {
+
+                $amount      = 0;
+                $totalAmount = 0;
+                $charge      = 834;
+
+                if ($request->transaction_type == 19) {
+                    $description = $description ?? "Mobile Money Transfer";
+                    $totalAmount = $request->finalAmount;
+                    $amount      = $request->finalAmount;
+                } else if ($request->transaction_type == 8) {
+
+                    $validateSavingsProduct = $this->accountProductCharges($request->final_amount);
+
+                    if (! $validateSavingsProduct['status']) {
+                        return \response()->json($validateSavingsProduct, 400);
+                    }
+
+                    $charge = $validateSavingsProduct['data']['charge'];
+                    logInfo($charge, "Charge for Transaction type 8");
+
+                    $amount      = $request->final_amount;
+                    $totalAmount = $request->final_amount + $charge;
+                    $description = $description ?? "You sent money to $request->receipient_name via Bank Transfer";
+                }
+
+                $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
+
+                $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount);
+
+                if (! $customerBalance['status']) {
+                    return response()->json($customerBalance, 400);
+                }
+
+                if (\checkcustomerrestriction(\auth()->user()->id, '2')) {
+                    return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
+                }
+
+                $validateTransferAmount = $this->validateTransfer($request->final_amount);
+
+                if (! $validateTransferAmount['status']) {
+                    return \response()->json($validateTransferAmount, 400);
+                }
+                $ledger_cr       = null;
+                $ledger_dr       = null;
+                $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
+                if ($ledger_Settings) {
+                    $ledger_cr = $ledger_Settings->ledger_cr;
+                    $ledger_dr = $ledger_Settings->ledger_dr;
+                }
+                $transaction = transactions::create([
+                    "balance_before"         => $customerBalance['balance'],
+                    "amount"                 => $amount,
+                    "account_id"             => $customerBalance['account_id'],
+                    "description"            => $description,
+                    "branch_id"              => \auth()->user()->branch_id,
+                    "company_balance_before" => $customerBalance['company_balance'],
+                    "company_amount"         => $amount,
+                    "system_description"     => auth()->user()->company->company_name . " - " . auth()->user()->first_name . " sent money to " . $request->receipient_name,
+                    "company_id"             => auth()->user()->company_id,
+                    "transaction_reference"  => $transactionId,
+                    "transaction_remarks_id" => 6,
+                    "transaction_type_id"    => $request->transaction_type,
+                    "credit_debit_type_id"   => 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => auth()->user()->id,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
+                ]);
+
+                return response()->json(
+                    [
+                        "status"  => true,
+                        'message' => "Pending Transaction initialized",
+                        'data'    => [
+                            'charge'                => $charge ?? 0.00,
+                            'transaction_reference' => $transactionId,
+                            'transactionTypeId'     => $request->transaction_type,
+                            'transfer_amount'       => $amount,
+                            'total'                 => $totalAmount,
+                        ],
+                    ]
+                );
+
+                // return response()->json(["status" => false, 'message' => "Insufficient Balance ", 'data' => $userWallet->balance], 400);
+            } else if ($request->transaction_type == 4) {
+                //  return response()->json("Not available now", 400);
+                $amount      = 0;
+                $totalAmount = 0;
+
+                $amount      = $request->final_amount;
+                $totalAmount = $request->final_amount;
+                $name        = isset($request->receipient_name) ? $request->receipient_name : "N/A";
+                $description = "You sent payment to $name $request->description / $request->destination_account ";
+
+                $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount);
+
+                if (! $customerBalance['status']) {
+                    return response()->json($customerBalance, 400);
+                }
+
+                if (\checkcustomerrestriction(\auth()->user()->id, '2')) {
+                    return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
+                }
+
+                if ($request->destination_account == \auth()->user()->virtual_account) {
+                    return response()->json(["status" => false, 'message' => "Cannot transfer to self"], 409);
+                }
+
+                $charge = 0;
+
+                $validateTransferAmount = $this->validateTransfer($request->final_amount);
+
+                if (! $validateTransferAmount['status']) {
+                    return \response()->json($validateTransferAmount, 400);
+                }
+                $ledger_cr       = null;
+                $ledger_dr       = null;
+                $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
+                if ($ledger_Settings) {
+                    $ledger_cr = $ledger_Settings->ledger_cr;
+                    $ledger_dr = $ledger_Settings->ledger_dr;
+                }
+                $transaction = transactions::create([
+                    "balance_before"         => $customerBalance['balance'],
+                    "amount"                 => $totalAmount,
+                    "account_id"             => $customerBalance['account_id'],
+                    "description"            => $description,
+                    "transaction_reference"  => $transactionId,
+                    "company_balance_before" => $customerBalance["company_balance"],
+                    "company_amount"         => 0,
+                    "company_id"             => auth()->user()->company_id,
+                    "transaction_remarks_id" => 6,
+                    "branch_id"              => \auth()->user()->branch_id,
+                    "transaction_type_id"    => $request->transaction_type,
+                    "credit_debit_type_id"   => 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => auth()->user()->id,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
+                ]);
+
+                return response()->json(
+                    [
+                        "status"  => true,
+                        'message' => "Pending Transaction initialized",
+                        'data'    => [
+                            'charge'                => $charge ?? 0.00,
+                            'transaction_reference' => $transactionId,
+                            'transactionTypeId'     => $request->transaction_type,
+                            'transfer_amount'       => $amount,
+                            'total'                 => $totalAmount,
+                        ],
+                    ]
+                );
+
+                // return response()->json(["status" => false, 'message' => "Insufficient Balance ", 'data' => $userWallet->balance], 400);
+            } else {
+                return response()->json(["status" => false, 'message' => "Invalid Transaction Type"], 400);
+            }
+        } else {
+            return response()->json(["status" => false, 'message' => "Invalid Transaction Amount"], 400);
+        }
+    }
+
+    #[OA\Post(
+    path: "/transactions/initiate-transaction",
+    summary: "Initiate a transaction",
+    description: "Initializes a transaction and returns the transaction reference, applicable charge, transfer amount, and total. Use transaction_type 8 for the bank-transfer flow.",
+    tags: ["Transfer - Wallet To Wallet"],
+    security: [["bearerAuth" => []]],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            type: "object",
+            required: ["final_amount", "transaction_type"],
+            properties: [
+                new OA\Property(property: "final_amount", type: "number", format: "float", example: 1000),
+                new OA\Property(property: "description", type: "string", example: "Transfer to Ada Example"),
+                new OA\Property(property: "transaction_type", type: "integer", example: 8)
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Transaction initialized successfully",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(property: "status", type: "boolean", example: true),
+                    new OA\Property(property: "message", type: "string", example: "Pending Transaction initialized"),
+                    new OA\Property(
+                        property: "data",
+                        type: "object",
+                        properties: [
+                            new OA\Property(property: "charge", type: "number", format: "float", example: 10),
+                            new OA\Property(property: "transaction_reference", type: "string", example: "TRX-123456"),
+                            new OA\Property(property: "transactionTypeId", type: "integer", example: 8),
+                            new OA\Property(property: "transfer_amount", type: "number", format: "float", example: 1000),
+                            new OA\Property(property: "total", type: "number", format: "float", example: 1010)
+                        ]
+                    )
+                ]
+            )
+        ),
+        new OA\Response(
+            response: 400,
+            description: "Transaction could not be initialized",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(property: "status", type: "boolean", example: false),
+                    new OA\Property(property: "message", type: "string", example: "Insufficient Balance")
+                ]
+            )
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Invalid transaction parameters",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(property: "status", type: "boolean", example: false),
+                    new OA\Property(property: "message", type: "string", example: "The final amount must be greater than zero")
+                ]
+            )
+        )
+    ]
+)]
+    public function initiateTransactionApi2(Request $request)
+    {
+
+        $transactionId = generateTransactionReference();
+
+        $validation = Validator::make($request->all(), [
+            "final_amount"     => "required|numeric|gt:0",
+            "transaction_type" => "required|numeric|gt:0",
+            "description"      => "string",
+        ]);
+
+        if ($validation->fails()) {
+            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
+            return response()->json($ra, 406);
+        }
+
+        $checkAllowedTransaction = checkCompanyAllowedTransactionStatus(auth()->user()->company_id); // adding for schedule transfer
+
+        if ($checkAllowedTransaction['status'] != 1) {
+            $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
+            return response()->json($checkAllowedTransaction, 400);
+        }
+
+        $description = $request->description;
+
+        if ($request->final_amount > 0) {
+
+            if ($request->transaction_type == 3) {
+                $companyName     = auth()->user()->company->company_name;
+                $ledger_cr       = null;
+                $ledger_dr       = null;
+                $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
+                if ($ledger_Settings) {
+                    $ledger_cr = $ledger_Settings->ledger_cr;
+                    $ledger_dr = $ledger_Settings->ledger_dr;
+                }
+                $transaction = transactions::create([
+                    "balance_before"         => auth()->user()->company->wallet->balance,
+                    "amount"                 => $request->amount,
+                    "description"            => "Funding Admin Wallet",
+                    "transaction_reference"  => $transactionId,
+                    "branch_id"              => \auth()->user()->branch_id,
+                    "transaction_remarks_id" => 6,
+                    "company_id"             => auth()->user()->company_id,
+                    "transaction_type_id"    => $request->transaction_type,
+                    "credit_debit_type_id"   => 1,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => auth()->user()->id,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
+                ]);
+
+                $header = ['Authorization' => 'Bearer ' . $this->flutterwaveSecretKey];
+                $body   = [
+                    "tx_ref"          => $transactionId,
+                    "amount"          => $request->amount,
+                    "currency"        => auth()->user()->company->currency->code,
+                    "redirect_url"    => $this->baseUrl . "/" . "company/" . auth()->user()->company->short_name . "/transaction/verify-fund-wallet",
+                    "payment_options" => "card",
+                    "customer"        => [
+                        "email"       => Auth()->user()->email,
+                        "phonenumber" => Auth()->user()->phone,
+                        "name"        => Auth()->user()->first_name . ' ' . Auth()->user()->last_name,
+                    ],
+                    "customizations"  => [
+                        "title"       => "Funding WBA Wallet",
+                        "description" => "Fund Wired Banking Wallet",
+                        "logo"        => "https://wiredbanking.ng/img/logo/logo-dark.png",
+                    ],
+                ];
+                $url = 'https://api.flutterwave.com/v3/payments';
+
+                $jsonData = \postRequest($header, $body, $url);
+
+                // {"status":"success","message":"Hosted Link","data":{"link":"https:\/\/ravemodal-dev.herokuapp.com\/v3\/hosted\/pay\/79d6b15bf0bcb701e77d"}}
+                return response()->json(["status" => true, "transactionId" => $transactionId, 'link' => $jsonData['data']['link'], 'message' => " " . generateTransactionReference()]);
+            } else if ($request->transaction_type == 5) {
+
+                $description = $description ?? "Company Wallet Transfer";
+
+                if ($request->final_amount > 0) {
+
+                    if (auth()->user()->company->wallet->balance >= $request->final_amount) {
+
+                        $charge          = 0;
+                        $ledger_cr       = null;
+                        $ledger_dr       = null;
+                        $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
+                        if ($ledger_Settings) {
+                            $ledger_cr = $ledger_Settings->ledger_cr;
+                            $ledger_dr = $ledger_Settings->ledger_dr;
+                        }
+                        $transaction = transactions::create([
+                            "balance_before"         => auth()->user()->company->wallet->balance,
+                            "amount"                 => $request->final_amount,
+                            "description"            => $description,
+                            "transaction_reference"  => $transactionId,
+                            "branch_id"              => \auth()->user()->branch_id,
+                            "company_id"             => auth()->user()->company_id,
+                            "transaction_remarks_id" => 6,
+                            "transaction_type_id"    => $request->transaction_type,
+                            "credit_debit_type_id"   => 2,
+                            "created_date"           => date('Y-m-d'),
+                            "created_by"             => auth()->user()->id,
+                            "ledger_cr"              => $ledger_cr,
+                            "ledger_dr"              => $ledger_dr,
+                        ]);
+
+                        return response()->json(
+                            [
+                                "status"  => true,
+                                'message' => "Transaction initialized",
+                                'data'    => [
+                                    'charge'            => $charge ?? 0.00,
+                                    'transactionId'     => $transaction->id,
+                                    'transactionTypeId' => $request->transaction_type,
+                                    'exchangeAmount'    => $request->final_amount,
+                                    'total'             => $request->finalAmount,
+                                ],
+                            ]
+                        );
+                    } else {
+                        return response()->json(["status" => false, 'message' => "Insufficient Balance"], 400);
+                    }
+                } else {
+                    return response()->json(["status" => false, 'message' => "Invalid Transfer amount"], 400);
+                }
+            } else if ($request->transaction_type == 8 || $request->transaction_type == 19) {
+
+                $amount      = 0;
+                $totalAmount = 0;
+                $charge      = 834;
+
+                if ($request->transaction_type == 19) {
+                    $description = $description ?? "Mobile Money Transfer";
+                    $totalAmount = $request->finalAmount;
+                    $amount      = $request->finalAmount;
+                } else if ($request->transaction_type == 8) {
+
+                    $validateSavingsProduct = $this->accountProductCharges($request->final_amount);
+
+                    if (! $validateSavingsProduct['status']) {
+                        return \response()->json($validateSavingsProduct, 400);
+                    }
+
+                    $charge = $validateSavingsProduct['data']['charge'];
+                    logInfo($charge, "Charge for Transaction type 8");
+
+                    $amount      = $request->final_amount;
+                    $totalAmount = $request->final_amount + $charge;
+                    $description = $description ?? "You sent money to $request->receipient_name via Bank Transfer";
+                }
+
+                $userWallet = user_wallet::where('wb_account_detail_id', auth()->user()->accounts->first()->id)->first();
+
+                $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount);
+
+                if (! $customerBalance['status']) {
+                    return response()->json($customerBalance, 400);
+                }
+
+                if (\checkcustomerrestriction(\auth()->user()->id, '2')) {
+                    return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
+                }
+
+                $validateTransferAmount = $this->validateTransfer($request->final_amount);
+
+                if (! $validateTransferAmount['status']) {
+                    return \response()->json($validateTransferAmount, 400);
+                }
+                $ledger_cr       = null;
+                $ledger_dr       = null;
+                $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
+                if ($ledger_Settings) {
+                    $ledger_cr = $ledger_Settings->ledger_cr;
+                    $ledger_dr = $ledger_Settings->ledger_dr;
+                }
+                $transaction = transactions::create([
+                    "balance_before"         => $customerBalance['balance'],
+                    "amount"                 => $amount,
+                    "account_id"             => $customerBalance['account_id'],
+                    "description"            => $description,
+                    "branch_id"              => \auth()->user()->branch_id,
+                    "company_balance_before" => $customerBalance['company_balance'],
+                    "company_amount"         => $amount,
+                    "system_description"     => auth()->user()->company->company_name . " - " . auth()->user()->first_name . " sent money to " . $request->receipient_name,
+                    "company_id"             => auth()->user()->company_id,
+                    "transaction_reference"  => $transactionId,
+                    "transaction_remarks_id" => 6,
+                    "transaction_type_id"    => $request->transaction_type,
+                    "credit_debit_type_id"   => 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => auth()->user()->id,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
+                ]);
+
+                return response()->json(
+                    [
+                        "status"  => true,
+                        'message' => "Pending Transaction initialized",
+                        'data'    => [
+                            'charge'                => $charge ?? 0.00,
+                            'transaction_reference' => $transactionId,
+                            'transactionTypeId'     => $request->transaction_type,
+                            'transfer_amount'       => $amount,
+                            'total'                 => $totalAmount,
+                        ],
+                    ]
+                );
+
+                // return response()->json(["status" => false, 'message' => "Insufficient Balance ", 'data' => $userWallet->balance], 400);
+            } else if ($request->transaction_type == 4) {
+                //  return response()->json("Not available now", 400);
+                $amount      = 0;
+                $totalAmount = 0;
+
+                $amount      = $request->final_amount;
+                $totalAmount = $request->final_amount;
+                $name        = isset($request->receipient_name) ? $request->receipient_name : "N/A";
+                $description = "You sent payment to $name $request->description / $request->destination_account ";
+
+                $customerBalance = $this->checkCustomerAndCompanyBalance($totalAmount);
+
+                if (! $customerBalance['status']) {
+                    return response()->json($customerBalance, 400);
+                }
+
+                if (\checkcustomerrestriction(\auth()->user()->id, '2')) {
+                    return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
+                }
+
+                if ($request->destination_account == \auth()->user()->virtual_account) {
+                    return response()->json(["status" => false, 'message' => "Cannot transfer to self"], 409);
+                }
+
+                $charge = 0;
+
+                $validateTransferAmount = $this->validateTransfer($request->final_amount);
+
+                if (! $validateTransferAmount['status']) {
+                    return \response()->json($validateTransferAmount, 400);
+                }
+                $ledger_cr       = null;
+                $ledger_dr       = null;
+                $ledger_Settings = get_CR_DR_TXN_Type_Ledger($request->transaction_type, \auth()->user()->company_id);
+                if ($ledger_Settings) {
+                    $ledger_cr = $ledger_Settings->ledger_cr;
+                    $ledger_dr = $ledger_Settings->ledger_dr;
+                }
+                $transaction = transactions::create([
+                    "balance_before"         => $customerBalance['balance'],
+                    "amount"                 => $totalAmount,
+                    "account_id"             => $customerBalance['account_id'],
+                    "description"            => $description,
+                    "transaction_reference"  => $transactionId,
+                    "company_balance_before" => $customerBalance["company_balance"],
+                    "company_amount"         => 0,
+                    "company_id"             => auth()->user()->company_id,
+                    "transaction_remarks_id" => 6,
+                    "branch_id"              => \auth()->user()->branch_id,
+                    "transaction_type_id"    => $request->transaction_type,
+                    "credit_debit_type_id"   => 2,
+                    "created_date"           => date('Y-m-d'),
+                    "created_by"             => auth()->user()->id,
+                    "ledger_cr"              => $ledger_cr,
+                    "ledger_dr"              => $ledger_dr,
+                ]);
+
+                return response()->json(
+                    [
+                        "status"  => true,
+                        'message' => "Pending Transaction initialized",
+                        'data'    => [
+                            'charge'                => $charge ?? 0.00,
+                            'transaction_reference' => $transactionId,
+                            'transactionTypeId'     => $request->transaction_type,
+                            'transfer_amount'       => $amount,
+                            'total'                 => $totalAmount,
+                        ],
+                    ]
+                );
+
+                // return response()->json(["status" => false, 'message' => "Insufficient Balance ", 'data' => $userWallet->balance], 400);
+            } else {
+                return response()->json(["status" => false, 'message' => "Invalid Transaction Type"], 400);
+            }
+        } else {
+            return response()->json(["status" => false, 'message' => "Invalid Transaction Amount"], 400);
+        }
+    }
 
     public function wovenWebhook(Request $request)
     {
@@ -7252,7 +8087,7 @@ public function safeHavenIdentityCheckResponse(Request $request)
     path: "/get-banks",
     summary: "Get all available banks",
     description: "Retrieves the list of banks available for bank transfers. The optional type parameter controls the format of the bank list returned.",
-    tags: ["Transfer"],
+    tags: ["Transfer - Wallet To Bank"],
     parameters: [
         new OA\Parameter(
             name: "type",
@@ -7412,6 +8247,83 @@ public function getAllBanks(Request $request)
         return response()->json(['status' => true, 'message' => 'Transactions fetched successfully', 'data' => $transactions]);
     }
 
+    #[OA\Get(
+    path: "/api/v1/get-data-bundles/{networkProvider}",
+    summary: "Get Data Bundles",
+    description: "Returns the available data bundles for the specified network provider. The network provider is passed as a path parameter and the bundles are fetched through the VTpass service.",
+    tags: ["Data Bundles"],
+    security: [["bearerAuth" => []]],
+    parameters: [
+        new OA\Parameter(
+            name: "networkProvider",
+            description: "Network provider for which data bundles should be retrieved",
+            in: "path",
+            required: true,
+            schema: new OA\Schema(
+                type: "string",
+                example: "mtn"
+            )
+        ),
+    ],
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Data Bundles fetched successfully",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Data Bundles fetched successfully"
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        type: "array",
+                        items: new OA\Items(
+                            type: "object",
+                            properties: [
+                                new OA\Property(
+                                    property: "code",
+                                    type: "string",
+                                    example: "mtn-1000"
+                                ),
+                                new OA\Property(
+                                    property: "name",
+                                    type: "string",
+                                    example: "MTN 1GB Data Bundle"
+                                ),
+                                new OA\Property(
+                                    property: "amount",
+                                    type: "number",
+                                    format: "float",
+                                    example: 1000.00
+                                ),
+                            ]
+                        )
+                    ),
+                ],
+                type: "object"
+            )
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        ),
+        new OA\Response(
+            response: 400,
+            description: "Invalid or missing network provider"
+        ),
+        new OA\Response(
+            response: 500,
+            description: "Failed to fetch Data Bundles"
+        )
+    ]
+)]
 public function getDataBundles($networkProvider)
 {
     $dataBundles = $this->vtPassControllerSercice('getDataBundles', [

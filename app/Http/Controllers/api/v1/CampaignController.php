@@ -1545,4 +1545,133 @@ public function transactions(
             ], 500);
         }
     }
+
+/**
+ * Get company-wide Campaign summary for regular authenticated users.
+ *
+ * Returns the total number of Campaigns and the total amount
+ * contributed across all Campaigns belonging to the user's company.
+ *
+ * Includes both active and closed Campaigns.
+ * Total contributions are lifetime totals and are not reduced
+ * when Campaign creators withdraw funds.
+ */
+#[OA\Get(
+    path: "/api/v1/campaigns/company/summary",
+    summary: "Get company Campaign summary",
+    description: "Returns the total number of Campaigns and the total lifetime contributions across all Campaigns belonging to the authenticated user's company. Both active and closed Campaigns are included. This endpoint is available to regular authenticated users and does not require administrator privileges.",
+    tags: ["Campaigns"],
+    security: [["bearerAuth" => []]],
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "Company Campaign summary retrieved successfully",
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Company Campaign summary retrieved successfully."
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        properties: [
+                            new OA\Property(
+                                property: "company_id",
+                                type: "integer",
+                                example: 46
+                            ),
+                            new OA\Property(
+                                property: "total_campaigns",
+                                type: "integer",
+                                example: 12
+                            ),
+                            new OA\Property(
+                                property: "total_contributed",
+                                type: "number",
+                                format: "float",
+                                example: 2750000.00
+                            ),
+                        ],
+                        type: "object"
+                    ),
+                ],
+                type: "object"
+            )
+        ),
+        new OA\Response(
+            response: 401,
+            description: "Unauthenticated"
+        ),
+        new OA\Response(
+            response: 400,
+            description: "Authenticated user is not linked to a company"
+        ),
+        new OA\Response(
+            response: 500,
+            description: "Unable to retrieve company Campaign summary"
+        )
+    ]
+)]
+public function companySummary(Request $request): JsonResponse
+{
+    try {
+
+        $user = auth('api')->user();
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        if (empty($user->company_id)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Your account is not linked to a company.',
+            ], 400);
+        }
+
+        /*
+         * Scope all calculations to the authenticated user's company.
+         *
+         * Do not filter by status: both active and closed Campaigns
+         * count toward the company's totals.
+         */
+        $summary = Campaign::query()
+            ->where('company_id', $user->company_id)
+            ->selectRaw('COUNT(*) AS total_campaigns')
+            ->selectRaw(
+                'COALESCE(SUM(total_contributed), 0) AS total_contributed'
+            )
+            ->first();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Company Campaign summary retrieved successfully.',
+            'data' => [
+                'company_id' => (int) $user->company_id,
+                'total_campaigns' => (int) $summary->total_campaigns,
+                'total_contributed' => (float) $summary->total_contributed,
+            ],
+        ], 200);
+
+    } catch (Throwable $e) {
+
+        report($e);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to retrieve company Campaign summary.',
+        ], 500);
+    }
+}
+
+
 }

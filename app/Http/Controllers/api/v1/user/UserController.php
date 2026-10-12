@@ -555,8 +555,8 @@ class UserController extends Controller
             ],
         ]);
     }
-
-    #[OA\Post(
+    
+#[OA\Post(
     path: "/api/v1/users/reset-password",
     summary: "Reset Password",
     description: "Resets a user's password after validating their phone number and OTP code. The OTP must correspond to the supplied phone number and must not be expired.",
@@ -595,84 +595,111 @@ class UserController extends Controller
     responses: [
         new OA\Response(
             response: 200,
-            description: "Password reset successfully",
+            description: "Password reset request processed successfully",
             content: new OA\JsonContent(
-                properties: [
-                    new OA\Property(
-                        property: "status",
-                        type: "boolean",
-                        example: true
+                oneOf: [
+                    new OA\Schema(
+                        properties: [
+                            new OA\Property(
+                                property: "status",
+                                type: "boolean",
+                                example: true
+                            ),
+                            new OA\Property(
+                                property: "message",
+                                type: "string",
+                                example: "Password Reset Successfully"
+                            ),
+                        ],
+                        type: "object"
                     ),
-                    new OA\Property(
-                        property: "message",
-                        type: "string",
-                        example: "Password Reset Successfully"
+                    new OA\Schema(
+                        properties: [
+                            new OA\Property(
+                                property: "status",
+                                type: "boolean",
+                                example: false
+                            ),
+                            new OA\Property(
+                                property: "message",
+                                type: "string",
+                                example: "Invalid or Expired OTP"
+                            ),
+                        ],
+                        type: "object"
                     ),
-                ],
-                type: "object"
+                    new OA\Schema(
+                        properties: [
+                            new OA\Property(
+                                property: "status",
+                                type: "boolean",
+                                example: false
+                            ),
+                            new OA\Property(
+                                property: "message",
+                                type: "string",
+                                example: "Invalid Phone number or OTP supplied"
+                            ),
+                        ],
+                        type: "object"
+                    ),
+                ]
             )
         ),
         new OA\Response(
             response: 406,
             description: "Phone number, OTP code, or password validation failed"
-        ),
-        new OA\Response(
-            response: 200,
-            description: "Invalid or expired OTP or invalid phone number",
-            content: new OA\JsonContent(
-                properties: [
-                    new OA\Property(
-                        property: "status",
-                        type: "boolean",
-                        example: false
-                    ),
-                    new OA\Property(
-                        property: "message",
-                        type: "string",
-                        example: "Invalid or Expired OTP"
-                    ),
-                ],
-                type: "object"
-            )
         )
     ]
 )]
-    public function resetPassword(Request $request)
-    {
-        \logInfo($request->all(), "resetPassword request log");
+public function resetPassword(Request $request)
+{
+    \logInfo($request->all(), "resetPassword request log");
 
-        $validate = Validator::make($request->all(), [
-            'phone_number' => 'required',
-            'otp_code'     => 'required|numeric|gt:0',
-            'password'     => 'required',
-        ]);
+    $validate = Validator::make($request->all(), [
+        'phone_number' => 'required',
+        'otp_code'     => 'required|numeric|gt:0',
+        'password'     => 'required',
+    ]);
 
-        if ($validate->fails()) {
-            $ra = ["status" => false, "message" => "Otp Code and Phone number are required"];
-            return response()->json($ra, 406);
-        }
-
-        $userAccunt = User::where(['phone' => $request->phone_number, 'otp' => $request->otp_code])->first();
-
-        if ($userAccunt) {
-
-            $date = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
-
-            if ($userAccunt->otp_expiration_date < $date) {
-
-                $userAccunt->password    = Hash::make($request->password);
-                $userAccunt->login_fails = 0;
-                $userAccunt->status_id   = 1;
-                $userAccunt->save();
-
-                return response(['status' => true, 'message' => 'Password Reset Successfully']);
-            } else {
-                return response(['status' => false, 'message' => 'Invalid or Expired OTP']);
-            }
-        } else {
-            return response(['status' => false, 'message' => 'Invalid Phone number or OTP supplied']);
-        }
+    if ($validate->fails()) {
+        $ra = ["status" => false, "message" => "Otp Code and Phone number are required"];
+        return response()->json($ra, 406);
     }
+
+    $userAccunt = User::where([
+        'phone' => $request->phone_number,
+        'otp' => $request->otp_code
+    ])->first();
+
+    if ($userAccunt) {
+
+        $date = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
+
+        if ($userAccunt->otp_expiration_date < $date) {
+
+            $userAccunt->password    = Hash::make($request->password);
+            $userAccunt->login_fails = 0;
+            $userAccunt->status_id   = 1;
+            $userAccunt->save();
+
+            return response([
+                'status' => true,
+                'message' => 'Password Reset Successfully'
+            ]);
+        } else {
+            return response([
+                'status' => false,
+                'message' => 'Invalid or Expired OTP'
+            ]);
+        }
+    } else {
+        return response([
+            'status' => false,
+            'message' => 'Invalid Phone number or OTP supplied'
+        ]);
+    }
+}
 
     #[OA\Post(
     path: "/api/v1/users/change-password",

@@ -269,7 +269,6 @@ Route::prefix('/transactions')->group(function () {
         Route::post('/topup-betting', [TransactionController::class, 'topupBetting'])->middleware('log.route');
 
         Route::middleware('checkAccountStatus')->post('/initiate-transaction', [TransactionController::class, 'initiateTransaction'])->middleware('log.route');
-        Route::middleware('checkAccountStatus')->post('/initiate-transaction', [TransactionController::class, 'initiateTransactionApi2'])->middleware('log.route');
         Route::get('/history', [TransactionController::class, 'transactionHistory']);
         Route::post('/filter-history', [TransactionController::class, 'transactionHistoryMobile']);
         Route::get('/pos-history', [TransactionController::class, 'posTransactionHistory']);

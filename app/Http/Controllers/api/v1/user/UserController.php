@@ -830,10 +830,10 @@ public function changePassword(Request $request)
     }
 }
 
-    #[OA\Put(
+#[OA\Put(
     path: "/api/v1/users/update-profile",
     summary: "Update User Profile",
-    description: "Updates the authenticated user's profile information including phone number, email, date of birth, profile picture, NIN, signature, sex, BVN, valid identification document, and other supporting documents.",
+    description: "Updates the authenticated user's profile information, including phone number, email, date of birth, profile picture, NIN, signature, sex, BVN, valid identification document, and other supporting documents.",
     tags: ["User"],
     security: [["bearerAuth" => []]],
     requestBody: new OA\RequestBody(
@@ -913,35 +913,50 @@ public function changePassword(Request $request)
     responses: [
         new OA\Response(
             response: 200,
-            description: "Profile updated successfully",
+            description: "Profile update request processed",
             content: new OA\JsonContent(
-                properties: [
-                    new OA\Property(
-                        property: "status",
-                        type: "boolean",
-                        example: true
+                oneOf: [
+                    new OA\Schema(
+                        properties: [
+                            new OA\Property(
+                                property: "status",
+                                type: "boolean",
+                                example: true
+                            ),
+                            new OA\Property(
+                                property: "message",
+                                type: "string",
+                                example: "Profile Updated Successfuls"
+                            ),
+                            new OA\Property(
+                                property: "data",
+                                type: "object",
+                                description: "Updated authenticated user profile."
+                            ),
+                        ],
+                        type: "object"
                     ),
-                    new OA\Property(
-                        property: "message",
-                        type: "string",
-                        example: "Profile Updated Successfuls"
+                    new OA\Schema(
+                        properties: [
+                            new OA\Property(
+                                property: "status",
+                                type: "boolean",
+                                example: false
+                            ),
+                            new OA\Property(
+                                property: "message",
+                                type: "string",
+                                example: "Failed to Update Profile"
+                            ),
+                        ],
+                        type: "object"
                     ),
-                    new OA\Property(
-                        property: "data",
-                        type: "object",
-                        description: "Updated authenticated user profile."
-                    ),
-                ],
-                type: "object"
+                ]
             )
         ),
         new OA\Response(
             response: 406,
-            description: "Validation failed"
-        ),
-        new OA\Response(
-            response: 200,
-            description: "Failed to update profile",
+            description: "Validation failed",
             content: new OA\JsonContent(
                 properties: [
                     new OA\Property(
@@ -952,7 +967,7 @@ public function changePassword(Request $request)
                     new OA\Property(
                         property: "message",
                         type: "string",
-                        example: "Failed to Update Profile"
+                        example: "The email field must be a valid email address."
                     ),
                 ],
                 type: "object"
@@ -964,57 +979,75 @@ public function changePassword(Request $request)
         )
     ]
 )]
-    public function updateProfile(Request $request)
-    {
-        \logInfo($request->all(), "updateProfile request log");
+public function updateProfile(Request $request)
+{
+    \logInfo($request->all(), "updateProfile request log");
 
-        $validate = Validator::make($request->all(), [
-            'phone' => 'required|numeric|gt:0',
-            'email' => 'required|email',
-            'dob'   => 'required|date',
-        ]);
+    $validate = Validator::make($request->all(), [
+        'phone' => 'required|numeric|gt:0',
+        'email' => 'required|email',
+        'dob'   => 'required|date',
+    ]);
 
-        if ($validate->fails()) {
-            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
-            return response()->json($ra, 406);
-        }
+    if ($validate->fails()) {
+        $ra = [
+            "status" => false,
+            "message" => $validate->errors()->all()[0]
+        ];
 
-        $userAccunt = $request->user();
-
-        if ($userAccunt) {
-
-            if ($request->filled('profile_pic_url')) {
-                $userAccunt->profile_pic = $request->profile_pic_url;
-            }
-            if ($request->filled('nin')) {
-                $userAccunt->nin = $request->nin;
-            }
-
-            if ($request->filled('dob')) {
-                $userAccunt->dob = $request->dob;
-            }
-            if ($request->filled('signature_url')) {
-                $userAccunt->signature = $request->signature_url;
-            }
-            if ($request->filled('sex')) {
-                $userAccunt->sex = $request->sex;
-            }
-            if ($request->filled('bvn')) {
-                $userAccunt->bvn = $request->bvn;
-            }
-            if ($request->filled('valid_id_url')) {
-                $userAccunt->validID_file = $request->valid_id_url;
-            }
-            if ($request->filled('other_doc_url')) {
-                $userAccunt->otherID_file = $request->other_doc_url;
-            }
-            $userAccunt->save();
-
-            return response(['status' => true, 'message' => 'Profile Updated Successfuls', 'data' => $userAccunt]);
-        } else {
-            return response(['status' => false, 'message' => 'Failed to Update Profile']);
-        }
+        return response()->json($ra, 406);
     }
+
+    $userAccunt = $request->user();
+
+    if ($userAccunt) {
+
+        if ($request->filled('profile_pic_url')) {
+            $userAccunt->profile_pic = $request->profile_pic_url;
+        }
+
+        if ($request->filled('nin')) {
+            $userAccunt->nin = $request->nin;
+        }
+
+        if ($request->filled('dob')) {
+            $userAccunt->dob = $request->dob;
+        }
+
+        if ($request->filled('signature_url')) {
+            $userAccunt->signature = $request->signature_url;
+        }
+
+        if ($request->filled('sex')) {
+            $userAccunt->sex = $request->sex;
+        }
+
+        if ($request->filled('bvn')) {
+            $userAccunt->bvn = $request->bvn;
+        }
+
+        if ($request->filled('valid_id_url')) {
+            $userAccunt->validID_file = $request->valid_id_url;
+        }
+
+        if ($request->filled('other_doc_url')) {
+            $userAccunt->otherID_file = $request->other_doc_url;
+        }
+
+        $userAccunt->save();
+
+        return response([
+            'status' => true,
+            'message' => 'Profile Updated Successfuls',
+            'data' => $userAccunt
+        ]);
+    } else {
+        return response([
+            'status' => false,
+            'message' => 'Failed to Update Profile'
+        ]);
+    }
+}
 
     public function resendOtp(Request $request)
     {

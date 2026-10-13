@@ -1015,6 +1015,15 @@ public function checkVTPASSBalance()
 {
      try {
 
+        $ipResponse = Http::timeout(10)
+            ->get('https://api.ipify.org?format=json');
+
+        logInfo([
+            'outbound_ip' => $ipResponse->json('ip'),
+            'app_mode' => env('APP_MODE'),
+            'vtpass_base_url' => $this->vtPassBaseUrl('balance'),
+        ], 'VTPass Outbound IP Debug');
+
         $endpoint = "balance";
 
         $dataResponse = $this->vtpassGetRequest($endpoint);
@@ -1079,11 +1088,14 @@ public function checkVTPASSBalance()
         );
 
         return [
-            'status'  => false,
-            'message' => $dataResponse['response_description']
-                ?? $dataResponse['message']
-                ?? 'Unable to retrieve VTPass balance',
-        ];
+    'status' => false,
+    'message' => $dataResponse['content']['errors']
+        ?? $dataResponse['response_description']
+        ?? $dataResponse['message']
+        ?? 'Unable to retrieve VTPass balance',
+
+    'error_code' => $dataResponse['code'] ?? null,
+   ];
 
     } catch (Exception $e) {
 

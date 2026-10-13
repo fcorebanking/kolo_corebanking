@@ -1135,7 +1135,7 @@ public function updateCreationFee(Request $request)
 #[OA\Get(
     path: "/api/v1/ajo/{ajoId}/members",
     summary: "Get all members of an Ajo",
-    description: "Returns the members of a specific Ajo. Only the creator of that Ajo can access the full member list.",
+    description: "Returns all membership records for a specific Ajo. Access is restricted to the Ajo creator and authorized administrators.",
     tags: ["Ajo Membership"],
     security: [["bearerAuth" => []]],
     parameters: [
@@ -1205,7 +1205,7 @@ public function updateCreationFee(Request $request)
             )
         ),
         new OA\Response(response: 401, description: "Unauthenticated"),
-        new OA\Response(response: 403, description: "Only the Ajo creator can view all members"),
+        new OA\Response(response: 403, description: "Only the Ajo creator or an administrator can view all members"),
         new OA\Response(response: 404, description: "Ajo not found"),
         new OA\Response(response: 500, description: "Unexpected server error"),
     ]
@@ -1225,13 +1225,21 @@ public function members(Request $request, int $ajoId): JsonResponse
             ], 404);
         }
 
-        // Only the creator can see the complete member list.
-        if ((int) $ajo->creator_user_id !== (int) $user->id) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Only the Ajo creator can view all members.',
-            ], 403);
-        }
+
+/*
+ * The Ajo creator and Core administrators can view
+ * the complete membership list.
+ */
+$isCreator = (int) $ajo->creator_user_id === (int) $user->id;
+$isAdmin = $this->isAdmin(); // Uses Core's existing apiCando('root|admin') check.
+
+if (!$isCreator && !$isAdmin) {
+    return response()->json([
+        'status' => false,
+        'message' => 'Only the Ajo creator or an administrator can view all members.',
+    ], 403);
+}
+
 
         // Return all membership records that still exist for this Ajo.
         // This includes members with different membership statuses.

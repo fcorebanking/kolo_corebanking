@@ -1190,7 +1190,8 @@ public function updateCreationFee(Request $request)
                                     properties: [
                                         new OA\Property(property: "membership_id", type: "integer", example: 5),
                                         new OA\Property(property: "user_id", type: "integer", example: 24),
-                                        new OA\Property(property: "name", type: "string", nullable: true, example: "John Doe"),
+                                        new OA\Property(property: "first_name", type: "string", nullable: true, example: "John"),
+                                        new OA\Property(property: "last_name", type: "string", nullable: true, example: "Doe"),
                                         new OA\Property(property: "username", type: "string", nullable: true, example: "john.doe"),
                                         new OA\Property(property: "status", type: "string", example: "active"),
                                         new OA\Property(property: "balance", type: "number", format: "float", example: 100000),
@@ -1245,14 +1246,15 @@ if (!$isCreator && !$isAdmin) {
         // This includes members with different membership statuses.
         $members = AjoMember::query()
             ->where('ajo_id', $ajo->id)
-            ->with('user:id,name,username')
+            ->with('user:id,first_name,last_name,username')
             ->orderBy('id')
             ->get()
             ->map(function (AjoMember $member) {
                 return [
                     'membership_id' => $member->id,
                     'user_id' => $member->user_id,
-                    'name' => $member->user?->name,
+                    'first_name' => $member->user?->first_name,
+                    'last_name' => $member->user?->last_name,
                     'username' => $member->user?->username,
                     'status' => $member->status,
                     'balance' => (float) $member->balance,

@@ -836,7 +836,7 @@ class RegisterController extends Controller
                     new OA\Property(
                         property: "message",
                         type: "string",
-                        example: "Registration Successful"
+                        example: "No BVN Registration Successful"
                     ),
                     new OA\Property(
                         property: "data",
@@ -845,7 +845,7 @@ class RegisterController extends Controller
                             new OA\Property(
                                 property: "user_reference",
                                 type: "string",
-                                example: "CUS1234567890"
+                                example: "1234567890"
                             ),
                             new OA\Property(
                                 property: "user_id",
@@ -860,7 +860,7 @@ class RegisterController extends Controller
                             new OA\Property(
                                 property: "company",
                                 type: "string",
-                                example: "Example Company"
+                                example: "14"
                             ),
                         ]
                     )

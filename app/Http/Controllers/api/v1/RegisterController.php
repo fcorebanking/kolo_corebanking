@@ -772,7 +772,7 @@ class RegisterController extends Controller
                 new OA\Property(
                     property: "company",
                     type: "string",
-                    example: "46",
+                    example: "14",
                     description: "Company ID or company reference under which the user will be registered."
                 ),
                 new OA\Property(
@@ -854,7 +854,12 @@ class RegisterController extends Controller
                                 property: "phone_number",
                                 type: "string",
                                 example: "08012345678"
-                            )
+                            ),
+                            new OA\Property(
+                                property: "company",
+                                type: "string",
+                                example: "Example Company"
+                            ),
                         ]
                     )
                 ]
@@ -1214,6 +1219,13 @@ public function noBvnRegister(Request $request)
         |--------------------------------------------------------------------------
         */
 
+        logInfo([
+            'user_id'        => $user->id,
+            'user_reference' => $customerReference,
+            'phone_number'   => $user->phone,
+            'company_id'     => $companyRecord->id,
+        ], "Registration Successful");
+
         return response()->json([
             'status'  => true,
             'message' => 'Registration Successful',
@@ -1222,6 +1234,7 @@ public function noBvnRegister(Request $request)
                 'user_id'        => $user->id,
                 'phone_number'   => $user->phone,
                 'access_token'  => $accessToken,
+                'company_id'     => $companyRecord->id,
                 /*
                  * No account exists yet.
                  */

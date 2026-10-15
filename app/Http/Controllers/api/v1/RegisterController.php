@@ -683,6 +683,8 @@ class RegisterController extends Controller
                 $this->referralProcessJob($user);
             }
 
+            logInfo(json_encode($user), "BVN Registration Successful for Company:{$user->company_id}");
+
             return response()->json([
                 'status'  => true,
                 'message' => 'Registration Successful',
@@ -1224,7 +1226,7 @@ public function noBvnRegister(Request $request)
             'user_reference' => $customerReference,
             'phone_number'   => $user->phone,
             'company_id'     => $companyRecord->id,
-        ], "Registration Successful");
+        ], "No BVN Registration Successful");
 
         return response()->json([
             'status'  => true,

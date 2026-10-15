@@ -836,7 +836,7 @@ class RegisterController extends Controller
                     new OA\Property(
                         property: "message",
                         type: "string",
-                        example: "No BVN Registration Successful"
+                        example: "Registration Successful"
                     ),
                     new OA\Property(
                         property: "data",

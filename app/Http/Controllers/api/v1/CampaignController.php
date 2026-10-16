@@ -5,9 +5,12 @@ namespace App\Http\Controllers\api\v1;
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Services\CampaignService;
+use App\Models\CampaignTransaction;
+use App\Models\CompanyFinancialEntry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 use Throwable;
@@ -1674,4 +1677,387 @@ public function companySummary(Request $request): JsonResponse
 }
 
 
+/**
+ * Admin campaign analytics dashboard.
+ *
+ * Accessible only to users with root or admin permissions.
+ * All records are scoped to the authenticated user's company.
+ */
+
+public function adminDashboard(Request $request): JsonResponse
+{
+    try {
+        /*
+         * Only authorized root/admin users may access analytics.
+         */
+        if (!apiCando('root|admin')) {
+            return response()->json([
+                'status' => false,
+                'message' => 'You are not authorized to view campaign analytics.',
+                'data' => [],
+            ], 403);
+        }
+
+        $admin = auth('api')->user();
+
+        if (!$admin || empty($admin->company_id)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Your account is not linked to a company.',
+                'data' => [],
+            ], 403);
+        }
+
+        $companyId = (int) $admin->company_id;
+
+        /*
+         * Company-wide campaign statistics.
+         */
+        $campaignStats = Campaign::query()
+            ->where('company_id', $companyId)
+            ->selectRaw('COUNT(*) as total_campaigns')
+            ->selectRaw(
+                "COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) as active_campaigns"
+            )
+            ->selectRaw(
+                "COALESCE(SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END), 0) as closed_campaigns"
+            )
+            ->selectRaw(
+                'COALESCE(SUM(target_amount), 0) as total_targets'
+            )
+            ->selectRaw(
+                'COALESCE(SUM(total_contributed), 0) as total_contributed'
+            )
+            ->selectRaw(
+                'COALESCE(SUM(withdrawable_amount), 0) as total_withdrawable'
+            )
+            ->first();
+
+        /*
+         * Successful campaign withdrawal fee revenue.
+         */
+        $feeRevenue = CompanyFinancialEntry::query()
+            ->where('company_id', $companyId)
+            ->where('type', 'revenue')
+            ->where('category', 'campaign_withdrawal_fee')
+            ->where('status', 'successful')
+            ->sum('amount');
+
+        /*
+         * Find unique contributors to this company's campaigns.
+         */
+        $contributorIds = CampaignTransaction::query()
+            ->where('company_id', $companyId)
+            ->where('type', 'deposit')
+            ->where('status', 'successful')
+            ->whereHas('campaign', function ($query) use ($companyId) {
+                $query->where('company_id', $companyId);
+            })
+            ->whereNotNull('user_id')
+            ->distinct()
+            ->pluck('user_id');
+
+        $contributors = \App\Models\User::query()
+            ->whereIn('id', $contributorIds)
+            ->get();
+
+        /*
+         * Determine account status without assuming a particular
+         * status column exists on every User model.
+         */
+        $getAccountStatus = function ($user): string {
+            $attributes = $user->getAttributes();
+
+            if (array_key_exists('is_active', $attributes)) {
+                return in_array(
+                    strtolower((string) $attributes['is_active']),
+                    ['1', 'true', 'active', 'enabled'],
+                    true
+                ) ? 'active' : 'inactive';
+            }
+
+            if (array_key_exists('active', $attributes)) {
+                return in_array(
+                    strtolower((string) $attributes['active']),
+                    ['1', 'true', 'active', 'enabled'],
+                    true
+                ) ? 'active' : 'inactive';
+            }
+
+            if (array_key_exists('status', $attributes)) {
+                $status = strtolower(
+                    trim((string) $attributes['status'])
+                );
+
+                if (in_array($status, ['active', 'enabled', '1'], true)) {
+                    return 'active';
+                }
+
+                if (in_array($status, ['inactive', 'disabled', '0'], true)) {
+                    return 'inactive';
+                }
+            }
+
+            return 'unknown';
+        };
+
+        /*
+         * Return only safe, relevant contributor information.
+         */
+        $formatUser = function ($user) use ($getAccountStatus): array {
+            $attributes = $user->getAttributes();
+
+            $fullName = trim(implode(' ', array_filter([
+                $attributes['first_name'] ?? null,
+                $attributes['last_name'] ?? null,
+            ])));
+
+            if ($fullName === '') {
+                $fullName = $attributes['name'] ?? null;
+            }
+
+            return [
+                'id' => $user->id,
+                'name' => $fullName,
+                'email' => $attributes['email'] ?? null,
+                'phone' => $attributes['phone'] ?? null,
+                'username' => $attributes['username'] ?? null,
+                'account_status' => $getAccountStatus($user),
+            ];
+        };
+
+        $contributorDetails = $contributors
+            ->map($formatUser)
+            ->values();
+
+        /*
+         * Paginate company campaigns.
+         */
+        $perPage = min(
+            max((int) $request->input('per_page', 25), 1),
+            100
+        );
+
+        $campaignPaginator = Campaign::query()
+            ->where('company_id', $companyId)
+            ->with('user')
+            ->withCount([
+                'transactions as successful_contribution_count' => function ($query) {
+                    $query->where('type', 'deposit')
+                        ->where('status', 'successful');
+                },
+                'transactions as successful_withdrawal_count' => function ($query) {
+                    $query->where('type', 'withdrawal')
+                        ->where('status', 'successful');
+                },
+            ])
+            ->withSum([
+                'transactions as successful_contribution_amount' => function ($query) {
+                    $query->where('type', 'deposit')
+                        ->where('status', 'successful');
+                },
+            ], 'amount')
+            ->withSum([
+                'transactions as successful_withdrawal_fees' => function ($query) {
+                    $query->where('type', 'withdrawal')
+                        ->where('status', 'successful');
+                },
+            ], 'fee')
+            ->latest('id')
+            ->paginate($perPage);
+
+        /*
+         * Map only the campaigns on the current page.
+         *
+         * The paginator's collection() method is not required:
+         * use the paginator's items() method to obtain the page
+         * records, then transform those records separately.
+         */
+        $campaignItems = collect($campaignPaginator->items());
+
+        $campaigns = $campaignItems
+            ->map(function (Campaign $campaign) use (
+                $companyId,
+                $getAccountStatus,
+                $formatUser
+            ) {
+                $creator = $campaign->user;
+
+                /*
+                 * Unique successful contributors for this campaign.
+                 */
+                $campaignContributorIds = CampaignTransaction::query()
+                    ->where('campaign_id', $campaign->id)
+                    ->where('company_id', $companyId)
+                    ->where('type', 'deposit')
+                    ->where('status', 'successful')
+                    ->whereNotNull('user_id')
+                    ->distinct()
+                    ->pluck('user_id');
+
+                $campaignContributors = \App\Models\User::query()
+                    ->whereIn('id', $campaignContributorIds)
+                    ->get()
+                    ->map($formatUser)
+                    ->values();
+
+                /*
+                 * Latest 20 campaign transactions.
+                 */
+                $recentTransactions = $campaign->transactions()
+                    ->with('user')
+                    ->latest('id')
+                    ->limit(20)
+                    ->get()
+                    ->map(function ($transaction) {
+                        $user = $transaction->user;
+                        $attributes = $user?->getAttributes() ?? [];
+
+                        $userName = null;
+
+                        if ($user) {
+                            $userName = trim(implode(' ', array_filter([
+                                $attributes['first_name'] ?? null,
+                                $attributes['last_name'] ?? null,
+                            ])));
+
+                            if ($userName === '') {
+                                $userName = $attributes['name'] ?? null;
+                            }
+                        }
+
+                        return [
+                            'id' => $transaction->id,
+                            'user_id' => $transaction->user_id,
+                            'user_name' => $userName,
+                            'type' => $transaction->type,
+                            'amount' => (float) $transaction->amount,
+                            'fee' => (float) $transaction->fee,
+                            'balance_before' => (float) $transaction->balance_before,
+                            'balance_after' => (float) $transaction->balance_after,
+                            'reference' => $transaction->transaction_reference,
+                            'status' => $transaction->status,
+                            'description' => $transaction->description,
+                            'metadata' => $transaction->metadata,
+                            'created_at' => $transaction->created_at,
+                        ];
+                    })
+                    ->values();
+
+                $creatorDetails = $creator
+                    ? $formatUser($creator)
+                    : [
+                        'id' => null,
+                        'name' => null,
+                        'email' => null,
+                        'phone' => null,
+                        'username' => null,
+                        'account_status' => 'unknown',
+                    ];
+
+                return [
+                    'id' => $campaign->id,
+                    'campaign_name' => $campaign->campaign_name,
+                    'description' => $campaign->description,
+                    'status' => $campaign->status,
+                    'target_amount' => (float) $campaign->target_amount,
+                    'total_contributed' => (float) $campaign->total_contributed,
+                    'withdrawable_amount' => (float) $campaign->withdrawable_amount,
+                    'campaign_fee_percentage' => (float) $campaign->campaign_fee_percentage,
+                    'creator_account_number' => $campaign->creator_account_number,
+
+                    'creator' => [
+                        'id' => $creatorDetails['id'],
+                        'name' => $creatorDetails['name'],
+                        'email' => $creatorDetails['email'],
+                        'phone' => $creatorDetails['phone'],
+                    ],
+
+                    'successful_contribution_count' =>
+                        (int) $campaign->successful_contribution_count,
+
+                    'successful_withdrawal_count' =>
+                        (int) $campaign->successful_withdrawal_count,
+
+                    'successful_contribution_amount' =>
+                        (float) ($campaign->successful_contribution_amount ?? 0),
+
+                    'successful_withdrawal_fees' =>
+                        (float) ($campaign->successful_withdrawal_fees ?? 0),
+
+                    'contributor_count' => $campaignContributors->count(),
+                    'contributors' => $campaignContributors,
+                    'recent_transactions' => $recentTransactions,
+
+                    'closed_at' => $campaign->closed_at,
+                    'last_withdrawn_at' => $campaign->last_withdrawn_at,
+                    'created_at' => $campaign->created_at,
+                    'updated_at' => $campaign->updated_at,
+                ];
+            })
+            ->values();
+
+        /*
+         * Construct the pagination response explicitly.
+         * No paginator mutation methods are required.
+         */
+        $campaignPagination = [
+            'current_page' => $campaignPaginator->currentPage(),
+            'data' => $campaigns,
+            'first_page_url' => $campaignPaginator->url(1),
+            'from' => $campaignPaginator->firstItem(),
+            'last_page' => $campaignPaginator->lastPage(),
+            'last_page_url' => $campaignPaginator->url(
+                $campaignPaginator->lastPage()
+            ),
+            'next_page_url' => $campaignPaginator->nextPageUrl(),
+            'path' => $campaignPaginator->path(),
+            'per_page' => $campaignPaginator->perPage(),
+            'prev_page_url' => $campaignPaginator->previousPageUrl(),
+            'to' => $campaignPaginator->lastItem(),
+            'total' => $campaignPaginator->total(),
+        ];
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Campaign analytics retrieved successfully.',
+            'data' => [
+                'overview' => [
+                    'total_campaigns' => (int) $campaignStats->total_campaigns,
+                    'active_campaigns' => (int) $campaignStats->active_campaigns,
+                    'closed_campaigns' => (int) $campaignStats->closed_campaigns,
+                    'total_targets' => (float) $campaignStats->total_targets,
+                    'total_contributed' => (float) $campaignStats->total_contributed,
+                    'total_withdrawable' => (float) $campaignStats->total_withdrawable,
+                    'withdrawal_fee_revenue' => (float) $feeRevenue,
+                    'unique_contributors' => $contributors->count(),
+                    'active_contributors' => $contributorDetails
+                        ->where('account_status', 'active')
+                        ->count(),
+                    'inactive_contributors' => $contributorDetails
+                        ->where('account_status', 'inactive')
+                        ->count(),
+                    'contributors_with_unknown_status' => $contributorDetails
+                        ->where('account_status', 'unknown')
+                        ->count(),
+                ],
+                'contributors' => $contributorDetails,
+                'campaigns' => $campaignPagination,
+            ],
+        ], 200);
+
+    } catch (Throwable $e) {
+        Log::error('Admin campaign dashboard failed', [
+            'user_id' => auth('api')->id(),
+            'company_id' => auth('api')->user()?->company_id,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to retrieve campaign analytics.',
+            'data' => [],
+        ], 500);
+    }
+}
 }

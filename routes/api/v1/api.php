@@ -577,6 +577,11 @@ Route::prefix('campaigns')->group(function () {
     '/company/summary',
     [CampaignController::class, 'companySummary']
    );
+
+   Route::get(
+    '/admin/dashboard',
+    [CampaignController::class, 'adminDashboard']
+);
 });
 
 

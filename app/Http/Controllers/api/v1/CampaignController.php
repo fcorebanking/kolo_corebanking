@@ -1690,7 +1690,10 @@ public function adminDashboard(Request $request): JsonResponse
         /*
          * Only authorized root/admin users may access analytics.
          */
-        if (!apiCando('root|admin')) {
+
+        $hasDashboardAccess = apiCando('root') || apiCando('admin');
+
+        if (!$hasDashboardAccess) {
             return response()->json([
                 'status' => false,
                 'message' => 'You are not authorized to view campaign analytics.',

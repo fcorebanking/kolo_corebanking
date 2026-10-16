@@ -282,7 +282,7 @@ class RegisterController extends Controller
         )
     ]
 )]
-    public function register(Request $request)
+ public function register(Request $request)
     {
         $rules = [
             'first_name' => 'required|string|max:50|min:2',
@@ -358,7 +358,15 @@ class RegisterController extends Controller
             }
         }
 
-        \logInfo(json_encode($request->all()), "Registration request");
+        // Never log passwords, PINs, identity numbers, OTPs, or other sensitive fields.
+        \logInfo([
+            'company'      => $request->company,
+            'account_type' => $request->account_type,
+            'has_bvn'      => $request->filled('bvn'),
+            'has_nin'      => $request->filled('nin'),
+            'has_branch'   => $request->filled('branch'),
+            'has_product'  => $request->filled('selected_product'),
+        ], "Registration request summary");
 
         // if (!empty($request->nin) && $request->nin === "") {
         //     $ra = array("status" => false, "message" => "NIN is required!");
@@ -386,14 +394,43 @@ class RegisterController extends Controller
 
         \logInfo($companyRecord->id, "Current company ID");
 
-        $savings_product = $companyRecord->savingsProducts[0];
-        \logInfo(json_encode($companyRecord->savingsProducts[0]), "savingsProducts");
-        $selectedProduct = $savings_product;
+        // Select the explicitly requested product first. Otherwise, use the
+        // first product associated with the company. Do not index [0] on an
+        // empty collection, because that causes "Undefined array key 0".
+        if ($request->filled('selected_product')) {
+            $selectedProduct = savings_product::find($request->selected_product);
 
-        if (! ($selectedProduct)) {
-            $ra = ["status" => false, "message" => "No Savings product found for this company"];
-            return response()->json($ra, 400);
+            if (! $selectedProduct) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => "Product doesn't exist!",
+                ], 400);
+            }
+        } else {
+            $companySavingsProducts = $companyRecord->savingsProducts;
+
+            \logInfo([
+                'company_id'             => $companyRecord->id,
+                'savings_products_count' => $companySavingsProducts->count(),
+                'savings_product_ids'   => $companySavingsProducts->pluck('id')->all(),
+            ], 'Company Savings Product Debug');
+
+            $selectedProduct = $companySavingsProducts->first();
+
+            if (! $selectedProduct) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'No Savings product found for this company',
+                ], 400);
+            }
         }
+
+        $savings_product = $selectedProduct;
+
+        \logInfo([
+            'company_id' => $companyRecord->id,
+            'product_id' => $selectedProduct->id,
+        ], 'Registration Savings Product');
 
         if ($companyRecord->sub->end_date < Date('Y-m-d')) {
             $ra = ["status" => false, "message" => "Please hold on we are carrying out a quick maintenance on our system"];
@@ -489,7 +526,12 @@ class RegisterController extends Controller
      $virtualAccount->companyID = $companyRecord->id;
      $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
      }
-            \logInfo(json_encode($virtualAccount), "virtualAccount Register Bank code ");
+            \logInfo([
+                'company_id' => $companyRecord->id,
+                'bank_id'    => $bank_id,
+                'bank_code'  => $customSelectedBank,
+                'account_type' => 'personal',
+            ], "Virtual Account Registration Summary");
             $createAccountService = new AccountCreationService();
 
             $response = $createAccountService->createVirtualAccount($virtualAccount);
@@ -499,29 +541,36 @@ class RegisterController extends Controller
                 return response()->json($response);
             }
         }
-        $branch = $request->branch ?? $companyRecord->branch[0]->id;
-        // if($request->branch){
-        $branchData = (branch::where('id', $request->branch)->first());
-        // }
+        // Use the requested branch, or fall back to the company's first branch.
+        $companyBranch = $companyRecord->branch->first();
+        $branch = $request->branch ?? ($companyBranch->id ?? null);
+
+        if (! $branch) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'No branch found for this company. Please select a branch.',
+            ], 400);
+        }
+
+        $branchData = branch::where('id', $branch)->first();
+
+        if (! $branchData) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Invalid branch selected.',
+            ], 400);
+        }
+
         // logInfo($response, "Create Account service response");
         $customerReference = $response['data']['account_reference'] ?? rand(1000000000, 9999999999);
 
         $virtual_acccount_number = (! isset($request->account_type) || $request->account_type != 'regular') ? $response['data']['virtual_account'] : rand(1000000000, 9999999999);
-        if ($request->selected_product) {
-            $savings_product = savings_product::Where('id', $request->selected_product)->first();
-            $selectedProduct = $savings_product;
-            if (! $savings_product) {
-                $ra = ["status" => false, "message" => "Product doesn't exist!"];
-                return response()->json($ra, 400);
-            }
-            if (isset($request->account_type) && $request->account_type == 'regular') {
 
-                if (isset($savings_product->code)) {
-                    if ($savings_product->code != null) {
-                        $length                  = strlen($savings_product->code);
-                        $virtual_acccount_number = substr_replace($virtual_acccount_number, $savings_product->code, 0, $length);
-                    }
-                }
+        // Apply the selected product's code when creating a regular account.
+        if (isset($request->account_type) && $request->account_type == 'regular') {
+            if (! empty($selectedProduct->code)) {
+                $length = strlen($selectedProduct->code);
+                $virtual_acccount_number = substr_replace($virtual_acccount_number, $selectedProduct->code, 0, $length);
             }
         }
         if (isset($request->account_type) && $request->account_type == 'regular') {
@@ -683,7 +732,11 @@ class RegisterController extends Controller
                 $this->referralProcessJob($user);
             }
 
-            logInfo(json_encode($user), "BVN Registration Successful for Company:{$user->company_id}");
+            \logInfo([
+                'user_id'    => $user->id,
+                'company_id' => $user->company_id,
+                'status'     => 'successful',
+            ], "Registration Successful");
 
             return response()->json([
                 'status'  => true,

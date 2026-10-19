@@ -159,8 +159,8 @@ class RegisterController extends Controller
                     property: "account_type",
                     type: "string",
                     nullable: true,
-                    enum: ["regular"],
-                    example: "regular",
+                    enum: ["virtual"],
+                    example: "virtual",
                     description: "Account type. If set to regular, a virtual account is not created through the virtual account service."
                 ),
                 new OA\Property(

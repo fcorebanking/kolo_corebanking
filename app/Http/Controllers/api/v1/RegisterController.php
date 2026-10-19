@@ -283,7 +283,7 @@ class RegisterController extends Controller
     ]
 )]
  public function register(Request $request)
-    {
+ {
         $rules = [
             'first_name' => 'required|string|max:50|min:2',
             'last_name'  => 'required|string|max:50|min:2',
@@ -566,23 +566,64 @@ class RegisterController extends Controller
 
         $virtual_acccount_number = (! isset($request->account_type) || $request->account_type != 'regular') ? $response['data']['virtual_account'] : rand(1000000000, 9999999999);
 
-        // Apply the selected product's code when creating a regular account.
-        if (isset($request->account_type) && $request->account_type == 'regular') {
-            if (! empty($selectedProduct->code)) {
-                $length = strlen($selectedProduct->code);
-                $virtual_acccount_number = substr_replace($virtual_acccount_number, $selectedProduct->code, 0, $length);
-            }
-        }
-        if (isset($request->account_type) && $request->account_type == 'regular') {
+        
+        // Generate a 10-digit account number for regular accounts.
+        if ($request->account_type === 'regular') {
+            // Start with a 10-digit random number.
+            $virtual_acccount_number = (string) random_int(
+                1000000000,
+                9999999999
+            );
 
-            if (isset($branchData->code)) {
-                if ($branchData->code != null) {
-                    $branchCodeLength         = strlen($branchData->code);
-                    $branchCodeLength        -= 1;
-                    $virtual_acccount_number  = substr_replace($virtual_acccount_number, $branchData->code, -$branchCodeLength);
+            // Apply the product code as the prefix without changing length.
+            $productCode = (string) ($selectedProduct->code ?? '');
+
+            if ($productCode !== '') {
+                $productCodeLength = strlen($productCode);
+
+                if ($productCodeLength >= 10) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'The product code is too long for a 10-digit account number.',
+                    ], 400);
                 }
+
+                $virtual_acccount_number =
+                    $productCode .
+                    substr($virtual_acccount_number, $productCodeLength);
+            }
+
+            // Apply the branch code as the suffix without changing length.
+            $branchCode = (string) ($branchData->code ?? '');
+
+            if ($branchCode !== '') {
+                $branchCodeLength = strlen($branchCode);
+
+                if ($branchCodeLength >= 10) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'The branch code is too long for a 10-digit account number.',
+                    ], 400);
+                }
+
+                $virtual_acccount_number =
+                    substr(
+                        $virtual_acccount_number,
+                        0,
+                        10 - $branchCodeLength
+                    ) .
+                    $branchCode;
+            }
+
+            // Validate the final account number before saving.
+            if (strlen($virtual_acccount_number) !== 10) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Failed to generate a valid 10-digit account number.',
+                ], 400);
             }
         }
+
 
         \logInfo([
     'account_type' => $request->account_type,
@@ -771,7 +812,7 @@ class RegisterController extends Controller
             return response()->json(['status' => false, 'message' => 'Failed to complete Registration', 'data' => $e->getMessage() . ' ' . $e->getLine()], 400);
         }
 
-    }
+}
 
     #[OA\Post(
     path: "/api/v1/users/create-account",
@@ -949,9 +990,10 @@ class RegisterController extends Controller
             description: "Internal server error."
         )
     ]
-)]
+ )]
 
-public function noBvnRegister(Request $request)
+
+ public function noBvnRegister(Request $request)
 {
     $rules = [
         'first_name' => 'required|string|max:50|min:2',

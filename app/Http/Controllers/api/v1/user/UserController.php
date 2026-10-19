@@ -293,7 +293,7 @@ class UserController extends Controller
     ),
     responses: [
         new OA\Response(
-            response: 200,
+            response: 201,
             description: "OTP verification successful.",
             content: new OA\JsonContent(
                 type: "object",

@@ -1260,7 +1260,7 @@ public function creditDebitCustomerAccount(Request $request)
     }
 
 #[OA\Post(
-    path: "/transactions/bank-transfer",
+    path: "/api/v1/transactions/bank-transfer",
     summary: "Complete a bank transfer",
     description: "Completes a bank transfer using the transaction reference returned by the initiate-transaction endpoint. The request field receipient_name is intentionally spelled as currently required by the backend.",
     tags: ["Transfer - Wallet To Bank"],
@@ -1983,7 +1983,7 @@ public function creditDebitCustomerAccount(Request $request)
     }
 
 #[OA\Get(
-    path: "/transactions/get-beneficiaries",
+    path: "/api/v1/transactions/get-beneficiaries",
     summary: "Get saved bank transfer beneficiaries",
     description: "Retrieves the authenticated user's saved bank beneficiaries for reuse during bank transfers.",
     tags: ["Transfer - Wallet To Bank"],
@@ -2484,7 +2484,7 @@ public function getBeneficiaries(Request $request)
     }
 
 #[OA\Post(
-    path: "/transactions/initiate-transaction",
+    path: "/api/v1/transactions/initiate-transaction",
     summary: "Initiate a transaction",
     description: "Initializes a transaction and returns the transaction reference, applicable charge, transfer amount, and total. Use transaction_type 8 for the bank-transfer flow. Used in both wallet-to-wallet and wallet-to-bank transfers.",
     tags: ["Transfer - Initiate Transaction"],

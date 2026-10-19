@@ -1096,7 +1096,7 @@ public function noBvnRegister(Request $request)
 
     $customerReference = generateAccountReference();
 
-    $otp = generateOtp();
+    // $otp = generateOtp();
 
     /*
     |--------------------------------------------------------------------------
@@ -1111,6 +1111,7 @@ public function noBvnRegister(Request $request)
     | No virtual account creation.
     | No wb_account_details.
     | No user_wallet.
+    | No Otp
     |
     | BVN and NIN remain NULL until the customer completes verification.
     |
@@ -1299,7 +1300,7 @@ public function noBvnRegister(Request $request)
                 /*
                  * Keep the existing OTP behavior.
                  */
-                'otp_code'       => $user->otp ?? null,
+                // 'otp_code'       => $user->otp ?? null,
                 'pin'            => $user->pin ?? null,
                 'bvn_verified' => false,
                 'kyc_required' => true,

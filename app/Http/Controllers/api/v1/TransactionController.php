@@ -7221,7 +7221,7 @@ if (!$checkVTPASSBalance['status']) {
     path: "/api/v1/verify-bvn",
     summary: "Verify BVN / Identity",
     description: "Verifies a customer's BVN, date of birth, or NIN. The verification service used depends on the company's configured bank.",
-    tags: ["User"],
+    tags: ["User - General Operations"],
     security: [["bearerAuth" => []]],
     requestBody: new OA\RequestBody(
         required: true,
@@ -7329,7 +7329,7 @@ public function verifyBVN(Request $request)
 
     description: "Completes a SafeHaven BVN verification initiated through the /verify-bvn endpoint. The identityId returned from the initial verification request and the OTP sent to the customer's registered phone number are submitted to complete the verification.",
 
-    tags: ["User"],
+    tags: ["User - General Operations"],
 
     security: [["bearerAuth" => []]],
 

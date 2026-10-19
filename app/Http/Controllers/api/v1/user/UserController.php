@@ -55,7 +55,7 @@ class UserController extends Controller
     path: "/api/v1/users/get-details",
     summary: "Get authenticated user details",
     description: "Fetches the authenticated user's profile, wallets, cards, accounts, terminals and sliders.",
-    tags: ["User"],
+    tags: ["User - General Operations"],
     security: [["bearerAuth" => []]],
     responses: [
         new OA\Response(
@@ -260,6 +260,108 @@ class UserController extends Controller
         return response()->json(["status" => true, "message" => "Mail Sent successful"], 200);
 
     }
+
+    #[OA\Post(
+    path: "/api/v1/users/verify-otp",
+    summary: "Verify user OTP",
+    description: "Verifies a user's OTP using their user reference and OTP code. If the supplied reference and OTP match and the OTP has not expired, the user's phone verification status is updated and their last login timestamp is recorded.",
+    tags: ["User - Version 1"],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            type: "object",
+            required: [
+                "user_reference",
+                "otp_code"
+            ],
+            properties: [
+                new OA\Property(
+                    property: "user_reference",
+                    type: "string",
+                    example: "CUS1234567890",
+                    description: "The unique UUID/reference of the user returned during registration."
+                ),
+                new OA\Property(
+                    property: "otp_code",
+                    type: "integer",
+                    minimum: 1,
+                    example: 123456,
+                    description: "The OTP code sent to the user. Must be a positive numeric value."
+                )
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: "OTP verification successful.",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: true
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "OTP Verification Successful"
+                    )
+                ]
+            )
+        ),
+        new OA\Response(
+            response: 406,
+            description: "Validation failed because the user reference or OTP code is missing or invalid.",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: false
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Otp Code and user reference are required"
+                    )
+                ]
+            )
+        ),
+        new OA\Response(
+            response: 200,
+            description: "The supplied user reference or OTP is invalid, or the OTP has expired.",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(
+                        property: "status",
+                        type: "boolean",
+                        example: false
+                    ),
+                    new OA\Property(
+                        property: "message",
+                        type: "string",
+                        example: "Invalid user reference or OTP supplied"
+                    ),
+                    new OA\Property(
+                        property: "data",
+                        type: "string",
+                        nullable: true,
+                        example: "Expiration: 19-10-2026 / 03:30:00 PM ***** CurrentDate: 19-10-2026 / 03:35:00 PM",
+                        description: "Expiration and current timestamps are returned when the OTP has expired. This field is omitted for an invalid reference or OTP."
+                    )
+                ]
+            )
+        ),
+        new OA\Response(
+            response: 500,
+            description: "Internal server error."
+        )
+    ]
+)]
     public function verifyOTP(Request $request)
     {
         \logInfo($request->all(), "verifyOTP request log");
@@ -417,7 +519,7 @@ class UserController extends Controller
     path: "/api/v1/users/reset-pin",
     summary: "Reset Transaction PIN",
     description: "Resets the authenticated user's transaction PIN after validating the current PIN and ensuring that the new PIN is different from the current PIN.",
-    tags: ["User"],
+    tags: ["User - General Operations"],
     security: [["bearerAuth" => []]],
     requestBody: new OA\RequestBody(
         required: true,
@@ -560,7 +662,7 @@ class UserController extends Controller
     path: "/api/v1/users/reset-password",
     summary: "Reset Password",
     description: "Resets a user's password after validating their phone number and OTP code. The OTP must correspond to the supplied phone number and must not be expired.",
-    tags: ["User"],
+    tags: ["User - General Operations"],
     requestBody: new OA\RequestBody(
         required: true,
         content: new OA\JsonContent(
@@ -705,7 +807,7 @@ public function resetPassword(Request $request)
     path: "/api/v1/users/change-password",
     summary: "Change Password",
     description: "Changes the authenticated user's password after validating the current password. The new password is securely hashed before being saved.",
-    tags: ["User"],
+    tags: ["User - General Operations"],
     security: [["bearerAuth" => []]],
     requestBody: new OA\RequestBody(
         required: true,
@@ -834,7 +936,7 @@ public function changePassword(Request $request)
     path: "/api/v1/users/update-profile",
     summary: "Update User Profile",
     description: "Updates the authenticated user's profile information, including phone number, email, date of birth, profile picture, NIN, signature, sex, BVN, valid identification document, and other supporting documents.",
-    tags: ["User"],
+    tags: ["User - General Operations"],
     security: [["bearerAuth" => []]],
     requestBody: new OA\RequestBody(
         required: true,

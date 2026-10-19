@@ -49,7 +49,7 @@ class RegisterController extends Controller
     path: "/api/v1/users/register",
     summary: "Register a new user",
     description: "Creates a new customer account under a specified company. The registration process validates the user's information, optionally verifies BVN/NIN, creates a virtual account when applicable, creates the customer's wallet, assigns the default role, and returns the newly created account details.",
-    tags: ["User"],
+    tags: ["User - Version 1"],
     requestBody: new OA\RequestBody(
         required: true,
         content: new OA\JsonContent(
@@ -765,7 +765,7 @@ class RegisterController extends Controller
     path: "/api/v1/users/create-account",
     summary: "Create a user account",
     description: "Creates a new customer user record under a specified company. BVN/NIN verification and virtual account creation are not performed during registration. The customer can complete identity verification and account creation later.",
-    tags: ["User"],
+    tags: ["User - Version 2"],
     requestBody: new OA\RequestBody(
         required: true,
         content: new OA\JsonContent(
@@ -1766,7 +1766,7 @@ public function noBvnRegister(Request $request)
     path: "/api/v1/users/verify-bvn-v2",
     summary: "Verify BVN and create user's virtual account",
     description: "Verifies the authenticated user's BVN and, if successful, provisions a virtual account for the user using the bank configured for the user's company.",
-    tags: ["User"],
+    tags: ["User - Version 2"],
     security: [["bearerAuth" => []]],
     requestBody: new OA\RequestBody(
         required: true,

@@ -28,7 +28,7 @@ class LoginController extends Controller
     path: "/api/v1/users/login",
     summary: "User Login",
     description: "Authenticates a customer using their username and password. If the credentials are valid and the account is active and verified, an access token and customer account information are returned. If the customer's phone has not been verified, an OTP is sent and the account is placed in pending verification status.",
-    tags: ["User"],
+    tags: ["User - Version 1"],
     requestBody: new OA\RequestBody(
         required: true,
         content: new OA\JsonContent(
@@ -802,7 +802,7 @@ class LoginController extends Controller
     path: "/api/v1/users/login-v2",
     summary: "User Login V2",
     description: "Authenticates a customer using their email and password and returns a fresh access token. This endpoint does not perform phone verification, OTP verification, or any other verification step. A new access token is generated on every successful login.",
-    tags: ["User"],
+    tags: ["User - Version 2"],
     requestBody: new OA\RequestBody(
         required: true,
         content: new OA\JsonContent(

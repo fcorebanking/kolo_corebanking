@@ -584,6 +584,18 @@ class RegisterController extends Controller
             }
         }
 
+        \logInfo([
+    'account_type' => $request->account_type,
+    'product_id' => $selectedProduct->id,
+    'product_code' => $selectedProduct->code,
+    'product_code_length' => strlen((string) $selectedProduct->code),
+    'branch_id' => $branchData->id,
+    'branch_code' => $branchData->code,
+    'branch_code_length' => strlen((string) $branchData->code),
+    'generated_account_number' => (string) $virtual_acccount_number,
+    'generated_account_number_length' => strlen((string) $virtual_acccount_number),
+    ], 'Regular Account Number Generation Debug');
+
         $accountOfficer = User::where('company_id', $companyRecord->id)->first();
         //
         //  GENERATE AND SEND OTP TO USER HERE
@@ -938,6 +950,7 @@ class RegisterController extends Controller
         )
     ]
 )]
+
 public function noBvnRegister(Request $request)
 {
     $rules = [

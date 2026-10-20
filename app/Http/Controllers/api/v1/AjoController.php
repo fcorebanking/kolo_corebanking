@@ -1099,10 +1099,13 @@ public function updateCreationFee(Request $request)
 
         $settings->save();
 
+        $settings->refresh();
+
         logInfo('Ajo creation fee updated successfully', [
-            'user_id' => $user->id,
-            'company_id' => $user->company_id,
-            'new_creation_fee' => $settings->ajo_creation_fee,
+          'user_id' => $user->id,
+          'company_id' => $user->company_id,
+          'settings_id' => $settings->id,
+          'saved_creation_fee' => $settings->ajo_creation_fee,
         ]);
 
         return response()->json([

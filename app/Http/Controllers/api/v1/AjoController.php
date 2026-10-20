@@ -1010,7 +1010,7 @@ public function pendingInvitations(Request $request): JsonResponse
      */
     public function creationFee(Request $request)
     {
-        $user = $request->user();
+        $user = auth('api')->user();
 
         if (!$user) {
             return response()->json([

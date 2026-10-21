@@ -31,7 +31,7 @@ class EbankingService
      'account_verification_partner' => $this->accountVerificationPartner,
      'bank_transfer_partner' => $this->bankTransferPartner,
      'transaction_reference' => $bankTransferType->transactionReference,
-      ], 'BANK TRANSFER STARTED');
+      ], 'BANK TRANSFER STARTED (EBankingService)');
 
         $bankAccount = $this->verifyAccountNumberFull($bankTransferType->bankCode, $bankTransferType->accountNumber);
 

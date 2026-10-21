@@ -26,6 +26,14 @@ class EbankingCompanyService
 
     public function transferToBankAccount(BankTransferType $bankTransferType)
     {
+        logInfo([
+      'bank_code' => $bankTransferType->bankCode,
+      'amount' => $bankTransferType->amount,
+      'account_verification_partner' => $this->accountVerificationPartner,
+      'bank_transfer_partner' => $this->bankTransferPartner,
+      'transaction_reference' => $bankTransferType->transactionReference,
+      ], 'BANK TRANSFER STARTED (EBankingCompanyService)');
+
         $bankAccount = $this->verifyAccountNumberFull($bankTransferType->bankCode, $bankTransferType->accountNumber, $bankTransferType->companyID);
         if (! $bankAccount['status']) {
             $bankAccount['status']  = "01";
@@ -97,6 +105,13 @@ if (!is_array($bankTransfer) || !array_key_exists('status', $bankTransfer)) {
         'message' => 'Provider returned an invalid response. Transfer outcome requires verification.',
     ];
 }
+
+loginfo([
+     'bank_transfer_partner' => $this->bankTransferPartner,
+     'status' => $bankTransfer['status'] ?? null,
+     'message' => $bankTransfer['message'] ?? null,
+     'response' => $bankTransfer,
+     ], 'BANK TRANSFER PROVIDER RESPONSE (EBankingCompanyService)');
 
 if (!$bankTransfer['status']) {
     $bankTransfer['status'] = '02';

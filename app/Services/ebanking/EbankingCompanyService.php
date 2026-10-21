@@ -91,14 +91,18 @@ class EbankingCompanyService
             $bankTransfer  = $gtbController->bankTransfer($bankTransferType->amount, $bankTransferType->transactionReference, $bankTransferType->description, $bankTransferType->bankCode, $bankTransferType->accountNumber, $bankTransferType->companyID);
         }
 
-        if (! $bankTransfer['status']) {
-            $bankTransfer['status'] = "02";
-            return $bankTransfer;
-        }
+if (!is_array($bankTransfer) || !array_key_exists('status', $bankTransfer)) {
+    return [
+        'status' => '02',
+        'message' => 'Provider returned an invalid response. Transfer outcome requires verification.',
+    ];
+}
 
-        $bankTransfer["status"] = "00";
-        return $bankTransfer;
-    }
+if (!$bankTransfer['status']) {
+    $bankTransfer['status'] = '02';
+
+    return $bankTransfer;
+}}
 
     public function verifyAccountNumberFull($bankCode, $accountNumber, $companyID)
     {
@@ -126,12 +130,12 @@ class EbankingCompanyService
 
             $ninePSBController = new NinePSBController();
 
-            $bankTransfer = $ninePSBController->verifyBankAccount($bankCode, $accountNumber);
+            $bankAccount = $ninePSBController->verifyBankAccount($bankCode, $accountNumber);
         } else if ($this->accountVerificationPartner == 6) {
 
             $gtbController = new GTBController();
 
-            $bankTransfer = $gtbController->verifyBankAccount($bankCode, $accountNumber);
+            $bankAccount = $gtbController->verifyBankAccount($bankCode, $accountNumber);
         }
         return $bankAccount;
     }

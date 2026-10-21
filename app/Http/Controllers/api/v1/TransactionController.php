@@ -455,164 +455,421 @@ public function creditDebitCustomerAccount(Request $request)
     ]);
 }
 
-    public function companyBankTransfer(Request $request)
-    {
 
-        $validation = Validator::make($request->all(), [
-            "amount"                => "required|gt:0",
-            "destination_account"   => "required",
-            "bank_code"             => "required",
-            "transaction_reference" => "sometimes|string",
-        ]);
-        if ($validation->fails()) {
-            $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
-            return response()->json($ra, 406);
-        }
+public function companyBankTransfer(Request $request)
+{
+    $validation = Validator::make($request->all(), [
+        'amount' => 'required|numeric|gt:0',
+        'destination_account' => 'required|string',
+        'bank_code' => 'required|string',
+        'transaction_reference' => 'sometimes|string|max:100',
+        'description' => 'nullable|string|max:255',
+    ]);
 
-        $header = $request->header('ApiKey');
+    if ($validation->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => $validation->errors()->first(),
+        ], 422);
+    }
 
-        $checkApiKey = ApiKey::where('api_key', $header)->first();
+    $header = $request->header('ApiKey');
 
-        $company = Company::where('id', $checkApiKey->company_id)->first();
+    if (!$header) {
+        return response()->json([
+            'status' => false,
+            'message' => 'API key is required.',
+        ], 401);
+    }
 
-        if ($company->currency->id == 1) {
-            $chargeAmount = getWbaTransferCharges(1, $request->amount);
+    $apiKey = ApiKey::where('api_key', $header)->first();
 
-            $chargeAmount = $request->amount > 1000000 ? 100 : $chargeAmount;
+    if (!$apiKey) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid API key.',
+        ], 401);
+    }
 
-            // \logInfo($chargeAmount, "charge amount");
-        } else {
-            $chargeAmount = 0;
-        }
+    $company = Company::with('currency')->find($apiKey->company_id);
 
-        try {
+    if (!$company || !$company->currency) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Company or company currency configuration was not found.',
+        ], 400);
+    }
 
-            DB::beginTransaction();
+    $adminUser = User::where('company_id', $company->id)->first();
 
-            $checkAllowedTransaction = checkCompanyAllowedTransactionStatus($company->id);
+    if (!$adminUser || !$adminUser->company) {
+        return response()->json([
+            'status' => false,
+            'message' => 'A valid company user account was not found.',
+        ], 400);
+    }
 
-            if ($checkAllowedTransaction['status'] != 1) {
-                $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
-                return response()->json($checkAllowedTransaction);
-            }
+    $amount = (float) $request->amount;
 
-            $transactionId = generateTransactionReference();
+    $chargeAmount = 0;
 
-            if ($request->has('transaction_reference')) {
-                $transactionId           = $request->transaction_reference;
-                $checkAllowedTransaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
+    if ((int) $company->currency->id === 1) {
+        $chargeAmount = (float) getWbaTransferCharges(1, $amount);
 
-                if ($checkAllowedTransaction) {
-                    return response()->json(['status' => false, 'message' => 'Transaction already exists'], 409);
-                }
-            }
-            $adminUser = User::where('company_id', $company->id)->first();
-
-            $ledger_cr       = null;
-            $ledger_dr       = null;
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(8, $adminUser->company_id);
-            if ($ledger_Settings) {
-                $ledger_cr = $ledger_Settings->ledger_cr;
-                $ledger_dr = $ledger_Settings->ledger_dr;
-            }
-
-            $customerBalance = debitCompanyWithCharge($adminUser->company_id, $request->amount, $chargeAmount, $adminUser);
-
-            if (! $customerBalance['status']) {
-                return response()->json($customerBalance, 400);
-            }
-
-            $bank = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
-
-            $myDescription = $adminUser->first_name . " " . $adminUser->last_name . " / " . $adminUser->company->company_name . '/' . $bank->bank_name;
-
-            $transaction = transactions::create([
-                "balance_before"         => 0,
-                "amount"                 => 0,
-                "balance_after"          => 0,
-                "description"            => $myDescription,
-                "branch_id"              => $adminUser->branch_id,
-                "company_id"             => $adminUser->company_id,
-                "company_balance_before" => $customerBalance['balance_before'],
-                "company_balance_after"  => $customerBalance['charge_balance_after'],
-                "company_amount"         => $request->amount + $chargeAmount,
-                "company_id"             => $company->id,
-                "transaction_reference"  => $transactionId,
-                "transaction_remarks_id" => 1,
-                "transaction_type_id"    => 8,
-                "credit_debit_type_id"   => 2,
-                "created_date"           => date('Y-m-d'),
-                "created_by"             => $adminUser->id,
-                "ledger_cr"              => $ledger_cr,
-                "ledger_dr"              => $ledger_dr,
-            ]);
-
-            DB::commit();
-
-            $preferredEbankingPartner = PreferredEbankingPartner::all();
-            $ebankingService          = new EbankingService($preferredEbankingPartner);
-
-            $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account);
-
-            if (! $bankAccount['status']) {
-                $bankAccount['status'] = 0;
-                return response()->json($bankAccount);
-            }
-
-            $myDescription = $adminUser->first_name . " " . $adminUser->last_name . " / " . $adminUser->company->company_name . " / " . $bankAccount['data']['account_name'] . "/" . $request->destination_account . '/' . $bank->bank_name;
-
-            $transaction->description = $myDescription;
-            $transaction->save();
-
-            $bankTransferType                       = new BankTransferType();
-            $bankTransferType->bankCode             = $request->bank_code;
-            $bankTransferType->shortBankCode        = $bank->short_code;
-            $bankTransferType->accountNumber        = $request->destination_account;
-            $bankTransferType->description          = isset($request->description) ? $request->description : "BM";
-            $bankTransferType->amount               = $request->amount;
-            $bankTransferType->transactionReference = $transaction->transaction_reference;
-
-            $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
-
-            // if ($bankTransfer['status'] == "01") {
-            //     $reversalResult = debitReversal($transaction->id, $transaction->account_id, $transaction->company_id, $transaction->amount, $bankTransferInfo->charge + $bankTransferInfo->amount, $bankTransferInfo->transfer_entity_type);
-            //     $bankAccount['message'] = "Unable to restrieve customer name, Funds has been reversed, try again later or use another bank";
-            //     $transaction->transaction_remarks_id = 3;
-            //     $transaction->save();
-
-            //     logInfo($reversalResult, "Reversal of Transaction Result");
-
-            //     return $bankTransfer;
-            // }
-
-            if ($bankTransfer['status'] != "00") {
-                $transaction->transaction_remarks_id = 3;
-                $transaction->save();
-                $bankTransfer['status'] = 0;
-
-                return $bankTransfer;
-            }
-
-            $transaction->transaction_remarks_id = 2;
-            $transaction->save();
-
-            return response()->json(
-                [
-                    "status"  => true,
-                    'message' => "Wallet to Bank Transfer Successful",
-                    'data'    => [
-                        'balance_before'        => $customerBalance['balance_before'],
-                        'balance'               => $customerBalance['charge_balance_after'],
-                        'balance_after'         => $customerBalance['charge_balance_after'],
-                        'transaction_reference' => $transactionId,
-                    ],
-                ]
-            );
-        } catch (Exception $e) {
-            DB::rollBack();
-            logInfo($e->getMessage());
+        // Preserve your existing charge rule.
+        if ($amount > 1000000) {
+            $chargeAmount = 100;
         }
     }
+
+    $transactionReference = $request->filled('transaction_reference')
+        ? (string) $request->transaction_reference
+        : generateTransactionReference();
+
+    $providerSucceeded = false;
+
+    try {
+        $checkAllowedTransaction = checkCompanyAllowedTransactionStatus(
+            $company->id
+        );
+
+        if (($checkAllowedTransaction['status'] ?? null) != 1) {
+            $checkAllowedTransaction['status'] = false;
+
+            return response()->json($checkAllowedTransaction, 400);
+        }
+
+        // Require ledger configuration before sending money externally.
+        $ledgerSettings = get_CR_DR_TXN_Type_Ledger(8, $company->id);
+
+        if (!$ledgerSettings) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Company bank transfer ledger settings are not configured.',
+            ], 422);
+        }
+
+        $ledgerCr = $ledgerSettings->ledger_cr;
+        $ledgerDr = $ledgerSettings->ledger_dr;
+
+        $bank = banks::where('bank_code', $request->bank_code)
+            ->orWhere('short_code', $request->bank_code)
+            ->first();
+
+        if (!$bank) {
+            return response()->json([
+                'status' => false,
+                'message' => 'The destination bank could not be identified.',
+            ], 400);
+        }
+
+        // Preserve your existing default-provider selection.
+        $preferredEbankingPartner = PreferredEbankingPartner::all();
+        $ebankingService = new EbankingService($preferredEbankingPartner);
+
+        $bankAccount = $ebankingService->verifyAccountNumberFull(
+            $request->bank_code,
+            $request->destination_account
+        );
+
+        if (!is_array($bankAccount) || !($bankAccount['status'] ?? false)) {
+            return response()->json(
+                is_array($bankAccount)
+                    ? $bankAccount
+                    : [
+                        'status' => false,
+                        'message' => 'Bank account verification returned an invalid response.',
+                    ],
+                400
+            );
+        }
+
+        /*
+         * Create a pending record first. Do not debit the company here:
+         * an external transfer failure must not leave the company charged.
+         */
+        $transaction = DB::transaction(function () use (
+            $transactionReference,
+            $company,
+            $adminUser,
+            $amount,
+            $chargeAmount,
+            $ledgerCr,
+            $ledgerDr
+        ) {
+            $existingTransaction = transactions::where(
+                'transaction_reference',
+                $transactionReference
+            )
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingTransaction) {
+                throw new \RuntimeException(
+                    'Transaction reference already exists.'
+                );
+            }
+
+            return transactions::create([
+                'balance_before' => 0,
+                'amount' => $amount,
+                'balance_after' => 0,
+                'description' => $adminUser->first_name . ' '
+                    . $adminUser->last_name . ' / '
+                    . $company->company_name,
+                'branch_id' => $adminUser->branch_id,
+                'company_id' => $company->id,
+                'company_balance_before' => 0,
+                'company_balance_after' => 0,
+                'company_amount' => $amount + $chargeAmount,
+                'transaction_reference' => $transactionReference,
+                'transaction_remarks_id' => 1,
+                'transaction_type_id' => 8,
+                'credit_debit_type_id' => 2,
+                'created_date' => date('Y-m-d'),
+                'created_by' => $adminUser->id,
+                'ledger_cr' => $ledgerCr,
+                'ledger_dr' => $ledgerDr,
+            ]);
+        });
+
+        $bankTransferType = new BankTransferType();
+        $bankTransferType->bankCode = $request->bank_code;
+        $bankTransferType->shortBankCode = $bank->short_code;
+        $bankTransferType->accountNumber = $request->destination_account;
+        $bankTransferType->description = $request->input('description', 'BM');
+        $bankTransferType->amount = $amount;
+        $bankTransferType->transactionReference =
+            $transaction->transaction_reference;
+
+        try {
+            $bankTransfer = $ebankingService->transferToBankAccount(
+                $bankTransferType
+            );
+        } catch (\Throwable $providerException) {
+            logInfo([
+                'transaction_reference' => $transactionReference,
+                'company_id' => $company->id,
+                'exception_class' => get_class($providerException),
+                'exception_message' => $providerException->getMessage(),
+            ], 'COMPANY BANK TRANSFER PROVIDER EXCEPTION - RECONCILIATION REQUIRED');
+
+            // Provider outcome is unknown. Keep the transaction pending.
+            return response()->json([
+                'status' => false,
+                'message' => 'Transfer status could not be confirmed. Contact support before retrying.',
+                'transaction_reference' => $transactionReference,
+            ], 500);
+        }
+
+        logInfo([
+            'company_id' => $company->id,
+            'transaction_reference' => $transactionReference,
+            'provider_status' => is_array($bankTransfer)
+                ? ($bankTransfer['status'] ?? null)
+                : null,
+        ], 'COMPANY TRANSFER PROVIDER RESPONSE');
+
+        if (
+            !is_array($bankTransfer) ||
+            !array_key_exists('status', $bankTransfer)
+        ) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Transfer status could not be confirmed. Contact support before retrying.',
+                'transaction_reference' => $transactionReference,
+            ], 500);
+        }
+
+        if ((string) $bankTransfer['status'] !== '00') {
+            /*
+             * Only mark definitive provider rejections as failed.
+             * Confirm these codes against your actual provider contract.
+             */
+            if (in_array((string) $bankTransfer['status'], ['01', '02', '03'], true)) {
+                DB::transaction(function () use (
+                    $transactionReference,
+                    $company
+                ) {
+                    $lockedTransaction = transactions::where(
+                        'transaction_reference',
+                        $transactionReference
+                    )
+                        ->where('company_id', $company->id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (
+                        $lockedTransaction &&
+                        (int) $lockedTransaction->transaction_remarks_id === 1
+                    ) {
+                        $lockedTransaction->transaction_remarks_id = 3;
+                        $lockedTransaction->save();
+                    }
+                });
+
+                $bankTransfer['status'] = false;
+
+                return response()->json($bankTransfer, 400);
+            }
+
+            // Unknown/ambiguous provider status: leave pending for reconciliation.
+            return response()->json([
+                'status' => false,
+                'message' => 'Transfer status could not be confirmed. Contact support before retrying.',
+                'transaction_reference' => $transactionReference,
+            ], 500);
+        }
+
+        $providerSucceeded = true;
+
+        /*
+         * Provider confirmed success. Debit the company and finalize the
+         * transaction together. If the debit fails, keep it pending.
+         */
+        try {
+            $companyDebit = DB::transaction(function () use (
+    $transactionReference,
+    $company,
+    $adminUser,
+    $amount,
+    $chargeAmount,
+    $bankAccount,
+    $bank,
+    $request
+) {
+                $lockedTransaction = transactions::where(
+                    'transaction_reference',
+                    $transactionReference
+                )
+                    ->where('company_id', $company->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$lockedTransaction) {
+                    throw new \RuntimeException(
+                        'Transaction record missing during finalization.'
+                    );
+                }
+
+                if ((int) $lockedTransaction->transaction_remarks_id === 2) {
+                    throw new \RuntimeException(
+                        'Transaction was already finalized.'
+                    );
+                }
+
+                if ((int) $lockedTransaction->transaction_remarks_id !== 1) {
+                    throw new \RuntimeException(
+                        'Transaction is not in the expected pending state.'
+                    );
+                }
+
+                $debitResult = debitCompanyWithCharge(
+                    $company->id,
+                    $amount,
+                    $chargeAmount,
+                    $adminUser
+                );
+
+                if (
+                    !is_array($debitResult) ||
+                    !($debitResult['status'] ?? false)
+                ) {
+                    logInfo([
+                        'transaction_reference' => $transactionReference,
+                        'company_id' => $company->id,
+                        'debit_result' => is_array($debitResult)
+                            ? $debitResult
+                            : gettype($debitResult),
+                    ], 'CRITICAL: COMPANY PROVIDER TRANSFER SUCCEEDED BUT DEBIT FAILED');
+
+                    throw new \RuntimeException(
+                        'Company debit failed after provider success.'
+                    );
+                }
+
+                $accountName = $bankAccount['data']['account_name']
+                    ?? $request->input('destination_account');
+
+                $lockedTransaction->description =
+                    $adminUser->first_name . ' '
+                    . $adminUser->last_name . ' / '
+                    . $company->company_name . ' / '
+                    . $accountName . '/'
+                    . $request->destination_account . '/'
+                    . $bank->bank_name;
+
+                $lockedTransaction->company_balance_before =
+                    $debitResult['balance_before'];
+
+                $lockedTransaction->company_balance_after =
+                    $debitResult['charge_balance_after'];
+
+                $lockedTransaction->company_amount = $amount + $chargeAmount;
+                $lockedTransaction->transaction_remarks_id = 2;
+                $lockedTransaction->save();
+
+                return $debitResult;
+            });
+        } catch (\Throwable $finalizationException) {
+            logInfo([
+                'transaction_reference' => $transactionReference,
+                'company_id' => $company->id,
+                'provider_succeeded' => $providerSucceeded,
+                'exception_class' => get_class($finalizationException),
+                'exception_message' => $finalizationException->getMessage(),
+            ], 'CRITICAL: COMPANY TRANSFER REQUIRES RECONCILIATION');
+
+            return response()->json([
+                'status' => false,
+                'message' => 'The bank transfer succeeded but the company debit requires reconciliation. Contact support. Do not retry this reference.',
+                'transaction_reference' => $transactionReference,
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Company bank transfer successful.',
+            'data' => [
+                'balance_before' => $companyDebit['balance_before'],
+                'balance' => $companyDebit['charge_balance_after'],
+                'balance_after' => $companyDebit['charge_balance_after'],
+                'transaction_reference' => $transactionReference,
+            ],
+        ]);
+    } catch (\Throwable $e) {
+        logInfo([
+            'transaction_reference' => $transactionReference,
+            'company_id' => $company->id ?? null,
+            'provider_succeeded' => $providerSucceeded,
+            'exception_class' => get_class($e),
+            'exception_message' => $e->getMessage(),
+        ], 'COMPANY BANK TRANSFER CONTROLLER EXCEPTION');
+
+        if ($e instanceof \RuntimeException &&
+            str_contains($e->getMessage(), 'Transaction reference already exists')) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Transaction reference already exists.',
+            ], 409);
+        }
+
+        if ($providerSucceeded) {
+            return response()->json([
+                'status' => false,
+                'message' => 'The bank transfer succeeded but local processing requires reconciliation. Contact support. Do not retry this reference.',
+                'transaction_reference' => $transactionReference,
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to process the transfer. Please contact support.',
+            'transaction_reference' => $transactionReference,
+        ], 500);
+    }
+}
+
 
     public function updateKycInfo(Request $request)
     {
@@ -1342,379 +1599,723 @@ public function creditDebitCustomerAccount(Request $request)
         )
     ]
 )]
-    public function transferToBankAccount(Request $request)
-    {
-        loginfo(["request" => $request->all()], "Bank Transfer Request");
 
-        $userId  = auth()->user()->id ?? $request->id;
-        $lockKey = "user:last_request:{$userId}";
-        $lock    = Cache::lock($lockKey, 20); // 10-second lock
-        if ($lock->get()) {
-            try {
-                $description = $request->description;
-
-                $validation = Validator::make($request->all(), [
-                    "final_amount"          => "required|numeric|gt:0",
-                    "transaction_reference" => "required",
-                    "destination_account"   => "required",
-                    "receipient_name"       => "required|string",
-                    "bank_code"             => "required",
-                    "transaction_pin"       => "required|numeric|gt:0",
-                ]);
-
-                if ($validation->fails()) {
-                    $ra = ["status" => false, "message" => $validation->errors()->all()[0]];
-                    return response()->json($ra, 406);
-                }
-
-                if ($request->bank_code == "090267") {
-                    $ra = ["status" => false, "message" => "Service is not available right now"];
-                    return response()->json($ra, 406);
-                }
-
-                $charge = 0;
-
-                $currentUser = auth()->user();
-
-                $validateSavingsProduct = $this->accountProductCharges($request->final_amount);
-
-                if (! $validateSavingsProduct['status']) {
-                    return \response()->json($validateSavingsProduct, 400);
-                }
-
-                $charge = isset($validateSavingsProduct['data']['charge']) ? $validateSavingsProduct['data']['charge'] : 0;
-
-                $totalAmount = $request->final_amount + $charge;
- 
-                $checkAllowedTransaction = checkCompanyAllowedTransactionStatus($currentUser->company_id);
-
-                if ($checkAllowedTransaction['status'] != 1) {
-                    $checkAllowedTransaction['status'] = $checkAllowedTransaction['status'] == 1;
-                    return response()->json($checkAllowedTransaction);
-                }
-
-                if ($request->final_amount > 3000000) {
-                    return response()->json(['status' => false, 'message' => 'Maximum transfer amount is 3,000,000']);
-                }
-                DB::beginTransaction();
-
-                $transactionPinValidation = validatePinCheckCustomerBalance($request->transaction_pin, $totalAmount);
-                if (! $transactionPinValidation['status']) {
-                    return response()->json($transactionPinValidation, 400);
-                }
-
-                // $transaction = transactions::lockForUpdate()->where(['transaction_reference' => $request->transaction_reference, 'amount' => $request->final_amount])->first();
-                $transaction = transactions::lockForUpdate()->where(['transaction_reference' => $request->transaction_reference])->first();
-
-                if ($transaction) {
-                    if ($transaction->transaction_remarks_id == 2) {
-                        return response()->json(["status" => false, 'message' => "Transaction has already been completed"], 409);
-                    } else if ($transaction->transaction_remarks_id == 3) {
-                        return response()->json(["status" => false, 'message' => "Transaction has been processed and failed. Kindly try another transaction"], 409);
-                    } else if ($transaction->transaction_remarks_id == 5) {
-                        return response()->json(["status" => false, 'message' => "Transaction failed and has already been reversed. Kindly try another transaction"], 409);
-                    } else if ($transaction->transaction_remarks_id == 1) {
-                        return response()->json(["status" => false, 'message' => "Duplicate Transaction Reference. Please try again later"], 409);
-                    } else {
-
-                        $transaction->transaction_remarks_id = 1;
-                        $transaction->save();
-
-                        $userWallet = user_wallet::where('wb_account_detail_id', $currentUser->accounts->first()->id)->first();
-
-                        if ($userWallet->balance >= $totalAmount) {
-
-                            if (\checkcustomerrestriction($currentUser->id, '2')) {
-                                return response()->json(["status" => false, 'message' => "Your account has been restricted. please contact support"], 400);
-                            }
-
-                            $validateTransferAmount = $this->validateTransfer($request->final_amount);
-
-                            if (! $validateTransferAmount['status']) {
-                                return \response()->json($validateTransferAmount, 400);
-                            }
-
-                            $wbaCharge = getWbaTransferCharges(1, $request->final_amount);
-                            logInfo(json_encode($wbaCharge), "wbaCharge");
-                            //       $wbaCharge = $request->final_amount > 1000000 ? 100 : $wbaCharge;
-                            logInfo(json_encode($wbaCharge), "wbaCharge > 1 million");
-                            $wbaCharge = $request->final_amount > 9999 ? ($wbaCharge + 50) : $wbaCharge + 0;
-                            $charge    = $request->final_amount > 9999 ? ($charge + 50) : $charge + 0;
-                            logInfo(json_encode($wbaCharge), "wbaCharge stamp duty");
-                            logInfo(json_encode($charge), "customer Charge stamp duty");
-
-                            // $charge =  $charge < $wbaCharge && $charge > 0 ?  ($wbaCharge + ($wbaCharge * 0.01)) : $charge;
-      /*
-                    $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
-
-                    if (! $debitCustomer["status"]) {
-                        return \response()->json($debitCustomer, 400);
-                    }
-
-                    $accountId                   = $debitCustomer['account_id'];
-                    $customerBalanceBefore       = $debitCustomer['balance_before'];
-                    $customerBalanceAfter        = $debitCustomer['balance_after'];
-                    $customerChargeBalanceBefore = $debitCustomer['charge_balance_before'];
-                    $customerChargeBalanceAfter  = $debitCustomer['charge_balance_after'];
-
-                    $companyBalanceBefore       = $debitCustomer['company_balance_before'];
-                    $companyAmount              = $debitCustomer['company_amount'];
-                    $companyBalanceAfter        = $debitCustomer['company_balance_after'];
-                    $companyChargeBalanceBefore = $debitCustomer['company_charge_balance_before'];
-                    $companyChargeBalanceAfter  = $debitCustomer['company_charge_balance_after'];
-     */
-
-                            $customerBalance = $this->checkCustomerAndCompanyBalance($request->final_amount);
-
-                            if (! $customerBalance['status']) {
-                                return response()->json($customerBalance, 400);
-                            }
-
-                            $company_debit_bankcode = $this->getCompanyBankCode();
-
-                            logInfo([
-            'company_id' => $currentUser->company_id,
-            'company_debit_bankcode' => $company_debit_bankcode,
-               ], 'COMPANY DEBIT BANK DEBUG');
-
-                            $checkCompanyBalance = match ($company_debit_bankcode) {
-
-                                90286 => ['status' => true], //7000299948
-                                default
-                                      => $this->checkCompanyBalanceThresholdTransaction($request->final_amount),
-                            };
-
-                            //   $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->final_amount);
-
-                            if (! $checkCompanyBalance['status']) {
-                                return response()->json($checkCompanyBalance, 400);
-                            }
-
-                            /*   if (auth()->user()->company_id != 1) {
-                                $checkCompanyBalance = $this->checkCompanyBalanceThresholdTransaction($request->final_amount);
-
-                                if (! $checkCompanyBalance['status']) {
-                                    return response()->json($checkCompanyBalance, 400);
-                                }
-                            }*/
-
-                            logInfo(json_encode($currentUser->company->id), "PreferredEbankingPartnerCompany");
-                            $preferredEbankingPartner = PreferredEbankingPartnerCompany::where('company_id', $currentUser->company->id)->first();
-
-                            if (isset($preferredEbankingPartner->company_id)) {
-                                //logInfo(json_encode($currentUser->company->id), "PreferredEbankingPartnerCompany");
-
-                                logInfo(json_encode($preferredEbankingPartner), "PreferredEbankingPartnerCompany");
-                                $ebankingService = new EbankingCompanyService($preferredEbankingPartner);
-
-                            } else {
-                                $preferredEbankingPartner = PreferredEbankingPartner::all();
-                                $ebankingService          = new EbankingService($preferredEbankingPartner);
-
-                            }
-
-                            $bankAccount = $ebankingService->verifyAccountNumberFull($request->bank_code, $request->destination_account, $currentUser->company->id);
-
-                            if (! $bankAccount['status']) {
-                                $bankAccount['status'] = false;
-                                return response()->json($bankAccount);
-                            }
-
-                            $bank               = banks::where('bank_code', $request->bank_code)->orwhere('short_code', $request->bank_code)->first();
-                            $gatewayDescription = $currentUser->first_name . " " . $currentUser->last_name . " / " . $currentUser->company->company_name;
-
-                            // $transactionRef2 = generateTransactionReference();
-
-                            // transactions::create([
-                            //     "company_balance_before" => $companyChargeBalanceBefore,
-                            //     "company_amount" => $wbaCharge,
-                            //     "account_id" => $accountId > 0 ? $accountId : null,
-                            //     "company_balance_after" => $companyChargeBalanceAfter,
-                            //     "description" => "Charge for NGN Bank Transfer - " . $transaction->transaction_reference,
-                            //     "transaction_reference" => $transactionRef2,
-                            //     "parent_transaction_id" => $transaction->id,
-                            //     "balance_before" => $customerChargeBalanceBefore,
-                            //     "amount" => $charge,
-                            //     "balance_after" => $customerChargeBalanceAfter,
-                            //     "company_id" => $transaction->company_id,
-                            //     "transaction_remarks_id" => 2,
-                            //     "transaction_type_id" => 27,
-                            //     "credit_debit_type_id" => 2,
-                            //     "created_date"  => date('Y-m-d'),
-                            //     "created_by" => $transaction->created_by,
-                            //     "ledger_cr" => $ledger_cr,
-                            //     "ledger_dr" => $ledger_dr
-                            // ]);
-
-                            $checkDebitCustomer = match ($company_debit_bankcode) {
-
-                                90286 => checkCustomerAndCompanyWithChargeSafeHaven($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge), //7000299948
-                                default
-                                      => checkCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge),
-                            };
-
-                            // $checkDebitCustomer = checkCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
-                            logInfo(json_encode($checkDebitCustomer), "checkDebitCustomer");
-                            if (! $checkDebitCustomer['status']) {
-
-                                $checkDebitCustomer['status'] = false;
-                                return response()->json($checkDebitCustomer);
-                            }
-
-                            $myDescription = auth()->user()->first_name . " " . auth()->user()->last_name . " / " . \auth()->user()->company->company_name;
-                            // $myDescription .= $request->description == "" ? "" : $request->description;
-                            DB::commit();
-
-                            $bankTransferType                       = new BankTransferType();
-                            $bankTransferType->bankCode             = $request->bank_code;
-                            $bankTransferType->shortBankCode        = $bank->short_code;
-                            $bankTransferType->accountNumber        = $request->destination_account;
-                            $bankTransferType->description          = $gatewayDescription;
-                            $bankTransferType->amount               = $request->final_amount;
-                            $bankTransferType->transactionReference = $transaction->transaction_reference;
-                            $bankTransferType->sessionId            = $currentUser->virtual_account;
-                            $bankTransferType->companyID            = $currentUser->company->id ?? "";
-                            $bankTransferType->senderAccountNumber  = $currentUser->accounts->first()->virtual_accnum ?? "";
-
-                            $bankTransfer = $ebankingService->transferToBankAccount($bankTransferType);
-
-                            logInfo([
-     'company_id' => $currentUser->company->id,
-     'preferred_partner_id' => $preferredEbankingPartner->id ?? null,
-     'bank_transfer_id' => $preferredEbankingPartner->bank_transfer_id ?? null,
-     'bank_account_verification_id' => $preferredEbankingPartner->bank_account_verification_id ?? null,
-                            ], 'TRANSFER PROVIDER DEBUG');
-
-                            // if ($bankTransfer['status'] == "01") {
-                            //     $reversalResult = debitReversal($transaction->id, $transaction->account_id, $transaction->company_id, $transaction->amount, $bankTransferInfo->charge + $bankTransferInfo->amount, $bankTransferInfo->transfer_entity_type);
-                            //     $bankAccount['message'] = "Unable to restrieve customer name, Funds has been reversed, try again later or use another bank";
-                            //     $transaction->transaction_remarks_id = 3;
-                            //     $transaction->save();
-
-                            //     logInfo($reversalResult, "Reversal of Transaction Result");
-
-                            //     return $bankTransfer;
-                            // }
-
-                            if ($bankTransfer['status'] != "00") {
-                                $transaction->transaction_remarks_id = 3;
-                                $transaction->save();
-                                $bankTransfer['status'] = 0;
-
-                                return $bankTransfer;
-                            } else {
-                                // debitCustomerAndCompanyWithChargeServiceWallet
-
-                                logiNfo($transactionPinValidation["account_id"], "Account ID");
-
-                                $debitCustomer = match ($company_debit_bankcode) {
-
-                                    90286 => \debitCustomerAndCompanyWithChargeServiceWallet($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge), //7000299948
-                                    default
-                                          => \debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge),
-                                };
-                                //       $debitCustomer = debitCustomerAndCompanyWithCharge($transactionPinValidation["account_id"], $currentUser->company_id, $request->final_amount, $charge, $wbaCharge);
-
-                                $accountId                   = $debitCustomer['account_id'];
-                                $customerBalanceBefore       = $debitCustomer['balance_before'];
-                                $customerBalanceAfter        = $debitCustomer['balance_after'];
-                                $customerChargeBalanceBefore = $debitCustomer['charge_balance_before'];
-                                $customerChargeBalanceAfter  = $debitCustomer['charge_balance_after'];
-
-                                $companyBalanceBefore       = $debitCustomer['company_balance_before'];
-                                $companyAmount              = $debitCustomer['company_amount'];
-                                $companyBalanceAfter        = $debitCustomer['company_balance_after'];
-                                $companyChargeBalanceBefore = $debitCustomer['company_charge_balance_before'];
-                                $companyChargeBalanceAfter  = $debitCustomer['company_charge_balance_after'];
-
-                                $newdescription = $request->description == "" ? $currentUser->first_name : $request->description;
-
-                                $newdescription = $newdescription . "/" . $request->receipient_name . "/" . $request->destination_account . " - " . $bank->bank_name;
-
-                                $myDescription = "You transferred funds to " . $bankAccount['data']['account_name'] . "/" . $request->destination_account . " / " . $bank->bank_name . " / " . $currentUser->company->company_name;
-
-                                $transaction->description = $myDescription;
-
-                                $transaction->balance_before = $customerBalanceBefore;
-                                //  $transaction->amount         = $request->final_amount + $charge;
-                                $transaction->amount        = $request->final_amount;
-                                $transaction->balance_after = $customerChargeBalanceAfter;
-
-                                $transaction->company_balance_before = $companyBalanceBefore;
-                                $transaction->company_amount         = $request->final_amount + $wbaCharge;
-                                $transaction->company_balance_after  = $companyChargeBalanceAfter;
-
-                                $transaction->save();
-
-                                $ledger_Settings = get_CR_DR_TXN_Type_Ledger(27, $transaction->company_id);
-                                if ($ledger_Settings) {
-                                    $ledger_cr = $ledger_Settings->ledger_cr;
-                                    $ledger_dr = $ledger_Settings->ledger_dr;
-                                } else {
-                                    return ['status' => false, 'message' => 'Transaction failed, set Bank Transfer Charge ledger for this transaction type in ledger settings !'];
-                                }
-
-                                if ($currentUser->company->id == 33) {
-                                    $phone            = $currentUser->phone;
-                                    $transaction_type = "transaction";
-                                    $amount           = $request->final_amount;
-                                    $balance          = $debitCustomer['charge_balance_after'];
-                                    $account_id       = $currentUser->id;
-
-                                    goldencreditSMSPost($phone, $transaction_type, $amount, $balance, $account_id);
-                                } else {
-                                    sendSMS($currentUser->id, "Debit Amt: | $request->final_amount, Desc: App/ {$request->description} " . "Acc: {$bankAccount['data']['account_name']} " . "Bal: N {$debitCustomer['charge_balance_after']} " . "Date: " . date('Y-m-d') . " Ref: " . $request->transaction_reference, true, true, 'Debit Transaction');
-                                    // $transaction = transactions::where('transaction_reference', $request->transaction_reference)->first();
-                                }
-                            }
-
-                            $transaction->transaction_remarks_id = 2;
-                            $transaction->save();
-
-                            $check_transfer_log = Beneficiary::where('accountNo', $request->destination_account)
-                                ->whereNull('transaction_id')
-                                ->first();
-
-                            if ($check_transfer_log) {
-
-                            } else {
-                                $transfer_log            = new Beneficiary;
-                                $transfer_log->name      = $request->receipient_name;
-                                $transfer_log->bank_id   = $bank->id;
-                                $transfer_log->accountNo = $request->destination_account;
-                                $transfer_log->user_id   = auth()->user()->id;
-                                $transfer_log->save();
-                            }
-
-                            $subtext = "Debit Transaction";
-                            $reason  = "";
-                            $msg     = "Debit Amt:$request->final_amount,<br><br> Desc: App/" . $bankAccount['data']['account_name'] . "$request->description" . "<br><br> Avail Bal:" . $debitCustomer['charge_balance_after'] . "<br><br>Date:" . date('Y-m-d') . " <br><br>Ref: " . $request->transaction_reference;
-
-                            $this->sendTransactionReportEmail($subtext, $msg, $reason, $currentUser);
-                            //     spendSaveRecordTransaction($debitCustomer, $transaction);
-
-                            return response()->json([
-                                "status"  => true,
-                                'message' => "Wallet to Bank Transfer Successful",
-                                'data'    => [
-                                    'balance' => $debitCustomer['charge_balance_after'],
-                                ],
-                            ]);
-                        } else {
-                            return response()->json(["status" => false, 'message' => "Insufficient Balance"], 400);
-                        }
-                    }
-                } else {
-                    return response()->json(["status" => false, 'message' => "Invalid Transaction Reference"], 400);
-                }
-            } finally {
-                $lock->release();
-            }
-        } else {
-            return response()->json(['message' => "Transaction is in progress. Try again."], 400);
+public function transferToBankAccount(Request $request)
+{
+    // Never log transaction PINs, passwords, tokens, or the entire request.
+    logInfo([
+        'user_id' => auth()->id(),
+        'company_id' => auth()->user()->company_id ?? null,
+        'transaction_reference' => $request->input('transaction_reference'),
+        'amount' => $request->input('final_amount'),
+        'bank_code' => $request->input('bank_code'),
+        'destination_account_last4' => substr(
+            (string) $request->input('destination_account'),
+            -4
+        ),
+    ], 'Bank Transfer Request');
+
+    $currentUser = auth('api')->user() ?? auth()->user();
+
+    if (!$currentUser) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthenticated.',
+        ], 401);
+    }
+
+    $lockKey = "user:last_request:{$currentUser->id}";
+    $lock = Cache::lock($lockKey, 60);
+
+    if (!$lock->get()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Transaction is in progress. Try again.',
+        ], 409);
+    }
+
+    $transactionStarted = false;
+    $providerSucceeded = false;
+    $transaction = null;
+    $transactionReference = (string) $request->input('transaction_reference');
+
+    try {
+        $validation = Validator::make($request->all(), [
+            'final_amount' => 'required|numeric|gt:0',
+            'transaction_reference' => 'required|string|max:100',
+            'destination_account' => 'required|string',
+            'receipient_name' => 'required|string|max:255',
+            'bank_code' => 'required|string',
+            'transaction_pin' => 'required|numeric|gt:0',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        if ($validation->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => $validation->errors()->first(),
+            ], 422);
         }
 
+        if ($request->bank_code === '090267') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Service is not available right now',
+            ], 406);
+        }
+
+        $amount = (float) $request->final_amount;
+
+        if ($amount > 3000000) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Maximum transfer amount is 3,000,000',
+            ], 400);
+        }
+
+        $account = $currentUser->accounts()->first();
+
+        if (!$account) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Customer account was not found.',
+            ], 400);
+        }
+
+        if (!$currentUser->company) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Company configuration was not found.',
+            ], 400);
+        }
+
+        $validateSavingsProduct = $this->accountProductCharges($amount);
+
+        if (!($validateSavingsProduct['status'] ?? false)) {
+            return response()->json($validateSavingsProduct, 400);
+        }
+
+        $charge = (float) (
+            $validateSavingsProduct['data']['charge'] ?? 0
+        );
+
+        $checkAllowedTransaction = checkCompanyAllowedTransactionStatus(
+            $currentUser->company_id
+        );
+
+        if (($checkAllowedTransaction['status'] ?? null) != 1) {
+            $checkAllowedTransaction['status'] = false;
+
+            return response()->json($checkAllowedTransaction, 400);
+        }
+
+        // Validate the PIN and customer balance before making an external call.
+        $transactionPinValidation = validatePinCheckCustomerBalance(
+            $request->transaction_pin,
+            $amount + $charge
+        );
+
+        if (!($transactionPinValidation['status'] ?? false)) {
+            return response()->json($transactionPinValidation, 400);
+        }
+
+        $accountId = $transactionPinValidation['account_id'] ?? null;
+
+        if (!$accountId || (int) $accountId !== (int) $account->id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'The validated account does not match the authenticated customer.',
+            ], 403);
+        }
+
+        $userWallet = user_wallet::where(
+            'wb_account_detail_id',
+            $account->id
+        )->first();
+
+        if (!$userWallet) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Customer wallet was not found.',
+            ], 400);
+        }
+
+        if ((float) $userWallet->balance < ($amount + $charge)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Insufficient Balance',
+            ], 400);
+        }
+
+        if (checkcustomerrestriction($currentUser->id, '2')) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Your account has been restricted. Please contact support.',
+            ], 400);
+        }
+
+        $validateTransferAmount = $this->validateTransfer($amount);
+
+        if (!($validateTransferAmount['status'] ?? false)) {
+            return response()->json($validateTransferAmount, 400);
+        }
+
+        $wbaCharge = (float) getWbaTransferCharges(1, $amount);
+
+        // Preserve the existing stamp-duty/charge calculation.
+        if ($amount > 9999) {
+            $wbaCharge += 50;
+            $charge += 50;
+        }
+
+        $companyDebitBankCode = $this->getCompanyBankCode();
+
+        logInfo([
+            'company_id' => $currentUser->company_id,
+            'company_debit_bankcode' => $companyDebitBankCode,
+            'transaction_reference' => $transactionReference,
+        ], 'COMPANY DEBIT BANK DEBUG');
+
+        $checkCompanyBalance = match ((int) $companyDebitBankCode) {
+            90286 => ['status' => true],
+            default => $this->checkCompanyBalanceThresholdTransaction($amount),
+        };
+
+        if (!($checkCompanyBalance['status'] ?? false)) {
+            return response()->json($checkCompanyBalance, 400);
+        }
+
+        
+ $checkDebitCustomer = match ((int) $companyDebitBankCode) {
+    90286 => checkCustomerAndCompanyWithChargeSafeHaven(
+        $accountId,
+        $currentUser->company_id,
+        $amount,
+        $charge,
+        $wbaCharge
+    ),
+    default => checkCustomerAndCompanyWithCharge(
+        $accountId,
+        $currentUser->company_id,
+        $amount,
+        $charge,
+        $wbaCharge
+    ),
+ };
+
+ if (
+    !is_array($checkDebitCustomer) ||
+    !($checkDebitCustomer['status'] ?? false)
+ ) {
+    return response()->json(
+        is_array($checkDebitCustomer)
+            ? $checkDebitCustomer
+            : [
+                'status' => false,
+                'message' => 'Unable to validate transfer balances.',
+            ],
+        400
+    );
+ }
+
+
+        // Check the ledger configuration BEFORE any external transfer.
+        $ledgerSettings = get_CR_DR_TXN_Type_Ledger(
+            27,
+            $currentUser->company_id
+        );
+
+        if (!$ledgerSettings) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Bank Transfer Charge ledger is not configured for this transaction type.',
+            ], 422);
+        }
+
+        $ledgerCr = $ledgerSettings->ledger_cr;
+        $ledgerDr = $ledgerSettings->ledger_dr;
+
+        // Resolve the provider using your existing company-specific/default flow.
+        $preferredEbankingPartner = PreferredEbankingPartnerCompany::where(
+            'company_id',
+            $currentUser->company_id
+        )->first();
+
+        if ($preferredEbankingPartner) {
+            $ebankingService = new EbankingCompanyService(
+                $preferredEbankingPartner
+            );
+        } else {
+            $preferredEbankingPartner = PreferredEbankingPartner::all();
+
+            $ebankingService = new EbankingService(
+                $preferredEbankingPartner
+            );
+        }
+
+        $bankAccount = $ebankingService->verifyAccountNumberFull(
+            $request->bank_code,
+            $request->destination_account,
+            $currentUser->company_id
+        );
+
+        if (!is_array($bankAccount) || !($bankAccount['status'] ?? false)) {
+            return response()->json(
+                is_array($bankAccount)
+                    ? $bankAccount
+                    : [
+                        'status' => false,
+                        'message' => 'Bank account verification returned an invalid response.',
+                    ],
+                400
+            );
+        }
+
+        $bank = banks::where('bank_code', $request->bank_code)
+            ->orWhere('short_code', $request->bank_code)
+            ->first();
+
+        if (!$bank) {
+            return response()->json([
+                'status' => false,
+                'message' => 'The destination bank could not be identified.',
+            ], 400);
+        }
+
+        /*
+         * Lock and validate the existing transaction record.
+         * A reference alone is not sufficient authorization.
+         */
+        DB::beginTransaction();
+        $transactionStarted = true;
+
+        $transaction = transactions::where(
+            'transaction_reference',
+            $transactionReference
+        )
+            ->where('company_id', $currentUser->company_id)
+            ->where('amount', $amount)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$transaction) {
+            DB::rollBack();
+            $transactionStarted = false;
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid transaction reference, company, or amount.',
+            ], 400);
+        }
+
+        // If the transaction is already associated with an account, enforce ownership.
+        if (
+            !empty($transaction->account_id) &&
+            (int) $transaction->account_id !== (int) $accountId
+        ) {
+            DB::rollBack();
+            $transactionStarted = false;
+
+            return response()->json([
+                'status' => false,
+                'message' => 'This transaction does not belong to the authenticated account.',
+            ], 403);
+        }
+
+        if ((int) $transaction->transaction_remarks_id === 2) {
+            DB::rollBack();
+            $transactionStarted = false;
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Transaction has already been completed.',
+            ], 409);
+        }
+
+        if ((int) $transaction->transaction_remarks_id === 3) {
+            DB::rollBack();
+            $transactionStarted = false;
+
+            return response()->json([
+                'status' => false,
+                'message' => 'This transaction has been marked failed. Contact support before retrying.',
+            ], 409);
+        }
+
+        if ((int) $transaction->transaction_remarks_id === 5) {
+            DB::rollBack();
+            $transactionStarted = false;
+
+            return response()->json([
+                'status' => false,
+                'message' => 'This transaction has already been reversed.',
+            ], 409);
+        }
+
+        if ((int) $transaction->transaction_remarks_id === 1) {
+            DB::rollBack();
+            $transactionStarted = false;
+
+            return response()->json([
+                'status' => false,
+                'message' => 'This transaction is already pending or being processed.',
+            ], 409);
+        }
+
+        // Reserve the reference as processing before committing and calling the provider.
+        $transaction->transaction_remarks_id = 1;
+        $transaction->save();
+
+        DB::commit();
+        $transactionStarted = false;
+
+        $gatewayDescription = $currentUser->first_name . ' '
+            . $currentUser->last_name . ' / '
+            . $currentUser->company->company_name;
+
+        $bankTransferType = new BankTransferType();
+        $bankTransferType->bankCode = $request->bank_code;
+        $bankTransferType->shortBankCode = $bank->short_code;
+        $bankTransferType->accountNumber = $request->destination_account;
+        $bankTransferType->description = $gatewayDescription;
+        $bankTransferType->amount = $amount;
+        $bankTransferType->transactionReference = $transaction->transaction_reference;
+        $bankTransferType->sessionId = $currentUser->virtual_account;
+        $bankTransferType->companyID = $currentUser->company_id;
+        $bankTransferType->senderAccountNumber = $account->virtual_accnum ?? '';
+
+        /*
+         * Once this call begins, do not blindly retry if it throws or returns
+         * an ambiguous response. The provider may have completed the transfer.
+         */
+        try {
+            $bankTransfer = $ebankingService->transferToBankAccount(
+                $bankTransferType
+            );
+        } catch (\Throwable $providerException) {
+            logInfo([
+                'transaction_reference' => $transactionReference,
+                'company_id' => $currentUser->company_id,
+                'exception_class' => get_class($providerException),
+                'exception_message' => $providerException->getMessage(),
+            ], 'BANK TRANSFER PROVIDER EXCEPTION - RECONCILIATION REQUIRED');
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Transfer status could not be confirmed. Please contact support; do not retry this reference.',
+                'transaction_reference' => $transactionReference,
+            ], 500);
+        }
+
+        logInfo([
+            'company_id' => $currentUser->company_id,
+            'preferred_partner_type' => is_object($preferredEbankingPartner)
+                ? get_class($preferredEbankingPartner)
+                : gettype($preferredEbankingPartner),
+            'preferred_partner_count' => $preferredEbankingPartner instanceof
+                \Illuminate\Support\Collection
+                    ? $preferredEbankingPartner->count()
+                    : null,
+            'provider_status' => is_array($bankTransfer)
+                ? ($bankTransfer['status'] ?? null)
+                : null,
+            'transaction_reference' => $transactionReference,
+        ], 'TRANSFER PROVIDER DEBUG');
+
+        /*
+         * A malformed/ambiguous response is not proof that the provider failed.
+         * Keep the record pending for provider-status reconciliation.
+         */
+        if (!is_array($bankTransfer) || !array_key_exists('status', $bankTransfer)) {
+            logInfo([
+                'transaction_reference' => $transactionReference,
+                'provider_response_type' => gettype($bankTransfer),
+            ], 'BANK TRANSFER AMBIGUOUS PROVIDER RESPONSE');
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Transfer status could not be confirmed. Please contact support.',
+                'transaction_reference' => $transactionReference,
+            ], 500);
+        }
+
+        if ((string) $bankTransfer['status'] !== '00') {
+            /*
+             * Only mark it failed if your provider integration guarantees that
+             * this status is a definitive rejection, not a timeout/unknown state.
+             */
+            if (in_array((string) $bankTransfer['status'], ['01', '02', '03'], true)) {
+                DB::transaction(function () use ($transactionReference, $currentUser) {
+                    $failedTransaction = transactions::where(
+                        'transaction_reference',
+                        $transactionReference
+                    )
+                        ->where('company_id', $currentUser->company_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (
+                        $failedTransaction &&
+                        (int) $failedTransaction->transaction_remarks_id === 1
+                    ) {
+                        $failedTransaction->transaction_remarks_id = 3;
+                        $failedTransaction->save();
+                    }
+                });
+
+                $bankTransfer['status'] = false;
+
+                return response()->json($bankTransfer, 400);
+            }
+
+            logInfo([
+                'transaction_reference' => $transactionReference,
+                'provider_status' => $bankTransfer['status'],
+            ], 'BANK TRANSFER STATUS AMBIGUOUS - RECONCILIATION REQUIRED');
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Transfer status could not be confirmed. Please contact support.',
+                'transaction_reference' => $transactionReference,
+            ], 500);
+        }
+
+        $providerSucceeded = true;
+
+        /*
+         * Provider succeeded. Now perform the local debit and transaction
+         * finalization together. If anything fails, the local DB transaction
+         * rolls back and the transfer remains pending for reconciliation.
+         */
+        try {
+            $finalization = DB::transaction(function () use (
+                $transactionReference,
+                $currentUser,
+                $accountId,
+                $amount,
+                $charge,
+                $wbaCharge,
+                $companyDebitBankCode,
+                $bankAccount,
+                $bank,
+                $request,
+                $ledgerCr,
+                $ledgerDr
+            ) {
+                $lockedTransaction = transactions::where(
+                    'transaction_reference',
+                    $transactionReference
+                )
+                    ->where('company_id', $currentUser->company_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$lockedTransaction) {
+                    throw new \RuntimeException(
+                        'Transaction record missing during finalization.'
+                    );
+                }
+
+                if ((int) $lockedTransaction->transaction_remarks_id === 2) {
+                    throw new \RuntimeException(
+                        'Transaction was already finalized.'
+                    );
+                }
+
+                if ((int) $lockedTransaction->transaction_remarks_id !== 1) {
+                    throw new \RuntimeException(
+                        'Transaction is not in the expected pending state.'
+                    );
+                }
+
+                $debitCustomer = match ((int) $companyDebitBankCode) {
+                    90286 => debitCustomerAndCompanyWithChargeServiceWallet(
+                        $accountId,
+                        $currentUser->company_id,
+                        $amount,
+                        $charge,
+                        $wbaCharge
+                    ),
+                    default => debitCustomerAndCompanyWithCharge(
+                        $accountId,
+                        $currentUser->company_id,
+                        $amount,
+                        $charge,
+                        $wbaCharge
+                    ),
+                };
+
+                if (
+                    !is_array($debitCustomer) ||
+                    !($debitCustomer['status'] ?? false)
+                ) {
+                    logInfo([
+                        'transaction_reference' => $transactionReference,
+                        'user_id' => $currentUser->id,
+                        'company_id' => $currentUser->company_id,
+                        'debit_result' => is_array($debitCustomer)
+                            ? $debitCustomer
+                            : gettype($debitCustomer),
+                    ], 'CRITICAL: PROVIDER SUCCEEDED BUT LOCAL DEBIT FAILED');
+
+                    throw new \RuntimeException(
+                        'Local debit failed after provider success.'
+                    );
+                }
+
+                $lockedTransaction->description =
+                    'You transferred funds to '
+                    . ($bankAccount['data']['account_name'] ?? $request->receipient_name)
+                    . '/' . $request->destination_account
+                    . ' / ' . $bank->bank_name
+                    . ' / ' . $currentUser->company->company_name;
+
+                $lockedTransaction->account_id = $debitCustomer['account_id'];
+                $lockedTransaction->balance_before = $debitCustomer['balance_before'];
+                $lockedTransaction->amount = $amount;
+                $lockedTransaction->balance_after = $debitCustomer['charge_balance_after'];
+
+                $lockedTransaction->company_balance_before =
+                    $debitCustomer['company_balance_before'];
+
+                $lockedTransaction->company_amount = $amount + $wbaCharge;
+
+                $lockedTransaction->company_balance_after =
+                    $debitCustomer['company_charge_balance_after'];
+
+                $lockedTransaction->ledger_cr = $ledgerCr;
+                $lockedTransaction->ledger_dr = $ledgerDr;
+                $lockedTransaction->transaction_remarks_id = 2;
+                $lockedTransaction->save();
+
+                return $debitCustomer;
+            });
+        } catch (\Throwable $finalizationException) {
+            logInfo([
+                'transaction_reference' => $transactionReference,
+                'company_id' => $currentUser->company_id,
+                'provider_succeeded' => $providerSucceeded,
+                'exception_class' => get_class($finalizationException),
+                'exception_message' => $finalizationException->getMessage(),
+            ], 'CRITICAL: TRANSFER REQUIRES RECONCILIATION');
+
+            return response()->json([
+                'status' => false,
+                'message' => 'The bank transfer succeeded but local processing requires reconciliation. Please contact support. Do not retry this reference.',
+                'transaction_reference' => $transactionReference,
+            ], 500);
+        }
+
+        // Notifications and beneficiary updates happen after the financial
+        // finalization. Their failure must not reverse or re-run the transfer.
+        try {
+            $accountName = $bankAccount['data']['account_name']
+                ?? $request->receipient_name;
+
+            $beneficiary = Beneficiary::where(
+                'accountNo',
+                $request->destination_account
+            )
+                ->whereNull('transaction_id')
+                ->where('user_id', $currentUser->id)
+                ->first();
+
+            if (!$beneficiary) {
+                $beneficiary = new Beneficiary();
+                $beneficiary->name = $request->receipient_name;
+                $beneficiary->bank_id = $bank->id;
+                $beneficiary->accountNo = $request->destination_account;
+                $beneficiary->user_id = $currentUser->id;
+                $beneficiary->save();
+            }
+
+            $description = $request->description ?? '';
+
+            if ((int) $currentUser->company_id === 33) {
+                goldencreditSMSPost(
+                    $currentUser->phone,
+                    'transaction',
+                    $amount,
+                    $finalization['charge_balance_after'],
+                    $currentUser->id
+                );
+            } else {
+                sendSMS(
+                    $currentUser->id,
+                    "Debit Amt: | {$amount}, Desc: App/ {$description} "
+                        . "Acc: {$accountName} "
+                        . "Bal: N {$finalization['charge_balance_after']} "
+                        . "Date: " . date('Y-m-d')
+                        . " Ref: {$transactionReference}",
+                    true,
+                    true,
+                    'Debit Transaction'
+                );
+            }
+
+            $msg = "Debit Amt:{$amount},<br><br> Desc: App/{$accountName}{$description}"
+                . "<br><br> Avail Bal:{$finalization['charge_balance_after']}"
+                . "<br><br>Date:" . date('Y-m-d')
+                . "<br><br>Ref: {$transactionReference}";
+
+            $this->sendTransactionReportEmail(
+                'Debit Transaction',
+                $msg,
+                '',
+                $currentUser
+            );
+        } catch (\Throwable $notificationException) {
+            logInfo([
+                'transaction_reference' => $transactionReference,
+                'exception_class' => get_class($notificationException),
+                'exception_message' => $notificationException->getMessage(),
+            ], 'TRANSFER COMPLETED BUT NOTIFICATION FAILED');
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Wallet to Bank Transfer Successful',
+            'data' => [
+                'balance' => $finalization['charge_balance_after'],
+                'transaction_reference' => $transactionReference,
+            ],
+        ]);
+    } catch (\Throwable $e) {
+        if ($transactionStarted && DB::transactionLevel() > 0) {
+            DB::rollBack();
+            $transactionStarted = false;
+        }
+
+        logInfo([
+            'transaction_reference' => $transactionReference,
+            'user_id' => $currentUser->id ?? null,
+            'provider_succeeded' => $providerSucceeded,
+            'exception_class' => get_class($e),
+            'exception_message' => $e->getMessage(),
+        ], 'BANK TRANSFER CONTROLLER EXCEPTION');
+
+        if ($providerSucceeded) {
+            return response()->json([
+                'status' => false,
+                'message' => 'The bank transfer succeeded but local processing requires reconciliation. Please contact support. Do not retry this reference.',
+                'transaction_reference' => $transactionReference,
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to process the transfer. Please try again later or contact support.',
+            'transaction_reference' => $transactionReference ?: null,
+        ], 500);
+    } finally {
+        if ($transactionStarted && DB::transactionLevel() > 0) {
+            DB::rollBack();
+        }
+
+        $lock->release();
     }
+}
+
 
     public function transferToCrossBorder(Request $request)
     {

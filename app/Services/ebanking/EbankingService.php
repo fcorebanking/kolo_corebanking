@@ -25,13 +25,13 @@ class EbankingService
 
     public function transferToBankAccount(BankTransferType $bankTransferType)
     {
-         loginfo('BANK TRANSFER STARTED', [
-        'bank_code' => $bankTransferType->bankCode,
-        'account_number' => $bankTransferType->accountNumber,
-        'amount' => $bankTransferType->amount,
-        'account_verification_partner' => $this->accountVerificationPartner,
-        'bank_transfer_partner' => $this->bankTransferPartner,
-     ]);
+         logInfo([
+     'bank_code' => $bankTransferType->bankCode,
+     'amount' => $bankTransferType->amount,
+     'account_verification_partner' => $this->accountVerificationPartner,
+     'bank_transfer_partner' => $this->bankTransferPartner,
+     'transaction_reference' => $bankTransferType->transactionReference,
+      ], 'BANK TRANSFER STARTED');
 
         $bankAccount = $this->verifyAccountNumberFull($bankTransferType->bankCode, $bankTransferType->accountNumber);
 
@@ -103,14 +103,18 @@ class EbankingService
      'response' => $bankTransfer,
      ], 'BANK TRANSFER PROVIDER RESPONSE');
 
-        if (! $bankTransfer['status']) {
-            $bankTransfer['status'] = "02";
-            return $bankTransfer;
-        }
+if (!is_array($bankTransfer) || !array_key_exists('status', $bankTransfer)) {
+    return [
+        'status' => '02',
+        'message' => 'Provider returned an invalid response. Transfer outcome requires verification.',
+    ];
+}
 
+if (!$bankTransfer['status']) {
+    $bankTransfer['status'] = '02';
 
-        $bankTransfer["status"] = "00";
-        return $bankTransfer;
+    return $bankTransfer;
+}
     }
 
 public function verifyAccountNumberFull($bankCode, $accountNumber)

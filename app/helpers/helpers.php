@@ -2230,424 +2230,646 @@ function debitPOSTerminalWithCharge($terminalId, $originalAmount, $charge, $comp
     }
 }
 
-function debitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
+
+/**
+ * Calculate the customer's SpendSave contribution without updating it.
+ *
+ * Preserves the existing formula:
+ * spend_save_charge_or_percentage * originalAmount
+ */
+function finovaCalculateSpendSaveCash($customerAccountId, $originalAmount)
 {
-    logInfo($customerAccountId, "customerAccountId");
-    logInfo($companyId, "companyId");
+    $account = wb_account_details::find($customerAccountId);
 
-    $response = [];
-
-    if (! Auth::check()) {
-        $currentUser = $user;
-    } else {
-        $currentUser = auth()->user();
+    if (!$account) {
+        throw new \RuntimeException('Customer account details not found.');
     }
 
-    if ($originalAmount > 0) {
+    $settings = SpendSave::where('user_id', $account->user_id)
+        ->lockForUpdate()
+        ->first();
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
-
-        if (! $userWallet) {
-            $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
-        }
-
-        logInfo(json_encode($userWallet), "User to be debitted");
-
-        $customerInitialBalance = $userWallet->balance;
-
-        logInfo($originalAmount, "Original Amount to be debitted");
-        logInfo($customerCharge, "Charge to be debitted");
-        if ($customerInitialBalance > ($originalAmount + $customerCharge)) {
-
-            $company = Company::find($companyId);
-
-            $companyIDs = [1, 29, 36, 43];
-
-            $companyIDsStatus = false; 
-
-            if (in_array($company->id, $companyIDs)) {
-                $companyIDsStatus = true;
-            }
-
-            $companyWallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
-
-            logInfo(json_encode($companyWallet), "Company to be debitted");
-
-            $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge); // this is to check
-
-            logInfo(json_encode($companyAfterBalance), "Company after balance");
-
-            if ($companyWallet->balance > 100000 && ($companyAfterBalance > 100000)) {
-                $companyIDsStatus = true;
-            }
-
-            if (($companyWallet->balance > ($originalAmount + $customerCharge)) && ($companyIDsStatus)) {
-
-                $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
-                $paymentcash           = ($originalAmount + $customerCharge);
-                $spendSaveCash         = debitCustomerSpendSave($customerAccountId, $originalAmount);
-                $customerFinalBalance  = $userWallet->balance -= ($paymentcash + $spendSaveCash);
-
-                if ($userWallet->save()) {
-                    $BranchWallet           = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
-                    $BranchWallet->balance -= ($paymentcash + $spendSaveCash);
-                    $BranchWallet->save();
-                }
-                $companyInitialBalance = $companyWallet->balance;
-                $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
-
-                $companyFinalBalance  = $companyWallet->balance -= ($originalAmount + $companyCharge);
-                $companyWallet->save();
-
-                $currentUser->balance_fails = 0;
-                $currentUser->save();
-
-                $response = [
-                    "status"                        => true,
-                    'message'                       => "Amount is Valid",
-                    'account_id'                    => $customerAccountId,
-                    'balance_before'                => $customerInitialBalance,
-                    'balance_after'                 => $customerBalanceAfter,
-                    'charge_balance_before'         => $customerBalanceAfter,
-                    'charge_balance_after'          => $customerFinalBalance,
-                    'company_balance_before'        => $companyInitialBalance,
-                    'company_amount'                => $originalAmount,
-                    'company_balance_after'         => $companyBalanceAfter,
-                    'company_charge_balance_before' => $companyBalanceAfter,
-                    'company_charge_balance_after'  => $companyFinalBalance,
-                    'spend_save_cash'               => $spendSaveCash,
-                ];
-
-                logInfo(json_encode($response), "debitCustomerAndCompanyWithCharge");
-
-            } else {
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
-            }
-        } else {
-            if ($currentUser->balance_fails < 4) {
-                $currentUser->balance_fails += 1;
-                $currentUser->save();
-                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds Customer Funds"];
-            } else {
-                // auth()->user()->status_id = 5;
-                restrictUserAccount(2, "Multiple Insuficient balance trials");
-
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support"];
-            }
-        }
-    } else {
-        $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+    if (
+        !$settings ||
+        (int) $settings->status_id !== 1
+    ) {
+        return 0;
     }
-    return $response;
+
+    return max(
+        0,
+        (float) $settings->spend_save_charge_or_percentage
+            * (float) $originalAmount
+    );
 }
 
-function debitCustomerAndCompanyWithChargeServiceWallet($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
+
+/**
+ * Credit SpendSave with the amount being deducted from the customer's
+ * wallet for this feature.
+ *
+ * Call inside the same DB transaction as the wallet debit.
+ */
+function debitCustomerSpendSave($customerAccountId, $originalAmount)
 {
-    logInfo($customerAccountId, "customerAccountId");
-    logInfo($companyId, "companyId");
+    $account = wb_account_details::find($customerAccountId);
 
-    $response = [];
-
-    if (! Auth::check()) {
-        $currentUser = $user;
-    } else {
-        $currentUser = auth()->user();
+    if (!$account) {
+        throw new \RuntimeException('Customer account details not found for SpendSave.');
     }
 
-    if ($originalAmount > 0) {
+    $settings = SpendSave::where('user_id', $account->user_id)
+        ->lockForUpdate()
+        ->first();
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
+    if (!$settings || (int) $settings->status_id !== 1) {
+        logInfo(0, "SpendSave for {$account->user_id}");
 
-        if (! $userWallet) {
-            $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
-        }
-
-        logInfo(json_encode($userWallet), "User to be debitted");
-
-        $customerInitialBalance = $userWallet->balance;
-
-        logInfo($originalAmount, "Original Amount to be debitted");
-        logInfo($customerCharge, "Charge to be debitted");
-        if ($customerInitialBalance > ($originalAmount + $customerCharge)) {
-
-            $company = Company::find($companyId);
-
-            $companyWallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
-
-            logInfo(json_encode($companyWallet), "Company to be debitted");
-
-            $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge); // this is to check
-
-            logInfo(json_encode($companyAfterBalance), "Company after balance");
-
-            if ($companyWallet->balance > ($originalAmount + $customerCharge)) {
-
-                $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
-                $paymentcash           = ($originalAmount + $customerCharge);
-                $spendSaveCash         = debitCustomerSpendSave($customerAccountId, $originalAmount);
-                $customerFinalBalance  = $userWallet->balance -= ($paymentcash + $spendSaveCash);
-
-                if ($userWallet->save()) {
-                    $BranchWallet           = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
-                    $BranchWallet->balance -= ($paymentcash + $spendSaveCash);
-                    $BranchWallet->save();
-                }
-
-                $companyInitialBalance = $companyWallet->balance;
-                $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
-
-                $companyFinalBalance  = $companyWallet->balance -= ($originalAmount + $companyCharge);
-                $companyWallet->save();
-
-                $currentUser->balance_fails = 0;
-                $currentUser->save();
-
-                $response = [
-                    "status"                        => true,
-                    'message'                       => "Amount is Valid",
-                    'account_id'                    => $customerAccountId,
-                    'balance_before'                => $customerInitialBalance,
-                    'balance_after'                 => $customerBalanceAfter,
-                    'charge_balance_before'         => $customerBalanceAfter,
-                    'charge_balance_after'          => $customerFinalBalance,
-                    'company_balance_before'        => $companyInitialBalance,
-                    'company_amount'                => $originalAmount,
-                    'company_balance_after'         => $companyBalanceAfter,
-                    'company_charge_balance_before' => $companyBalanceAfter,
-                    'company_charge_balance_after'  => $companyFinalBalance,
-                    'spend_save_cash'               => $spendSaveCash,
-                ];
-
-                logInfo(json_encode($response), "debitCustomerAndCompanyWithCharge");
-
-            } else {
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
-            }
-        } else {
-            if ($currentUser->balance_fails < 4) {
-                $currentUser->balance_fails += 1;
-                $currentUser->save();
-                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds Customer Funds"];
-            } else {
-                // auth()->user()->status_id = 5;
-                restrictUserAccount(2, "Multiple Insuficient balance trials");
-
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support"];
-            }
-        }
-    } else {
-        $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        return 0;
     }
-    return $response;
+
+    $cash = max(
+        0,
+        (float) $settings->spend_save_charge_or_percentage
+            * (float) $originalAmount
+    );
+
+    if ($cash > 0) {
+        $settings->balance = (float) $settings->balance + $cash;
+
+        if (!$settings->save()) {
+            throw new \RuntimeException('Failed to update SpendSave balance.');
+        }
+    }
+
+    logInfo([
+        'user_id' => $account->user_id,
+        'spend_save_amount' => $cash,
+    ], 'SpendSave contribution');
+
+    return $cash;
 }
 
-function checkCustomerAndCompanyWithCharge($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
-{
-    logInfo($customerAccountId, "customerAccountId");
-    logInfo($companyId, "companyId");
 
-    $response = [];
+/**
+ * Shared, read-only balance validation.
+ *
+ * $safeHaven:
+ *   - true: company charge is zero.
+ *
+ * $enforceCompanyThreshold:
+ *   - true: preserve the special company-ID / minimum reserve rule.
+ */
+function finovaCheckTransferBalances(
+    $customerAccountId,
+    $companyId,
+    $originalAmount,
+    $customerCharge,
+    $companyCharge,
+    $user = null,
+    $safeHaven = false,
+    $enforceCompanyThreshold = true
+) {
+    $currentUser = \Illuminate\Support\Facades\Auth::user() ?? $user;
 
-    if (! Auth::check()) {
-        $currentUser = $user;
-    } else {
-        $currentUser = auth()->user();
+    if (!$currentUser) {
+        return [
+            'status' => false,
+            'responseCode' => 0,
+            'message' => 'Unable to identify the customer.',
+        ];
     }
 
-    if ($originalAmount > 0) {
+    $originalAmount = (float) $originalAmount;
+    $customerCharge = (float) $customerCharge;
+    $companyCharge = $safeHaven ? 0 : (float) $companyCharge;
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
+    if (!is_finite($originalAmount) || $originalAmount <= 0) {
+        return [
+            'status' => false,
+            'responseCode' => 0,
+            'message' => 'Invalid transaction amount.',
+        ];
+    }
 
-        if (! $userWallet) {
-            $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
-        }
+    try {
+        return \Illuminate\Support\Facades\DB::transaction(
+            function () use (
+                $customerAccountId,
+                $companyId,
+                $originalAmount,
+                $customerCharge,
+                $companyCharge,
+                $currentUser,
+                $safeHaven,
+                $enforceCompanyThreshold
+            ) {
+                $userWallet = user_wallet::where(
+                    'wb_account_detail_id',
+                    $customerAccountId
+                )->lockForUpdate()->first();
 
-        logInfo(json_encode($userWallet), "User to be debitted");
-
-        $customerInitialBalance = $userWallet->balance;
-
-        logInfo($originalAmount, "Original Amount to be debitted");
-        logInfo($customerCharge, "Charge to be debitted");
-        if ($customerInitialBalance > ($originalAmount + $customerCharge)) {
-
-            $company = Company::find($companyId);
-
-            $companyIDs = [1, 29, 36, 43];
-
-            $companyIDsStatus = false;
-
-            if (in_array($company->id, $companyIDs)) {
-                $companyIDsStatus = true;
-            }
-
-            $companyWallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
-
-            logInfo(json_encode($companyWallet), "Company to be debitted");
-
-            $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge);
-
-            logInfo(json_encode($companyAfterBalance), "Company after balance");
-
-            if ($companyWallet->balance > 100000 && ($companyAfterBalance > 100000)) {
-                $companyIDsStatus = true;
-            }
-
-            if (($companyWallet->balance > ($originalAmount + $customerCharge)) && ($companyIDsStatus)) {
-
-                $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
-                $paymentcash           = ($originalAmount + $customerCharge);
-                $customerFinalBalance  = $userWallet->balance -= $paymentcash;
-
-                if ($userWallet) {
-                    $BranchWallet           = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
-                    $BranchWallet->balance -= $paymentcash;
-                    //      $BranchWallet->save();
+                if (!$userWallet) {
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Invalid customer provided.',
+                    ];
                 }
-                $companyInitialBalance = $companyWallet->balance;
-                $companyBalanceAfter   = $companyInitialBalance - $originalAmount;
 
-                $companyFinalBalance  = $companyWallet->balance -= ($originalAmount + $companyCharge);
-                //     $companyWallet->save();
+                $company = Company::find($companyId);
 
-                $currentUser->balance_fails = 0;
-                //    $currentUser->save();
+                if (!$company) {
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Company not found.',
+                    ];
+                }
 
-                $response = [
-                    "status"                        => true,
-                    'message'                       => "Amount is Valid",
-                    'account_id'                    => $customerAccountId,
-                    'balance_before'                => $customerInitialBalance,
-                    'balance_after'                 => $customerBalanceAfter,
-                    'charge_balance_before'         => $customerBalanceAfter,
-                    'charge_balance_after'          => $customerFinalBalance,
-                    'company_balance_before'        => $companyInitialBalance,
-                    'company_amount'                => $originalAmount,
-                    'company_balance_after'         => $companyBalanceAfter,
-                    'company_charge_balance_before' => $companyBalanceAfter,
-                    'company_charge_balance_after'  => $companyFinalBalance,
+                $companyWallet = company_wallet::where(
+                    'company_id',
+                    $companyId
+                )->lockForUpdate()->first();
+
+                if (!$companyWallet) {
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Company wallet not found.',
+                    ];
+                }
+
+                $spendSaveCash = finovaCalculateSpendSaveCash(
+                    $customerAccountId,
+                    $originalAmount
+                );
+
+                $customerInitialBalance = (float) $userWallet->balance;
+                $companyInitialBalance = (float) $companyWallet->balance;
+
+                $customerDebit = $originalAmount
+                    + $customerCharge
+                    + $spendSaveCash;
+
+                $companyDebit = $originalAmount + $companyCharge;
+
+                if ($customerInitialBalance < $customerDebit) {
+                    if ((int) $currentUser->balance_fails < 4) {
+                        $currentUser->balance_fails =
+                            (int) $currentUser->balance_fails + 1;
+
+                        $currentUser->save();
+
+                        return [
+                            'status' => false,
+                            'responseCode' => 0,
+                            'message' => 'Insufficient customer funds.',
+                        ];
+                    }
+
+                    restrictUserAccount(
+                        2,
+                        'Multiple insufficient balance trials'
+                    );
+
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Your account has been restricted. Please contact support.',
+                    ];
+                }
+
+                if ($companyInitialBalance < $companyDebit) {
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Insufficient company funds.',
+                    ];
+                }
+
+                if ($enforceCompanyThreshold) {
+                    $companyIDsWithThresholdExemption = [1, 29, 36, 43];
+
+                    $companyHasExemption = in_array(
+                        (int) $companyId,
+                        $companyIDsWithThresholdExemption,
+                        true
+                    );
+
+                    $companyBalanceAfterDebit =
+                        $companyInitialBalance - $companyDebit;
+
+                    if (
+                        !$companyHasExemption &&
+                        !(
+                            $companyInitialBalance > 100000 &&
+                            $companyBalanceAfterDebit > 100000
+                        )
+                    ) {
+                        return [
+                            'status' => false,
+                            'responseCode' => 0,
+                            'message' => 'Switcher related error. Please contact support.',
+                        ];
+                    }
+                }
+
+                return [
+                    'status' => true,
+                    'message' => 'Amount is valid.',
+                    'account_id' => $customerAccountId,
+                    'balance_before' => $customerInitialBalance,
+                    'balance_after' => $customerInitialBalance - $originalAmount,
+                    'charge_balance_before' => $customerInitialBalance - $originalAmount,
+                    'charge_balance_after' => $customerInitialBalance - $customerDebit,
+                    'company_balance_before' => $companyInitialBalance,
+                    'company_amount' => $originalAmount,
+                    'company_balance_after' => $companyInitialBalance - $originalAmount,
+                    'company_charge_balance_before' => $companyInitialBalance - $originalAmount,
+                    'company_charge_balance_after' => $companyInitialBalance - $companyDebit,
+                    'spend_save_cash' => $spendSaveCash,
                 ];
-
-                logInfo(json_encode($response), "debitCustomerAndCompanyWithCharge");
-
-            } else {
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
             }
-        } else {
-            if ($currentUser->balance_fails < 4) {
-                $currentUser->balance_fails += 1;
-                $currentUser->save();
-                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds Customer Funds"];
-            } else {
-                // auth()->user()->status_id = 5;
-                restrictUserAccount(2, "Multiple Insuficient balance trials");
+        );
+    } catch (\Throwable $e) {
+        logInfo([
+            'company_id' => $companyId,
+            'customer_account_id' => $customerAccountId,
+            'error' => $e->getMessage(),
+        ], 'TRANSFER BALANCE CHECK ERROR');
 
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support"];
-            }
-        }
-    } else {
-        $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        return [
+            'status' => false,
+            'responseCode' => 0,
+            'message' => 'Unable to validate balances. Please try again.',
+        ];
     }
-    return $response;
 }
 
-function checkCustomerAndCompanyWithChargeSafeHaven($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
-{
-    logInfo($customerAccountId, "customerAccountId");
-    logInfo($companyId, "companyId");
 
-    $response = [];
+/**
+ * Shared actual debit implementation.
+ *
+ * All local balance changes, including SpendSave, are atomic.
+ */
+function finovaDebitCustomerAndCompany(
+    $customerAccountId,
+    $companyId,
+    $originalAmount,
+    $customerCharge,
+    $companyCharge,
+    $user = null,
+    $safeHaven = false,
+    $enforceCompanyThreshold = true
+) {
+    $currentUser = \Illuminate\Support\Facades\Auth::user() ?? $user;
 
-    if (! Auth::check()) {
-        $currentUser = $user;
-    } else {
-        $currentUser = auth()->user();
+    if (!$currentUser) {
+        return [
+            'status' => false,
+            'responseCode' => 0,
+            'message' => 'Unable to identify the customer.',
+        ];
     }
 
-    if ($originalAmount > 0) {
+    $originalAmount = (float) $originalAmount;
+    $customerCharge = (float) $customerCharge;
+    $companyCharge = $safeHaven ? 0 : (float) $companyCharge;
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->lockForUpdate()->first();
+    if (!is_finite($originalAmount) || $originalAmount <= 0) {
+        return [
+            'status' => false,
+            'responseCode' => 0,
+            'message' => 'Invalid transaction amount.',
+        ];
+    }
 
-        if (! $userWallet) {
-            $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
-        }
+    try {
+        return \Illuminate\Support\Facades\DB::transaction(
+            function () use (
+                $customerAccountId,
+                $companyId,
+                $originalAmount,
+                $customerCharge,
+                $companyCharge,
+                $currentUser,
+                $enforceCompanyThreshold
+            ) {
+                $userWallet = user_wallet::where(
+                    'wb_account_detail_id',
+                    $customerAccountId
+                )->lockForUpdate()->first();
 
-        logInfo(json_encode($userWallet), "User to be debitted");
-
-        $customerInitialBalance = $userWallet->balance;
-
-        logInfo($originalAmount, "Original Amount to be debitted");
-        logInfo($customerCharge, "Charge to be debitted");
-        if ($customerInitialBalance > ($originalAmount + $customerCharge)) {
-
-            $company = Company::find($companyId);
-
-            $companyWallet = company_wallet::where('company_id', $companyId)->lockForUpdate()->first();
-
-            logInfo(json_encode($companyWallet), "Company to be debitted");
-
-            $companyAfterBalance = $companyWallet->balance - ($originalAmount + $customerCharge);
-
-            logInfo(json_encode($companyAfterBalance), "Company after balance");
-
-            if ($companyWallet->balance > ($originalAmount + $customerCharge)) {
-
-                $customerBalanceAfter  = $customerInitialBalance - $originalAmount;
-                $paymentcash           = ($originalAmount + $customerCharge);
-                $spendSaveCash         = debitCustomerSpendSave($customerAccountId, $originalAmount);
-                $customerFinalBalance  = $userWallet->balance -= ($paymentcash + $spendSaveCash);
-
-                if ($userWallet) {
-                    $BranchWallet           = BranchWallet::where('branch_id', $currentUser->branch_id)->first();
-                    $BranchWallet->balance -= ($paymentcash + $spendSaveCash);
-                    //      $BranchWallet->save();
+                if (!$userWallet) {
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Invalid customer provided.',
+                    ];
                 }
-                $companyInitialBalance  = $companyWallet->balance;
-                $companyBalanceAfter    = $companyInitialBalance - $originalAmount;
-                $companyCharge          = 0;
-                $companyFinalBalance    = $companyWallet->balance   -= ($originalAmount + $companyCharge);
-                //     $companyWallet->save();
+
+                $company = Company::find($companyId);
+
+                if (!$company) {
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Company not found.',
+                    ];
+                }
+
+                $companyWallet = company_wallet::where(
+                    'company_id',
+                    $companyId
+                )->lockForUpdate()->first();
+
+                if (!$companyWallet) {
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Company wallet not found.',
+                    ];
+                }
+
+                $branchId = $currentUser->branch_id ?? null;
+
+                if (!$branchId) {
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Customer branch is not configured.',
+                    ];
+                }
+
+                $branchWallet = BranchWallet::where(
+                    'branch_id',
+                    $branchId
+                )->lockForUpdate()->first();
+
+                if (!$branchWallet) {
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Branch wallet not found.',
+                    ];
+                }
+
+                // Lock and calculate SpendSave before validating available funds.
+                $spendSaveCash = finovaCalculateSpendSaveCash(
+                    $customerAccountId,
+                    $originalAmount
+                );
+
+                $customerInitialBalance = (float) $userWallet->balance;
+                $companyInitialBalance = (float) $companyWallet->balance;
+
+                $customerDebit = $originalAmount
+                    + $customerCharge
+                    + $spendSaveCash;
+
+                $companyDebit = $originalAmount + $companyCharge;
+
+                if ($customerInitialBalance < $customerDebit) {
+                    if ((int) $currentUser->balance_fails < 4) {
+                        $currentUser->balance_fails =
+                            (int) $currentUser->balance_fails + 1;
+
+                        $currentUser->save();
+
+                        return [
+                            'status' => false,
+                            'responseCode' => 0,
+                            'message' => 'Insufficient customer funds.',
+                        ];
+                    }
+
+                    restrictUserAccount(
+                        2,
+                        'Multiple insufficient balance trials'
+                    );
+
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Your account has been restricted. Please contact support.',
+                    ];
+                }
+
+                if ($companyInitialBalance < $companyDebit) {
+                    return [
+                        'status' => false,
+                        'responseCode' => 0,
+                        'message' => 'Insufficient company funds.',
+                    ];
+                }
+
+                if ($enforceCompanyThreshold) {
+                    $companyIDsWithThresholdExemption = [1, 29, 36, 43];
+
+                    $companyHasExemption = in_array(
+                        (int) $companyId,
+                        $companyIDsWithThresholdExemption,
+                        true
+                    );
+
+                    $companyBalanceAfterDebit =
+                        $companyInitialBalance - $companyDebit;
+
+                    if (
+                        !$companyHasExemption &&
+                        !(
+                            $companyInitialBalance > 100000 &&
+                            $companyBalanceAfterDebit > 100000
+                        )
+                    ) {
+                        return [
+                            'status' => false,
+                            'responseCode' => 0,
+                            'message' => 'Switcher related error. Please contact support.',
+                        ];
+                    }
+                }
+
+                // Update SpendSave inside this same transaction.
+                $actualSpendSaveCash = debitCustomerSpendSave(
+                    $customerAccountId,
+                    $originalAmount
+                );
+
+                if (abs($actualSpendSaveCash - $spendSaveCash) > 0.000001) {
+                    throw new \RuntimeException(
+                        'SpendSave amount changed during debit processing.'
+                    );
+                }
+
+                $userWallet->balance =
+                    $customerInitialBalance - $customerDebit;
+
+                $branchWallet->balance =
+                    (float) $branchWallet->balance - $customerDebit;
+
+                $companyWallet->balance =
+                    $companyInitialBalance - $companyDebit;
+
+                if (!$userWallet->save()) {
+                    throw new \RuntimeException('Failed to save customer wallet.');
+                }
+
+                if (!$branchWallet->save()) {
+                    throw new \RuntimeException('Failed to save branch wallet.');
+                }
+
+                if (!$companyWallet->save()) {
+                    throw new \RuntimeException('Failed to save company wallet.');
+                }
 
                 $currentUser->balance_fails = 0;
-                //    $currentUser->save();
+
+                if (!$currentUser->save()) {
+                    throw new \RuntimeException('Failed to save customer record.');
+                }
 
                 $response = [
-                    "status"                        => true,
-                    'message'                       => "Amount is Valid",
-                    'account_id'                    => $customerAccountId,
-                    'balance_before'                => $customerInitialBalance,
-                    'balance_after'                 => $customerBalanceAfter,
-                    'charge_balance_before'         => $customerBalanceAfter,
-                    'charge_balance_after'          => $customerFinalBalance,
-                    'company_balance_before'        => $companyInitialBalance,
-                    'company_amount'                => $originalAmount,
-                    'company_balance_after'         => $companyBalanceAfter,
-                    'company_charge_balance_before' => $companyBalanceAfter,
-                    'company_charge_balance_after'  => $companyFinalBalance,
-                    'spend_save_cash'               => $spendSaveCash,
+                    'status' => true,
+                    'message' => 'Amount debited successfully.',
+                    'account_id' => $customerAccountId,
+                    'balance_before' => $customerInitialBalance,
+                    'balance_after' => $customerInitialBalance - $originalAmount,
+                    'charge_balance_before' => $customerInitialBalance - $originalAmount,
+                    'charge_balance_after' => (float) $userWallet->balance,
+                    'company_balance_before' => $companyInitialBalance,
+                    'company_amount' => $originalAmount,
+                    'company_balance_after' => $companyInitialBalance - $originalAmount,
+                    'company_charge_balance_before' => $companyInitialBalance - $originalAmount,
+                    'company_charge_balance_after' => (float) $companyWallet->balance,
+                    'spend_save_cash' => $actualSpendSaveCash,
                 ];
 
-                logInfo(json_encode($response), "debitCustomerAndCompanyWithCharge");
+                logInfo([
+                    'company_id' => $companyId,
+                    'customer_account_id' => $customerAccountId,
+                    'amount' => $originalAmount,
+                    'customer_charge' => $customerCharge,
+                    'company_charge' => $companyCharge,
+                    'spend_save_cash' => $actualSpendSaveCash,
+                ], 'CUSTOMER COMPANY DEBIT COMPLETED');
 
-            } else {
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Switcher related error... Please contact support"];
+                return $response;
             }
-        } else {
-            if ($currentUser->balance_fails < 4) {
-                $currentUser->balance_fails += 1;
-                $currentUser->save();
-                $response  = ["status" => false, "responseCode" => 0, 'message' => "Insufficient Funds Customer Funds"];
-            } else {
-                // auth()->user()->status_id = 5;
-                restrictUserAccount(2, "Multiple Insuficient balance trials");
+        );
+    } catch (\Throwable $e) {
+        logInfo([
+            'company_id' => $companyId,
+            'customer_account_id' => $customerAccountId,
+            'amount' => $originalAmount,
+            'error' => $e->getMessage(),
+        ], 'CUSTOMER COMPANY DEBIT FAILED');
 
-                $response = ["status" => false, "responseCode" => 0, 'message' => "Your account has been restricted. please contact support"];
-            }
-        }
-    } else {
-        $response = ["status" => false, 'message' => "Invalid Transaction Amount"];
+        return [
+            'status' => false,
+            'responseCode' => 0,
+            'message' => 'The debit could not be completed. Please reconcile the transfer before retrying.',
+        ];
     }
-    return $response;
 }
+
+
+/**
+ * Standard provider: enforce the existing company-wallet reserve rule.
+ */
+function debitCustomerAndCompanyWithCharge(
+    $customerAccountId,
+    $companyId,
+    $originalAmount,
+    $customerCharge,
+    $companyCharge,
+    $user = null
+) {
+    return finovaDebitCustomerAndCompany(
+        $customerAccountId,
+        $companyId,
+        $originalAmount,
+        $customerCharge,
+        $companyCharge,
+        $user,
+        false,
+        true
+    );
+}
+
+
+/**
+ * Service-wallet path: preserve its existing lack of the reserve threshold.
+ */
+function debitCustomerAndCompanyWithChargeServiceWallet(
+    $customerAccountId,
+    $companyId,
+    $originalAmount,
+    $customerCharge,
+    $companyCharge,
+    $user = null
+) {
+    return finovaDebitCustomerAndCompany(
+        $customerAccountId,
+        $companyId,
+        $originalAmount,
+        $customerCharge,
+        $companyCharge,
+        $user,
+        false,
+        false
+    );
+}
+
+
+/**
+ * Standard balance check: no wallet balances are changed.
+ */
+function checkCustomerAndCompanyWithCharge(
+    $customerAccountId,
+    $companyId,
+    $originalAmount,
+    $customerCharge,
+    $companyCharge,
+    $user = null
+) {
+    return finovaCheckTransferBalances(
+        $customerAccountId,
+        $companyId,
+        $originalAmount,
+        $customerCharge,
+        $companyCharge,
+        $user,
+        false,
+        true
+    );
+}
+
+
+/**
+ * SafeHaven balance check: preserve zero company-charge behavior.
+ */
+function checkCustomerAndCompanyWithChargeSafeHaven(
+    $customerAccountId,
+    $companyId,
+    $originalAmount,
+    $customerCharge,
+    $companyCharge,
+    $user = null
+) {
+    return finovaCheckTransferBalances(
+        $customerAccountId,
+        $companyId,
+        $originalAmount,
+        $customerCharge,
+        $companyCharge,
+        $user,
+        true,
+        false
+    );
+}
+
 
 function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, $originalAmount, $customerCharge, $companyCharge, $user = null)
 {
@@ -2662,13 +2884,20 @@ function tryToDebitCustomerAndCompanyWithCharge($customerAccountId, $companyId, 
 
     if ($originalAmount > 0) {
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
+     $userWallet = user_wallet::where(
+    'wb_account_detail_id',
+    $customerAccountId
+     )->lockForUpdate()->first();
 
-        if (! $userWallet) {
-            $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
-        }
+     if (! $userWallet) {
+     return [
+        'status' => false,
+        'responseCode' => 0,
+        'message' => 'Invalid customer provided',
+     ];
+     }
 
-        //  logInfo($userWallet, "User to be debitted");
+        logInfo($userWallet, "User to be debitted");
 
         $customerInitialBalance = $userWallet->balance;
 
@@ -2899,11 +3128,18 @@ function debitCustomerAndCompanyWithCompanyCashback($customerAccountId, $company
 
     if ($originalAmount > 0) {
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
+     $userWallet = user_wallet::where(
+     'wb_account_detail_id',
+     $customerAccountId
+     )->lockForUpdate()->first();
 
-        if (! $userWallet) {
-            $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
-        }
+     if (! $userWallet) {
+     return [
+        'status' => false,
+        'responseCode' => 0,
+        'message' => 'Invalid customer provided',
+     ];
+     }
 
         $customerInitialBalance = $userWallet->balance;
 
@@ -3255,11 +3491,18 @@ function debitCustomerAndCompanyWithCompanyCashbackServiceWallet($customerAccoun
 
     if ($originalAmount > 0) {
 
-        $userWallet = user_wallet::where('wb_account_detail_id', $customerAccountId)->first();
+     $userWallet = user_wallet::where(
+     'wb_account_detail_id',
+     $customerAccountId
+     )->lockForUpdate()->first();
 
-        if (! $userWallet) {
-            $response = ["status" => false, "responseCode" => 0, 'message' => "Invalid customer Provided"];
-        }
+     if (! $userWallet) {
+     return [
+        'status' => false,
+        'responseCode' => 0,
+        'message' => 'Invalid customer provided',
+     ];
+     }
 
         $customerInitialBalance = $userWallet->balance;
 
@@ -5882,32 +6125,32 @@ function spendSaveRecordTransaction($debitCustomer, $transaction)
     }
 }
 
-function debitCustomerSpendSave($customerAccountId, $originalAmount)
-{
+// function debitCustomerSpendSave($customerAccountId, $originalAmount)
+// {
 
-    $user_id           = wb_account_details::where('id', $customerAccountId)->first()->user_id;
-    $spendSaveSettings = SpendSave::where('user_id', $user_id)->first();
-    if ($spendSaveSettings != null) {
-        if (isset($spendSaveSettings->status_id) && $spendSaveSettings->status_id == 1) {
-            $cash       = ($spendSaveSettings->spend_save_charge_or_percentage) * $originalAmount;
-            $oldBalance = $spendSaveSettings->balance;
-            logInfo($oldBalance, "oldBalance SpendSave for $user_id");
-            $newBalance = $oldBalance + $cash;
-            logInfo($newBalance, " newBalance SpendSave for $user_id");
-            $spendSaveSettings->balance = $newBalance;
-            $spendSaveSettings->save();
-        } else {
-            $cash = 0;
-        }
-    } else {
-        $cash = 0;
-    }
+//     $user_id           = wb_account_details::where('id', $customerAccountId)->first()->user_id;
+//     $spendSaveSettings = SpendSave::where('user_id', $user_id)->first();
+//     if ($spendSaveSettings != null) {
+//         if (isset($spendSaveSettings->status_id) && $spendSaveSettings->status_id == 1) {
+//             $cash       = ($spendSaveSettings->spend_save_charge_or_percentage) * $originalAmount;
+//             $oldBalance = $spendSaveSettings->balance;
+//             logInfo($oldBalance, "oldBalance SpendSave for $user_id");
+//             $newBalance = $oldBalance + $cash;
+//             logInfo($newBalance, " newBalance SpendSave for $user_id");
+//             $spendSaveSettings->balance = $newBalance;
+//             $spendSaveSettings->save();
+//         } else {
+//             $cash = 0;
+//         }
+//     } else {
+//         $cash = 0;
+//     }
 
-    logInfo($cash, "SpendSave for $user_id");
+//     logInfo($cash, "SpendSave for $user_id");
 
-    return $cash;
+//     return $cash;
 
-}
+// }
 
 /**
  * Debit customer's SpendSave account and credit their wallet

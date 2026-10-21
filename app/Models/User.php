@@ -40,6 +40,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'reg_date',
         'status_id',
         'bvn',
+        'bvn_verified_at',
         'branch_id',
         'bvn_status',
         'nin',

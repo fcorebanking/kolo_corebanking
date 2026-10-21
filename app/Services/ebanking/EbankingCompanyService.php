@@ -99,6 +99,13 @@ class EbankingCompanyService
             $bankTransfer  = $gtbController->bankTransfer($bankTransferType->amount, $bankTransferType->transactionReference, $bankTransferType->description, $bankTransferType->bankCode, $bankTransferType->accountNumber, $bankTransferType->companyID);
         }
 
+        loginfo([
+     'bank_transfer_partner' => $this->bankTransferPartner,
+     'status' => $bankTransfer['status'] ?? null,
+     'message' => $bankTransfer['message'] ?? null,
+     'response' => $bankTransfer,
+     ], 'BANK TRANSFER PROVIDER RESPONSE (EBankingCompanyService)');
+     
 if (!is_array($bankTransfer) || !array_key_exists('status', $bankTransfer)) {
     return [
         'status' => '02',
@@ -106,18 +113,15 @@ if (!is_array($bankTransfer) || !array_key_exists('status', $bankTransfer)) {
     ];
 }
 
-loginfo([
-     'bank_transfer_partner' => $this->bankTransferPartner,
-     'status' => $bankTransfer['status'] ?? null,
-     'message' => $bankTransfer['message'] ?? null,
-     'response' => $bankTransfer,
-     ], 'BANK TRANSFER PROVIDER RESPONSE (EBankingCompanyService)');
-
-if (!$bankTransfer['status']) {
+if($bankTransfer['status'] == true) {
+    $bankTransfer['status'] = '00';
+    return $bankTransfer;
+}else if(!$bankTransfer['status']) {
     $bankTransfer['status'] = '02';
 
     return $bankTransfer;
-}}
+}
+}
 
     public function verifyAccountNumberFull($bankCode, $accountNumber, $companyID)
     {

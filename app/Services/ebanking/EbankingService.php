@@ -110,7 +110,10 @@ if (!is_array($bankTransfer) || !array_key_exists('status', $bankTransfer)) {
     ];
 }
 
-if (!$bankTransfer['status']) {
+if($bankTransfer['status'] == true) {
+    $bankTransfer['status'] = '00';
+    return $bankTransfer;
+}else if(!$bankTransfer['status']) {
     $bankTransfer['status'] = '02';
 
     return $bankTransfer;

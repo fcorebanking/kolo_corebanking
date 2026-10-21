@@ -1125,12 +1125,12 @@ public function loginV2(Request $request)
         // Total wallet balance
         $total_wallet_balance = 0;
 
-        $wallet = Auth::user()->accounts;
+       $wallet = Auth::user()->accounts()->first();
 
-        $userWallet = user_wallet::where(
-                'wb_account_detail_id',
-                $wallet->id
-            )->first();
+      $userWallet = user_wallet::where(
+        'wb_account_detail_id',
+         $wallet?->id
+          )->first();
 
         // Prevent null balance issues
         $walletBalance = $userWallet->balance ?? 0;

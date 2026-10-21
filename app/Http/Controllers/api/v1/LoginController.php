@@ -1113,6 +1113,30 @@ public function loginV2(Request $request)
         ->createToken('authToken')
         ->accessToken;
 
+    $virtualCard = UserCard::where(
+            'user_id',
+            auth()->user()->id
+        )->get();
+
+        if (!$virtualCard) {
+            $virtualCard = [];
+        }
+
+        // Total wallet balance
+        $total_wallet_balance = 0;
+
+        $wallet = Auth::user()->accounts;
+
+        $userWallet = user_wallet::where(
+                'wb_account_detail_id',
+                $wallet->id
+            )->first();
+
+        // Prevent null balance issues
+        $walletBalance = $userWallet->balance ?? 0;
+
+            // Add this wallet's balance to the overall wallet total
+        $total_wallet_balance += $walletBalance;
     /*
     |--------------------------------------------------------------------------
     | Return user information
@@ -1146,6 +1170,8 @@ public function loginV2(Request $request)
         "account_officer_id" => $user->account_officer_id,
         "branch_id" => $user->branch_id,
         "tier" => $user->kyc_level_id,
+        "total_wallet_balance" => $total_wallet_balance,
+        "cards" => $virtualCard,
     ];
 
     return response()->json([

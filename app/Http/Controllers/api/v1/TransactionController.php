@@ -2019,6 +2019,7 @@ public function transferToBankAccount(Request $request)
             'provider_status' => is_array($bankTransfer)
                 ? ($bankTransfer['status'] ?? null)
                 : null,
+                'bank_transfer_value' => is_array($bankTransfer),
             'transaction_reference' => $transactionReference,
         ], 'TRANSFER PROVIDER DEBUG');
 

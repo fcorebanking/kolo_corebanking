@@ -9069,6 +9069,8 @@ public function safeHavenIdentityCheckResponse(Request $request)
         );
     }
 
+    logInfo($response, 'Safe Haven Verify BVN Response From Identiy Check Response');
+
     if (!($response['status'] ?? false)) {
         return response()->json([
             'status' => false,

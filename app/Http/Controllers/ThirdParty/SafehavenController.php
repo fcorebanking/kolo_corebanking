@@ -968,7 +968,9 @@ public function verifyBVN($bvn, $dob = null, $company_id = null)
         | initiation response as the identityId for OTP validation.
         |
         */
-        $identityId = $responseData['_id'] ?? null;
+        $identityId = $response['_id'] ?? $response['identityId'] ?? null;
+
+        logInfo($identityId, 'Safe Haven BVN Identity ID At Initial Verify BVN endpoint');
 
         /*
         |--------------------------------------------------------------------------

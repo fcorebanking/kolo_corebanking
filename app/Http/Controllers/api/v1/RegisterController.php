@@ -362,6 +362,8 @@ class RegisterController extends Controller
         \logInfo([
             'company'      => $request->company,
             'account_type' => $request->account_type,
+            'has_identityId' => $request->filled('identityId'),
+            'has_id' => $request->filled('id'),
             'has_bvn'      => $request->filled('bvn'),
             'has_nin'      => $request->filled('nin'),
             'has_branch'   => $request->filled('branch'),
@@ -542,7 +544,7 @@ class RegisterController extends Controller
         $virtualAccount->nin = $request->input('identityNumber');
         $virtualAccount->type = 'BVN';
     }
-}
+   }
 
      if ($request->account_bank == '090286') {
      $virtualAccount->companyID = $companyRecord->id;

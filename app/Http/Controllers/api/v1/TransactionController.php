@@ -8631,9 +8631,12 @@ public function verifyBVNOtp(Request $request)
         }
 
         return response()->json([
-            'status'  => true,
-            'message' => 'Account Verified Successfully',
-            'data'    => $data,
+        'status' => true,
+        'message' => 'Account Verified Successfully',
+       'data' => [
+        'identityId' => $request->identityId,
+        'verified' => true, 
+        ]
         ], 200);
 
     } catch (\Exception $e) {
@@ -9079,26 +9082,31 @@ public function safeHavenIdentityCheckResponse(Request $request)
 
     if (($response['verification_pending'] ?? false) === true) {
 
+     $identityId = $response['identityId'] ?? null;
+
+    if (empty($identityId)) {
+        \logInfo([
+            'company_id' => $request->input('company_id'),
+            'has_identity_id' => false,
+        ], 'SafeHaven identity ID missing from verification response');
+
         return response()->json([
-            'status' => true,
-            'message' => $response['message']
-                ?? 'OTP sent successfully',
-
-            'data' => [
-                'otp_required' => true,
-
-                'identityId' => $response['identityId']
-                    ?? null,
-
-                'otpId' => $response['otpId']
-                    ?? null,
-
-                'phoneAndDobVerified' =>
-                    $response['phoneAndDobVerified']
-                    ?? false,
-            ],
-        ], 200);
+            'status' => false,
+            'message' => 'SafeHaven did not return an identity ID. Please retry verification.',
+        ], 502);
     }
+
+    return response()->json([
+        'status' => true,
+        'message' => $response['message'] ?? 'OTP sent successfully',
+        'data' => [
+            'otp_required' => true,
+            'identityId' => $identityId,
+            'otpId' => $response['otpId'] ?? null,
+            'phoneAndDobVerified' => $response['phoneAndDobVerified'] ?? false,
+        ],
+    ], 200);
+     }
 
     return response()->json([
         'status' => true,

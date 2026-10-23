@@ -509,13 +509,40 @@ class RegisterController extends Controller
             $virtualAccount->companyAccountCreationStatus = $companyRecord->setting->can_create_virtual_account;
             $virtualAccount->bankID                       = $bank_id;
 
-            if ($selectedBank->bank_code == '090286') {
-                $virtualAccount->bvnId     = $request->id;
-                $virtualAccount->otp       = $request->otp ?? "0000";
-                $virtualAccount->nin       = $request->has('nin') ? $request->nin : $request->identityNumber;
-                $virtualAccount->companyID = $request->company;
-                $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
-            }
+            if ($selectedBank->bank_code === '090286') {
+    $identityId = $request->input('identityId')
+        ?? $request->input('id');
+
+    $otp = $request->input('otp');
+
+    if (empty($identityId)) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Kindly provide the SafeHaven identityId from BVN verification.',
+        ], 400);
+    }
+
+    // Company 92 uses the no-OTP request body in SafehavenController.
+    // Other companies require an OTP.
+    if ((int) $companyRecord->id !== 92 && empty($otp)) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Kindly provide the SafeHaven verification OTP.',
+        ], 400);
+    }
+
+    $virtualAccount->bvnId = $identityId;
+    $virtualAccount->otp = $otp;
+    $virtualAccount->companyID = $companyRecord->id;
+
+    if ($request->filled('nin')) {
+        $virtualAccount->nin = $request->nin;
+        $virtualAccount->type = 'NIN';
+    } else {
+        $virtualAccount->nin = $request->input('identityNumber');
+        $virtualAccount->type = 'BVN';
+    }
+}
 
      if ($request->account_bank == '090286') {
      $virtualAccount->companyID = $companyRecord->id;

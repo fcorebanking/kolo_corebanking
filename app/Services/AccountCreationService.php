@@ -105,43 +105,51 @@ class AccountCreationService
                     return $createAccountResponse = ['status' => false, 'message' => "Account number already exists"];
                 }
             }
-            //Providus Account creation
+        
         } else if ($virtualAccount->bankCode == '090286') {
 
-            if (! isset($virtualAccount->otp)) {
-                return $createAccountResponse = ['status' => false, 'message' => "Kindly enter your OTP to proceed"];
-            }
+    if (empty($virtualAccount->bvnId)) {
+        return [
+            'status' => false,
+            'message' => 'Kindly enter your BVN Id to proceed',
+        ];
+    }
 
-            if (! isset($virtualAccount->bvnId)) {
-                return $createAccountResponse = ['status' => false, 'message' => "Kindly enter your BVN Id to proceed"];
-            }
+    if (
+        (int) $virtualAccount->companyID !== 92
+        && empty($virtualAccount->otp)
+    ) {
+        return [
+            'status' => false,
+            'message' => 'Kindly enter your OTP to proceed',
+        ];
+    }
 
-            $safehaveController = new SafehavenController();
+    $safehaveController = new SafehavenController();
 
-            $requestReference = generateTransactionReference();
+    $requestReference = generateTransactionReference();
 
-            $createAccountResponse = $safehaveController->createVirtualAccount(
-                $virtualAccount->firstName,
-                $virtualAccount->lastName,
-                $virtualAccount->email,
-                $virtualAccount->phone,
-                $requestReference,
-                $virtualAccount->bvn,
-                $virtualAccount->nin,
-                $virtualAccount->otp,
-                $virtualAccount->bvnId,
-                $virtualAccount->companyID,
-                $virtualAccount->dob,
-                $virtualAccount->type,
-
-            );
+    $createAccountResponse = $safehaveController->createVirtualAccount(
+        $virtualAccount->firstName,
+        $virtualAccount->lastName,
+        $virtualAccount->email,
+        $virtualAccount->phone,
+        $requestReference,
+        $virtualAccount->bvn,
+        $virtualAccount->nin,
+        $virtualAccount->otp,
+        $virtualAccount->bvnId,
+        $virtualAccount->companyID,
+        $virtualAccount->dob,
+        $virtualAccount->type
+    );
 
             if ($createAccountResponse['status']) {
 
                 $accountReference     = $requestReference;
                 $virtualAccountNumber = $this->sanitizeAccountNumber($virtualAccount->currencyCode, $createAccountResponse['data']['accountNumber']);
             }
-            //Providus Account creation
+            
         } else if ($virtualAccount->bankCode == "090267") {
 
             logInfo($virtualAccount->bankCode, "Kuda Bank Code in accountcreationservicer");

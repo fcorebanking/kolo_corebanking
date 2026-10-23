@@ -512,8 +512,10 @@ class RegisterController extends Controller
             $virtualAccount->bankID                       = $bank_id;
 
             if ($selectedBank->bank_code === '090286') {
-    $identityId = $request->input('identityId')
+    $identityId = $request->input('_id') ?? $request->input('identityId')
         ?? $request->input('id');
+
+        logInfo($identityId, 'The BVN Identity ID from register function');
 
     $otp = $request->input('otp');
 

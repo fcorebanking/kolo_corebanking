@@ -9079,7 +9079,7 @@ public function safeHavenIdentityCheckResponse(Request $request)
 
     if (($response['verification_pending'] ?? false) === true) {
 
-     $identityId = $response['identityId'] ?? null;
+    $identityId = $response['_id'] ?? $response['identityId'] ?? null;
 
     if (empty($identityId)) {
         \logInfo([
@@ -9103,7 +9103,7 @@ public function safeHavenIdentityCheckResponse(Request $request)
             'phoneAndDobVerified' => $response['phoneAndDobVerified'] ?? false,
         ],
     ], 200);
-     }
+}
 
     return response()->json([
         'status' => true,

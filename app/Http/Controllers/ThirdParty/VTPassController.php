@@ -472,11 +472,52 @@ public function getDataBundles($networkProvider)
         return env('APP_MODE') == 'test' ? config('vtpass.base_url_test') . $endpoint : config('vtpass.base_url_live') . $endpoint;
     }
 
-    public function vtpassGetRequest($endpoint)
-    {
-        $response = Http::withHeaders($this->vtpassHeader())->get($this->vtPassBaseUrl($endpoint));
-        return $response->json();
+public function vtpassGetRequest($endpoint)
+{
+    try {
+        $url = $this->vtPassBaseUrl($endpoint);
+
+        $response = Http::timeout(30)
+            ->acceptJson()
+            ->withHeaders($this->vtpassHeader())
+            ->get($url);
+
+        $data = $response->json();
+
+        logInfo([
+            'endpoint' => $endpoint,
+            'url' => $url,
+            'http_status' => $response->status(),
+            'successful' => $response->successful(),
+            'response_body' => substr($response->body(), 0, 2000),
+        ], 'VTPass GET Request Debug');
+
+        if (!is_array($data)) {
+            return [
+                'status' => false,
+                'message' => $response->successful()
+                    ? 'Unexpected response format from VTPass'
+                    : 'VTPass request failed',
+                'http_status' => $response->status(),
+                'provider_message' => substr($response->body(), 0, 500),
+            ];
+        }
+
+        return $data;
+
+    } catch (\Throwable $e) {
+
+        logInfo([
+            'endpoint' => $endpoint,
+            'error' => $e->getMessage(),
+        ], 'VTPass GET Request Exception');
+
+        return [
+            'status' => false,
+            'message' => 'Unable to communicate with VTPass',
+        ];
     }
+}
 
     public function vtpassPostRequest($endpoint, $body)
     {
@@ -1034,11 +1075,26 @@ public function checkVTPASSBalance()
          * Make sure VTPass returned a valid response
          */
         if (!is_array($dataResponse)) {
-            return [
-                'status'  => false,
-                'message' => 'Invalid response received from VTPass',
-            ];
-        }
+    return [
+        'status' => false,
+        'message' => 'Unable to verify VTPass balance',
+        'reason' => 'invalid_provider_response',
+    ];
+}
+
+if (($dataResponse['status'] ?? null) === false) {
+
+    logInfo([
+        'http_status' => $dataResponse['http_status'] ?? null,
+        'provider_message' => $dataResponse['provider_message'] ?? null,
+    ], 'VTPass Balance Request Failed');
+
+    return [
+        'status' => false,
+        'message' => 'VTPass balance verification is temporarily unavailable',
+        'reason' => 'balance_check_failed',
+    ];
+}
 
         /*
          * VTPass successful balance response:

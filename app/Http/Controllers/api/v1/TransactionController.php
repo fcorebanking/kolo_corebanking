@@ -7164,18 +7164,18 @@ public function safeHavenWebhook(Request $request)
      'amount' => $request->final_amount,
      ], 'BEFORE AIRTIME DEBIT');
 
-        $debitCustomer = match ($company_debit_bankcode) {
+        // $debitCustomer = match ($company_debit_bankcode) {
 
-            90286 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.005, 0.015), //7000299948
-            default
-                  => \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.005, 0.015),
-        };
+        //     90286 => \debitCustomerAndCompanyWithCompanyCashbackServiceWallet(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.005, 0.015), //7000299948
+        //     default
+        //           => \debitCustomerAndCompanyWithCompanyCashback(auth()->user()->accounts->first()->id, \auth()->user()->company_id, $request->final_amount, 0.005, 0.015),
+        // };
 
-        if (! $debitCustomer['status']) {
-            return response()->json($debitCustomer, 400);
-        }
+        // if (! $debitCustomer['status']) {
+        //     return response()->json($debitCustomer, 400);
+        // }
 
-        logInfo($debitCustomer, 'AFTER AIRTIME DEBIT');
+        // logInfo($debitCustomer, 'AFTER AIRTIME DEBIT');
 
         $buyAirtime = match ($company_debit_bankcode) {
 

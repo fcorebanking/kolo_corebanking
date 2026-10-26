@@ -19,7 +19,7 @@ use App\Models\User;
 class AccountCreationService
 {
     public function createVirtualAccount(VirtualAccountType $virtualAccount)
-    {
+  {
         $virtualAccountNumber  = "";
         $accountReference      = "";
         $createAccountResponse = "";
@@ -108,22 +108,22 @@ class AccountCreationService
         
         } else if ($virtualAccount->bankCode == '090286') {
 
-    if (empty($virtualAccount->bvnId)) {
+     if (empty($virtualAccount->bvnId)) {
         return [
             'status' => false,
             'message' => 'Kindly enter your BVN Id to proceed',
         ];
-    }
+     }
 
-    if (
+     if (
         (int) $virtualAccount->companyID !== 92
         && empty($virtualAccount->otp)
-    ) {
+     ) {
         return [
             'status' => false,
             'message' => 'Kindly enter your OTP to proceed',
         ];
-    }
+     }
 
     $safehaveController = new SafehavenController();
 
@@ -343,7 +343,7 @@ class AccountCreationService
                 'account_reference' => $accountReference,
             ],
         ];
-    }
+}
 
     public function sanitizeAccountNumber($countryCode, $accountNumber)
     {

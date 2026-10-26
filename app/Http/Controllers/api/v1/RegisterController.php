@@ -512,10 +512,23 @@ class RegisterController extends Controller
             $virtualAccount->bankID                       = $bank_id;
 
             if ($selectedBank->bank_code === '090286') {
-    $identityId = $request->input('_id') ?? $request->input('identityId')
-        ?? $request->input('id');
+    $identityId = $request->input('identityId')
+    ?? $request->input('_id')
+    ?? $request->input('id');
+ 
+    logInfo([
+    'has_identity_id' => !empty($identityId),
+    'company_id'      => $companyRecord->id,
+   ], 'The BVN Identity ID from register function');
 
-        logInfo($identityId, 'The BVN Identity ID from register function');
+  if (empty($identityId)) {
+    return response()->json([
+        'status' => false,
+        'message' => 'Kindly provide the SafeHaven IdentityID from the BVN verification',
+    ], 400);
+   }
+
+    $virtualAccount->bvnId = $identityId;
 
     $otp = $request->input('otp');
 
@@ -535,7 +548,6 @@ class RegisterController extends Controller
         ], 400);
     }
 
-    $virtualAccount->bvnId = $identityId;
     $virtualAccount->otp = $otp;
     $virtualAccount->companyID = $companyRecord->id;
 

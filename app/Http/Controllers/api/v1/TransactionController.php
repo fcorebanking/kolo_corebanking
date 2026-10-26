@@ -8566,8 +8566,10 @@ public function verifyBVNOtp(Request $request)
 
         $safehavenController = new SafehavenController();
 
+        $identityId = $request->identityId;
+
         $response = $safehavenController->verifyBVNOtp(
-            $request->identityId,
+            $identityId,
             $request->otp,
             $companyId
         );
@@ -8586,10 +8588,6 @@ public function verifyBVNOtp(Request $request)
         /*
         |--------------------------------------------------------------------------
         | Optional DOB verification
-        |--------------------------------------------------------------------------
-        | SafeHaven should return the verified date of birth.
-        | If the original request supplied DOB, compare it with the
-        | verified DOB before declaring the account verified.
         |--------------------------------------------------------------------------
         */
 
@@ -8613,6 +8611,7 @@ public function verifyBVNOtp(Request $request)
                     )->format('Y-m-d');
 
                     if ($requestedDob !== $verifiedDob) {
+
                         return response()->json([
                             'status'  => false,
                             'message' => 'BVN verified but date of birth does not match.',
@@ -8630,10 +8629,27 @@ public function verifyBVNOtp(Request $request)
             }
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | OTP verification successful
+        |--------------------------------------------------------------------------
+        |
+        | IMPORTANT:
+        | Return the identityId that was used for the successful verification.
+        | Do not depend on SafeHaven returning it again.
+        |
+        */
+
         return response()->json([
-            'status'  => true,
-            'message' => 'Account Verified Successfully',
-            'data'    => $data,
+            'status'     => true,
+            'message'    => 'Account Verified Successfully',
+            'identityId' => $identityId,
+            'data'       => array_merge(
+                $data,
+                [
+                    'identityId' => $identityId,
+                ]
+            ),
         ], 200);
 
     } catch (\Exception $e) {
@@ -9105,7 +9121,7 @@ public function safeHavenIdentityCheckResponse(Request $request)
             'phoneAndDobVerified' => $response['phoneAndDobVerified'] ?? false,
         ],
     ], 200);
-}
+ }
 
     return response()->json([
         'status' => true,

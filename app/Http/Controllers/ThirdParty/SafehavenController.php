@@ -959,70 +959,58 @@ public function verifyBVN($bvn, $dob = null, $company_id = null)
 
         $responseData = $response['data'] ?? [];
 
-        /*
-        |--------------------------------------------------------------------------
-        | SafeHaven verification ID
-        |--------------------------------------------------------------------------
-        |
-        | SafeHaven's current verification flow uses the `_id` from the
-        | initiation response as the identityId for OTP validation.
-        |
-        */
-        $identityId = $response['_id'] ?? $response['identityId'] ?? null;
+// SafeHaven returns the ID inside the data object.
+$identityId = $responseData['_id']
+    ?? $responseData['identityId']
+    ?? $response['identityId']
+    ?? $response['_id']
+    ?? null;
 
-        logInfo($identityId, 'Safe Haven BVN Identity ID At Initial Verify BVN endpoint');
+$otpId = $responseData['otpId']
+    ?? $response['otpId']
+    ?? null;
 
-        /*
-        |--------------------------------------------------------------------------
-        | OTP / pending verification
-        |--------------------------------------------------------------------------
-        */
-        if (($response['phoneAndDobVerified'] ?? false) !== true) {
+logInfo([
+    'has_identity_id' => !empty($identityId),
+    'has_otp_id' => !empty($otpId),
+    'phone_and_dob_verified' =>
+        $response['phoneAndDobVerified'] ?? false,
+], 'SafeHaven BVN verification identifiers');
 
-            return [
-                'status' => true,
-
-                'verification_pending' => true,
-
-                'message' => $response['message']
-                    ?? 'OTP sent successfully',
-
-                'identityId' => $identityId,
-
-                'otpId' => $responseData['otpId'] ?? null,
-
-                'phoneAndDobVerified' =>
-                    (bool) ($response['phoneAndDobVerified'] ?? false),
-
-                'data' => $responseData,
-
-                'dob' => $dob,
-            ];
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Already fully verified
-        |--------------------------------------------------------------------------
-        */
+if (($response['phoneAndDobVerified'] ?? false) !== true) {
+    if (empty($identityId)) {
         return [
-            'status' => true,
-
-            'verification_pending' => false,
-
-            'message' => $response['message']
-                ?? 'BVN Verified Successfully',
-
-            'identityId' => $identityId,
-
-            'otpId' => $responseData['otpId'] ?? null,
-
-            'phoneAndDobVerified' => true,
-
-            'data' => $responseData,
-
-            'dob' => $dob,
+            'status' => false,
+            'verification_pending' => true,
+            'message' => 'SafeHaven did not return an identity ID.',
+            'otpId' => $otpId,
         ];
+    }
+
+    return [
+        'status' => true,
+        'verification_pending' => true,
+        'message' => $response['message']
+            ?? 'OTP sent successfully',
+        'identityId' => $identityId,
+        'otpId' => $otpId,
+        'phoneAndDobVerified' => false,
+        'data' => $responseData,
+        'dob' => $dob,
+    ];
+}
+
+return [
+    'status' => true,
+    'verification_pending' => false,
+    'message' => $response['message']
+        ?? 'BVN verified successfully',
+    'identityId' => $identityId,
+    'otpId' => $otpId,
+    'phoneAndDobVerified' => true,
+    'data' => $responseData,
+    'dob' => $dob,
+];
 
     } catch (Exception $e) {
 

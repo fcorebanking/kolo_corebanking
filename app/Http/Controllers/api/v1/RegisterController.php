@@ -1860,25 +1860,31 @@ class RegisterController extends Controller
 
     }
 
+
 #[OA\Post(
     path: "/api/v1/users/verify-bvn-v2",
-    summary: "Verify BVN and create user's virtual account",
-    description: "Verifies the authenticated user's BVN and, if successful, provisions a virtual account for the user using the bank configured for the user's company.",
-    tags: ["User - Version 2"],
+    summary: "Verify BVN and create a virtual account",
+    description: "Requires the user's BVN and date of birth.",
+    tags: ["BVN"],
     security: [["bearerAuth" => []]],
     requestBody: new OA\RequestBody(
         required: true,
         content: new OA\JsonContent(
             type: "object",
-            required: ["bvn"],
+            required: ["bvn", "dob"],
             properties: [
                 new OA\Property(
                     property: "bvn",
                     type: "string",
-                    minLength: 11,
-                    maxLength: 11,
-                    example: "22123456789",
-                    description: "The user's 11-digit Bank Verification Number."
+                    example: "12345678901",
+                    description: "11-digit Bank Verification Number"
+                ),
+                new OA\Property(
+                    property: "dob",
+                    type: "string",
+                    format: "date",
+                    example: "1998-04-23",
+                    description: "Date of birth in YYYY-MM-DD format"
                 )
             ]
         )
@@ -1886,23 +1892,19 @@ class RegisterController extends Controller
     responses: [
         new OA\Response(
             response: 200,
-            description: "BVN verified and virtual account created successfully."
-        ),
-        new OA\Response(
-            response: 400,
-            description: "BVN verification or virtual account creation failed."
+            description: "BVN verified and virtual account created successfully"
         ),
         new OA\Response(
             response: 401,
-            description: "Unauthenticated."
-        ),
-        new OA\Response(
-            response: 409,
-            description: "User has already verified BVN or already has a virtual account."
+            description: "Unauthenticated"
         ),
         new OA\Response(
             response: 422,
-            description: "Invalid BVN."
+            description: "Validation failed"
+        ),
+        new OA\Response(
+            response: 400,
+            description: "BVN verification or account creation failed"
         )
     ]
 )]
@@ -1911,14 +1913,20 @@ public function verifyBVN2(Request $request)
     $validator = Validator::make($request->all(), [
         'bvn' => [
             'required',
+            'string',
             'digits:11',
+        ],
+        'dob' => [
+            'required',
+            'date_format:Y-m-d',
         ],
     ]);
 
     if ($validator->fails()) {
         return response()->json([
             'status'  => false,
-            'message' => $validator->errors()->first('bvn'),
+            'message' => $validator->errors()->first(),
+            'errors'  => $validator->errors(),
         ], 422);
     }
 
@@ -1932,12 +1940,16 @@ public function verifyBVN2(Request $request)
     }
 
     $bvnResponse = (new IdentityPassController())
-        ->verifyBVNMobile2($request->bvn);
+        ->verifyBVNMobile2(
+            $request->input('bvn'),
+            $request->input('dob')
+        );
 
     $statusCode = !empty($bvnResponse['status']) ? 200 : 400;
 
     return response()->json($bvnResponse, $statusCode);
 }
+
 
     private function sendTransactionReportEmail($subtext, $msg, $reason, $user)
     {

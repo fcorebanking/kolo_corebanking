@@ -124,12 +124,13 @@ public function verifyBVNMobile($bvn)
     }
 }
 
-public function verifyBVNMobile2($bvn)
+public function verifyBVNMobile2($bvn, $dob)
 {
     logInfo([
-        'bvn'      => $bvn,
-        'bvn_type' => gettype($bvn),
-    ], "BVN Number - Account Creation Flow");
+     'bvn'      => $bvn,
+     'bvn_type' => gettype($bvn),
+     'dob'      => $dob,
+     ], "BVN Number - Account Creation Flow");
 
     /*
     |--------------------------------------------------------------------------
@@ -381,7 +382,7 @@ public function verifyBVNMobile2($bvn)
             $user->phone;
 
         $virtualAccount->dob =
-            $user->dob;
+            $dob;
 
         $virtualAccount->gender =
             $user->gender;

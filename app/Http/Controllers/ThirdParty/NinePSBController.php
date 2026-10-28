@@ -13,6 +13,8 @@ class NinePSBController extends WebhookController
     private $apiKey;
     private $baseUrl;
     private $token;
+    private $publicKey;
+    private $privateKey;
 
     public function __construct()
     {

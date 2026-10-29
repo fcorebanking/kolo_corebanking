@@ -25,51 +25,56 @@ class NinePSBController extends WebhookController
         if (env('APP_MODE') == 'test') {
             $this->publicKey  = env('PSB9_TEST_PUBLIC_KEY');
             $this->privateKey = env('PSB9_TEST_PRIVATE_KEY');
-            $this->baseUrl    = 'https://baastest.9psb.com.ng/ipaymw-api/v1/merchant';
+            $this->baseUrl    = 'https://baastest.9psb.com.ng';
         } else {
             $this->publicKey  = env('PSB9_LIVE_PUBLIC_KEY');
             $this->privateKey = env('PSB9_LIVE_PRIVATE_KEY');
-            $this->baseUrl    = 'https://baas.9psb.com.ng/ipaymw-api/v1/merchant'; // ✅ Add correct live endpoint
+            $this->baseUrl    = 'https://baas.9psb.com.ng'; // ✅ Add correct live endpoint
         }
     }
 
-    public function login($action)
-    {
+public function login($action)
+{
+    // Ensure baseUrl is strictly the root: "https://baas.9psb.com.ng"
+    $body = [
+        "publickey"  => $this->publicKey,
+        "privatekey" => $this->privateKey,
+    ];
 
-        $body = [
-            "publickey"  => $this->publicKey,
-            "privatekey" => $this->privateKey,
-        ];
+    logInfo($body, "9PSB log in Request in controller body");
 
-        logInfo($body, "9PSB Request in controller body");
+    $headers = [
+        'Content-Type' => 'application/json'
+    ];
 
-        $header = ['Content-Type' => 'application/json'];
-        if ($action == "virtualaccont") {
-            $url = $this->baseUrl . "/virtualaccount/authenticate";
-        }
-
-        if ($action == "fundtransfer") {
-            $url = $this->baseUrl . "/authenticate";
-        }
-        $url = $this->baseUrl . "/authenticate";
-        try {
-            $response = Http::post($url, $body);
-
-            logInfo($response->body(), "9PSB response kuda controller ");
-
-            if ($response->successful() && $response->json('code') == "00") {
-                $this->token = $response->json('access_token');
-                return ['status' => true, 'message' => 'Login success'];
-            } else {
-                return ['status' => false, 'message' => 'Failed to login to 9PSB'];
-            }
-        } catch (Exception $e) {
-
-            \logInfo($e->getMessage(), "9PSB Login serror log");
-
-            return ['status' => false, 'message' => 'Server Error...'];
-        }
+    // Explicitly routing paths based on the base URL: https://baas.9psb.com.ng/
+    if ($action === "virtualaccount") { 
+        $url = $this->baseUrl . "/ipaymw-api/v1/virtualaccount/authenticate";
+    } elseif ($action === "fundtransfer") {
+        $url = $this->baseUrl . "/ipaymw-api/v1/merchant/authenticate";
+    } else {
+        // Fallback default endpoint if action doesn't match
+        $url = $this->baseUrl . "/ipaymw-api/v1/merchant/authenticate";
     }
+
+    try {
+        // Passing headers to the Laravel HTTP client explicitly
+        $response = Http::withHeaders($headers)->post($url, $body);
+
+        logInfo($response->body(), "9PSB response controller");
+
+        if ($response->successful() && $response->json('code') === "00") {
+            $this->token = $response->json('access_token');
+            return ['status' => true, 'message' => 'Login success'];
+        }
+
+        return ['status' => false, 'message' => 'Failed to login to 9PSB'];
+
+    } catch (Exception $e) {
+        logInfo($e->getMessage(), "9PSB Login error log");
+        return ['status' => false, 'message' => 'Server Error...'];
+    }
+}
 
     public function createAccount($requestReference, $email, $phoneNumber, $firstName, $lastName, $trackingReference)
     {

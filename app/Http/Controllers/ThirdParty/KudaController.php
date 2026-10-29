@@ -128,8 +128,9 @@ public function login()
 public function loginForMaintenance()
 {
     $maintenanceEmail = config(
-        'kuda.email_maintenance',
-        'johnaje557@gmail.com'
+        'kuda.email_maintenance', 
+        // 'johnaje557@gmail.com',
+        'simtec247@gmail.com'
     );
 
     if (empty($maintenanceEmail)) {
@@ -139,16 +140,16 @@ public function loginForMaintenance()
         ];
     }
 
-    if (empty($this->apiMaintenanceKey)) {
-        return [
-            'status'  => false,
-            'message' => 'Kuda maintenance API key is not configured',
-        ];
-    }
+    // if (empty($this->apiMaintenanceKey)) {
+    //     return [
+    //         'status'  => false,
+    //         'message' => 'Kuda maintenance API key is not configured',
+    //     ];
+    // }
 
     $body = [
         'email'  => $maintenanceEmail,
-        'apiKey' => $this->apiMaintenanceKey,
+        'apiKey' => $this->apiKey,
     ];
 
     try {

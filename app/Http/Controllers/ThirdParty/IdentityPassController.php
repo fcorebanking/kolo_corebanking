@@ -1,6 +1,17 @@
 <?php
 namespace App\Http\Controllers\ThirdParty;
 
+use App\Models\User;
+use App\Models\Company;
+use App\Models\company_wallet;
+use App\Models\banks;
+use App\Models\savings_product;
+use App\Models\branch;
+use App\Models\wb_account_details;
+use App\Models\user_wallet;
+use App\Services\AccountCreationService;
+use App\Services\VirtualAccountType;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Exception;
 use Illuminate\Support\Facades\Http;
@@ -127,10 +138,10 @@ public function verifyBVNMobile($bvn)
 public function verifyBVNMobile2($bvn, $dob)
 {
     logInfo([
-     'bvn'      => $bvn,
-     'bvn_type' => gettype($bvn),
-     'dob'      => $dob,
-     ], "BVN Number - Account Creation Flow");
+        'bvn'      => $bvn,
+        'bvn_type' => gettype($bvn),
+        'dob'      => $dob,
+    ], "BVN Number - Account Creation Flow");
 
     /*
     |--------------------------------------------------------------------------
@@ -165,28 +176,105 @@ public function verifyBVNMobile2($bvn, $dob)
             'status'  => false,
             'message' => 'Your BVN has already been verified.',
             'data'    => [
-                'bvn_verified_at' => $user->bvn_verified_at,
-                'virtual_account' => $user->virtual_account,
-                'account_reference' => $user->account_reference,
-            ],
-        ];
-    }
-
-    if (!empty($user->virtual_account)) {
-        return [
-            'status'  => false,
-            'message' => 'Your virtual account already exists.',
-            'data'    => [
+                'bvn_verified_at'   => $user->bvn_verified_at,
                 'virtual_account'   => $user->virtual_account,
                 'account_reference' => $user->account_reference,
             ],
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | 3. Get company
+    |--------------------------------------------------------------------------
+    */
+
+    $company = \App\Models\Company::find($user->company_id);
+
+    if (!$company) {
+        return [
+            'status'  => false,
+            'message' => 'Company associated with this user was not found',
+        ];
+    }
+
+    logInfo(
+        $company->id,
+        "BVN Account Creation Company ID"
+    );
+
 
     /*
     |--------------------------------------------------------------------------
-    | 3. Verify BVN with Prembly
+    | 4. Get company's bank configuration
+    |--------------------------------------------------------------------------
+    */
+
+    $companyWallet = \App\Models\company_wallet::where(
+        'company_id',
+        $company->id
+    )->first();
+
+    $walletBankId = $companyWallet->bank_id ?? null;
+
+    $bankId = $company->setting->preferred_bank_id
+        ?? $walletBankId;
+
+    if (!$bankId) {
+        return [
+            'status'  => false,
+            'message' => 'No bank has been configured for this company',
+        ];
+    }
+
+    logInfo(
+        $bankId,
+        "BVN Account Creation Bank ID"
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 5. Get selected bank
+    |--------------------------------------------------------------------------
+    */
+
+    $selectedBank = \App\Models\banks::find($bankId);
+
+    if (!$selectedBank) {
+        return [
+            'status'  => false,
+            'message' => 'Invalid bank configured for this company',
+        ];
+    }
+
+    logInfo([
+        'bank_id'   => $selectedBank->id,
+        'bank_name' => $selectedBank->bank_name,
+        'bank_code' => $selectedBank->bank_code,
+    ], "BVN Account Creation Selected Bank");
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 6. Check virtual account creation permission
+    |--------------------------------------------------------------------------
+    */
+
+    $companyAccountCreationStatus =
+        $company->setting->can_create_virtual_account ?? 0;
+
+    if ((int) $companyAccountCreationStatus !== 1) {
+        return [
+            'status'  => false,
+            'message' => 'This company is currently not allowed to create virtual accounts',
+        ];
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 7. Verify BVN with Prembly
     |--------------------------------------------------------------------------
     */
 
@@ -216,7 +304,7 @@ public function verifyBVNMobile2($bvn, $dob)
 
         /*
         |--------------------------------------------------------------------------
-        | 4. Stop if BVN verification failed
+        | 8. Stop if BVN verification failed
         |--------------------------------------------------------------------------
         */
 
@@ -232,97 +320,6 @@ public function verifyBVNMobile2($bvn, $dob)
                     ?? $bvnResponse['detail']
                     ?? 'Failed to verify BVN',
                 'data'          => $bvnResponse,
-            ];
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | 5. Get company
-        |--------------------------------------------------------------------------
-        */
-
-        $company = \App\Models\Company::find(
-            $user->company_id
-        );
-
-        if (!$company) {
-            return [
-                'status'  => false,
-                'message' => 'Company associated with this user was not found',
-            ];
-        }
-
-        logInfo(
-            $company->id,
-            "BVN Account Creation Company ID"
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | 6. Determine company's bank
-        |--------------------------------------------------------------------------
-        */
-
-        $companyWallet = \App\Models\company_wallet::where(
-            'company_id',
-            $company->id
-        )->first();
-
-        $walletBankId = $companyWallet->bank_id ?? null;
-
-        $bankId = $company->setting->preferred_bank_id
-            ?? $walletBankId;
-
-        if (!$bankId) {
-            return [
-                'status'  => false,
-                'message' => 'No bank has been configured for this company',
-            ];
-        }
-
-        logInfo(
-            $bankId,
-            "BVN Account Creation Bank ID"
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | 7. Get bank
-        |--------------------------------------------------------------------------
-        */
-
-        $selectedBank = \App\Models\banks::find($bankId);
-
-        if (!$selectedBank) {
-            return [
-                'status'  => false,
-                'message' => 'Invalid bank configured for this company',
-            ];
-        }
-
-        logInfo([
-            'bank_id'   => $selectedBank->id,
-            'bank_name' => $selectedBank->bank_name,
-            'bank_code' => $selectedBank->bank_code,
-        ], "BVN Account Creation Selected Bank");
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | 8. Check virtual account creation permission
-        |--------------------------------------------------------------------------
-        */
-
-        $companyAccountCreationStatus =
-            $company->setting->can_create_virtual_account ?? 0;
-
-        if ((int) $companyAccountCreationStatus !== 1) {
-            return [
-                'status'  => false,
-                'message' => 'This company is currently not allowed to create virtual accounts',
             ];
         }
 
@@ -414,6 +411,7 @@ public function verifyBVNMobile2($bvn, $dob)
         $virtualAccount->type =
             "BVN";
 
+
         logInfo(
             json_encode($virtualAccount),
             "VirtualAccountType - BVN Account Creation"
@@ -462,7 +460,7 @@ public function verifyBVNMobile2($bvn, $dob)
 
         /*
         |--------------------------------------------------------------------------
-        | 12. Extract account information
+        | 12. Extract virtual account information
         |--------------------------------------------------------------------------
         */
 
@@ -491,33 +489,228 @@ public function verifyBVNMobile2($bvn, $dob)
 
         /*
         |--------------------------------------------------------------------------
-        | 13. Save user verification/account details
+        | 13. Get savings product
         |--------------------------------------------------------------------------
         */
 
-        $user->bvn = (string) $bvn;
+        $selectedProduct =
+            $company->savingsProducts()->first();
 
-        $user->bvn_verified_at = now();
+        if (!$selectedProduct) {
 
-        $user->virtual_account =
-            $virtualAccountNumber;
+            return [
+                'status'  => false,
+                'message' => 'No Savings product found for this company',
+            ];
+        }
 
-        $user->account_reference =
-            $accountReference;
-
-        $user->save();
+        logInfo([
+            'company_id' => $company->id,
+            'product_id' => $selectedProduct->id,
+            'product_code' => $selectedProduct->code ?? null,
+        ], "BVN Account Creation Savings Product");
 
 
         /*
         |--------------------------------------------------------------------------
-        | 14. Return success
+        | 14. Get branch
         |--------------------------------------------------------------------------
         */
 
+        $companyBranch = $company->branch->first();
+
+        $branchId = $companyBranch->id ?? null;
+
+        if (!$branchId) {
+
+            return [
+                'status'  => false,
+                'message' => 'No branch found for this company',
+            ];
+        }
+
+        $branchData =
+            \App\Models\branch::find($branchId);
+
+        if (!$branchData) {
+
+            return [
+                'status'  => false,
+                'message' => 'Invalid branch configured for this company',
+            ];
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 15. Create user/account records atomically
+        |--------------------------------------------------------------------------
+        */
+
+        DB::beginTransaction();
+
+        try {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Update existing authenticated user
+            |--------------------------------------------------------------------------
+            */
+
+            $user->bvn =
+                (string) $bvn;
+
+            $user->bvn_verified_at =
+                now();
+
+            $user->virtual_account =
+                $virtualAccountNumber;
+
+            $user->account_reference =
+                $accountReference;
+
+            $user->dob =
+                $dob;
+
+            $user->save();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create wb_account_details
+            |--------------------------------------------------------------------------
+            */
+
+            $wbAccountDetails =
+                \App\Models\wb_account_details::where(
+                    'user_id',
+                    $user->id
+                )->first();
+
+            if (!$wbAccountDetails) {
+
+                $wbAccountDetails =
+                    \App\Models\wb_account_details::create([
+                        'user_id'            => $user->id,
+                        'account_product_id' => $selectedProduct->id,
+                        'bankid'             => $bankId,
+                        'virtual_accnum'     => $virtualAccountNumber,
+                        'acc_reference'      => $accountReference,
+                        'has_atm_card'       => 0,
+                        'currency_id'        => $branchData->currency_id ?? 1,
+                    ]);
+
+                if (!$wbAccountDetails) {
+                    throw new \Exception(
+                        'Failed to create account details'
+                    );
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create user wallet
+            |--------------------------------------------------------------------------
+            */
+
+            $userWallet =
+                \App\Models\user_wallet::where(
+                    'wb_account_detail_id',
+                    $wbAccountDetails->id
+                )->first();
+
+            if (!$userWallet) {
+
+                $regfee =
+                    $company->setting->registration_fee ?? 0;
+
+                logInfo(
+                    $regfee,
+                    "registration_fee for {$company->id}"
+                );
+
+                $userWallet =
+                    \App\Models\user_wallet::create([
+                        'wb_account_detail_id' =>
+                            $wbAccountDetails->id,
+
+                        'balance' =>
+                            (0 - $regfee),
+                    ]);
+
+                if (!$userWallet) {
+                    throw new \Exception(
+                        'Failed to create user wallet'
+                    );
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Assign customer role
+            |--------------------------------------------------------------------------
+            */
+
+            $user->assignRole([4]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Commit everything
+            |--------------------------------------------------------------------------
+            */
+
+            DB::commit();
+
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            logInfo([
+                'user_id'    => $user->id,
+                'message'    => $e->getMessage(),
+                'line'       => $e->getLine(),
+                'file'       => $e->getFile(),
+            ], "BVN Account/Wallet Creation Failure");
+
+            return [
+                'status'  => false,
+                'message' => 'BVN was verified, but account setup could not be completed.',
+                'data'    => [
+                    'error' => $e->getMessage(),
+                ],
+            ];
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 16. Final success response
+        |--------------------------------------------------------------------------
+        */
+
+        logInfo([
+            'user_id'            => $user->id,
+            'company_id'         => $company->id,
+            'virtual_account'    => $virtualAccountNumber,
+            'account_reference'  => $accountReference,
+            'account_details_id' => $wbAccountDetails->id,
+            'wallet_id'          => $userWallet->id,
+            'product_id'         => $selectedProduct->id,
+            'branch_id'          => $branchData->id,
+            'status'             => 'successful',
+        ], "BVN Account Creation Successful");
+
+
         return [
             'status'  => true,
-            'message' => 'BVN verified and virtual account created successfully.',
+            'message' => 'BVN verified and account created successfully.',
             'data'    => [
+                'user_id' =>
+                    $user->id,
+
                 'virtual_account' =>
                     $user->virtual_account,
 
@@ -526,10 +719,22 @@ public function verifyBVNMobile2($bvn, $dob)
 
                 'bvn_verified_at' =>
                     $user->bvn_verified_at,
+
+                'account_details_id' =>
+                    $wbAccountDetails->id,
+
+                'wallet_id' =>
+                    $userWallet->id,
+
+                'product_id' =>
+                    $selectedProduct->id,
+
+                'branch_id' =>
+                    $branchData->id,
             ],
         ];
 
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
 
         logInfo([
             'message' => $e->getMessage(),

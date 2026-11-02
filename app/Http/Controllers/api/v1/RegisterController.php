@@ -284,6 +284,84 @@ class RegisterController extends Controller
 )]
  public function register(Request $request)
  {
+
+     /*
+    |--------------------------------------------------------------------------
+    | REGISTRATION REQUEST DEBUG
+    |--------------------------------------------------------------------------
+    | Logs the incoming request as received by Laravel.
+    | Sensitive values are masked and never written to the logs.
+    */
+
+    $incomingPayload = $request->all();
+
+    $sensitiveFields = [
+        'password',
+        'password_confirmation',
+        'pin',
+        'otp',
+        'bvn',
+        'nin',
+        'identityid',
+        'identitynumber',
+        '_id',
+        'id',
+        'token',
+        'access_token',
+        'authorization',
+        'secret',
+    ];
+
+    $maskSensitiveData = function ($data) use (&$maskSensitiveData, $sensitiveFields) {
+        if (!is_array($data)) {
+            return $data;
+        }
+
+        $masked = [];
+
+        foreach ($data as $key => $value) {
+            $normalizedKey = strtolower((string) $key);
+
+            if (
+                in_array($normalizedKey, $sensitiveFields, true) ||
+                preg_match('/password|authorization|secret|token/i', $normalizedKey)
+            ) {
+                $masked[$key] = !empty($value)
+                    ? '[REDACTED - VALUE PROVIDED]'
+                    : '[EMPTY OR NOT PROVIDED]';
+
+                continue;
+            }
+
+            $masked[$key] = is_array($value)
+                ? $maskSensitiveData($value)
+                : $value;
+        }
+
+        return $masked;
+    };
+
+    \logInfo([
+        'method' => $request->method(),
+        'url' => $request->fullUrl(),
+        'content_type' => $request->header('Content-Type'),
+        'ip_address' => $request->ip(),
+
+        'request_fields_received' => array_keys($incomingPayload),
+
+        'request_payload' => $maskSensitiveData($incomingPayload),
+
+        'fields' => [
+            'has_identityId' => $request->filled('identityId'),
+            'has_underscore_id' => $request->filled('_id'),
+            'has_id' => $request->filled('id'),
+            'has_otp' => $request->filled('otp'),
+            'has_bvn' => $request->filled('bvn'),
+            'has_nin' => $request->filled('nin'),
+            'has_identityNumber' => $request->filled('identityNumber'),
+        ],
+    ], 'REGISTRATION - ACTUAL INCOMING API REQUEST');
+
         $rules = [
             'first_name' => 'required|string|max:50|min:2',
             'last_name'  => 'required|string|max:50|min:2',
@@ -360,15 +438,22 @@ class RegisterController extends Controller
 
         // Never log passwords, PINs, identity numbers, OTPs, or other sensitive fields.
         \logInfo([
-            'company'      => $request->company,
-            'account_type' => $request->account_type,
-            'has_identityId' => $request->filled('identityId'),
-            'has_id' => $request->filled('id'),
-            'has_bvn'      => $request->filled('bvn'),
-            'has_nin'      => $request->filled('nin'),
-            'has_branch'   => $request->filled('branch'),
-            'has_product'  => $request->filled('selected_product'),
-        ], "Registration request summary");
+    'company' => $request->company,
+    'account_type' => $request->account_type,
+
+    'has_identityId' => $request->filled('identityId'),
+    'has_underscore_id' => $request->filled('_id'),
+    'has_id' => $request->filled('id'),
+
+    'has_otp' => $request->filled('otp'),
+    'has_bvn' => $request->filled('bvn'),
+    'has_nin' => $request->filled('nin'),
+    'has_identityNumber' => $request->filled('identityNumber'),
+
+    'has_branch' => $request->filled('branch'),
+    'has_product' => $request->filled('selected_product'),
+
+    ], 'Registration request summary');
 
         // if (!empty($request->nin) && $request->nin === "") {
         //     $ra = array("status" => false, "message" => "NIN is required!");
@@ -511,54 +596,130 @@ class RegisterController extends Controller
             $virtualAccount->companyAccountCreationStatus = $companyRecord->setting->can_create_virtual_account;
             $virtualAccount->bankID                       = $bank_id;
 
-            if ($selectedBank->bank_code === '090286') {
+    if ($selectedBank->bank_code === '090286') {
+
+    /*
+    |--------------------------------------------------------------------------
+    | SAFEHAVEN IDENTITY ID DEBUG
+    |--------------------------------------------------------------------------
+    */
+
     $identityId = $request->input('identityId')
-    ?? $request->input('_id')
-    ?? $request->input('id');
- 
-    logInfo([
-    'has_identity_id' => !empty($identityId),
-    'company_id'      => $companyRecord->id,
-   ], 'The BVN Identity ID from register function');
-
-  if (empty($identityId)) {
-    return response()->json([
-        'status' => false,
-        'message' => 'Kindly provide the SafeHaven IdentityID from the BVN verification',
-    ], 400);
-   }
-
-    $virtualAccount->bvnId = $identityId;
+        ?? $request->input('_id')
+        ?? $request->input('id');
 
     $otp = $request->input('otp');
 
+    \logInfo([
+        'company_id' => $companyRecord->id,
+        'bank_code' => $selectedBank->bank_code,
+
+        'identity_id_received' => !empty($identityId),
+        'identity_id_source' => $request->filled('identityId')
+            ? 'identityId'
+            : ($request->filled('_id') ? '_id' : ($request->filled('id') ? 'id' : 'NOT PROVIDED')),
+
+        'otp_received' => $request->filled('otp'),
+        'otp_is_empty' => empty($otp),
+
+        'bvn_received' => $request->filled('bvn'),
+        'nin_received' => $request->filled('nin'),
+        'identity_number_received' => $request->filled('identityNumber'),
+
+    ], 'SAFEHAVEN REGISTRATION - IDENTITY AND OTP DEBUG');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDATE SAFEHAVEN IDENTITY ID
+    |--------------------------------------------------------------------------
+    */
+
     if (empty($identityId)) {
+
+        \logInfo([
+            'company_id' => $companyRecord->id,
+            'reason' => 'SafeHaven identity ID was not received',
+            'received_fields' => array_keys($request->all()),
+        ], 'SAFEHAVEN REGISTRATION STOPPED - IDENTITY ID MISSING');
+
         return response()->json([
             'status' => false,
-            'message' => 'Kindly provide the SafeHaven identityId from BVN verification.',
+            'message' => 'Kindly provide the SafeHaven IdentityID from the BVN verification',
         ], 400);
     }
 
-    // Company 92 uses the no-OTP request body in SafehavenController.
-    // Other companies require an OTP.
-    if ((int) $companyRecord->id !== 92 && empty($otp)) {
+    $virtualAccount->bvnId = $identityId;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDATE SAFEHAVEN OTP
+    |--------------------------------------------------------------------------
+    */
+
+    \logInfo([
+        'company_id' => $companyRecord->id,
+        'otp_field_exists' => $request->exists('otp'),
+        'otp_filled' => $request->filled('otp'),
+        'otp_empty' => empty($otp),
+        'otp_type' => gettype($otp),
+        'otp_length' => is_string($otp) || is_numeric($otp)
+            ? strlen((string) $otp)
+            : null,
+        'otp_required' => (int) $companyRecord->id !== 92,
+    ], 'SAFEHAVEN REGISTRATION - OTP VALIDATION');
+
+
+    // Company 92 uses the no-OTP request body.
+    // All other companies using SafeHaven must provide an OTP.
+    if ((int) $companyRecord->id !== 92 && !$request->filled('otp')) {
+
+        \logInfo([
+            'company_id' => $companyRecord->id,
+            'reason' => 'OTP was not received in registration request',
+            'otp_exists' => $request->exists('otp'),
+            'otp_filled' => $request->filled('otp'),
+            'received_fields' => array_keys($request->all()),
+        ], 'SAFEHAVEN REGISTRATION STOPPED - OTP MISSING');
+
         return response()->json([
             'status' => false,
             'message' => 'Kindly provide the SafeHaven verification OTP.',
         ], 400);
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | PREPARE SAFEHAVEN VIRTUAL ACCOUNT DATA
+    |--------------------------------------------------------------------------
+    */
+
     $virtualAccount->otp = $otp;
     $virtualAccount->companyID = $companyRecord->id;
 
     if ($request->filled('nin')) {
+
         $virtualAccount->nin = $request->nin;
         $virtualAccount->type = 'NIN';
+
     } else {
+
         $virtualAccount->nin = $request->input('identityNumber');
         $virtualAccount->type = 'BVN';
     }
-   }
+
+
+    \logInfo([
+        'company_id' => $companyRecord->id,
+        'identity_id_attached' => !empty($virtualAccount->bvnId),
+        'otp_attached' => !empty($virtualAccount->otp),
+        'verification_type' => $virtualAccount->type,
+        'ready_for_account_creation' => true,
+
+    ], 'SAFEHAVEN REGISTRATION - VERIFICATION DATA READY');
+    }
 
      if ($request->account_bank == '090286') {
      $virtualAccount->companyID = $companyRecord->id;
@@ -570,14 +731,37 @@ class RegisterController extends Controller
      $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
      }
             \logInfo([
-                'company_id' => $companyRecord->id,
-                'bank_id'    => $bank_id,
-                'bank_code'  => $customSelectedBank,
-                'account_type' => 'personal',
-            ], "Virtual Account Registration Summary");
-            $createAccountService = new AccountCreationService();
+    'company_id' => $companyRecord->id,
+    'bank_id' => $bank_id,
+    'bank_code' => $customSelectedBank,
+    'account_type' => 'personal',
 
-            $response = $createAccountService->createVirtualAccount($virtualAccount);
+    'safehaven_identity_id_attached' => !empty($virtualAccount->bvnId),
+    'safehaven_otp_attached' => !empty($virtualAccount->otp),
+    'safehaven_company_id' => $virtualAccount->companyID ?? null,
+    'safehaven_type' => $virtualAccount->type ?? null,
+
+], 'Virtual Account Registration Summary');
+
+\logInfo(
+    'Calling AccountCreationService::createVirtualAccount',
+    'REGISTRATION - BEFORE VIRTUAL ACCOUNT CREATION'
+);
+
+$createAccountService = new AccountCreationService();
+
+$response = $createAccountService->createVirtualAccount($virtualAccount);
+
+\logInfo([
+    'response_status' => $response['status'] ?? null,
+    'response_message' => $response['message'] ?? null,
+    'response_data_received' => isset($response['data']),
+], 'REGISTRATION - VIRTUAL ACCOUNT SERVICE RESPONSE');
+
+if (!$response['status']) {
+    $response['status'] = 0;
+    return response()->json($response);
+}
 
             if (! $response['status']) {
                 $response['status'] = 0;

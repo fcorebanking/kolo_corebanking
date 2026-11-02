@@ -25,7 +25,7 @@ use App\Http\Controllers\api\v1\TargetSavingsController;
 use App\Http\Controllers\api\v1\FixedSavingsController;
 use App\Http\Controllers\api\v1\CampaignController;
 use App\Http\Controllers\api\v1\AjoController;
-
+use App\Http\Controllers\ThirdParty\NinePSBSandboxController;
 
 /*
 |--------------------------------------------------------------------------
@@ -608,3 +608,35 @@ Route::prefix('campaigns')->group(function () {
     Route::get('/ajo/{ajoId}/members', [AjoController::class, 'members'])->whereNumber('ajoId');
     Route::get('/ajo/my-memberships', [AjoController::class, 'myMemberships']);
 
+Route::prefix('9psb/sandbox')->group(function () {
+
+    // Create virtual account
+    Route::post(
+        '/virtual-account',
+        [NinePSBSandboxController::class, 'createVirtualAccount']
+    );
+
+    // Verify bank account
+    Route::post(
+        '/account/verify',
+        [NinePSBSandboxController::class, 'verifyBankAccount']
+    );
+
+    // Bank transfer
+    Route::post(
+        '/transfer',
+        [NinePSBSandboxController::class, 'bankTransfer']
+    );
+
+    // Verify transaction
+    Route::post(
+        '/transaction/verify',
+        [NinePSBSandboxController::class, 'verifyTransaction']
+    );
+
+    // Verify transaction reversal
+    Route::post(
+        '/transaction/reversal',
+        [NinePSBSandboxController::class, 'verifyTransactionReversal']
+    );
+});

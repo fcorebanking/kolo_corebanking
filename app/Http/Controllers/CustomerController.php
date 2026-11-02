@@ -73,7 +73,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Image;
+use Intervention\Image\Facades\Image;
 use Maatwebsite\Excel\Facades\Excel;
 
 class CustomerController extends Controller
@@ -210,465 +210,862 @@ class CustomerController extends Controller
         return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$size[$factor];
     }
     
-    public function create_customer_account(Request $request)
-    {
-        logInfo($request->all(), "Create Customer Request");
+public function create_customer_account(Request $request)
+{
+    logInfo($request->all(), "Create Customer Request");
 
-        if (! cando('create-customer|manage-customer|root')) {
-            abort(403);
-            return 0;
-        }
-
-        if (isset($request->cac_status_response) && ($request->has('cac_status_response') && $request->cac_status_response == "error")) {
-            $messages = "There was error with CAC Registration Number";
-            $datax    = [
-                'message' => $messages,
-                'subtext' => $messages,
-                'status'  => 0,
-            ];
-            return response()->json($datax);
-        }
-
-        $request->branch = Crypt::decryptString($request->branch);
-        $validator       = Validator::make($request->all(), [
-            'first_name'   => 'required|string|max:50|min:2',
-            'last_name'    => 'required|string|max:50|min:2',
-            'phone'        => 'required|string',
-            'email'        => 'nullable|email|string',
-            'dob'          => 'required',
-            'branch'       => 'required',
-            'officer'      => 'required',
-            'account_id'   => 'required',
-            'username'     => 'nullable|string',
-            'bvn'          => 'required|numeric',
-            'account_type' => 'required',
-        ]);
-        $account_type_msg = 'Wallet';
-        if ($validator->fails()) {
-            $errors = '';
-            foreach ($validator->messages()->getMessages() as $field_name => $messages) {
-
-                // Go through each message for this field.
-                foreach ($messages as $message) {
-                    $errors .= "$message ";
-                }
-            }
-            $datax = [
-                'message' => $messages,
-                'subtext' => $messages,
-                'status'  => 0,
-            ];
-            return response()->json($datax);
-        }
-        if ($request->ref_link) {
-            $company = Company::where('external_link_code', $request->ref_link)->first();
-            if (! $company) {
-                return response()->json(['status' => false, 'message' => 'Link Expired']);
-            }
-            $auth = User::where('company_id', $company->id)->first();
-        } else {
-            $auth = auth()->user();
-        }
-        $message = "";
-        if ($request->email) {
-
-            $emailCount = User::where(['email' => $request->email, 'company_id' => $auth->company_id])->count();
-            if ($emailCount > 0) {
-                $message = "Email already exists";
-            }
-        }
-        $phoneCount = User::where(['phone' => $request->phone, 'company_id' => $auth->company_id])->count();
-        if ($phoneCount > 0) {
-            $message = "Phone already exists";
-        }
-        if ($request->username) {
-            $usernameCount = User::where(['username' => $request->username, 'company_id' => $auth->company_id])->count();
-            if ($usernameCount > 0) {
-                $message = "Username already exists";
-            }
-        }
-        $err = '';
-        if ($message != "") {
-            $ra = ["status" => 0, "message" => $message];
-            return response()->json($ra);
-        }
-        $allcount            = User::where(['company_id' => $auth->company_id, 'user_type_id' => 1])->where('status_id', '!=', 12)->where('status_id', '!=', 14)->count();
-        $max_count_customers = $auth->company->sub->plan->max_customers ?? $this->getMaxCuststomers($auth);
-        if ($auth->company->sub->plan->max_customers < $allcount) {
-            $datax = [
-                'message' => "Maximum Customer Reached, Upgrade Plan!" . $max_count_customers,
-                'subtext' => "Maximum Customer Reached, Upgrade Plan!",
-                'status'  => 0,
-            ];
-            return response()->json($datax);
-        }
-
-        $company_setting  = $auth->company->setting;
-        $regfee           = $company_setting->registration_fee;
-        $ussd_control     = $company_setting->ussd_control;
-        $account_status   = $company_setting->account_approval;
-        $whatsapp_control = $company_setting->whatsapp_control;
-
-        $saving                  = savings_product::where(['company_id' => $auth->company_id, 'id' => $request->account_id])->first();
-        $virtual_acccount_number = rand(1000000000, 9999999999);
-        $customer_reference      = rand(1000000000, 9999999999);
-        if (isset($saving->code)) {
-            if ($saving->code != null) {
-                $length                  = strlen($saving->code);
-                $virtual_acccount_number = substr_replace($virtual_acccount_number, $saving->code, 0, $length);
-            }
-        }
-        $branchdata = branch::where('id', $request->branch)->first();
-
-        if (isset($branchdata->code)) {
-            if ($branchdata->code != null) {
-                $branchCodeLength         = strlen($branchdata->code);
-                $branchCodeLength        -= 1;
-                $virtual_acccount_number  = substr_replace($virtual_acccount_number, $branchdata->code, -$branchCodeLength);
-            }
-        }
-
-        $officerid          = User::where('uuid', $request->officer)->first();
-        $txnpin             = rand(1231, 7879);
-        $newpsw             = substr(str_shuffle(str_repeat('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', mt_rand(1, 8))), 1, 8);
-        $sms                = $request->sms;
-        $customer_reference = "Kae33344c2l99" . rand(120030, 999999);
-        $bankId             = 231;
-        if ($request->account_bank == "000013" && $request->account_type != "internal") {
-
-            $debitCompany = debitCompanyWithCharge($auth->company_id, 10, 0);
-            if ($debitCompany['status'] == false) {
-                $ra = ["status" => false, "message" => $debitCompany['message']];
-                return response()->json($ra, 409);
-            }
-        }
-        if ($request->account_type == 'virtual') {
-
-            $bank             = banks::where('bank_code', $request->account_bank)->first();
-            $bankId           = $bank->id;
-            $account_type_msg = 'Virtual';
-
-            $customSelectedBank = $request->account_bank;
-
-            $virtualAccount = new VirtualAccountType();
-
-            $virtualAccount->bankCode     = $customSelectedBank;
-            $virtualAccount->currencyCode = $auth->company->currency->code;
-            //    $virtualAccount->firstName    = $request->first_name;
-
-            if ($auth->company->id == 47) {
-                $virtualAccount->firstName = "$request->first_name " . "{$request->last_name}" . "/{$auth->company->short_name}";
-            } else if ($auth->company->id == 28) {
-                $virtualAccount->firstName = "$request->first_name " . "{$request->last_name}";
-            } else {
-                $virtualAccount->firstName = "{$auth->company->short_name}/" . $request->first_name . " {$request->last_name}";
-            }
-
-            $virtualAccount->companyShortName             = $auth->company->short_name;
-            $virtualAccount->companyName                  = $request->company_name;
-            $virtualAccount->lastName                     = "";
-            $virtualAccount->accountType                  = $request->account_category;
-            $virtualAccount->email                        = $request->email;
-            $virtualAccount->phone                        = $request->phone;
-            $virtualAccount->dob                          = $request->dob;
-            $virtualAccount->gender                       = $request->gender;
-            $virtualAccount->bvn                          = $request->bvn;
-            $virtualAccount->address                      = $request->address;
-            $virtualAccount->country                      = $auth->company->currency_id ?? "";
-            $virtualAccount->companyAccountCreationStatus = $auth->company->setting->can_create_virtual_account;
-
-            if ($request->account_bank == '090286') {
-                $safehavenController = new SafehavenController();
-                $bvnResponse         = $safehavenController->verifyBVN($request->bvn, $request->company_id);
-
-                if ($bvnResponse['status']) {
-                    $virtualAccount->bvnId     = $bvnResponse['data']['_id'];
-                    $virtualAccount->otp       = "0000";
-                    $virtualAccount->companyID = $auth->company->id;
-                    $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
-                }
-            }
-            if ($request->account_bank == '090286') {
-                $stroWalletController      = new StroWalletController();
-                $virtualAccount->companyID = $auth->company->id;
-                $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
-            }
-
-            if ($request->account_bank == '000013') {
-
-     $virtualAccount->companyID = $auth->company->id;
-     $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
-
-     // GTB requires first_name and last_name to be separate
-     $virtualAccount->firstName = $request->first_name;
-     $virtualAccount->lastName  = $request->last_name;
-
-     logInfo([
-        'first_name' => $virtualAccount->firstName,
-        'last_name'  => $virtualAccount->lastName,
-        'company_id' => $virtualAccount->companyID,
-        'bank_id'   => $virtualAccount->bankCode,
-     ], "GTB Customer Data AFTER GTB Mapping");
-     }
-
-                 if ($request->account_bank == '090267') {
-
-     $virtualAccount->companyID = $auth->company->id;
-     $virtualAccount->type      = $request->has('nin') ? "NIN" : "BVN";
-     $virtualAccount->firstName = $request->first_name;
-     $virtualAccount->lastName  = $request->last_name;
-     $virtualAccount->email     = $request->email;
-
-     logInfo([
-        'first_name' => $virtualAccount->firstName,
-        'last_name'  => $virtualAccount->lastName,
-        'company_id' => $virtualAccount->companyID,
-        'bank_id'   => $bankId,
-     ], "Kuda Customer Data AFTER Kuda Mapping");
-     }
-
-            $createAccountService = new AccountCreationService();
-
-            $response = $createAccountService->createVirtualAccount($virtualAccount);
-
-            if (! $response['status']) {
-                $response['status'] = 0;
-                return response()->json($response);
-            }
-            $customer_reference      = $response['data']['account_reference'];
-            $virtual_acccount_number = $response['data']['virtual_account'];
-        }
-
-        $user = User::create([
-            'first_name'         => $request->first_name,
-            'last_name'          => $request->last_name,
-            'uuid'               => uniqid(),
-            'phone'              => $request->phone,
-            'username'           => $request->username,
-            'pin'                => $txnpin,
-            'status_id'          => $account_status == 0 ? 7 : 1,
-            'bvn'                => $request->bvn,
-            'email'              => $request->email,
-            'account_officer_id' => $officerid->id,
-            'branch_id'          => $request->branch,
-            'user_type_id'       => 1,
-            'reg_date'           => isset($request->registration_date) ? $request->registration_date : Carbon::now(),
-            'company_id'         => $auth->company_id,
-            'created_by'         => $auth->id,
-            'address'            => $request->address,
-            'dob'                => $request->dob,
-            'sms'                => $sms,
-            'bank_id'            => $bankId,
-            'country_id'         => $request->country,
-            'nin'                => $request->national_id,
-            'virtual_account'    => $virtual_acccount_number,
-            'password'           => Hash::make($newpsw),
-            'sex'                => $request->gender,
-            'ussd_status_id'     => $ussd_control,
-            'whatsapp_status_id' => $whatsapp_control,
-            'account_reference'  => $customer_reference,
-        ]);
-
-        NextOfKinDetail::create([
-            'user_id'     => $user->id,
-            'nok_name'    => $request->nok_name,
-            'nok_phone'   => $request->nok_phone,
-            'nok_address' => $request->nok_address,
-        ]);
-
-        if ($request->account_category == 'coperate') {
-            CooperateCustomer::create([
-                'user_id'      => $user->id,
-                'account_name' => $request->company_name,
-                'tin'          => $request->tin_Number,
-                'cac_reg_no'   => $request->reg_number,
-                'created_by'   => $auth->id,
-            ]);
-        }
-        $wb_account_details = wb_account_details::create([
-            'user_id'            => $user->id,
-            'account_product_id' => $request->account_id,
-            'bankid'             => $bankId ?? 84,
-            'virtual_accnum'     => $virtual_acccount_number,
-            'acc_reference'      => $request->account_bank == "090267" || $request->account_bank == "000013" ? $customer_reference : $virtual_acccount_number,
-            'has_atm_card'       => 0,
-            'currency_id'        => $branchdata->currency_id ?? 1,
-        ]);
-        $savings_product = savings_product::where('id', $request->account_id)->first();
-        if ($savings_product->registration_fee != null) {
-            $regfee = $savings_product->registration_fee;
-        }
-        user_wallet::create([
-            'wb_account_detail_id' => $wb_account_details->id,
-            'balance'              => (0 - $regfee),
-        ]);
-
-        if ($regfee > 0) {
-            $ledger_cr       = null;
-            $ledger_dr       = null;
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(30, $auth->company_id);
-            if ($ledger_Settings) {
-                $ledger_cr = $ledger_Settings->ledger_cr;
-                $ledger_dr = $ledger_Settings->ledger_dr;
-            }
-            $transaction = transactions::create([
-                "balance_before"         => 0,
-                "amount"                 => $regfee,
-                "withdrawal_charge"      => 0,
-                "description"            => 'Account registration',
-                "account_id"             => $wb_account_details->id,
-                "branch_id"              => $user->branch_id,
-                "transaction_status_id"  => 1,
-                "transaction_reference"  => generate_txnID(),
-                "transaction_type_id"    => 30, //debit 7
-                "credit_debit_type_id"   => 2,  //debit 2
-                "transaction_remarks_id" => 2,  //success 2
-                "balance_after"          => (0 - $regfee),
-                "created_date"           => date('Y-m-d H:i:s'),
-                "created_by"             => $auth->id,
-                "ledger_cr"              => $ledger_cr,
-                "ledger_dr"              => $ledger_dr,
-            ]);
-        }
-
-        if ($auth->company->setting->restrict_customers == 1) {
-            $this->restrictUserAccount($user, 2, "Registration User Block");
-        }
-
-        if ($request->account_bank == "000013" && $request->account_type != "internal") {
-
-            $debitCompany    = debitCompanyWithCharge($auth->company_id, 10, 0);
-            $ledger_cr       = null;
-            $ledger_dr       = null;
-            $ledger_Settings = get_CR_DR_TXN_Type_Ledger(30, $auth->company_id);
-            if ($ledger_Settings) {
-                $ledger_cr = $ledger_Settings->ledger_cr;
-                $ledger_dr = $ledger_Settings->ledger_dr;
-            }
-            $transaction = transactions::create([
-                "balance_before"         => 0,
-                "amount"                 => 0,
-                "withdrawal_charge"      => 0,
-                "description"            => 'Account registration',
-                "branch_id"              => $user->branch_id,
-                "transaction_status_id"  => 1,
-                "company_id"             => $auth->company_id,
-                "company_balance_before" => $debitCompany["balance_before"],
-                "company_amount"         => 10,
-                "company_balance_after"  => $debitCompany["balance_after"],
-                "transaction_reference"  => generate_txnID(),
-                "transaction_type_id"    => 30, //debit 7
-                "credit_debit_type_id"   => 2,  //debit 2
-                "transaction_remarks_id" => 2,  //success 2
-                "created_date"           => date('Y-m-d H:i:s'),
-                "created_by"             => $auth->id,
-                "ledger_cr"              => $ledger_cr,
-                "ledger_dr"              => $ledger_dr,
-            ]);
-        }
-        $err = '';
-        try {
-
-            $image = $request->file('passport');
-            if ($image) {
-                // create a new filename for the resized image
-                $filename   = time() . str_replace(' ', '_', $image->getClientOriginalExtension());
-                $uploadPath = "public/company/customer/profile_pic/$user->uuid";
-
-                // resize the image
-                $resizedImage = Image::make($image)
-                    ->resize(200, 200, function ($constraint) {
-                        $constraint->aspectRatio();
-                        $constraint->upsize();
-                    })
-                    ->encode();
-
-                // upload the resized image to storage
-                $upload = Storage::put($uploadPath . $filename, $resizedImage);
-                // $file1 = $doc->storeAs("$uploadPath/$user->id/$filename", $resizedImage);
-                $user->update([
-                    'profile_pic' => $uploadPath . $filename,
-                ]);
-            }
-        } catch (Exception $e) {
-            //die($e);
-        }
-        try {
-
-            $image = $request->file('valid_id');
-            if ($image) {
-
-                // create a new filename for the resized image
-                $filename   = time() . str_replace(' ', '_', $image->getClientOriginalExtension());
-                $uploadPath = "public/company/customer/validID_file/$user->uuid";
-
-                // resize the image
-                $resizedImage = Image::make($image)
-                    ->resize(200, 200, function ($constraint) {
-                        $constraint->aspectRatio();
-                        $constraint->upsize();
-                    })
-                    ->encode();
-
-                // upload the resized image to storage
-                $upload = Storage::put($uploadPath . $filename, $resizedImage);
-                // $file1 = $doc->storeAs("$uploadPath/$user->id/$filename", $resizedImage);
-                $user->update([
-                    'validID_file' => $uploadPath . $filename,
-                ]);
-            }
-        } catch (Exception $e) {
-
-            //die($e);
-        }
-        // try {
-        //     //code...
-
-        //     $doc2 = $request->file('valid_id');
-
-        //     $new_name2 = rand() . "." . $doc2->getClientOriginalExtension();
-
-        //     $file2 = $doc2->storeAs("public/company/customer/validID_file/$user->id", $new_name2);
-        //     $user->update([
-        //         'validID_file' => $file2
-        //     ]);
-        // } catch (\Throwable $th) {
-        //     //throw $th;
-        // }
-        $branchName = isset($user->bank->bank_name) ? $user->bank->bank_name : '';
-
-        $companyname = $auth->company->company_name;
-        $datax       = [
-            'message'        => "Welcome to $companyname, your TXN PIN: $txnpin, Password: $newpsw and your $account_type_msg account is $virtual_acccount_number",
-            'subtext'        => "Welcome to $companyname, your TXN PIN: $txnpin, Password: $newpsw and your $account_type_msg account is $virtual_acccount_number",
-            'desc'           => "Welcome to $companyname",
-            'status'         => 1,
-            'name'           => $request->first_name . ' ' . $request->last_name,
-            'email'          => $request->email,
-            'account_number' => "$virtual_acccount_number",
-            'test'           => $request->push_wmn,
-            'error'          => $err,
-            'bank'           => $branchName,
-        ];
-        $branch = ($user->branch) ? $user->branch->branch_name : ' default ';
-        if ($request->push_wmn) {
-            if (strlen($companyname) > 20) {
-                $companyname = substr($companyname, 0, 20) . '...';
-            }
-
-            $excludedCompanies = [29];
-
-            $message = "Welcome to $companyname, we are excited to have you, your Pin: $txnpin, Password: $newpsw, $account_type_msg No: $virtual_acccount_number, Bank: $branchName";
-
-            if (in_array($auth->company->id, $excludedCompanies)) {
-                $message = "Welcome to $companyname, we are excited to have you, your Pin: $txnpin, Password: $newpsw, $account_type_msg No: $virtual_acccount_number";
-            }
-
-            $smsresponse = sendSMS($user->id, $message, true, true, 'Account', $virtual_acccount_number);
-        }
-        return response()->json($datax);
-        //  return redirect('/account_creation_success')->with('account_creation_msg','Account Created Successfully. Your account number is ');
+    if (! cando('create-customer|manage-customer|root')) {
+        abort(403);
+        return 0;
     }
+
+    if (
+        isset($request->cac_status_response) &&
+        ($request->has('cac_status_response') && $request->cac_status_response == "error")
+    ) {
+        $messages = "There was error with CAC Registration Number";
+
+        $datax = [
+            'message' => $messages,
+            'subtext' => $messages,
+            'status'  => 0,
+        ];
+
+        return response()->json($datax);
+    }
+
+    $request->branch = Crypt::decryptString($request->branch);
+
+    $validator = Validator::make($request->all(), [
+        'first_name'   => 'required|string|max:50|min:2',
+        'last_name'    => 'required|string|max:50|min:2',
+        'phone'        => 'required|string',
+        'email'        => 'nullable|email|string',
+        'dob'          => 'required',
+        'branch'       => 'required',
+        'officer'      => 'required',
+        'account_id'   => 'required',
+        'username'     => 'nullable|string',
+        'bvn'          => 'required|numeric',
+        'account_type' => 'required',
+    ]);
+
+    $account_type_msg = 'Wallet';
+
+    if ($validator->fails()) {
+        $errors = '';
+
+        foreach ($validator->messages()->getMessages() as $field_name => $messages) {
+            foreach ($messages as $message) {
+                $errors .= "$message ";
+            }
+        }
+
+        $datax = [
+            'message' => $errors,
+            'subtext' => $errors,
+            'status'  => 0,
+        ];
+
+        return response()->json($datax);
+    }
+
+    if ($request->ref_link) {
+        $company = Company::where('external_link_code', $request->ref_link)->first();
+
+        if (! $company) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Link Expired'
+            ]);
+        }
+
+        $auth = User::where('company_id', $company->id)->first();
+    } else {
+        $auth = auth()->user();
+    }
+
+    $message = "";
+
+    if ($request->email) {
+        $emailCount = User::where([
+            'email'     => $request->email,
+            'company_id' => $auth->company_id
+        ])->count();
+
+        if ($emailCount > 0) {
+            $message = "Email already exists";
+        }
+    }
+
+    $phoneCount = User::where([
+        'phone'      => $request->phone,
+        'company_id' => $auth->company_id
+    ])->count();
+
+    if ($phoneCount > 0) {
+        $message = "Phone already exists";
+    }
+
+    if ($request->username) {
+        $usernameCount = User::where([
+            'username'   => $request->username,
+            'company_id' => $auth->company_id
+        ])->count();
+
+        if ($usernameCount > 0) {
+            $message = "Username already exists";
+        }
+    }
+
+    $err = '';
+
+    if ($message != "") {
+        $ra = [
+            "status"  => 0,
+            "message" => $message
+        ];
+
+        return response()->json($ra);
+    }
+
+    $allcount = User::where([
+        'company_id'  => $auth->company_id,
+        'user_type_id' => 1
+    ])
+        ->where('status_id', '!=', 12)
+        ->where('status_id', '!=', 14)
+        ->count();
+
+    $max_count_customers = $auth->company->sub->plan->max_customers
+        ?? $this->getMaxCuststomers($auth);
+
+    if ($auth->company->sub->plan->max_customers < $allcount) {
+        $datax = [
+            'message' => "Maximum Customer Reached, Upgrade Plan!" . $max_count_customers,
+            'subtext' => "Maximum Customer Reached, Upgrade Plan!",
+            'status'  => 0,
+        ];
+
+        return response()->json($datax);
+    }
+
+    $company_setting  = $auth->company->setting;
+    $regfee           = $company_setting->registration_fee;
+    $ussd_control     = $company_setting->ussd_control;
+    $account_status   = $company_setting->account_approval;
+    $whatsapp_control = $company_setting->whatsapp_control;
+
+    $saving = savings_product::where([
+        'company_id' => $auth->company_id,
+        'id'         => $request->account_id
+    ])->first();
+
+    $virtual_acccount_number = rand(1000000000, 9999999999);
+    $customer_reference      = rand(1000000000, 9999999999);
+
+    if (isset($saving->code) && $saving->code != null) {
+        $length = strlen($saving->code);
+
+        $virtual_acccount_number = substr_replace(
+            $virtual_acccount_number,
+            $saving->code,
+            0,
+            $length
+        );
+    }
+
+    $branchdata = branch::where('id', $request->branch)->first();
+
+    if (isset($branchdata->code) && $branchdata->code != null) {
+        $branchCodeLength = strlen($branchdata->code);
+        $branchCodeLength -= 1;
+
+        $virtual_acccount_number = substr_replace(
+            $virtual_acccount_number,
+            $branchdata->code,
+            -$branchCodeLength
+        );
+    }
+
+    $officerid = User::where('uuid', $request->officer)->first();
+
+    $txnpin = rand(1231, 7879);
+
+    $newpsw = substr(
+        str_shuffle(
+            str_repeat(
+                '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+                mt_rand(1, 8)
+            )
+        ),
+        1,
+        8
+    );
+
+    $sms = $request->sms;
+
+    $customer_reference = "Kae33344c2l99" . rand(120030, 999999);
+
+    $bankId = 231;
+
+    /*
+    |--------------------------------------------------------------------------
+    | GTB company charge
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $request->account_bank == "000013" &&
+        $request->account_type != "internal"
+    ) {
+        $debitCompany = debitCompanyWithCharge(
+            $auth->company_id,
+            10,
+            0
+        );
+
+        if ($debitCompany['status'] == false) {
+            $ra = [
+                "status"  => false,
+                "message" => $debitCompany['message']
+            ];
+
+            return response()->json($ra, 409);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Virtual Account Creation
+    |--------------------------------------------------------------------------
+    */
+
+    if ($request->account_type == 'virtual') {
+
+        $bank = banks::where(
+            'bank_code',
+            $request->account_bank
+        )->first();
+
+        if (! $bank) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Selected bank is not configured in the system.'
+            ], 422);
+        }
+
+        $bankId = $bank->id;
+
+        $account_type_msg = 'Virtual';
+
+        $customSelectedBank = $request->account_bank;
+
+        $virtualAccount = new VirtualAccountType();
+
+        $virtualAccount->bankCode     = $customSelectedBank;
+        $virtualAccount->currencyCode = $auth->company->currency->code;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Default customer name
+        |--------------------------------------------------------------------------
+        */
+
+        if ($auth->company->id == 47) {
+
+            $virtualAccount->firstName =
+                "$request->first_name {$request->last_name}/{$auth->company->short_name}";
+
+        } elseif ($auth->company->id == 28) {
+
+            $virtualAccount->firstName =
+                "$request->first_name {$request->last_name}";
+
+        } else {
+
+            $virtualAccount->firstName =
+                "{$auth->company->short_name}/{$request->first_name} {$request->last_name}";
+        }
+
+        $virtualAccount->companyShortName =
+            $auth->company->short_name;
+
+        $virtualAccount->companyName =
+            $request->company_name;
+
+        $virtualAccount->lastName =
+            "";
+
+        $virtualAccount->accountType =
+            $request->account_category;
+
+        $virtualAccount->email =
+            $request->email;
+
+        $virtualAccount->phone =
+            $request->phone;
+
+        $virtualAccount->dob =
+            $request->dob;
+
+        $virtualAccount->gender =
+            $request->gender;
+
+        $virtualAccount->bvn =
+            $request->bvn;
+
+        $virtualAccount->address =
+            $request->address;
+
+        $virtualAccount->country =
+            $auth->company->currency_id ?? "";
+
+        $virtualAccount->companyAccountCreationStatus =
+            $auth->company->setting->can_create_virtual_account;
+
+        /*
+        |--------------------------------------------------------------------------
+        | SafeHaven
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->account_bank == '090286') {
+
+            $safehavenController = new SafehavenController();
+
+            $bvnResponse = $safehavenController->verifyBVN(
+                $request->bvn,
+                $request->company_id
+            );
+
+            if ($bvnResponse['status']) {
+
+                $virtualAccount->bvnId =
+                    $bvnResponse['data']['_id'];
+
+                $virtualAccount->otp =
+                    "0000";
+
+                $virtualAccount->companyID =
+                    $auth->company->id;
+
+                $virtualAccount->type =
+                    $request->has('nin') ? "NIN" : "BVN";
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | StroWallet
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->account_bank == '090286') {
+
+            $stroWalletController =
+                new StroWalletController();
+
+            $virtualAccount->companyID =
+                $auth->company->id;
+
+            $virtualAccount->type =
+                $request->has('nin') ? "NIN" : "BVN";
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | GTB
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->account_bank == '000013') {
+
+            $virtualAccount->companyID =
+                $auth->company->id;
+
+            $virtualAccount->type =
+                $request->has('nin') ? "NIN" : "BVN";
+
+            // GTB requires first_name and last_name separately.
+            $virtualAccount->firstName =
+                $request->first_name;
+
+            $virtualAccount->lastName =
+                $request->last_name;
+
+            logInfo([
+                'first_name' => $virtualAccount->firstName,
+                'last_name'  => $virtualAccount->lastName,
+                'company_id' => $virtualAccount->companyID,
+                'bank_id'    => $virtualAccount->bankCode,
+            ], "GTB Customer Data AFTER GTB Mapping");
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Kuda
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->account_bank == '090267') {
+
+            $virtualAccount->companyID =
+                $auth->company->id;
+
+            $virtualAccount->type =
+                $request->has('nin') ? "NIN" : "BVN";
+
+            $virtualAccount->firstName =
+                $request->first_name;
+
+            $virtualAccount->lastName =
+                $request->last_name;
+
+            $virtualAccount->email =
+                $request->email;
+
+            logInfo([
+                'first_name' => $virtualAccount->firstName,
+                'last_name'  => $virtualAccount->lastName,
+                'company_id' => $virtualAccount->companyID,
+                'bank_id'    => $bankId,
+            ], "Kuda Customer Data AFTER Kuda Mapping");
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 9PSB
+        |--------------------------------------------------------------------------
+        |
+        | 120001 is the 9PSB bank code.
+        |
+        | 9PSB's createAccount() accepts first name and last name,
+        | so do NOT send the company-prefixed firstName that is used
+        | by some of the other providers.
+        |
+        */
+
+        if ($request->account_bank == '120001') {
+
+            $virtualAccount->companyID =
+                $auth->company->id;
+
+            $virtualAccount->type =
+                $request->has('nin') ? "NIN" : "BVN";
+
+            $virtualAccount->firstName =
+                $request->first_name;
+
+            $virtualAccount->lastName =
+                $request->last_name;
+
+            logInfo([
+                'first_name' => $virtualAccount->firstName,
+                'last_name'  => $virtualAccount->lastName,
+                'email'      => $virtualAccount->email,
+                'phone'      => $virtualAccount->phone,
+                'bvn'        => $virtualAccount->bvn,
+                'company_id' => $virtualAccount->companyID,
+                'bank_code'  => $virtualAccount->bankCode,
+            ], "9PSB Customer Data");
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create Virtual Account
+        |--------------------------------------------------------------------------
+        */
+
+        $createAccountService =
+            new AccountCreationService();
+
+        $response =
+            $createAccountService->createVirtualAccount(
+                $virtualAccount
+            );
+
+        logInfo(
+            $response,
+            "Virtual Account Creation Service Response"
+        );
+
+        if (! $response['status']) {
+
+            $response['status'] = 0;
+
+            return response()->json($response);
+        }
+
+        $customer_reference =
+            $response['data']['account_reference'];
+
+        $virtual_acccount_number =
+            $response['data']['virtual_account'];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create User
+    |--------------------------------------------------------------------------
+    */
+
+    $user = User::create([
+        'first_name'         => $request->first_name,
+        'last_name'          => $request->last_name,
+        'uuid'               => uniqid(),
+        'phone'              => $request->phone,
+        'username'           => $request->username,
+        'pin'                => $txnpin,
+        'status_id'          => $account_status == 0 ? 7 : 1,
+        'bvn'                => $request->bvn,
+        'email'              => $request->email,
+        'account_officer_id' => $officerid->id,
+        'branch_id'          => $request->branch,
+        'user_type_id'       => 1,
+        'reg_date'           => isset($request->registration_date)
+            ? $request->registration_date
+            : Carbon::now(),
+        'company_id'         => $auth->company_id,
+        'created_by'         => $auth->id,
+        'address'            => $request->address,
+        'dob'                => $request->dob,
+        'sms'                => $sms,
+        'bank_id'            => $bankId,
+        'country_id'         => $request->country,
+        'nin'                => $request->national_id,
+        'virtual_account'    => $virtual_acccount_number,
+        'password'           => Hash::make($newpsw),
+        'sex'                => $request->gender,
+        'ussd_status_id'     => $ussd_control,
+        'whatsapp_status_id' => $whatsapp_control,
+        'account_reference'  => $customer_reference,
+    ]);
+
+    NextOfKinDetail::create([
+        'user_id'     => $user->id,
+        'nok_name'    => $request->nok_name,
+        'nok_phone'   => $request->nok_phone,
+        'nok_address' => $request->nok_address,
+    ]);
+
+    if ($request->account_category == 'coperate') {
+
+        CooperateCustomer::create([
+            'user_id'      => $user->id,
+            'account_name' => $request->company_name,
+            'tin'          => $request->tin_Number,
+            'cac_reg_no'   => $request->reg_number,
+            'created_by'   => $auth->id,
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Account Details
+    |--------------------------------------------------------------------------
+    */
+
+    $wb_account_details = wb_account_details::create([
+        'user_id'            => $user->id,
+        'account_product_id' => $request->account_id,
+        'bankid'             => $bankId ?? 84,
+        'virtual_accnum'     => $virtual_acccount_number,
+        'acc_reference'      =>
+            $request->account_bank == "090267" ||
+            $request->account_bank == "000013"
+                ? $customer_reference
+                : $virtual_acccount_number,
+        'has_atm_card'       => 0,
+        'currency_id'        => $branchdata->currency_id ?? 1,
+    ]);
+
+    $savings_product =
+        savings_product::where(
+            'id',
+            $request->account_id
+        )->first();
+
+    if ($savings_product->registration_fee != null) {
+        $regfee =
+            $savings_product->registration_fee;
+    }
+
+    user_wallet::create([
+        'wb_account_detail_id' => $wb_account_details->id,
+        'balance'              => (0 - $regfee),
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Registration Fee Transaction
+    |--------------------------------------------------------------------------
+    */
+
+    if ($regfee > 0) {
+
+        $ledger_cr       = null;
+        $ledger_dr       = null;
+        $ledger_Settings =
+            get_CR_DR_TXN_Type_Ledger(
+                30,
+                $auth->company_id
+            );
+
+        if ($ledger_Settings) {
+            $ledger_cr = $ledger_Settings->ledger_cr;
+            $ledger_dr = $ledger_Settings->ledger_dr;
+        }
+
+        transactions::create([
+            "balance_before"         => 0,
+            "amount"                 => $regfee,
+            "withdrawal_charge"      => 0,
+            "description"            => 'Account registration',
+            "account_id"             => $wb_account_details->id,
+            "branch_id"              => $user->branch_id,
+            "transaction_status_id"  => 1,
+            "transaction_reference" => generate_txnID(),
+            "transaction_type_id"    => 30,
+            "credit_debit_type_id"   => 2,
+            "transaction_remarks_id" => 2,
+            "balance_after"          => (0 - $regfee),
+            "created_date"            => date('Y-m-d H:i:s'),
+            "created_by"              => $auth->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Restrict New Customer
+    |--------------------------------------------------------------------------
+    */
+
+    if ($auth->company->setting->restrict_customers == 1) {
+        $this->restrictUserAccount(
+            $user,
+            2,
+            "Registration User Block"
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | GTB Company Charge
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $request->account_bank == "000013" &&
+        $request->account_type != "internal"
+    ) {
+
+        $debitCompany =
+            debitCompanyWithCharge(
+                $auth->company_id,
+                10,
+                0
+            );
+
+        $ledger_cr       = null;
+        $ledger_dr       = null;
+        $ledger_Settings =
+            get_CR_DR_TXN_Type_Ledger(
+                30,
+                $auth->company_id
+            );
+
+        if ($ledger_Settings) {
+            $ledger_cr = $ledger_Settings->ledger_cr;
+            $ledger_dr = $ledger_Settings->ledger_dr;
+        }
+
+        transactions::create([
+            "balance_before"         => 0,
+            "amount"                 => 0,
+            "withdrawal_charge"      => 0,
+            "description"            => 'Account registration',
+            "branch_id"              => $user->branch_id,
+            "transaction_status_id"  => 1,
+            "company_id"             => $auth->company_id,
+            "company_balance_before" => $debitCompany["balance_before"],
+            "company_amount"         => 10,
+            "company_balance_after"  => $debitCompany["balance_after"],
+            "transaction_reference"  => generate_txnID(),
+            "transaction_type_id"    => 30,
+            "credit_debit_type_id"   => 2,
+            "transaction_remarks_id" => 2,
+            "created_date"            => date('Y-m-d H:i:s'),
+            "created_by"              => $auth->id,
+            "ledger_cr"              => $ledger_cr,
+            "ledger_dr"              => $ledger_dr,
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Passport Upload
+    |--------------------------------------------------------------------------
+    */
+
+    $err = '';
+
+    try {
+
+        $image = $request->file('passport');
+
+        if ($image) {
+
+            $filename =
+                time() .
+                str_replace(
+                    ' ',
+                    '_',
+                    $image->getClientOriginalExtension()
+                );
+
+            $uploadPath =
+                "public/company/customer/profile_pic/$user->uuid";
+
+            $resizedImage = Image::make($image)
+                ->resize(200, 200, function ($constraint) {
+                    $constraint->aspectRatio();
+                    $constraint->upsize();
+                })
+                ->encode();
+
+            Storage::put(
+                $uploadPath . $filename,
+                $resizedImage
+            );
+
+            $user->update([
+                'profile_pic' =>
+                    $uploadPath . $filename,
+            ]);
+        }
+
+    } catch (Exception $e) {
+        // Intentionally ignored to preserve existing customer creation flow.
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Valid ID Upload
+    |--------------------------------------------------------------------------
+    */
+
+    try {
+
+        $image = $request->file('valid_id');
+
+        if ($image) {
+
+            $filename =
+                time() .
+                str_replace(
+                    ' ',
+                    '_',
+                    $image->getClientOriginalExtension()
+                );
+
+            $uploadPath =
+                "public/company/customer/validID_file/$user->uuid";
+
+            $resizedImage = Image::make($image)
+                ->resize(200, 200, function ($constraint) {
+                    $constraint->aspectRatio();
+                    $constraint->upsize();
+                })
+                ->encode();
+
+            Storage::put(
+                $uploadPath . $filename,
+                $resizedImage
+            );
+
+            $user->update([
+                'validID_file' =>
+                    $uploadPath . $filename,
+            ]);
+        }
+
+    } catch (Exception $e) {
+        // Intentionally ignored to preserve existing customer creation flow.
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Response
+    |--------------------------------------------------------------------------
+    */
+
+    $branchName =
+        isset($user->bank->bank_name)
+            ? $user->bank->bank_name
+            : '';
+
+    $companyname =
+        $auth->company->company_name;
+
+    $datax = [
+        'message' =>
+            "Welcome to $companyname, your TXN PIN: $txnpin, Password: $newpsw and your $account_type_msg account is $virtual_acccount_number",
+
+        'subtext' =>
+            "Welcome to $companyname, your TXN PIN: $txnpin, Password: $newpsw and your $account_type_msg account is $virtual_acccount_number",
+
+        'desc' =>
+            "Welcome to $companyname",
+
+        'status'         => 1,
+        'name'           => $request->first_name . ' ' . $request->last_name,
+        'email'          => $request->email,
+        'account_number' => "$virtual_acccount_number",
+        'test'           => $request->push_wmn,
+        'error'          => $err,
+        'bank'           => $branchName,
+    ];
+
+    $branch =
+        ($user->branch)
+            ? $user->branch->branch_name
+            : ' default ';
+
+    if ($request->push_wmn) {
+
+        if (strlen($companyname) > 20) {
+            $companyname =
+                substr($companyname, 0, 20) . '...';
+        }
+
+        $excludedCompanies = [29];
+
+        $message =
+            "Welcome to $companyname, we are excited to have you, your Pin: $txnpin, Password: $newpsw, $account_type_msg No: $virtual_acccount_number, Bank: $branchName";
+
+        if (in_array(
+            $auth->company->id,
+            $excludedCompanies
+        )) {
+            $message =
+                "Welcome to $companyname, we are excited to have you, your Pin: $txnpin, Password: $newpsw, $account_type_msg No: $virtual_acccount_number";
+        }
+
+        sendSMS(
+            $user->id,
+            $message,
+            true,
+            true,
+            'Account',
+            $virtual_acccount_number
+        );
+    }
+
+    return response()->json($datax);
+}
 
     public function createPhysicalCard(Request $request)
     {

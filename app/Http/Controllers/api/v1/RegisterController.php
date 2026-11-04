@@ -741,27 +741,27 @@ class RegisterController extends Controller
     'safehaven_company_id' => $virtualAccount->companyID ?? null,
     'safehaven_type' => $virtualAccount->type ?? null,
 
-], 'Virtual Account Registration Summary');
+  ], 'Virtual Account Registration Summary');
 
-\logInfo(
+  \logInfo(
     'Calling AccountCreationService::createVirtualAccount',
     'REGISTRATION - BEFORE VIRTUAL ACCOUNT CREATION'
-);
+  );
 
-$createAccountService = new AccountCreationService();
+  $createAccountService = new AccountCreationService();
 
-$response = $createAccountService->createVirtualAccount($virtualAccount);
+  $response = $createAccountService->createVirtualAccount($virtualAccount);
 
-\logInfo([
+  \logInfo([
     'response_status' => $response['status'] ?? null,
     'response_message' => $response['message'] ?? null,
     'response_data_received' => isset($response['data']),
-], 'REGISTRATION - VIRTUAL ACCOUNT SERVICE RESPONSE');
+  ], 'REGISTRATION - VIRTUAL ACCOUNT SERVICE RESPONSE');
 
-if (!$response['status']) {
+  if (!$response['status']) {
     $response['status'] = 0;
     return response()->json($response);
-}
+  }
 
             if (! $response['status']) {
                 $response['status'] = 0;

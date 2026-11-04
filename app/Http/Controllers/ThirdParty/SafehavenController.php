@@ -145,7 +145,7 @@ class SafehavenController extends WebhookController
 
             $body = match ($companyID) {
 
-                92      => $bodyNoOtp,
+                63,92      => $bodyNoOtp,
                 default => $bodyOTP,
             };
 

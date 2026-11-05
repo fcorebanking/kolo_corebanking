@@ -1242,6 +1242,7 @@ public function loginV2(Request $request)
 
     }
 
+
 public function loginPin(Request $request)
 {
     try {
@@ -1259,8 +1260,7 @@ public function loginPin(Request $request)
             ], 406);
         }
 
-        // Never log the PIN/password.
-        // 2. Retrieve user and required relationships
+        // 2. Retrieve user and company relationships
         $user = User::with(['company.sub'])
             ->where('username', $request->username)
             ->first();
@@ -1272,8 +1272,8 @@ public function loginPin(Request $request)
             ], 401);
         }
 
-        // 3. Check whether the account is already blocked
-        if (in_array($user->status_id, [5, 6])) {
+        // 3. Check blocked accounts
+        if (in_array((int) $user->status_id, [5, 6], true)) {
             return response()->json([
                 'status' => false,
                 'message' => $user->status_id == 6
@@ -1285,10 +1285,9 @@ public function loginPin(Request $request)
         // 4. Verify PIN
         if (!hash_equals((string) $user->pin, (string) $request->password)) {
 
-            // Increment failed login attempts only when PIN is incorrect
             $user->login_fails = ((int) $user->login_fails) + 1;
 
-            // Block account after 5 failed attempts
+            // Block after 5 incorrect PIN attempts
             if ($user->login_fails >= 5) {
                 $user->status_id = 6;
             }
@@ -1308,13 +1307,13 @@ public function loginPin(Request $request)
             ], 401);
         }
 
-        // 5. Successful PIN verification: reset failed login attempts
+        // 5. Reset failed login attempts after successful PIN verification
         if ((int) $user->login_fails > 0) {
             $user->login_fails = 0;
             $user->save();
         }
 
-        // 6. Validate company relationship
+        // 6. Validate company
         $company = $user->company;
 
         if (!$company) {
@@ -1339,7 +1338,7 @@ public function loginPin(Request $request)
             ], 401);
         }
 
-        // 8. Company restrictions
+        // 8. Restricted companies
         $restrictedCompanies = [26, 32, 33, 37, 51, 52, 54, 57, 83];
 
         if (in_array((int) $company->id, $restrictedCompanies, true)) {
@@ -1349,7 +1348,7 @@ public function loginPin(Request $request)
             ], 401);
         }
 
-        // 9. Ensure this is a customer account
+        // 9. Customer account validation
         if ($user->user_type_id == 2) {
             return response()->json([
                 'status' => false,
@@ -1365,7 +1364,7 @@ public function loginPin(Request $request)
             ], 401);
         }
 
-        // 11. Check company subscription
+        // 11. Subscription validation
         $subscription = $company->sub;
 
         if (!$subscription || $subscription->end_date < now()->toDateString()) {
@@ -1375,13 +1374,8 @@ public function loginPin(Request $request)
             ], 400);
         }
 
-        // 12. Check phone verification
-        if ($user->phone_verification_status_id != 2) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Please verify your phone number before logging in.'
-            ], 401);
-        }
+        // 12. Phone verification is NOT required for login.
+        // Users can log in whether phone_verification_status_id is 1, 2, or another value.
 
         // 13. Prepare user details
         $userDetails = [
@@ -1419,7 +1413,7 @@ public function loginPin(Request $request)
         // 14. Generate access token
         $accessToken = $user->createToken('authToken')->accessToken;
 
-        // 15. Return successful login response
+        // 15. Successful login response
         return response()->json([
             'status' => true,
             'message' => 'Login Successful',
@@ -1443,6 +1437,7 @@ public function loginPin(Request $request)
         ], 500);
     }
 }
+
 
     private function matchCurrency($currency_id)
     {

@@ -100,23 +100,22 @@ class NinePSBController extends WebhookController
 
         if ($action === "virtualaccount") {
 
-            $url =
-                $this->baseUrl .
-                "/ipaymw-api/v1/virtualaccount/authenticate";
+    $url = $this->baseUrl .
+        "/iva-api/v1/merchant/virtualaccount/authenticate";
 
-        } elseif ($action === "fundtransfer") {
+} elseif ($action === "fundtransfer") {
 
-            $url =
-                $this->baseUrl .
-                "/ipaymw-api/v1/merchant/authenticate";
+    // Preserve your existing fund-transfer authentication route.
+    $url = $this->baseUrl .
+        "/ipaymw-api/v1/merchant/authenticate";
 
-        } else {
+} else {
 
-            return [
-                'status'  => false,
-                'message' => 'Invalid 9PSB authentication action.'
-            ];
-        }
+    return [
+        'status'  => false,
+        'message' => 'Invalid 9PSB authentication action.'
+    ];
+}
 
         try {
 
@@ -126,9 +125,12 @@ class NinePSBController extends WebhookController
                     ->post($url, $body);
 
             logInfo([
-                'http_status' => $response->status(),
-                'body'        => $response->json(),
-            ], "9PSB Login Response");
+    'http_status' => $response->status(),
+    'code'        => $responseData['code'] ?? null,
+    'message'     => $responseData['message'] ?? null,
+    'token_received' => !empty($responseData['access_token']),
+    'expires_in'  => $responseData['expires_in'] ?? null,
+], "9PSB Login Response");
 
             $responseData =
                 $response->json();
@@ -239,7 +241,7 @@ class NinePSBController extends WebhookController
 
         $url =
             $this->baseUrl .
-            "/virtualaccount/create";
+            "/iva-api/v1/merchant/virtualaccount/create";
 
         try {
 
@@ -346,7 +348,7 @@ class NinePSBController extends WebhookController
             */
 
             $accountNumber =
-                $responseData['customer']['number']
+                $responseData['customer']['account']['number']
                 ?? null;
 
             if (empty($accountNumber)) {

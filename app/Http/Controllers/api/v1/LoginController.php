@@ -1242,117 +1242,207 @@ public function loginV2(Request $request)
 
     }
 
-    public function loginPin(Request $request)
-    {
-        logInfo($request->all());
+public function loginPin(Request $request)
+{
+    try {
+
+        // 1. Validate request
         $validate = Validator::make($request->all(), [
             'username' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
+
         if ($validate->fails()) {
-            $ra = ["status" => false, "message" => "Username and password fields are required"];
-            return response()->json($ra, 406);
+            return response()->json([
+                'status' => false,
+                'message' => 'Username and password fields are required'
+            ], 406);
         }
 
-        $user = User::where('username', $request->username)->where('pin', $request->password)->first(); //13 is deleted
-        if ($user) {
-            if ($user->login_fails == 4) {
+        // Never log the PIN/password.
+        // 2. Retrieve user and required relationships
+        $user = User::with(['company.sub'])
+            ->where('username', $request->username)
+            ->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid Login Credentials'
+            ], 401);
+        }
+
+        // 3. Check whether the account is already blocked
+        if (in_array($user->status_id, [5, 6])) {
+            return response()->json([
+                'status' => false,
+                'message' => $user->status_id == 6
+                    ? 'Your account has been blocked. Kindly Reset Password'
+                    : 'Your account has been blocked. Kindly contact support to unblock.'
+            ], 401);
+        }
+
+        // 4. Verify PIN
+        if (!hash_equals((string) $user->pin, (string) $request->password)) {
+
+            // Increment failed login attempts only when PIN is incorrect
+            $user->login_fails = ((int) $user->login_fails) + 1;
+
+            // Block account after 5 failed attempts
+            if ($user->login_fails >= 5) {
                 $user->status_id = 6;
-            } else {
-                $user->login_fails += 1;
             }
 
             $user->save();
+
             if ($user->status_id == 6) {
-                return response()->json(['status' => false, 'message' => 'User Account has been blocked. Please contact admin to unlock Account'], 401);
+                return response()->json([
+                    'status' => false,
+                    'message' => 'User Account has been blocked. Please contact admin to unlock Account'
+                ], 401);
             }
 
-        } else {
-            return response()->json(['status' => false, 'message' => 'Invalid Login Credentials'], 401);
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid Login Credentials'
+            ], 401);
         }
 
-        if ($user->company->status_id == 13) {
-            return response()->json(['status' => false, 'message' => 'Invalid Login Credentials'], 404);
-        }
-        if ($user->company->status_id != 1) {
-            return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
-        }
-        /*   if (Auth::user()->company->id == 26 || Auth::user()->company->id == 37/*|| Auth::user()->company->id == 84) {
-            return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
-        }*/
-
-        if (in_array($user->company->id, [26, 32, 33, 37, 51, 52, 54, 57, 83])) {
-            return response()->json(['status' => false, 'message' => 'Encounter error while trying to connect to  institution.. please try again later'], 401);
+        // 5. Successful PIN verification: reset failed login attempts
+        if ((int) $user->login_fails > 0) {
+            $user->login_fails = 0;
+            $user->save();
         }
 
+        // 6. Validate company relationship
+        $company = $user->company;
+
+        if (!$company) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to identify your institution.'
+            ], 401);
+        }
+
+        // 7. Check company status
+        if ($company->status_id == 13) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid Login Credentials'
+            ], 404);
+        }
+
+        if ($company->status_id != 1) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Encounter error while trying to connect to institution. Please try again later'
+            ], 401);
+        }
+
+        // 8. Company restrictions
+        $restrictedCompanies = [26, 32, 33, 37, 51, 52, 54, 57, 83];
+
+        if (in_array((int) $company->id, $restrictedCompanies, true)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Encounter error while trying to connect to institution. Please try again later'
+            ], 401);
+        }
+
+        // 9. Ensure this is a customer account
         if ($user->user_type_id == 2) {
-            return response()->json(['status' => false, 'message' => 'This Account is not a Customer Account'], 401);
+            return response()->json([
+                'status' => false,
+                'message' => 'This Account is not a Customer Account'
+            ], 401);
         }
 
+        // 10. Account approval status
         if ($user->status_id == 7) {
-            return response()->json(['status' => false, 'message' => 'Your Account is currently being reviewed and will be approved soon', 'user' => Auth::user()], 401);
+            return response()->json([
+                'status' => false,
+                'message' => 'Your Account is currently being reviewed and will be approved soon'
+            ], 401);
         }
 
-        if ($user->status_id == 5) {
-            return response()->json(['status' => false, 'message' => 'Your account has been blocked. Kindly contact support to unblock.'], 401);
+        // 11. Check company subscription
+        $subscription = $company->sub;
+
+        if (!$subscription || $subscription->end_date < now()->toDateString()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Please hold on we are carrying out a quick maintenance on our system'
+            ], 400);
         }
 
-        if ($user->status_id == 6) {
-            return response()->json(['status' => false, 'message' => 'Your account has been blocked. Kindly Reset Password'], 401);
+        // 12. Check phone verification
+        if ($user->phone_verification_status_id != 2) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Please verify your phone number before logging in.'
+            ], 401);
         }
 
-        if ($user->company->sub->end_date < Date('Y-m-d')) {
-            $ra = ["status" => false, "message" => "Please hold on we are carrying out a quick maintenance on our system"];
-            return response()->json($ra, 400);
-        }
+        // 13. Prepare user details
+        $userDetails = [
+            'first_name'                   => $user->first_name,
+            'last_name'                    => $user->last_name,
+            'uuid'                         => $user->uuid,
+            'phone'                        => $user->phone,
+            'profile_pic'                  => $user->profile_pic ?? '',
+            'username'                     => $user->username,
+            'bvn'                          => $user->bvn,
+            'bvn_status_id'                => $user->bvn_status_id,
+            'nin'                          => $user->nin,
+            'email'                        => $user->email,
+            'address'                      => $user->address,
+            'sex'                          => $user->sex,
+            'is_agent'                     => $user->is_agent,
+            'virtual_account'              => $user->virtual_account,
+            'account_reference'            => $user->account_reference,
+            'bank_id'                      => $user->bank_id,
+            'validID_file'                 => $user->validID_file,
+            'otherID_file'                 => $user->otherID_file,
+            'company_id'                   => $user->company_id,
+            'status_id'                    => $user->status_id,
+            'phone_verification_status_id' => $user->phone_verification_status_id,
+            'account_officer_id'           => $user->account_officer_id,
+            'branch_id'                    => $user->branch_id,
+            'tier'                         => $user->kyc_level_id,
 
-        if ($user->phone_verification_status_id == 2) {
+            'company' => [
+                'phone' => $company->company_phone,
+                'email' => $company->company_email,
+            ],
+        ];
 
-            $mUser              = $user; //
-            $mUser->login_fails = 0;
-            $mUser->save();
+        // 14. Generate access token
+        $accessToken = $user->createToken('authToken')->accessToken;
 
-            //   \logInfo(json_encode($myUserWallets), "User Wallets");
+        // 15. Return successful login response
+        return response()->json([
+            'status' => true,
+            'message' => 'Login Successful',
+            'data' => [
+                'user' => $userDetails,
+                'access_token' => $accessToken
+            ]
+        ], 200);
 
-            $adminUser = User::where('company_id', $user->company_id)->first();
+    } catch (\Throwable $e) {
 
-            $userDetails = [
-                "first_name"                   => $user->first_name,
-                "last_name"                    => $user->last_name,
-                "uuid"                         => $user->uuid,
-                "phone"                        => $user->phone,
-                "profile_pic"                  => $$user->profile_pic ?? "",
-                "username"                     => $user->username,
-                "bvn"                          => $user->bvn,
-                "bvn_status_id"                => $user->bvn_status_id,
-                "nin"                          => $user->nin,
-                "email"                        => $user->email,
-                "address"                      => $user->address,
-                "sex"                          => $user->sex,
-                "is_agent"                     => $user->is_agent,
-                // "otp" => $request->user()->otp,
-                "virtual_account"              => $user->virtual_account,
-                "account_reference"            => $user->account_reference,
-                "bank_id"                      => $user->bank_id,
-                "validID_file"                 => $user->validID_file,
-                "otherID_file"                 => $user->otherID_file,
-                "company_id"                   => $user->company_id,
-                "status_id"                    => $user->status_id,
-                "phone_verification_status_id" => $user->phone_verification_status_id,
-                "account_officer_id"           => $user->account_officer_id,
-                "branch_id"                    => $user->branch_id,
-                "tier"                         => $user->kyc_level_id,
-                "company"                      => ["phone" => $adminUser->company->company_phone, "email" => $adminUser->company->company_email],
+        logInfo([
+            'error' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ], 'Login PIN Error');
 
-            ];
-
-            $accessToken = $user->createToken('authToken')->accessToken;
-
-            // $accessToken = $this->getTokenAndRefreshToken($request->username, $request->password);
-
-            return response(['status' => true, 'message' => 'Login Successful', 'data' => ['user' => $userDetails, 'access_token' => $accessToken]]);
-        }
+        return response()->json([
+            'status' => false,
+            'message' => 'An error occurred while trying to log in. Please try again later.'
+        ], 500);
     }
+}
 
     private function matchCurrency($currency_id)
     {

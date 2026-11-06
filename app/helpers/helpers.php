@@ -2824,6 +2824,367 @@ function debitCustomerAndCompanyWithChargeServiceWallet(
 
 
 /**
+ * Reverse a completed local customer/company debit after a definitive
+ * bank-provider rejection.
+ *
+ * This function:
+ *  - Restores the customer wallet.
+ *  - Restores the branch wallet.
+ *  - Restores the company wallet.
+ *  - Removes the exact SpendSave contribution credited during the debit.
+ *  - Marks the transaction as reversed (transaction_remarks_id = 5).
+ *
+ * All operations are atomic and protected against duplicate reversals.
+ *
+ * IMPORTANT:
+ * $spendSaveCash must be the exact value returned by the original
+ * finovaDebitCustomerAndCompany() call.
+ */
+function reverseCustomerAndCompanyTransferDebit(
+    $customerAccountId,
+    $companyId,
+    $originalAmount,
+    $customerCharge,
+    $companyCharge,
+    $user = null,
+    $companyDebitBankCode = null,
+    $transactionReference = null,
+    $spendSaveCash = 0
+) {
+    $currentUser = \Illuminate\Support\Facades\Auth::user() ?? $user;
+
+    if (!$currentUser) {
+        return [
+            'status' => false,
+            'message' => 'Unable to identify the customer for reversal.',
+        ];
+    }
+
+    $originalAmount = (float) $originalAmount;
+    $customerCharge = (float) $customerCharge;
+    $companyCharge = (float) $companyCharge;
+    $spendSaveCash = (float) $spendSaveCash;
+
+    if (
+        !is_finite($originalAmount) ||
+        !is_finite($customerCharge) ||
+        !is_finite($companyCharge) ||
+        !is_finite($spendSaveCash) ||
+        $originalAmount <= 0 ||
+        $customerCharge < 0 ||
+        $companyCharge < 0 ||
+        $spendSaveCash < 0 ||
+        empty($transactionReference)
+    ) {
+        return [
+            'status' => false,
+            'message' => 'Invalid reversal information supplied.',
+        ];
+    }
+
+    try {
+        return \Illuminate\Support\Facades\DB::transaction(
+            function () use (
+                $customerAccountId,
+                $companyId,
+                $originalAmount,
+                $customerCharge,
+                $companyCharge,
+                $currentUser,
+                $companyDebitBankCode,
+                $transactionReference,
+                $spendSaveCash
+            ) {
+                /*
+                 * 1. LOCK AND VALIDATE THE TRANSACTION
+                 *
+                 * Status 1 means pending/processing.
+                 * Status 5 means already reversed.
+                 */
+
+                $transaction = transactions::where(
+                    'transaction_reference',
+                    $transactionReference
+                )
+                    ->where('company_id', $companyId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$transaction) {
+                    throw new \RuntimeException(
+                        'Transaction record not found for reversal.'
+                    );
+                }
+
+                if ((int) $transaction->transaction_remarks_id === 5) {
+                    return [
+                        'status' => false,
+                        'message' => 'This transaction has already been reversed.',
+                    ];
+                }
+
+                if ((int) $transaction->transaction_remarks_id !== 1) {
+                    throw new \RuntimeException(
+                        'Transaction is not in the expected processing state.'
+                    );
+                }
+
+                if (
+                    !empty($transaction->account_id) &&
+                    (int) $transaction->account_id !== (int) $customerAccountId
+                ) {
+                    throw new \RuntimeException(
+                        'Transaction account does not match the reversal account.'
+                    );
+                }
+
+                if (
+                    abs(
+                        (float) $transaction->amount - $originalAmount
+                    ) > 0.000001
+                ) {
+                    throw new \RuntimeException(
+                        'Transaction amount does not match the reversal amount.'
+                    );
+                }
+
+                /*
+                 * 2. VALIDATE THE CUSTOMER ACCOUNT
+                 */
+
+                $account = wb_account_details::where(
+                    'id',
+                    $customerAccountId
+                )->lockForUpdate()->first();
+
+                if (!$account) {
+                    throw new \RuntimeException(
+                        'Customer account details not found.'
+                    );
+                }
+
+                if (
+                    (int) $account->user_id !== (int) $currentUser->id
+                ) {
+                    throw new \RuntimeException(
+                        'Customer account ownership could not be verified.'
+                    );
+                }
+
+                /*
+                 * 3. LOCK THE CUSTOMER WALLET
+                 */
+
+                $userWallet = user_wallet::where(
+                    'wb_account_detail_id',
+                    $customerAccountId
+                )->lockForUpdate()->first();
+
+                if (!$userWallet) {
+                    throw new \RuntimeException(
+                        'Customer wallet not found during reversal.'
+                    );
+                }
+
+                /*
+                 * 4. LOCK THE COMPANY WALLET
+                 */
+
+                $companyWallet = company_wallet::where(
+                    'company_id',
+                    $companyId
+                )->lockForUpdate()->first();
+
+                if (!$companyWallet) {
+                    throw new \RuntimeException(
+                        'Company wallet not found during reversal.'
+                    );
+                }
+
+                /*
+                 * 5. LOCK THE BRANCH WALLET
+                 *
+                 * Use the customer's current branch.
+                 */
+
+                $branchId = $currentUser->branch_id ?? null;
+
+                if (!$branchId) {
+                    throw new \RuntimeException(
+                        'Customer branch is not configured.'
+                    );
+                }
+
+                $branchWallet = BranchWallet::where(
+                    'branch_id',
+                    $branchId
+                )->lockForUpdate()->first();
+
+                if (!$branchWallet) {
+                    throw new \RuntimeException(
+                        'Branch wallet not found during reversal.'
+                    );
+                }
+
+                /*
+                 * 6. LOCK SPENDSAVE
+                 *
+                 * Do not recalculate the contribution.
+                 * Use the exact amount from the original debit.
+                 */
+
+                $spendSaveSettings = null;
+
+                if ($spendSaveCash > 0) {
+                    $spendSaveSettings = SpendSave::where(
+                        'user_id',
+                        $account->user_id
+                    )->lockForUpdate()->first();
+
+                    if (!$spendSaveSettings) {
+                        throw new \RuntimeException(
+                            'SpendSave record not found. Manual reconciliation is required.'
+                        );
+                    }
+
+                    if (
+                        (float) $spendSaveSettings->balance
+                        < $spendSaveCash
+                    ) {
+                        throw new \RuntimeException(
+                            'SpendSave balance is insufficient to reverse the original contribution. Manual reconciliation is required.'
+                        );
+                    }
+                }
+
+                /*
+                 * 7. CALCULATE THE EXACT ORIGINAL DEBIT AMOUNTS
+                 */
+
+                $customerDebit = $originalAmount
+                    + $customerCharge
+                    + $spendSaveCash;
+
+                $companyDebit = $originalAmount
+                    + $companyCharge;
+
+                /*
+                 * 8. RESTORE CUSTOMER WALLET
+                 */
+
+                $userWallet->balance =
+                    (float) $userWallet->balance + $customerDebit;
+
+                if (!$userWallet->save()) {
+                    throw new \RuntimeException(
+                        'Failed to restore customer wallet.'
+                    );
+                }
+
+                /*
+                 * 9. RESTORE BRANCH WALLET
+                 */
+
+                $branchWallet->balance =
+                    (float) $branchWallet->balance + $customerDebit;
+
+                if (!$branchWallet->save()) {
+                    throw new \RuntimeException(
+                        'Failed to restore branch wallet.'
+                    );
+                }
+
+                /*
+                 * 10. RESTORE COMPANY WALLET
+                 */
+
+                $companyWallet->balance =
+                    (float) $companyWallet->balance + $companyDebit;
+
+                if (!$companyWallet->save()) {
+                    throw new \RuntimeException(
+                        'Failed to restore company wallet.'
+                    );
+                }
+
+                /*
+                 * 11. REMOVE THE ORIGINAL SPENDSAVE CONTRIBUTION
+                 */
+
+                if ($spendSaveCash > 0) {
+                    $spendSaveSettings->balance =
+                        (float) $spendSaveSettings->balance
+                        - $spendSaveCash;
+
+                    if (!$spendSaveSettings->save()) {
+                        throw new \RuntimeException(
+                            'Failed to reverse SpendSave contribution.'
+                        );
+                    }
+                }
+
+                /*
+                 * 12. MARK THE TRANSACTION AS REVERSED
+                 *
+                 * This happens in the same database transaction
+                 * as all four balance updates.
+                 */
+
+                $transaction->transaction_remarks_id = 5;
+                $transaction->save();
+
+                /*
+                 * 13. AUDIT LOG
+                 */
+
+                logInfo([
+                    'transaction_reference' => $transactionReference,
+                    'customer_account_id' => $customerAccountId,
+                    'company_id' => $companyId,
+                    'branch_id' => $branchId,
+                    'company_debit_bank_code' => $companyDebitBankCode,
+                    'original_amount' => $originalAmount,
+                    'customer_charge' => $customerCharge,
+                    'company_charge' => $companyCharge,
+                    'spend_save_reversed' => $spendSaveCash,
+                    'customer_wallet_restored' => $customerDebit,
+                    'branch_wallet_restored' => $customerDebit,
+                    'company_wallet_restored' => $companyDebit,
+                ], 'CUSTOMER COMPANY TRANSFER REVERSAL COMPLETED');
+
+                return [
+                    'status' => true,
+                    'message' => 'Customer and company transfer debit successfully reversed.',
+                    'transaction_reference' => $transactionReference,
+                    'customer_wallet_restored' => $customerDebit,
+                    'branch_wallet_restored' => $customerDebit,
+                    'company_wallet_restored' => $companyDebit,
+                    'spend_save_reversed' => $spendSaveCash,
+                    'transaction_remarks_id' => 5,
+                ];
+            },
+            3
+        );
+    } catch (\Throwable $e) {
+        logInfo([
+            'transaction_reference' => $transactionReference,
+            'customer_account_id' => $customerAccountId,
+            'company_id' => $companyId,
+            'company_debit_bank_code' => $companyDebitBankCode,
+            'error' => $e->getMessage(),
+        ], 'CUSTOMER COMPANY TRANSFER REVERSAL FAILED');
+
+        return [
+            'status' => false,
+            'message' => 'Transfer reversal failed. Manual reconciliation is required.',
+            'error' => $e->getMessage(),
+        ];
+    }
+}
+
+
+
+/**
  * Standard balance check: no wallet balances are changed.
  */
 function checkCustomerAndCompanyWithCharge(

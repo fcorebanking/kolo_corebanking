@@ -1637,6 +1637,7 @@ public function transferToBankAccount(Request $request)
     $transactionStarted = false;
     $providerSucceeded = false;
     $localDebitCompleted = false;
+    $providerCallStarted = false;
     $transaction = null;
     $debitCustomer = null;
 
@@ -2224,23 +2225,89 @@ public function transferToBankAccount(Request $request)
             });
 
         } catch (\Throwable $localDebitException) {
+
+    logInfo([
+        'transaction_reference' => $transactionReference,
+        'company_id' => $currentUser->company_id,
+        'local_debit_completed' => $localDebitCompleted,
+        'exception_class' => get_class($localDebitException),
+        'exception_message' => $localDebitException->getMessage(),
+    ], 'LOCAL DEBIT OR DEBIT RECORDING EXCEPTION');
+
+    /*
+     * If the debit was completed but saving its transaction
+     * details failed, the provider has NOT been called yet.
+     *
+     * Therefore, it is safe to reverse the local debit.
+     */
+    if ($localDebitCompleted && is_array($debitCustomer)) {
+
+        $reversal = reverseCustomerAndCompanyTransferDebit(
+            $accountId,
+            $currentUser->company_id,
+            $amount,
+            $charge,
+            $wbaCharge,
+            $currentUser,
+            (int) $companyDebitBankCode,
+            $transactionReference,
+            (float) ($debitCustomer['spend_save_cash'] ?? 0)
+        );
+
+        if (!is_array($reversal) || !($reversal['status'] ?? false)) {
+
             logInfo([
                 'transaction_reference' => $transactionReference,
                 'company_id' => $currentUser->company_id,
-                'exception_class' =>
-                    get_class($localDebitException),
-                'exception_message' =>
-                    $localDebitException->getMessage(),
-            ], 'LOCAL DEBIT EXCEPTION BEFORE PROVIDER');
+                'reversal_result' => $reversal,
+            ], 'CRITICAL: PRE-PROVIDER LOCAL REVERSAL FAILED');
 
             return response()->json([
                 'status' => false,
-                'message' =>
-                    'Unable to process the local debit. Please try again.',
-                'transaction_reference' =>
-                    $transactionReference,
+                'message' => 'The local debit was completed, but reversal requires reconciliation. Please contact support. Do not retry this reference.',
+                'transaction_reference' => $transactionReference,
             ], 500);
         }
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to complete the transfer. The local debit has been reversed successfully.',
+            'transaction_reference' => $transactionReference,
+        ], 400);
+    }
+
+    /*
+     * If the debit helper did not complete successfully,
+     * no reversal is required.
+     */
+    DB::transaction(function () use (
+        $transactionReference,
+        $currentUser
+    ) {
+
+        $failedTransaction = transactions::where(
+            'transaction_reference',
+            $transactionReference
+        )
+            ->where('company_id', $currentUser->company_id)
+            ->lockForUpdate()
+            ->first();
+
+        if (
+            $failedTransaction &&
+            (int) $failedTransaction->transaction_remarks_id === 1
+        ) {
+            $failedTransaction->transaction_remarks_id = 3;
+            $failedTransaction->save();
+        }
+    });
+
+    return response()->json([
+        'status' => false,
+        'message' => 'Unable to process the local debit. Please try again.',
+        'transaction_reference' => $transactionReference,
+    ], 500);
+    }
 
         /*
          * ============================================================
@@ -2295,10 +2362,13 @@ public function transferToBankAccount(Request $request)
          */
 
         try {
-            $bankTransfer =
-                $ebankingService->transferToBankAccount(
-                    $bankTransferType
-                );
+
+    // From this point onward, the provider may receive the request.
+    $providerCallStarted = true;
+
+    $bankTransfer = $ebankingService->transferToBankAccount(
+        $bankTransferType
+    );
 
         } catch (\Throwable $providerException) {
 
@@ -2399,124 +2469,108 @@ public function transferToBankAccount(Request $request)
 
         if ((string) $bankTransfer['status'] !== '00') {
 
-            /*
-             * Only statuses 01/02/03 are treated as definitive
-             * failures according to the current provider contract.
-             */
-            if (
-                in_array(
-                    (string) $bankTransfer['status'],
-                    ['01', '02', '03'],
-                    true
-                )
-            ) {
+    /*
+     * Only these statuses are currently treated as definitive
+     * provider failures under your existing provider-status logic.
+     */
+    if (in_array(
+        (string) $bankTransfer['status'],
+        ['01', '02', '03'],
+        true
+    )) {
 
-                /*
-                 * The provider definitely rejected the transfer.
-                 *
-                 * Since we already debited locally, reverse the
-                 * local debit BEFORE marking the transaction reversed.
-                 */
-                if ($localDebitCompleted) {
-                    $reversal = reverseCustomerAndCompanyTransferDebit(
-                        $accountId,
-                        $currentUser->company_id,
-                        $amount,
-                        $charge,
-                        $wbaCharge,
-                        $currentUser,
-                        (int) $companyDebitBankCode
-                    );
+        /*
+         * A definitive provider rejection means the local
+         * debit must be reversed.
+         */
+        if (!$localDebitCompleted || !is_array($debitCustomer)) {
 
-                    if (
-                        !is_array($reversal) ||
-                        !($reversal['status'] ?? false)
-                    ) {
-                        logInfo([
-                            'transaction_reference' =>
-                                $transactionReference,
-
-                            'company_id' =>
-                                $currentUser->company_id,
-
-                            'provider_response' =>
-                                $bankTransfer,
-
-                            'reversal_result' =>
-                                is_array($reversal)
-                                    ? $reversal
-                                    : gettype($reversal),
-
-                        ], 'CRITICAL: PROVIDER FAILED BUT LOCAL REVERSAL FAILED');
-
-                        /*
-                         * DO NOT mark this as normally failed because
-                         * the customer's local debit still exists.
-                         */
-                        return response()->json([
-                            'status' => false,
-                            'message' =>
-                                'The bank transfer failed, but the local reversal requires reconciliation. Please contact support. Do not retry this reference.',
-                            'transaction_reference' =>
-                                $transactionReference,
-                        ], 500);
-                    }
-                }
-
-                DB::transaction(function () use (
-                    $transactionReference,
-                    $currentUser
-                ) {
-                    $failedTransaction = transactions::where(
-                        'transaction_reference',
-                        $transactionReference
-                    )
-                        ->where(
-                            'company_id',
-                            $currentUser->company_id
-                        )
-                        ->lockForUpdate()
-                        ->first();
-
-                    if (
-                        $failedTransaction &&
-                        (int) $failedTransaction->transaction_remarks_id === 1
-                    ) {
-                        $failedTransaction->transaction_remarks_id = 3;
-                        $failedTransaction->save();
-                    }
-                });
-
-                $bankTransfer['status'] = false;
-
-                return response()->json(
-                    $bankTransfer,
-                    400
-                );
-            }
-
-            /*
-             * Unknown/non-definitive provider status.
-             *
-             * Do NOT reverse because the provider outcome is uncertain.
-             */
             logInfo([
-                'transaction_reference' =>
-                    $transactionReference,
-
-                'provider_status' =>
-                    $bankTransfer['status'],
-
-            ], 'BANK TRANSFER STATUS AMBIGUOUS - RECONCILIATION REQUIRED');
+                'transaction_reference' => $transactionReference,
+                'provider_status' => $bankTransfer['status'],
+                'local_debit_completed' => $localDebitCompleted,
+            ], 'CRITICAL: PROVIDER REJECTED BUT LOCAL DEBIT STATE IS MISSING');
 
             return response()->json([
                 'status' => false,
-                'message' =>
-                    'Transfer status could not be confirmed. Please contact support.',
-                'transaction_reference' =>
-                    $transactionReference,
+                'message' => 'Transfer requires reconciliation. Please contact support.',
+                'transaction_reference' => $transactionReference,
             ], 500);
         }
+
+        $reversal = reverseCustomerAndCompanyTransferDebit(
+            $accountId,
+            $currentUser->company_id,
+            $amount,
+            $charge,
+            $wbaCharge,
+            $currentUser,
+            (int) $companyDebitBankCode,
+            $transactionReference,
+            (float) ($debitCustomer['spend_save_cash'] ?? 0)
+        );
+
+        if (
+            !is_array($reversal) ||
+            !($reversal['status'] ?? false)
+        ) {
+
+            logInfo([
+                'transaction_reference' => $transactionReference,
+                'company_id' => $currentUser->company_id,
+                'provider_status' => $bankTransfer['status'],
+                'provider_response' => $bankTransfer,
+                'reversal_result' => $reversal,
+            ], 'CRITICAL: PROVIDER FAILED BUT LOCAL REVERSAL FAILED');
+
+            /*
+             * Do not mark this transaction as normally failed.
+             * The local debit still exists and needs reconciliation.
+             */
+            return response()->json([
+                'status' => false,
+                'message' => 'The bank transfer failed, but the local reversal requires reconciliation. Please contact support. Do not retry this reference.',
+                'transaction_reference' => $transactionReference,
+            ], 500);
+        }
+
+        /*
+         * IMPORTANT:
+         * The reversal helper already marks the transaction
+         * transaction_remarks_id = 5.
+         *
+         * DO NOT run another DB transaction to change it to 3.
+         */
+
+        logInfo([
+            'transaction_reference' => $transactionReference,
+            'provider_status' => $bankTransfer['status'],
+            'reversal_result' => $reversal,
+        ], 'BANK TRANSFER FAILED AND LOCAL DEBIT REVERSED');
+
+        $bankTransfer['status'] = false;
+
+        return response()->json(
+            $bankTransfer,
+            400
+        );
+    }
+
+    /*
+     * Unknown or non-definitive provider status.
+     * Do not reverse because the provider outcome is uncertain.
+     */
+    logInfo([
+        'transaction_reference' => $transactionReference,
+        'provider_status' => $bankTransfer['status'],
+    ], 'BANK TRANSFER STATUS AMBIGUOUS - RECONCILIATION REQUIRED');
+
+    return response()->json([
+        'status' => false,
+        'message' => 'Transfer status could not be confirmed. Please contact support.',
+        'transaction_reference' => $transactionReference,
+    ], 500);
+ }
 
         /*
          * ============================================================
@@ -2801,15 +2855,58 @@ public function transferToBankAccount(Request $request)
          * without a definitive provider response, DO NOT automatically
          * reverse. The provider outcome may still be unknown.
          */
-        if ($localDebitCompleted) {
-            return response()->json([
-                'status' => false,
-                'message' =>
-                    'Transfer status could not be confirmed. Please contact support; do not retry this reference.',
-                'transaction_reference' =>
-                    $transactionReference,
-            ], 500);
-        }
+        /*
+ * If the local debit happened but the provider call never started,
+ * the provider cannot have processed this transfer through this
+ * execution path. Reverse the local debit.
+ */
+ if ($localDebitCompleted && !$providerCallStarted) {
+
+    $reversal = reverseCustomerAndCompanyTransferDebit(
+        $accountId,
+        $currentUser->company_id,
+        $amount,
+        $charge,
+        $wbaCharge,
+        $currentUser,
+        (int) $companyDebitBankCode,
+        $transactionReference,
+        (float) ($debitCustomer['spend_save_cash'] ?? 0)
+    );
+
+    if (!is_array($reversal) || !($reversal['status'] ?? false)) {
+
+        logInfo([
+            'transaction_reference' => $transactionReference,
+            'reversal_result' => $reversal,
+        ], 'CRITICAL: OUTER CATCH REVERSAL FAILED');
+
+        return response()->json([
+            'status' => false,
+            'message' => 'The local debit requires reconciliation. Please contact support. Do not retry this reference.',
+            'transaction_reference' => $transactionReference,
+        ], 500);
+    }
+
+    return response()->json([
+        'status' => false,
+        'message' => 'Transfer processing failed before reaching the bank provider. Your local debit has been reversed.',
+        'transaction_reference' => $transactionReference,
+    ], 500);
+ }
+
+ /*
+ * If the provider call started, its outcome may be unknown.
+ * Do not automatically reverse.
+ */
+ if ($localDebitCompleted) {
+
+    return response()->json([
+        'status' => false,
+        'message' => 'Transfer status could not be confirmed. Please contact support; do not retry this reference.',
+        'transaction_reference' => $transactionReference,
+    ], 500);
+ }
 
         return response()->json([
             'status' => false,

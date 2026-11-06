@@ -32,77 +32,147 @@ class UserController extends Controller
         // return User::all();
     }
     //
-    public function getDetails(Request $request)
-    {
-        try {
 
-            $userDetails = [];
+public function getDetails(Request $request)
+{
+    try {
 
-            // return $request->user();
+        $userDetails = [];
 
-            if ($request->user()->user_type_id == 1) {
+        $user = $request->user();
 
-                $userWallet = user_wallet::where('wb_account_detail_id', $request->user()->accounts->first()->id)->first();
-
-                $myUserWallets = [];
-
-                foreach ($request->user()->accounts as $key => $wallet) {
-                    $userWallet = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
-
-                    $myUserWallets[] = array("account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance);
-                }
-
-                $virtualCard = UserCard::where('user_id', auth()->user()->id)->get();
-
-                $sliders = CarouselImage::where('status_id', 1)->get("image_url");
-
-
-                if (!$virtualCard) {
-                    $virtualCard = [];
-                }
-
-                $userDetails = [
-                    "first_name" => $request->user()->first_name,
-                    "last_name" => $request->user()->last_name,
-                    "phone" => $request->user()->phone,
-                    "profile_pic" => $request->user()->profile_pic,
-                    "username" => $request->user()->username,
-                    "bvn" => $request->user()->bvn,
-                    "bvn_status_id" => $request->user()->bvn_status_id,
-                    "nin" => $request->user()->nin,
-                    "dob" => $request->user()->dob,
-                    "signature" => $request->user()->signature,
-                    "email" => $request->user()->email,
-                    "address" => $request->user()->address,
-                    "sex" => $request->user()->sex,
-                    "otp" => $request->user()->otp,
-                    "virtual_account" => $request->user()->virtual_account,
-                    "account_reference" => $request->user()->account_reference,
-                    "bank_id" => $request->user()->bank_id,
-                    "validID_file" => $request->user()->validID_file,
-                    "otherID_file" => $request->user()->otherID_file,
-                    "company_id" => $request->user()->company_id,
-                    "status_id" => $request->user()->status_id,
-                    "phone_verification_status_id" => $request->user()->phone_verification_status_id,
-                    "account_officer_id" => $request->user()->account_officer_id,
-                    "branch_id" => $request->user()->branch_id,
-                    "balance" => $userWallet->balance,
-                    "wallets" => $myUserWallets,
-                    "cards" => $virtualCard,
-                    "sliders" => $sliders,
-                    "is_card_available" => count($virtualCard) > 0,
-                    "accounts" => wb_account_details::with('user_wallet')->with('accountType')->where('user_id', $request->user()->id)->get(), //$request->user()->wb_account_details,
-                ];
-
-                return response()->json(['status' => true, 'message' => 'User Details Fetched successfully', 'data' => $userDetails]);
-            } else {
-                return response()->json(['status' => false, 'message' => 'Failed to fetch user details', 'data' => $userDetails]);
-            }
-        } catch (\Exception $e) {
-            return \response()->json(['status' => false, 'message' => $e->getMessage(), 'data' => []], 500);
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthenticated',
+                'data' => []
+            ], 401);
         }
-        // return User::all();
+
+        if ($user->user_type_id == 1) {
+
+            $accounts = $user->accounts;
+
+            $firstAccount = $accounts->first();
+
+            $userWallet = $firstAccount
+                ? user_wallet::where(
+                    'wb_account_detail_id',
+                    $firstAccount->id
+                )->first()
+                : null;
+
+            $myUserWallets = [];
+
+            $totalWalletBalance = user_wallet::whereIn(
+                   'wb_account_detail_id',
+                    $accounts->pluck('id')
+                    )->sum('balance');
+
+            foreach ($accounts as $wallet) {
+
+                $accountWallet = user_wallet::where(
+                    'wb_account_detail_id',
+                    $wallet->id
+                )->first();
+
+                $myUserWallets[] = [
+                    'account_id' => $wallet->id,
+                    'account_number' => $wallet->virtual_accnum,
+                    'bank_id' => $wallet->bank->id ?? null,
+                    'bank' => $wallet->bank->bank_name ?? null,
+                    'product_name' => $wallet->accountType->savings_product ?? null,
+                    'wallet_balance' => $accountWallet->balance ?? 0,
+                ];
+            }
+
+            $virtualCard = UserCard::where('user_id', $user->id)->get();
+
+            $sliders = CarouselImage::where('status_id', 1)
+                ->get('image_url');
+
+            $userDetails = [
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'phone' => $user->phone,
+                'profile_pic' => $user->profile_pic,
+                'username' => $user->username,
+
+                'bvn' => $user->bvn,
+                'bvn_status_id' => $user->bvn_status_id,
+
+                // Important: Always return this field, even when null.
+                'bvn_verified_at' => $user->bvn_verified_at,
+
+                'nin' => $user->nin,
+                'dob' => $user->dob,
+                'signature' => $user->signature,
+                'email' => $user->email,
+                'address' => $user->address,
+                'sex' => $user->sex,
+                'otp' => $user->otp,
+
+                'virtual_account' => $user->virtual_account,
+                'account_reference' => $user->account_reference,
+                'bank_id' => $user->bank_id,
+
+                'validID_file' => $user->validID_file,
+                'otherID_file' => $user->otherID_file,
+
+                'company_id' => $user->company_id,
+                'status_id' => $user->status_id,
+                'phone_verification_status_id' => $user->phone_verification_status_id,
+                'account_officer_id' => $user->account_officer_id,
+                'branch_id' => $user->branch_id,
+
+                'balance' => $userWallet->balance ?? 0,
+
+                'wallets' => $myUserWallets,
+                'cards' => $virtualCard,
+                'sliders' => $sliders,
+
+                'is_card_available' => $virtualCard->count() > 0,
+
+                'accounts' => wb_account_details::with([
+                    'user_wallet',
+                    'accountType'
+                ])
+                    ->where('user_id', $user->id)
+                    ->get(),
+                    
+                'total_wallet_balance' => (float) $totalWalletBalance,
+            ];
+
+            return response()->json([
+                'status' => true,
+                'message' => 'User Details Fetched successfully',
+                'data' => $userDetails
+            ]);
+
+        }
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Failed to fetch user details',
+            'data' => $userDetails
+        ]);
+
+    } catch (\Throwable $e) {
+
+        logInfo([
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ], 'Get User Details Error');
+
+        return response()->json([
+            'status' => false,
+            'message' => $e->getMessage(),
+            'data' => []
+        ], 500);
     }
+}
+
 
 
     public function uploadFile(Request $request)

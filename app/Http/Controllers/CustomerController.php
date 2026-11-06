@@ -435,6 +435,8 @@ public function create_customer_account(Request $request)
         }
     }
 
+    $bvnVerifiedAt = null;
+
     /*
     |--------------------------------------------------------------------------
     | Virtual Account Creation
@@ -690,18 +692,29 @@ public function create_customer_account(Request $request)
             "Virtual Account Creation Service Response"
         );
 
-        if (! $response['status']) {
+        if (!($response['status'] ?? false)) {
 
-            $response['status'] = 0;
+    $response['status'] = 0;
 
-            return response()->json($response);
-        }
+    return response()->json($response);
+}
 
-        $customer_reference =
-            $response['data']['account_reference'];
+// Virtual account creation succeeded.
+// Mark BVN onboarding as completed.
+$bvnVerifiedAt = now();
 
-        $virtual_acccount_number =
-            $response['data']['virtual_account'];
+$customer_reference =
+    $response['data']['account_reference'] ?? $customer_reference;
+
+$virtual_acccount_number =
+    $response['data']['virtual_account'] ?? null;
+
+if (empty($virtual_acccount_number)) {
+    return response()->json([
+        'status' => false,
+        'message' => 'Virtual account creation succeeded but no account number was returned.'
+    ], 422);
+}
     }
 
     /*
@@ -740,6 +753,7 @@ public function create_customer_account(Request $request)
         'ussd_status_id'     => $ussd_control,
         'whatsapp_status_id' => $whatsapp_control,
         'account_reference'  => $customer_reference,
+        'bvn_verified_at' => $bvnVerifiedAt,
     ]);
 
     NextOfKinDetail::create([

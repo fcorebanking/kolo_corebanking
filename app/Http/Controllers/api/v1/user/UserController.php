@@ -137,6 +137,7 @@ class UserController extends Controller
                     "username"                     => $request->user()->username,
                     "bvn"                          => $request->user()->bvn,
                     "bvn_status_id"                => $request->user()->bvn_status_id,
+                    "bvn_verified_at"              => $request->user()->bvn_verified_at,
                     "nin"                          => $request->user()->nin,
                     "dob"                          => $request->user()->dob,
                     "signature"                    => $request->user()->signature,

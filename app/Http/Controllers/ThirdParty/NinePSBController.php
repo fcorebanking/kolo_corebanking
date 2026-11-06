@@ -124,16 +124,15 @@ class NinePSBController extends WebhookController
                     ->timeout(60)
                     ->post($url, $body);
 
-            logInfo([
-    'http_status' => $response->status(),
-    'code'        => $responseData['code'] ?? null,
-    'message'     => $responseData['message'] ?? null,
-    'token_received' => !empty($responseData['access_token']),
-    'expires_in'  => $responseData['expires_in'] ?? null,
-], "9PSB Login Response");
+            $responseData = $response->json() ?? [];
 
-            $responseData =
-                $response->json();
+        logInfo([
+          'http_status' => $response->status(),
+          'code' => $responseData['code'] ?? null,
+          'message' => $responseData['message'] ?? null,
+          'token_received' => !empty($responseData['access_token']),
+          'expires_in' => $responseData['expires_in'] ?? null,
+                ], "9PSB Login Response");
 
             if (
                 $response->successful() &&
@@ -419,7 +418,7 @@ class NinePSBController extends WebhookController
 
         $url =
             $this->baseUrl .
-            "/account/enquiry";
+            "/ipaymw-api/v1/merchant/account/enquiry";
 
         try {
 
@@ -547,7 +546,7 @@ class NinePSBController extends WebhookController
     ) {
         $url =
             $this->baseUrl .
-            "/account/transfer/status?reference=" .
+            "/ipaymw-api/v1/merchant/account/transfer/status?reference=" .
             urlencode($transactionReference);
 
         /*
@@ -719,7 +718,7 @@ class NinePSBController extends WebhookController
 
         $url =
             $this->baseUrl .
-            "/account/transfer/reversalstatus";
+            "/ipaymw-api/v1/merchant/account/transfer/reversalstatus";
 
         try {
 
@@ -921,7 +920,7 @@ class NinePSBController extends WebhookController
 
         $url =
             $this->baseUrl .
-            "/account/transfers";
+            "/ipaymw-api/v1/merchant/account/transfer";
 
         try {
 

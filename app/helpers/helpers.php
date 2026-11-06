@@ -2449,7 +2449,7 @@ function finovaCheckTransferBalances(
                 }
 
                 if ($enforceCompanyThreshold) {
-                    $companyIDsWithThresholdExemption = [1, 29, 36, 43];
+                    $companyIDsWithThresholdExemption = [1, 29, 36, 43, 91];
 
                     $companyHasExemption = in_array(
                         (int) $companyId,
@@ -2665,7 +2665,7 @@ function finovaDebitCustomerAndCompany(
                 }
 
                 if ($enforceCompanyThreshold) {
-                    $companyIDsWithThresholdExemption = [1, 29, 36, 43];
+                    $companyIDsWithThresholdExemption = [1, 29, 36, 43, 91];
 
                     $companyHasExemption = in_array(
                         (int) $companyId,

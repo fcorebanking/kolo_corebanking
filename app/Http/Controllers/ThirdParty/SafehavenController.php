@@ -121,7 +121,7 @@ class SafehavenController extends WebhookController
                 "identityNumber"    => $type == "NIN" ? $nin : $bvn,
                 "identityType"      => $type == "NIN" ? "NIN" : "BVN",
                 "otp"               => $otp,
-                "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
+                "callbackUrl"       => "https://mykolo.tech/api/v1/transactions/safehaven-webhook",
 
             ];
 
@@ -139,7 +139,7 @@ class SafehavenController extends WebhookController
                 "identityType"      => $type == "NIN" ? "NIN" : "BVN",
                 "dateOfBirth"       => $dob,
                 "booleanMatch"      => true,
-                "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
+                "callbackUrl"       => "https://mykolo.tech/api/v1/transactions/safehaven-webhook",
 
             ];
 
@@ -197,7 +197,7 @@ class SafehavenController extends WebhookController
                 "identityType"      => "BVN",
                 "dateOfBirth"       => $dob,
                 "booleanMatch"      => true,
-                "callbackUrl"       => "https://core.finova.ng/api/v1/transactions/safehaven-webhook",
+                "callbackUrl"       => "https://mykolo.tech/api/v1/transactions/safehaven-webhook",
 
             ];
 

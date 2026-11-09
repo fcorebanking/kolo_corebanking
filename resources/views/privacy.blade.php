@@ -391,7 +391,7 @@ DEFINITIONS
 
                 <div class="logo">
 
-                    <a href="https://core.finova.ng" class="sidebarCollapse"><img src="LOGO.png" alt="Finova Logo"
+                    <a href="https://mykolo.tech/" class="sidebarCollapse"><img src="LOGO.png" alt="Finova Logo"
                             width="93" height="46"></a>
 
                     <div>
@@ -418,7 +418,7 @@ DEFINITIONS
 
                 </ul>
 
-                <a href="https://core.finova.ng/register" class="download-btn">
+                <a href="https://mykolo.tech/register" class="download-btn">
                     Sign up</a>
             </nav>
 

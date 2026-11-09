@@ -94,7 +94,7 @@ class WebCron
         logInfo(json_encode($data), "webhook data");
 
         $webhook = WebhookCall::create()
-            ->url("https://core.finova.ng/api/v1/test-finova-webhook")
+            ->url("https://mykolo.tech/api/v1/test-finova-webhook")
             ->payload(['data' => $data])
             ->useSecret('finova-my-secret')
             ->dispatch();

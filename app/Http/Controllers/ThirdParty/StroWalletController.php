@@ -32,7 +32,7 @@ class StroWalletController extends WebhookController
                 "email"        => $email,
                 "account_name" => "{$firstName} {$lastName}",
                 "phone"       => $phone,
-                "webhook_url" => "https://core.finova.ng/api/v1/transactions/strowallet-webhook",
+                "webhook_url" => "https://mykolo.tech/api/v1/transactions/strowallet-webhook",
 
             ];
 

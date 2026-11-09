@@ -15,7 +15,7 @@
 @include('inc.function')
 @php
     if ($page_menu == 'wired_banking_onboarding_setup_page') {
-        $page_menu = 'Finova Setup Page';
+        $page_menu = 'Kolopay Setup Page';
     }
 
 @endphp

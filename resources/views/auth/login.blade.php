@@ -12,7 +12,7 @@
 
                             {{-- <h1 class=""><a href="{{ url('/') }}"><span class="brand-name"><img src="logo/wbanew.png"></span></a> --}}
                             <h1 class=""><a href="{{ url('/') }}"><span class="brand-name"><img
-                                            src="{{ asset('assets/images/kolopay_logo.png') }}" height="100"
+                                            src="{{ asset('assets/images/kolopay_logo.png') }}" height="110"
                                             width="150"></span></a>
 
                             </h1>

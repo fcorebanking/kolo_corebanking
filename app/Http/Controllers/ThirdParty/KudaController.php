@@ -129,8 +129,6 @@ public function loginForMaintenance()
 {
     $maintenanceEmail = config(
         'kuda.email_maintenance', 
-        // 'johnaje557@gmail.com',
-        'simtec247@gmail.com'
     );
 
     if (empty($maintenanceEmail)) {

@@ -4,19 +4,19 @@ return [
     //Test Variables
     'grant_type_test'            => env('SAFEHAVEN_GRANT_TYPE_TEST', 'client_credentials'),
     'client_assertion_type_test' => env('SAFEHAVEN_CLIENT_ASSERTION_TYPE_TEST', 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'),
-    'client_id_test'             => env('SAFEHAVEN_CLIENT_ID_TEST', '043a500992a0308a607d8e9665836b34'),
-    'client_assertion_test'      => env('SAFEHAVEN_CLIENT_ASSERTION_TEST', 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2NvcmUuZmlub3ZhLm5nIiwic3ViIjoiMDQzYTUwMDk5MmEwMzA4YTYwN2Q4ZTk2NjU4MzZiMzQiLCJhdWQiOiJodHRwczovL2FwaS5zYWZlaGF2ZW5tZmIuY29tIiwiaWF0IjoxNzMxNTg5NzAwLCJleHAiOjE3NjI5ODQ0ODd9.gZhZ7yEseSENcgOaUCxhpwBg8lyyW-smIK7oj2a93207EKRE6MBfzCpSz8saoISiXRWrNXHuZ2rIkOz562VCiX7ncZ5a39UJEuV4l5CH9zSr4Ky2xSJLkqJanJujpNtKlA3CBfp4vB_7FYGNImmhtKlBugUk7v8cIQBy77_earM'),
+    'client_id_test'             => env('SAFEHAVEN_CLIENT_ID_TEST', ''),
+    'client_assertion_test'      => env('SAFEHAVEN_CLIENT_ASSERTION_TEST', ''),
     'base_url_test'              => env('SAFEHAVEN_BASE_URL_TEST', 'https://api.sandbox.safehavenmfb.com/'),
     'base_url_sudo_test'         => env('SUDO_BASE_URL_TEST', 'https://api.sandbox.sudo.cards'),
-    'base_url_sudo_test_key'     => env('SUDO_BASE_URL_TEST_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NmQwZThkMTc2MWVmMWYxY2Y2YmRmZGUiLCJlbWFpbEFkZHJlc3MiOiJpbmZvckBmaW5vdmEubmciLCJqdGkiOiI2OTFmMWMxYTk2YjEzMjJjMTEyYzkyYWUiLCJtZW1iZXJzaGlwIjp7Il9pZCI6IjY2ZDBlOGQxNzYxZWYxZjFjZjZiZGZlMSIsImJ1c2luZXNzIjp7Il9pZCI6IjY2ZDBlOGQxNzYxZWYxZjFjZjZiZGZkYyIsIm5hbWUiOiJGSU5PVkEgTElNSVRFRCIsImlzQXBwcm92ZWQiOnRydWV9LCJ1c2VyIjoiNjZkMGU4ZDE3NjFlZjFmMWNmNmJkZmRlIiwicm9sZSI6IkFQSUtleSJ9LCJpYXQiOjE3NjM2NDY0OTAsImV4cCI6MTc5NTIwNDA5MH0.bOruiVrOMVohDsKAPzAs3Ds7rIQwT0RsqQPi9-lKgfg'),
+    'base_url_sudo_test_key'     => env('SUDO_BASE_URL_TEST_KEY', ''),
 
     //Live Variables
     'grant_type_live'            => env('SAFEHAVEN_GRANT_TYPE_LIVE', 'client_credentials'),
     'client_assertion_type_live' => env('SAFEHAVEN_CLIENT_ASSERTION_TYPE_LIVE', 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'),
-    'client_id_live'             => env('SAFEHAVEN_CLIENT_ID_LIVE', 'd2a1252a1c5dc149737983ea62f2adaa'),
-    'client_assertion_live'      => env('SAFEHAVEN_CLIENT_ASSERTION_LIVE', 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb3JlLmZpbm92YS5uZyIsInN1YiI6ImQyYTEyNTJhMWM1ZGMxNDk3Mzc5ODNlYTYyZjJhZGFhIiwiYXVkIjoiaHR0cHM6Ly9hcGkuc2FmZWhhdmVubWZiLmNvbSIsImlhdCI6MTc3MzI0NzcyMSwiZXhwIjoxODA0NzgzNTU0fQ.PWorYHViLvIXb21Q6IOUfcYay49Rt01cTwg7kpSYW2KaCqu--tXrorAJGx0O2hSa4zA_GawrxHduoF1G65BHtQ6FiX98mzV3M7mCwTC9tcjjvJrRubHRO0rhViXyaQX0qadxHmBcR1B2Fb1ZrUjdFPTPaaU5LCufcYa1DV7csYc'),
+    'client_id_live'             => env('SAFEHAVEN_CLIENT_ID_LIVE', ''),
+    'client_assertion_live'      => env('SAFEHAVEN_CLIENT_ASSERTION_LIVE', ''),
     'base_url_live'              => env('SAFEHAVEN_BASE_URL_LIVE', 'https://api.safehavenmfb.com/'),
     'base_url_sudo_live'         => env('SUDO_BASE_URL_LIVE', 'https://api.sudo.africa'),
-    'base_url_sudo_live_key'     => env('SUDO_BASE_URL_LIVE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NmQwZThkMTc2MWVmMWYxY2Y2YmRmZGUiLCJlbWFpbEFkZHJlc3MiOiJpbmZvckBmaW5vdmEubmciLCJqdGkiOiI2OTIwM2M2NGEwMzI1NzFhNmJlYmZlOTIiLCJtZW1iZXJzaGlwIjp7Il9pZCI6IjY2ZDBlOGQxNzYxZWYxZjFjZjZiZGZlMSIsImJ1c2luZXNzIjp7Il9pZCI6IjY2ZDBlOGQxNzYxZWYxZjFjZjZiZGZkYyIsIm5hbWUiOiJGSU5PVkEgTElNSVRFRCIsImlzQXBwcm92ZWQiOnRydWV9LCJ1c2VyIjoiNjZkMGU4ZDE3NjFlZjFmMWNmNmJkZmRlIiwicm9sZSI6IkFQSUtleSJ9LCJpYXQiOjE3NjM3MjAyOTIsImV4cCI6MTc5NTI3Nzg5Mn0.iQKnOPRjLzQ1zQ2iGjEgcJIpnRkwrpYKrnKo4orP1gI'),
+    'base_url_sudo_live_key'     => env('SUDO_BASE_URL_LIVE_KEY', ''),
 
 ];

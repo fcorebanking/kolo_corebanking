@@ -7,7 +7,7 @@ return [
     'base_url_test' => env('KUDA_BASE_URL_TEST', ''),
 
     //Live Variables
-    'email_live'    => env('KUDA_BUSINESS_EMAIL_LIVE', 'Betapey@gmail.com'),
-    'api_key_live'  => env('KUDA_BUSINESS_API_KEY_LIVE', "oIQvymWqwKxEFOrSA1fp"),
+    'email_live'    => env('KUDA_BUSINESS_EMAIL_LIVE', ''),
+    'api_key_live'  => env('KUDA_BUSINESS_API_KEY_LIVE', ""),
     'base_url_live' => env('KUDA_BUSINESS_BASE_URL_LIVE', 'https://kuda-openapi.kuda.com/'),
 ];

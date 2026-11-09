@@ -103,7 +103,7 @@ return [
 
         'custom'     => [
             'driver'               => 'daily',
-            'path'                 => '/home/finovacore.uk/public_html/logs/laravel.log', // Or /home/cross5525/logs/laravel.log
+            'path'                 => '/home/mykolo.tech/public_html/logs/laravel.log', // Or /home/cross5525/logs/laravel.log
             'level'                => env('LOG_LEVEL', 'debug'),
             'days'                 => 14,
             'replace_placeholders' => true,

@@ -3,17 +3,17 @@
 return [
 
     //Test Variables
-    'client_id_test'          => env('PROVIDUS_CLIENT_ID_TEST', 'dGVzdF9Qcm92aWR1cw=='),
-    'client_secret_test'      => env('PROVIDUS_CLIENT_SECRET_TEST', '29A492021F4B709A8D1152C3EF4D32DC5A7092723ECAC4C511781003584B48873CCBFEBDEAE89CF22ED1CB1A836213549BC6638A3B563CA7FC009BEB3BC30CF8'),
-    'auth_signature_test'     => env('PROVIDUS_X_AUTH_SIGNATURE_TEST', 'BE09BEE831CF262226B426E39BD1092AF84DC63076D4174FAC78A2261F9A3D6E59744983B8326B69CDF2963FE314DFC89635CFA37A40596508DD6EAAB09402C7'),
+    'client_id_test'          => env('PROVIDUS_CLIENT_ID_TEST', ''),
+    'client_secret_test'      => env('PROVIDUS_CLIENT_SECRET_TEST', ''),
+    'auth_signature_test'     => env('PROVIDUS_X_AUTH_SIGNATURE_TEST', ''),
     'base_url_test'           => env('PROVIDUS_BASE_URL_TEST', 'http://154.113.16.142:8088/appdevapi/api/'),
-    'base_xpress_secret_test' => env('PROVIDUS_XPRESS_BASE_URL_TEST', 'sk_sandbox_YtABalyZijUq8hKCQxsKuqUEVbPHno15tJ616PLcU3vooHKb'),
+    'base_xpress_secret_test' => env('PROVIDUS_XPRESS_BASE_URL_TEST', ''),
 
     //Live Variables
-    'client_id_live'          => env('PROVIDUS_CLIENT_ID_LIVE', 'dGVzdF9Qcm92aWR1cw=='),
-    'client_secret_live'      => env('PROVIDUS_CLIENT_SECRET_LIVE', '29A492021F4B709A8D1152C3EF4D32DC5A7092723ECAC4C511781003584B48873CCBFEBDEAE89CF22ED1CB1A836213549BC6638A3B563CA7FC009BEB3BC30CF8'),
-    'auth_signature_live'     => env('PROVIDUS_X_AUTH_SIGNATURE_LIVE', 'BE09BEE831CF262226B426E39BD1092AF84DC63076D4174FAC78A2261F9A3D6E59744983B8326B69CDF2963FE314DFC89635CFA37A40596508DD6EAAB09402C7'),
+    'client_id_live'          => env('PROVIDUS_CLIENT_ID_LIVE', ''),
+    'client_secret_live'      => env('PROVIDUS_CLIENT_SECRET_LIVE', ''),
+    'auth_signature_live'     => env('PROVIDUS_X_AUTH_SIGNATURE_LIVE', ''),
     'base_url_live'           => env('PROVIDUS_BASE_URL_LIVE', 'http://154.113.16.142:8088/appdevapi/api/'),
-    'base_xpress_secret_live' => env('PROVIDUS_XPRESS_BASE_URL_LIVE', 'sk_live_peTkkVxvU9awl9GHK4m7R0LJCsjS3CjAEcshWiJqgVNyhXVb'),
+    'base_xpress_secret_live' => env('PROVIDUS_XPRESS_BASE_URL_LIVE', ''),
 
 ];

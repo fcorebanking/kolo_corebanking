@@ -31,7 +31,7 @@ class SMSSettingsSeeder extends Seeder
             ],
             [
                 'company_id' => 1,
-                'api_url' => 'https://api.ng.termii.com/api/sms/send?api_key=TLOlK0kIgFUFSAueY59uRNvVYdDcwR5WdzdryZtygzNabjAkHnPrgqEL6N3gAP&type=plain&channel=generic',
+                'api_url' => 'https://api.ng.termii.com/api/sms/send?api_key=&type=plain&channel=generic',
                 'name' => 'Type 2',
                 'phone_variable' => 'to',
                 'message_variable' => 'sms',
@@ -44,7 +44,7 @@ class SMSSettingsSeeder extends Seeder
             ],
             [
                 'company_id' => 1,
-                'api_url' => 'https://sms.hollatags.com/api/send/?user=shema&pass=shema@123',
+                'api_url' => 'https://sms.hollatags.com/api/send/?user=&pass=',
                 'name' => 'Type 3',
                 'phone_variable' => 'to',
                 'message_variable' => 'msg',
@@ -58,7 +58,7 @@ class SMSSettingsSeeder extends Seeder
 
             [
                 'company_id' => 1,
-                'api_url' => 'https://portal.nigeriabulksms.com/api/?username=dsshema4all@gmail.com&password=WBA@public&verbose=true',
+                'api_url' => 'https://portal.nigeriabulksms.com/api/?username=&password=&verbose=true',
                 'name' => 'Type 4',
                 'phone_variable' => 'mobiles',
                 'message_variable' => 'message',
@@ -71,7 +71,7 @@ class SMSSettingsSeeder extends Seeder
             ],
             [
                 'company_id' => 1,
-                'api_url' => 'https://www.smszambia.com/smsservice/httpapi?username=CreditsBail&password=denardbb1178**&type=0',
+                'api_url' => 'https://www.smszambia.com/smsservice/httpapi?username=&password=&type=0',
                 'name' => 'Type 5',
                 'phone_variable' => 'phone',
                 'message_variable' => 'msg',
@@ -84,7 +84,7 @@ class SMSSettingsSeeder extends Seeder
             ],
             [
                 'company_id' => 1,
-                'api_url' => 'https://www.bulksmsnigeria.com/api/v1/sms/create?api_token=Sm3qpbTsWBOyhxIzxUH9MporxAZZWxfBMIRCkNC83wJOU40POYHZ01PCAUXk&dnd=1',
+                'api_url' => 'https://www.bulksmsnigeria.com/api/v1/sms/create?api_token=&dnd=1',
                 'name' => 'Type 6',
                 'phone_variable' => 'to',
                 'message_variable' => 'body',

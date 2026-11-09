@@ -30,4 +30,8 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'finova' => [
+    'base_url' => env('FINOVA_CORE_URL', 'https://core.finova.ng'),
+    ],
+
 ];

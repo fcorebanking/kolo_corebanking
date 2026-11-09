@@ -6,12 +6,12 @@ use OpenApi\Attributes as OA;
 
 #[OA\Info(
     version: '1.0.0',
-    title: 'Finova Core Banking API',
-    description: 'API documentation for the Finova Core Banking platform.'
+    title: 'Kolopay Banking API',
+    description: 'API documentation for the Kolopay Core Banking platform.'
 )]
 #[OA\Server(
     url: '/',
-    description: 'Finova API'
+    description: 'Kolopay API'
 )]
 #[OA\SecurityScheme(
     securityScheme: 'bearerAuth',

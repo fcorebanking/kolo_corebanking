@@ -30,7 +30,7 @@ try {
                 top: 1,
                 left: 1,
                 blur: 2,
-                color: 'fc2020',
+                color: '003314',
                 opacity: 0.7,
             }
         },
@@ -51,7 +51,7 @@ try {
             left: 40
           }
         },
-        colors: ['fc2020'],
+        colors: ['003314'],
         tooltip: {
             x: {
                 show: false

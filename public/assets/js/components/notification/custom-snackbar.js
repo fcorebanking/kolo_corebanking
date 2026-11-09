@@ -69,7 +69,7 @@ $('.action-text').click(function() {
 
 $('.text-color').click(function() {
     Snackbar.show({
-        actionTextColor: 'fc2020',
+        actionTextColor: '003314',
     });
 });
 
@@ -128,7 +128,7 @@ $('.snackbar-bg-warning').click(function() {
     Snackbar.show({
         text: 'Warning',
         actionTextColor: '#fff',
-        backgroundColor: 'fc2020'
+        backgroundColor: '003314'
     });
 });
 

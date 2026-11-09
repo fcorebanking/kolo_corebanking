@@ -55,7 +55,7 @@
                                 <span class="cl-example" style="background-color:#fc2021;"></span>
                                 <div class="cl-info">
                                     <h5 class="cl-title">Warning</h5>
-                                    <span>fc2020</span>
+                                    <span>003314</span>
                                 </div>
                             </div>
                         </div>

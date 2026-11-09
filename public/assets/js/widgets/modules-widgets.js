@@ -127,7 +127,7 @@ try {
                 top: 1,
                 left: 1,
                 blur: 2,
-                color: 'fc2020',
+                color: '003314',
                 opacity: 0.2,
             }
         },
@@ -148,7 +148,7 @@ try {
             left: 40
           }
         },
-        colors: ['fc2020'],
+        colors: ['003314'],
         tooltip: {
             x: {
                 show: false
@@ -580,7 +580,7 @@ var d_2options1 = {
         show: true,
         width: 1,
     },
-    colors: ['fc2020', '#e0e6ed'],
+    colors: ['003314', '#e0e6ed'],
     responsive: [{
         breakpoint: 480,
         options: {
@@ -929,7 +929,7 @@ var options = {
         type: 'donut',
         width: 380
     },
-    colors: ['#5c1ac3', 'fc2020', '#e7515a', 'fc2020'],
+    colors: ['#5c1ac3', '003314', '#e7515a', '003314'],
     dataLabels: {
       enabled: false
     },

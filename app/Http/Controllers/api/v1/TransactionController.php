@@ -8689,6 +8689,8 @@ public function getUserToken(Request $request)
 {
     $token = $request->user()?->access_token;
 
+    logInfo("User access token: " . $token);
+
     return app(FinovaApiService::class)->get(
         '/generate-user-token',
         $token

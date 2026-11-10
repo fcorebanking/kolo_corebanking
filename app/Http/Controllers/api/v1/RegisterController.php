@@ -25,6 +25,7 @@ use OpenApi\Attributes as OA;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\ConnectionException;
 use Throwable;
+use App\Services\FinovaApiService;
 
 class RegisterController extends Controller
 {
@@ -1482,44 +1483,16 @@ public function register(Request $request)
 )]
 public function verifyBVN2(Request $request)
 {
-    $validator = Validator::make($request->all(), [
-        'bvn' => [
-            'required',
-            'string',
-            'digits:11',
-        ],
-        'dob' => [
-            'required',
-            'date_format:Y-m-d',
-        ],
-    ]);
+    $token = $request->user()?->access_token;
 
-    if ($validator->fails()) {
-        return response()->json([
-            'status'  => false,
-            'message' => $validator->errors()->first(),
-            'errors'  => $validator->errors(),
-        ], 422);
-    }
-
-    $user = auth('api')->user();
-
-    if (!$user) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'Unauthenticated',
-        ], 401);
-    }
-
-    $bvnResponse = (new IdentityPassController())
-        ->verifyBVNMobile2(
-            $request->input('bvn'),
-            $request->input('dob')
-        );
-
-    $statusCode = !empty($bvnResponse['status']) ? 200 : 400;
-
-    return response()->json($bvnResponse, $statusCode);
+    return app(FinovaApiService::class)->post(
+        '/users/verify-bvn-v2',
+        $token,
+        $request->only([
+            'bvn',
+            'dob',
+        ])
+    );
 }
 
 

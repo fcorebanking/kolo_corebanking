@@ -31,7 +31,7 @@ return [
     ],
 
     'finova' => [
-    'base_url' => env('FINOVA_CORE_URL', 'https://core.finova.ng'),
+    'base_url' => 'https://core.finova.ng/api/v1',
     ],
 
 ];

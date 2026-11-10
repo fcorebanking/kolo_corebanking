@@ -8687,7 +8687,8 @@ public function withdrawSpendSave(Request $request)
 )]
 public function getUserToken(Request $request)
 {
-    $token = $request->user()?->access_token;
+    // Retrieve the raw bearer token string from the Authorization header
+    $token = $request->bearerToken();
 
     logInfo("User access token: " . $token);
 
@@ -8696,6 +8697,7 @@ public function getUserToken(Request $request)
         $token
     );
 }
+
 
     public function getUserTokenSchedule(Request $request)
     {

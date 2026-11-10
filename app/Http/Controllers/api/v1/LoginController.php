@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 use Illuminate\Http\Client\ConnectionException;
 use Throwable;
+use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
@@ -394,6 +395,7 @@ class LoginController extends Controller
         )
     ]
 )]
+
 public function login(Request $request)
 {
     try {
@@ -410,15 +412,17 @@ public function login(Request $request)
         }
 
         // Company ID is controlled by Kolo, never by the API caller.
+        $companyId = 111;
+
         $payload = [
             'username' => $request->username,
             'password' => $request->password,
-            'company_id' => 111,
+            'company_id' => $companyId,
         ];
 
         logInfo([
             'endpoint' => '/api/v1/users/login',
-            'company_id' => 111,
+            'company_id' => $companyId,
             'username' => $request->username,
         ], 'KOLO LOGIN - FORWARDING TO FINOVA CORE');
 
@@ -434,21 +438,45 @@ public function login(Request $request)
         $responseData = $coreResponse->json();
 
         logInfo([
-            'company_id' => 111,
+            'company_id' => $companyId,
             'http_status' => $coreResponse->status(),
             'response_status' => data_get($responseData, 'status'),
             'response_message' => data_get($responseData, 'message'),
         ], 'KOLO LOGIN - FINOVA CORE RESPONSE');
 
-        // Do not return a successful login response for another company.
+        // Only process successful Finova authentication responses.
         if (
-            $coreResponse->successful() &&
-            (int) data_get($responseData, 'data.user.company_id') !== 111
+            !$coreResponse->successful() ||
+            !data_get($responseData, 'status')
+        ) {
+            return response()->json(
+                $responseData ?? [
+                    'status' => false,
+                    'message' => 'Invalid response received from Finova Core Banking',
+                ],
+                $coreResponse->status()
+            );
+        }
+
+        $finovaUser = data_get($responseData, 'data.user');
+
+        $finovaUsername = data_get($finovaUser, 'username');
+
+        $finovaAccessToken = data_get(
+            $responseData,
+            'data.access_token'
+        );
+
+        // Validate the identity and company returned by Finova.
+        if (
+            empty($finovaUsername) ||
+            (int) data_get($finovaUser, 'company_id') !== $companyId
         ) {
             logInfo([
-                'company_id' => 111,
-                'username' => $request->username,
-            ], 'KOLO LOGIN - COMPANY SCOPE VALIDATION FAILED');
+                'company_id' => $companyId,
+                'returned_username' => $finovaUsername,
+                'returned_company_id' => data_get($finovaUser, 'company_id'),
+            ], 'KOLO LOGIN - COMPANY OR USER VALIDATION FAILED');
 
             return response()->json([
                 'status' => false,
@@ -456,61 +484,141 @@ public function login(Request $request)
             ], 401);
         }
 
-        /*
-         * Save the Finova access token against the corresponding
-         * KoloPay user.
-         */
-        $finovaAccessToken = data_get(
-            $responseData,
-            'data.access_token'
-        );
-
-        if ($coreResponse->successful() && !empty($finovaAccessToken)) {
-
-            $finovaUsername = data_get(
-                $responseData,
-                'data.user.username'
-            );
-
-            $localUser = User::where('username', $finovaUsername)
-                ->where('company_id', 111)
-                ->first();
-
-            if (!$localUser) {
-                logInfo([
-                    'company_id' => 111,
-                    'username' => $finovaUsername,
-                ], 'KOLO LOGIN - LOCAL USER NOT FOUND');
-
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Login could not be completed. User account was not found.',
-                ], 500);
-            }
-
-            // Save the token without exposing it in application logs.
-            $localUser->forceFill([
-                'access_token' => $finovaAccessToken,
-            ])->save();
-
-            logInfo([
-                'company_id' => 111,
-                'user_id' => $localUser->id,
-                'username' => $localUser->username,
-                'token_saved' => true,
-            ], 'KOLO LOGIN - FINOVA ACCESS TOKEN SAVED');
+        if (empty($finovaAccessToken)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Finova did not return an access token.',
+            ], 500);
         }
 
-        // Relay Finova's original response and HTTP status.
+        
+/*
+|--------------------------------------------------------------------------
+| Synchronize Finova user with local Kolo user
+|--------------------------------------------------------------------------
+*/
+
+// Get the user details returned by Finova.
+$finovaUser = data_get($responseData, 'data.user');
+
+$finovaUsername = data_get($finovaUser, 'username');
+
+$finovaAccessToken = data_get(
+    $responseData,
+    'data.access_token'
+);
+
+// Validate the returned user details.
+if (
+    empty($finovaUsername) ||
+    (int) data_get($finovaUser, 'company_id') !== $companyId
+) {
+    logInfo([
+        'company_id' => $companyId,
+        'returned_username' => $finovaUsername,
+        'returned_company_id' => data_get($finovaUser, 'company_id'),
+    ], 'KOLO LOGIN - COMPANY OR USER VALIDATION FAILED');
+
+    return response()->json([
+        'status' => false,
+        'message' => 'Invalid login credentials',
+    ], 401);
+}
+
+if (empty($finovaAccessToken)) {
+    return response()->json([
+        'status' => false,
+        'message' => 'Finova did not return an access token.',
+    ], 500);
+}
+
+// Find the local user using Finova's returned username.
+$localUser = User::firstOrNew([
+    'username' => $finovaUsername,
+    'company_id' => $companyId,
+]);
+
+$isNewUser = !$localUser->exists;
+
+if ($isNewUser) {
+
+    /*
+     * Create the local user using details returned by Finova.
+     *
+     * Only map fields that exist in your local users table.
+     */
+    $localUser->forceFill([
+
+        'first_name' => data_get($finovaUser, 'first_name'),
+        'last_name' => data_get($finovaUser, 'last_name'),
+
+        'username' => $finovaUsername,
+        'uuid' => data_get($finovaUser, 'uuid'),
+
+        'phone' => data_get($finovaUser, 'phone'),
+        'email' => data_get($finovaUser, 'email'),
+
+        'profile_pic' => data_get($finovaUser, 'profile_pic'),
+        'dob' => data_get($finovaUser, 'dob'),
+        'address' => data_get($finovaUser, 'address'),
+        'sex' => data_get($finovaUser, 'sex'),
+
+        'bvn_status_id' => data_get($finovaUser, 'bvn_status_id'),
+        'referral_id' => data_get($finovaUser, 'referral_id'),
+
+        'is_agent' => data_get($finovaUser, 'is_agent', 0),
+
+        'virtual_account' => data_get($finovaUser, 'virtual_account'),
+        'account_reference' => data_get($finovaUser, 'account_reference'),
+
+        'bank_id' => data_get($finovaUser, 'bank_id'),
+        'company_id' => $companyId,
+
+        'status_id' => data_get($finovaUser, 'status_id'),
+        'phone_verification_status_id' => data_get(
+            $finovaUser,
+            'phone_verification_status_id'
+        ),
+
+        'account_officer_id' => data_get(
+            $finovaUser,
+            'account_officer_id'
+        ),
+
+        'branch_id' => data_get($finovaUser, 'branch_id'),
+        'tier' => data_get($finovaUser, 'tier'),
+
+        'balance' => data_get($finovaUser, 'balance', 0),
+
+        // The local account is authenticated through Finova.
+        // Generate an unrelated local password rather than storing
+        // the customer's Finova password a second time.
+        'password' => Hash::make(bin2hex(random_bytes(32))),
+    ]);
+
+}
+
+// Save or update the Finova access token.
+$localUser->forceFill([
+    'access_token' => $finovaAccessToken,
+])->save();
+
+logInfo([
+    'company_id' => $companyId,
+    'user_id' => $localUser->id,
+    'username' => $localUser->username,
+    'user_created' => $isNewUser,
+    'token_saved' => true,
+], 'KOLO LOGIN - LOCAL USER SYNCHRONIZED');
+
+        // Return Finova's original response and HTTP status.
         return response()->json(
-            $responseData ?? [
-                'status' => false,
-                'message' => 'Invalid response received from Finova Core Banking',
-            ],
+            $responseData,
             $coreResponse->status()
         );
 
     } catch (ConnectionException $e) {
+
         logInfo([
             'company_id' => 111,
             'error' => $e->getMessage(),
@@ -522,6 +630,7 @@ public function login(Request $request)
         ], 503);
 
     } catch (Throwable $e) {
+
         logInfo([
             'company_id' => 111,
             'error' => $e->getMessage(),
@@ -534,6 +643,7 @@ public function login(Request $request)
         ], 500);
     }
 }
+
 
 
 #[OA\Post(

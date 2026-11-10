@@ -532,7 +532,6 @@ if (empty($finovaAccessToken)) {
     ], 500);
 }
 
-// Find the local user using Finova's returned username.
 $localUser = User::firstOrNew([
     'username' => $finovaUsername,
     'company_id' => $companyId,
@@ -541,23 +540,13 @@ $localUser = User::firstOrNew([
 $isNewUser = !$localUser->exists;
 
 if ($isNewUser) {
-
-    /*
-     * Create the local user using details returned by Finova.
-     *
-     * Only map fields that exist in your local users table.
-     */
     $localUser->forceFill([
-
         'first_name' => data_get($finovaUser, 'first_name'),
         'last_name' => data_get($finovaUser, 'last_name'),
-
         'username' => $finovaUsername,
         'uuid' => data_get($finovaUser, 'uuid'),
-
         'phone' => data_get($finovaUser, 'phone'),
         'email' => data_get($finovaUser, 'email'),
-
         'profile_pic' => data_get($finovaUser, 'profile_pic'),
         'dob' => data_get($finovaUser, 'dob'),
         'address' => data_get($finovaUser, 'address'),
@@ -565,40 +554,29 @@ if ($isNewUser) {
 
         'bvn_status_id' => data_get($finovaUser, 'bvn_status_id'),
         'referral_id' => data_get($finovaUser, 'referral_id'),
-
         'is_agent' => data_get($finovaUser, 'is_agent', 0),
 
         'virtual_account' => data_get($finovaUser, 'virtual_account'),
         'account_reference' => data_get($finovaUser, 'account_reference'),
-
         'bank_id' => data_get($finovaUser, 'bank_id'),
-        'company_id' => $companyId,
 
+        'company_id' => $companyId,
         'status_id' => data_get($finovaUser, 'status_id'),
         'phone_verification_status_id' => data_get(
             $finovaUser,
             'phone_verification_status_id'
         ),
 
-        'account_officer_id' => data_get(
-            $finovaUser,
-            'account_officer_id'
-        ),
-
+        'account_officer_id' => data_get($finovaUser, 'account_officer_id'),
         'branch_id' => data_get($finovaUser, 'branch_id'),
-        'tier' => data_get($finovaUser, 'tier'),
 
-        'balance' => data_get($finovaUser, 'balance', 0),
+        // Finova's tier value maps to Kolo's kyc_level_id.
+        'kyc_level_id' => data_get($finovaUser, 'tier'),
 
-        // The local account is authenticated through Finova.
-        // Generate an unrelated local password rather than storing
-        // the customer's Finova password a second time.
         'password' => Hash::make(bin2hex(random_bytes(32))),
     ]);
-
 }
 
-// Save or update the Finova access token.
 $localUser->forceFill([
     'access_token' => $finovaAccessToken,
 ])->save();

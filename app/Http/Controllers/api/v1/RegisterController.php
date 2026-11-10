@@ -112,12 +112,12 @@ class RegisterController extends Controller
                     example: "johndoe",
                     description: "Unique username for the customer."
                 ),
-                new OA\Property(
-                    property: "company",
-                    type: "string",
-                    example: "46",
-                    description: "Company ID or company reference under which the customer will be registered."
-                ),
+                // new OA\Property(
+                //     property: "company",
+                //     type: "string",
+                //     example: "1",
+                //     description: "Company ID or company reference under which the customer will be registered."
+                // ),
                 new OA\Property(
                     property: "pin",
                     type: "string",
@@ -178,16 +178,16 @@ class RegisterController extends Controller
                     property: "branch",
                     type: "integer",
                     nullable: true,
-                    example: 2,
+                    example: 182,
                     description: "Branch ID. If omitted, the company's first branch is used."
                 ),
-                new OA\Property(
-                    property: "referral",
-                    type: "string",
-                    nullable: true,
-                    example: "johndoe123",
-                    description: "Referral username or user ID."
-                ),
+                // new OA\Property(
+                //     property: "referral",
+                //     type: "string",
+                //     nullable: true,
+                //     example: "johndoe123",
+                //     description: "Referral username or user ID."
+                // ),
                 new OA\Property(
                     property: "account_bank",
                     type: "string",
@@ -380,7 +380,7 @@ public function register(Request $request)
             ->timeout(60)
             ->post(
                 rtrim(config('services.finova.base_url'), '/') .
-                '/api/v1/users/register',
+                '/users/register',
                 $payload
             );
 

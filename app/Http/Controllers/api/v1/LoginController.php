@@ -607,19 +607,23 @@ logInfo([
             'message' => 'Unable to connect to Finova Core Banking. Please try again later.',
         ], 503);
 
-    } catch (Throwable $e) {
+} catch (Throwable $e) {
 
-        logInfo([
-            'company_id' => 111,
-            'error' => $e->getMessage(),
-            'line' => $e->getLine(),
-        ], 'KOLO LOGIN - ERROR');
+    logInfo([
+        'company_id' => 111,
+        'exception' => get_class($e),
+        'error' => 'An internal error occurred during KoloPay login synchronization.',
+        'line' => $e->getLine(),
+        'file' => basename($e->getFile()),
+    ], 'KOLO LOGIN - ERROR');
 
-        return response()->json([
-            'status' => false,
-            'message' => 'An error occurred while processing login.',
-        ], 500);
-    }
+    report($e);
+
+    return response()->json([
+        'status' => false,
+        'message' => 'An error occurred while processing login.',
+    ], 500);
+}
 }
 
 

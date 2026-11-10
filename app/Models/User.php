@@ -94,6 +94,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'transfer_token',
         'transfer_schedule_token',
         'access_token',
+        'finova_account_officer_id',
     ];
 
     /**

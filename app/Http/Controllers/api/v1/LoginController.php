@@ -427,7 +427,7 @@ public function login(Request $request)
             ->timeout(60)
             ->post(
                 rtrim(config('services.finova.base_url'), '/') .
-                '/api/v1/users/login',
+                '/users/login',
                 $payload
             );
 
@@ -436,8 +436,8 @@ public function login(Request $request)
         logInfo([
             'company_id' => 111,
             'http_status' => $coreResponse->status(),
-            'response_status' => $responseData['status'] ?? null,
-            'response_message' => $responseData['message'] ?? null,
+            'response_status' => data_get($responseData, 'status'),
+            'response_message' => data_get($responseData, 'message'),
         ], 'KOLO LOGIN - FINOVA CORE RESPONSE');
 
         // Do not return a successful login response for another company.
@@ -456,8 +456,52 @@ public function login(Request $request)
             ], 401);
         }
 
-        // Relay Core's response and status, including HTTP 203 for
-        // accounts that still need phone verification.
+        /*
+         * Save the Finova access token against the corresponding
+         * KoloPay user.
+         */
+        $finovaAccessToken = data_get(
+            $responseData,
+            'data.access_token'
+        );
+
+        if ($coreResponse->successful() && !empty($finovaAccessToken)) {
+
+            $finovaUsername = data_get(
+                $responseData,
+                'data.user.username'
+            );
+
+            $localUser = User::where('username', $finovaUsername)
+                ->where('company_id', 111)
+                ->first();
+
+            if (!$localUser) {
+                logInfo([
+                    'company_id' => 111,
+                    'username' => $finovaUsername,
+                ], 'KOLO LOGIN - LOCAL USER NOT FOUND');
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Login could not be completed. User account was not found.',
+                ], 500);
+            }
+
+            // Save the token without exposing it in application logs.
+            $localUser->forceFill([
+                'access_token' => $finovaAccessToken,
+            ])->save();
+
+            logInfo([
+                'company_id' => 111,
+                'user_id' => $localUser->id,
+                'username' => $localUser->username,
+                'token_saved' => true,
+            ], 'KOLO LOGIN - FINOVA ACCESS TOKEN SAVED');
+        }
+
+        // Relay Finova's original response and HTTP status.
         return response()->json(
             $responseData ?? [
                 'status' => false,
@@ -490,6 +534,7 @@ public function login(Request $request)
         ], 500);
     }
 }
+
 
 #[OA\Post(
     path: "/api/v1/users/login-v2",

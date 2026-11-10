@@ -93,6 +93,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'country_id', 'settlement_wallet_id',
         'transfer_token',
         'transfer_schedule_token',
+        'access_token',
     ];
 
     /**

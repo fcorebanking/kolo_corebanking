@@ -65,7 +65,7 @@ class RegisterController extends Controller
                 "email",
                 "dob",
                 "username",
-                "company",
+                // "company",
                 "pin",
                 "password"
             ],
@@ -146,7 +146,7 @@ class RegisterController extends Controller
                     description: "Customer's Bank Verification Number (BVN), when required/provided."
                 ),
                 new OA\Property(
-                    property: "gender",
+                    property: "sex",
                     type: "string",
                     nullable: true,
                     example: "Male",

@@ -7106,20 +7106,12 @@ private function forwardToFinova(
     string $endpoint,
     array $payload = []
 ): JsonResponse {
-    $user = $request->user('api');
+    $userToken = Auth::user()?->api_token;
 
-    if (!$user) {
+    if (!$userToken) {
         return response()->json([
             'status' => false,
             'message' => 'Unauthenticated.',
-            'data' => [],
-        ], 401);
-    }
-
-    if (empty($user->api_key)) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Finova authentication credentials are missing.',
             'data' => [],
         ], 401);
     }
@@ -7141,7 +7133,7 @@ private function forwardToFinova(
 
     try {
         $client = Http::acceptJson()
-            ->withToken($user->api_key)
+            ->withToken($userToken)
             ->connectTimeout(10)
             ->timeout(45);
 

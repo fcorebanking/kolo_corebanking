@@ -7106,10 +7106,10 @@ private function forwardToFinova(
     string $endpoint,
     array $payload = []
 ): JsonResponse {
-    $userToken = Auth::user()?->api_token;
+    $userToken = $request->user()?->api_token;
 
     logInfo([
-        'user_id' => Auth::id(),
+        'user_id' => $request->user()?->id,
         'endpoint' => $endpoint,
         'method' => $method,
         'payload' => $payload,

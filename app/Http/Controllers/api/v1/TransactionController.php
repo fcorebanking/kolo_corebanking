@@ -7108,6 +7108,14 @@ private function forwardToFinova(
 ): JsonResponse {
     $userToken = Auth::user()?->api_token;
 
+    logInfo([
+        'user_id' => Auth::id(),
+        'endpoint' => $endpoint,
+        'method' => $method,
+        'payload' => $payload,
+        'user_token_present' => !empty($userToken),
+    ], "Forwarding request to Finova API");
+
     if (!$userToken) {
         return response()->json([
             'status' => false,

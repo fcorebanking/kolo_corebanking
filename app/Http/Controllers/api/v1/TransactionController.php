@@ -5229,7 +5229,7 @@ public function safeHavenWebhook(Request $request)
 )]
 public function buyAirtime(Request $request)
 {
-    $token = $request->user()?->access_token;
+    $token = $request->bearerToken();
 
     return app(FinovaApiService::class)->post(
         '/transactions/buy-airtime',

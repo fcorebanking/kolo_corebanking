@@ -81,7 +81,7 @@ Route::prefix('/users')->group(function () {
     Route::post('/add-account', [UserController::class, 'addAccount'])->middleware('log.route');
     Route::get('/get-tos-link', [UserController::class, 'getTOSLink'])->middleware('log.route');
 
-    Route::middleware("checkApiKey")->get('/get-balance/{accountNumber}', [UserController::class, 'getAccountBalance']);
+    Route::get('/get-balance/{accountNumber}', [UserController::class, 'getAccountBalance']);
 
     Route::post('/change-password', [UserController::class, 'changePassword']);
     Route::post('/change-pin', [UserController::class, 'resetPin']);
@@ -116,7 +116,7 @@ Route::prefix('/users')->group(function () {
     Route::get('/all', [UserController::class, 'index']);
 
     //New API
-    Route::middleware('checkApiKey')->get('/virtual-accounts', [UserController::class, 'getVirtualAccounts']);
+    Route::get('/virtual-accounts', [UserController::class, 'getVirtualAccounts']);
 });
 
 Route::get('/perform-providus-account-action', [ProvidusController::class, 'providusAccountReassignment']);
@@ -136,7 +136,7 @@ Route::post('/verify-account-full', [TransactionController::class, 'verifyBankAc
 //Route::post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
 Route::post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
 Route::post('/verify-bvn/otp', [TransactionController::class, 'verifyBVNOtp'])->name('verify-bvn.otp');
-Route::middleware('checkApiKey')->get('/verify-bvn/{bvn}', [TransactionController::class, 'verifyBVNAlt'])->name('verify-bvn-alt');
+Route::get('/verify-bvn/{bvn}', [TransactionController::class, 'verifyBVNAlt'])->name('verify-bvn-alt');
 Route::get('/get-banks', [TransactionController::class, 'getAllBanks'])->name('v1-get-banks');
 
 //saviour modified
@@ -153,7 +153,7 @@ Route::post('/kuda-maintenance-webhook', [TransactionController::class, 'kudaWeb
 //Parkway APIs
 //Route::post('/parkway-create-account', [ParkwayController::class, 'createVirtualAccount']);
 
-//Route::middleware("restrictIP")->middleware('checkApiKey')->post('/create-account', [SpecialAPIController::class, 'createAccount']);
+//Route::middleware("restrictIP")->post('/create-account', [SpecialAPIController::class, 'createAccount']);
 //Route::middleware("restrictIP")->middleware('checkCompanyCustomer')->get('/get-balance/{accountNumber}', [SpecialAPIController::class, 'getAccountBalance']);/
 //Route::middleware("restrictIP")->post('/generate-key', [SpecialAPIController::class, 'generateKey']);
 //Route::middleware("restrictIP")->post('/save-developer-settings', [SpecialAPIController::class, 'saveDeveloperSettings']);
@@ -216,8 +216,8 @@ Route::post('/transaction/network-management', [TransactionController::class, 'n
 Route::post('/transaction/pos-balance', [TransactionController::class, 'getTerminalBalance'])->name('pos-balance')->middleware('log.route');
 
 Route::post('/transaction/get-exchange-rates', [TransactionController::class, 'getExchangeRates'])->name('get-exchange-rates');
-Route::middleware("checkApiKey")->post('/users/restrict-account', [UserController::class, 'restrictUserAccount'])->name('restrict-user-account');
-Route::middleware("checkApiKey")->post('/users/remove-account-restriction', [UserController::class, 'unrestrictUserAccount'])->name('remove-account-restriction');
+Route::post('/users/restrict-account', [UserController::class, 'restrictUserAccount'])->name('restrict-user-account');
+Route::post('/users/remove-account-restriction', [UserController::class, 'unrestrictUserAccount'])->name('remove-account-restriction');
 
 Route::prefix('/accounts')->group(function () {
 
@@ -267,37 +267,37 @@ Route::prefix('/transactions')->group(function () {
         Route::post('/validate-bet-account', [TransactionController::class, 'validateBetAccount'])->middleware('log.route');
         Route::post('/topup-betting', [TransactionController::class, 'topupBetting'])->middleware('log.route');
 
-        Route::middleware('checkAccountStatus')->post('/initiate-transaction', [TransactionController::class, 'initiateTransaction'])->middleware('log.route');
+        Route::post('/initiate-transaction', [TransactionController::class, 'initiateTransaction'])->middleware('log.route');
         Route::get('/history', [TransactionController::class, 'transactionHistory']);
         Route::post('/filter-history', [TransactionController::class, 'transactionHistoryMobile']);
         Route::get('/pos-history', [TransactionController::class, 'posTransactionHistory']);
 
-        Route::middleware('checkAccountStatus')->post('/buy-airtime', [TransactionController::class, 'buyAirtime'])->middleware('log.route');
+        Route::post('/buy-airtime', [TransactionController::class, 'buyAirtime'])->middleware('log.route');
         //Route::post('/buy-airtime', [TransactionController::class, 'buyAirtime'])->middleware('log.route');
 
-        Route::middleware('checkAccountStatus')->post('/buy-airtime-test', [TransactionController::class, 'buyAirtimeTest'])->middleware('log.route');
+        Route::post('/buy-airtime-test', [TransactionController::class, 'buyAirtimeTest'])->middleware('log.route');
 
-        Route::middleware('checkAccountStatus')->post('/buy-data-bundle', [TransactionController::class, 'buyDataBundle'])->middleware('log.route');
+        Route::post('/buy-data-bundle', [TransactionController::class, 'buyDataBundle'])->middleware('log.route');
 //        Route::post('/buy-data-bundle', [TransactionController::class, 'buyDataBundle'])->middleware('log.route');
         Route::post('/verify-meter-number', [TransactionController::class, 'verifyMeterNumber']);
-        Route::middleware('checkAccountStatus')->post('/buy-electricity', [TransactionController::class, 'buyElectricity'])->middleware('log.route');
-        Route::middleware('checkAccountStatus')->post('/subscribe-cable-tv', [TransactionController::class, 'subscribeCableTV'])->middleware('log.route');
+        Route::post('/buy-electricity', [TransactionController::class, 'buyElectricity'])->middleware('log.route');
+        Route::post('/subscribe-cable-tv', [TransactionController::class, 'subscribeCableTV'])->middleware('log.route');
         // Route::post('/buy-electricity', [TransactionController::class, 'buyElectricity'])->middleware('log.route');
         //Route::post('/subscribe-cable-tv', [TransactionController::class, 'subscribeCableTV'])->middleware('log.route');
         Route::get('/get-subscriptions', [TransactionController::class, 'getSubscriptions']);
         Route::post('/verify-smart-card', [TransactionController::class, 'verifySmartCard'])->middleware('log.route');
         Route::get('/get-data-bundles/{networkProvider}', [TransactionController::class, 'getDataBundles']);
         Route::get('/get-saving-products', [TransactionController::class, 'getSavingsProducts']);
-        Route::middleware('checkAccountStatus')->post('/bank-transfer', [TransactionController::class, 'transferToBankAccount'])->middleware('log.route');
-        Route::middleware('checkAccountStatus')->post('/bank-transfer-test', [TransactionController::class, 'transferToBankAccountTest'])->middleware('log.route');
-        Route::middleware('checkAccountStatus')->post('/process-verify-reverse-transactions', [TransactionController::class, 'processVerifyAndReverseTransaction'])->middleware('log.route');
+        Route::post('/bank-transfer', [TransactionController::class, 'transferToBankAccount'])->middleware('log.route');
+        Route::post('/bank-transfer-test', [TransactionController::class, 'transferToBankAccountTest'])->middleware('log.route');
+        Route::post('/process-verify-reverse-transactions', [TransactionController::class, 'processVerifyAndReverseTransaction'])->middleware('log.route');
 
-    Route::middleware('checkApiKey')->get('/status/sh/{transactionReference}', [TransactionController::class, 'processSafeHavenVerifyAndReverseTransaction'])->middleware('log.route');
-    Route::middleware('checkApiKey')->get('/list', [TransactionController::class, 'getAllTransactions']);
-    Route::middleware('checkApiKey')->post('/user-transactions', [TransactionController::class, 'getUserTransactions'])->middleware('log.route');
-    Route::middleware('checkApiKey')->get('/get-company-balance', [TransactionController::class, 'getCompanyBalance'])->middleware('log.route');
-    Route::middleware('checkApiKey')->post('/company-bank-transfer', [TransactionController::class, 'companyBankTransfer'])->middleware('log.route');
-    Route::middleware('checkApiKey')->get('/get-user-info/{accountNumber}', [UserController::class, 'getUserInfo']);
+    Route::get('/status/sh/{transactionReference}', [TransactionController::class, 'processSafeHavenVerifyAndReverseTransaction'])->middleware('log.route');
+    Route::get('/list', [TransactionController::class, 'getAllTransactions']);
+    Route::post('/user-transactions', [TransactionController::class, 'getUserTransactions'])->middleware('log.route');
+    Route::get('/get-company-balance', [TransactionController::class, 'getCompanyBalance'])->middleware('log.route');
+    Route::post('/company-bank-transfer', [TransactionController::class, 'companyBankTransfer'])->middleware('log.route');
+    Route::get('/get-user-info/{accountNumber}', [UserController::class, 'getUserInfo']);
 
     Route::post('/credit-debit-customer-account', [TransactionController::class, 'creditDebitCustomerAccount'])->middleware('log.route');
     Route::post('/report-transaction', [TransactionController::class, 'reportTransaction']);
@@ -323,7 +323,7 @@ Route::prefix('/transactions')->group(function () {
 
 });
 
-Route::middleware('checkApiKey')->post('company/update-user-kyc-info', [TransactionController::class, 'updateKycInfo'])->middleware('log.route');
+Route::post('company/update-user-kyc-info', [TransactionController::class, 'updateKycInfo'])->middleware('log.route');
 
 //Cards
 Route::prefix('/physical-cards')->group(function () {
@@ -334,9 +334,9 @@ Route::prefix('/physical-cards')->group(function () {
 
         Route::get('/block-unblock', [CardController::class, 'blockUnblockCard'])->middleware('log.route');
 
-        // Route::middleware('checkAccountStatus')->post('/create', [CardController::class, 'createUserCard'])->middleware('log.route');
-        // Route::middleware('checkAccountStatus')->post('/fund', [CardController::class, 'fundVirtualCard'])->middleware('log.route');
-        // Route::middleware('checkAccountStatus')->post('/withdraw', [CardController::class, 'withdrawVirtualCard'])->middleware('log.route');
+        // Route::post('/create', [CardController::class, 'createUserCard'])->middleware('log.route');
+        // Route::post('/fund', [CardController::class, 'fundVirtualCard'])->middleware('log.route');
+        // Route::post('/withdraw', [CardController::class, 'withdrawVirtualCard'])->middleware('log.route');
         // Route::get('/get-balance', [CardController::class, 'getBalance'])->middleware('log.route');
         // Route::get('/get-card-details', [CardController::class, 'getCardDetails'])->middleware('log.route');
         // Route::get('/get-card', [CardController::class, 'getVirtualCard'])->middleware('log.route');
@@ -349,11 +349,11 @@ Route::prefix('/virtual-cards')->group(function () {
 
         Route::get('/block-unblock', [CardController::class, 'blockUnblockCard'])->middleware('log.route');
 
-        Route::middleware('checkAccountStatus')->post('/create', [CardController::class, 'createUserCard'])->middleware('log.route');
-        Route::middleware('checkAccountStatus')->post('/changecardpin', [CardController::class, 'changeUserCardPin'])->middleware('log.route');
+        Route::post('/create', [CardController::class, 'createUserCard'])->middleware('log.route');
+        Route::post('/changecardpin', [CardController::class, 'changeUserCardPin'])->middleware('log.route');
 
-        Route::middleware('checkAccountStatus')->post('/fund', [CardController::class, 'fundVirtualCard'])->middleware('log.route');
-        Route::middleware('checkAccountStatus')->post('/withdraw', [CardController::class, 'withdrawVirtualCard'])->middleware('log.route');
+        Route::post('/fund', [CardController::class, 'fundVirtualCard'])->middleware('log.route');
+        Route::post('/withdraw', [CardController::class, 'withdrawVirtualCard'])->middleware('log.route');
         Route::get('/get-balance', [CardController::class, 'getBalance'])->middleware('log.route');
         Route::get('/get-card-details', [CardController::class, 'getCardDetails'])->middleware('log.route');
         Route::post('/get-card-full-details', [CardController::class, 'getCardDetailswithPin'])->middleware('log.route');

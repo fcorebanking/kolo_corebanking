@@ -7100,26 +7100,26 @@ public function transferToBankAccount(Request $request): JsonResponse
  * Uses the authenticated KoloPay user's Finova API key
  * as the Bearer token.
  */
+
 private function forwardToFinova(
     Request $request,
     string $method,
     string $endpoint,
     array $payload = []
 ): JsonResponse {
-    $userToken = $request->user()?->api_token;
+    // Extract the Finova token supplied by the client.
+    $userToken = $request->bearerToken();
 
     logInfo([
-        'user_id' => $request->user()?->id,
         'endpoint' => $endpoint,
-        'method' => $method,
-        'payload' => $payload,
-        'user_token_present' => !empty($userToken),
-    ], "Forwarding request to Finova API");
+        'method' => strtoupper($method),
+        'bearer_token_present' => !empty($userToken),
+    ], 'Forwarding request to Finova API');
 
     if (!$userToken) {
         return response()->json([
             'status' => false,
-            'message' => 'Unauthenticated.',
+            'message' => 'Unauthenticated. Please provide your Finova access token.',
             'data' => [],
         ], 401);
     }
@@ -7161,7 +7161,6 @@ private function forwardToFinova(
 
         $responseData = $response->json();
 
-        // Preserve Finova's response structure and HTTP status.
         if (is_array($responseData)) {
             return response()->json(
                 $responseData,
@@ -7176,8 +7175,6 @@ private function forwardToFinova(
         ], $response->status());
 
     } catch (ConnectionException $exception) {
-        // Do not log request payloads, API keys, PINs or account details.
-
         return response()->json([
             'status' => false,
             'message' => 'Unable to connect to Finova Core. Please try again.',
@@ -7185,7 +7182,10 @@ private function forwardToFinova(
         ], 503);
 
     } catch (\Throwable $exception) {
-        // Avoid logging sensitive request or authentication information.
+        logInfo([
+            'endpoint' => $endpoint,
+            'exception' => get_class($exception),
+        ], 'Finova API Communication Error');
 
         return response()->json([
             'status' => false,
@@ -7194,6 +7194,7 @@ private function forwardToFinova(
         ], 500);
     }
 }
+
 
 
     public function transactionHistory(Request $request)

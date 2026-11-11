@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
+use App\Services\FinovaApiService;
 
 class UserController extends Controller
 {
@@ -72,111 +73,13 @@ class UserController extends Controller
         )
     ]
 )]
-    public function getDetails(Request $request)
-    {
-        try {
-
-            $userDetails = [];
-
-            // return $request->user();
-
-            if ($request->user()->user_type_id == 1) {
-
-                $userWallet = user_wallet::where('wb_account_detail_id', $request->user()->accounts->first()->id)->first();
-
-                $myUserWallets   = []; 
-                $myUserTerminals = [];
-
-                if ($request->user()->terminals != null) {
-                    \logInfo(json_encode($request->user()->terminals), "Login terminals");
-                    foreach ($request->user()->terminals as $key => $terminal) {
-                        $myUserTerminals[] = ["account_id" => $terminal->terminal_code, "account_number" => $terminal->terminal_code, "bank_id" => $terminal->terminal_code, "bank" => "Nomba", 'product_name' => "POS Account {$terminal->terminal_code}", "wallet_balance" => $terminal->balance, "currency" => 'NGN'];
-                    }
-
-                }
-
-                $virtualCard = UserCard::where('user_id', auth()->user()->id)->get();
-
-                // $sliders = CarouselImage::where('status_id', 1)->get("image_url");
-                $sliders = CarouselImage::where(['status_id' => 1, 'company_id' => auth()->user()->company_id])->get("image_url");
-
-            $total_wallet_balance = 0;
-
-            foreach (Auth::user()->accounts as $key => $wallet) {
-                $userWallet        = user_wallet::where('wb_account_detail_id', $wallet->id)->first();
-                $myUserWallets[]   = ["account_id" => $wallet->id, "account_number" => $wallet->virtual_accnum, "bank_id" => $wallet->bank->id, "bank" => $wallet->bank->bank_name, 'product_name' => $wallet->accountType->savings_product, "wallet_balance" => $userWallet->balance, "currency" => $wallet->currency->code ?? 'NGN', "currency_id" => $wallet->currency_id ?? 1];
-                $userWalletAccount = wb_account_details::where('id', $wallet->id)->first();
-                \logInfo(Auth::user()->company->currency_id, "Company currency id");
-                \logInfo($userWalletAccount->currency_id, "User Wallet Account Currency id");
-                if (Auth::user()->company->currency_id != 1 && $userWalletAccount->currency_id != Auth::user()->company->currency_id) {
-                    \logInfo($userWallet->balance, "User Wallet Balance");
-                    \logInfo($userWalletAccount->currency_id, "User Wallet Account Currency id");
-                    $convertedAmount  = $this->getExchangeRates($userWallet->balance, Auth::user()->company->currency_id, $userWalletAccount->currency_id);
-                    \logInfo($convertedAmount['conversion_result'], "User Converted Amount");
-                    $total_wallet_balance += $convertedAmount['conversion_result'];
-                } else {
-                    $total_wallet_balance += $userWallet->balance;
-                }
-            }
-
-                if (! $virtualCard) {
-                    $virtualCard = [];
-                }
-
-                $wb_accounts = wb_account_details::with('currency')->with('user_wallet')->with('accountType')->with('bank')->where('user_id', $request->user()->id)->get();
-
-                \logInfo(json_encode($wb_accounts), "User Wallets Get Details");
-                \logInfo(json_encode($myUserTerminals), "User Terminals Get Details");
-
-                $userDetails = [
-                    "currency"                     => $request->user()->branch->currency ?? 'NGN',
-                    "first_name"                   => $request->user()->first_name,
-                    "last_name"                    => $request->user()->last_name,
-                    "phone"                        => $request->user()->phone,
-                    "profile_pic"                  => $request->user()->profile_pic,
-                    "username"                     => $request->user()->username,
-                    "bvn"                          => $request->user()->bvn,
-                    "bvn_status_id"                => $request->user()->bvn_status_id,
-                    "bvn_verified_at"              => $request->user()->bvn_verified_at,
-                    "nin"                          => $request->user()->nin,
-                    "dob"                          => $request->user()->dob,
-                    "signature"                    => $request->user()->signature,
-                    "email"                        => $request->user()->email,
-                    "address"                      => $request->user()->address,
-                    "sex"                          => $request->user()->sex,
-                    "otp"                          => $request->user()->otp,
-                    "virtual_account"              => $request->user()->virtual_account,
-                    "account_reference"            => $request->user()->account_reference,
-                    "bank_id"                      => $request->user()->bank_id,
-                    "validID_file"                 => $request->user()->validID_file,
-                    "otherID_file"                 => $request->user()->otherID_file,
-                    "company_id"                   => $request->user()->company_id,
-                    "status_id"                    => $request->user()->status_id,
-                    "referral_id"                  => $request->user()->id,
-                    "kyc_level_id"                 => $request->user()->kyc_level_id,
-                    "phone_verification_status_id" => $request->user()->phone_verification_status_id,
-                    "account_officer_id"           => $request->user()->account_officer_id,
-                    "branch_id"                    => $request->user()->branch_id,
-                    "balance"                      => $userWallet->balance,
-                    "wallets"                      => $myUserWallets,
-                    "cards"                        => $virtualCard,
-                    "sliders"                      => $sliders,
-                    "is_card_available"            => count($virtualCard) > 0,
-                    "accounts"                     => $wb_accounts,
-                    "terminals"                    => $myUserTerminals,
-                    "total_wallet_balance"         => $total_wallet_balance,
-                    //$request->user()->wb_account_details,
-                ];
-
-                return response()->json(['status' => true, 'message' => 'User Details Fetched successfully', 'data' => $userDetails]);
-            } else {
-                return response()->json(['status' => false, 'message' => 'Failed to fetch user details', 'data' => $userDetails]);
-            }
-        } catch (\Exception $e) {
-            return \response()->json(['status' => false, 'message' => $e->getMessage(), 'data' => []], 500);
-        }
-        // return User::all();
-    }
+public function getDetails(Request $request)
+{
+    return app(FinovaApiService::class)->get(
+        '/users/get-details',
+        $request->bearerToken()
+    );
+}
 
     public function uploadFile(Request $request)
     {
@@ -577,30 +480,17 @@ class UserController extends Controller
         )
     ]
 )]
-    public function resetPin(Request $request)
-    {
-
-        $validate = Validator::make($request->all(), [
-            'current_pin' => 'required|max:4|min:4',
-            'new_pin'     => 'required|max:4|min:4',
-        ]);
-        if ($validate->fails()) {
-            $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
-            return response()->json($ra, 406);
-        }
-        if ($request->new_pin == $request->current_pin) {
-            $ra = ["status" => false, "message" => "New Pin cannot be same as Current Pin"];
-            return response()->json($ra, 406);
-        }
-        if (auth()->user()->pin == $request->current_pin) {
-            User::where('id', auth()->user()->id)->update(['pin' => $request->new_pin]);
-            $ra = ["status" => true, "message" => "Pin Reset Successful"];
-            return response()->json($ra, 200);
-        } else {
-            $ra = ["status" => false, "message" => "Invalide Pin"];
-            return response()->json($ra, 406);
-        }
-    }
+public function resetPin(Request $request)
+{
+    return app(FinovaApiService::class)->post(
+        '/users/reset-pin',
+        $request->bearerToken(),
+        $request->only([
+            'current_pin',
+            'new_pin',
+        ])
+    );
+}
 
     public function getVirtualAccounts(Request $request)
     {
@@ -757,51 +647,15 @@ class UserController extends Controller
 )]
 public function resetPassword(Request $request)
 {
-    \logInfo($request->all(), "resetPassword request log");
-
-    $validate = Validator::make($request->all(), [
-        'phone_number' => 'required',
-        'otp_code'     => 'required|numeric|gt:0',
-        'password'     => 'required',
-    ]);
-
-    if ($validate->fails()) {
-        $ra = ["status" => false, "message" => "Otp Code and Phone number are required"];
-        return response()->json($ra, 406);
-    }
-
-    $userAccunt = User::where([
-        'phone' => $request->phone_number,
-        'otp' => $request->otp_code
-    ])->first();
-
-    if ($userAccunt) {
-
-        $date = Carbon::now()->addMinutes(10)->format('Y-m-d H:i:s');
-
-        if ($userAccunt->otp_expiration_date < $date) {
-
-            $userAccunt->password    = Hash::make($request->password);
-            $userAccunt->login_fails = 0;
-            $userAccunt->status_id   = 1;
-            $userAccunt->save();
-
-            return response([
-                'status' => true,
-                'message' => 'Password Reset Successfully'
-            ]);
-        } else {
-            return response([
-                'status' => false,
-                'message' => 'Invalid or Expired OTP'
-            ]);
-        }
-    } else {
-        return response([
-            'status' => false,
-            'message' => 'Invalid Phone number or OTP supplied'
-        ]);
-    }
+    return app(FinovaApiService::class)->post(
+        '/users/reset-password',
+        null,
+        $request->only([
+            'phone_number',
+            'otp_code',
+            'password',
+        ])
+    );
 }
 
 #[OA\Post(
@@ -901,36 +755,14 @@ public function resetPassword(Request $request)
 )]
 public function changePassword(Request $request)
 {
-    \logInfo($request->all(), "changePassword request log");
-
-    $validate = Validator::make($request->all(), [
-        'current_password' => 'required',
-        'new_password'     => 'required',
-    ]);
-
-    if ($validate->fails()) {
-        $ra = ["status" => false, "message" => $validate->errors()->all()[0]];
-        return response()->json($ra, 406);
-    }
-
-    $userAccunt = User::where(['id' => \auth()->user()->id])->first();
-
-    if (Hash::check($request->current_password, $userAccunt->password)) {
-
-        $userAccunt->password   = Hash::make($request->new_password);
-        $userAccunt->updated_at = Carbon::now();
-        $userAccunt->save();
-
-        return response([
-            'status' => true,
-            'message' => 'Password changed successfully'
-        ]);
-    } else {
-        return response([
-            'status' => false,
-            'message' => 'Invalid current password provided'
-        ]);
-    }
+    return app(FinovaApiService::class)->post(
+        '/users/change-password',
+        $request->bearerToken(),
+        $request->only([
+            'current_password',
+            'new_password',
+        ])
+    );
 }
 
 #[OA\Put(
@@ -1084,72 +916,22 @@ public function changePassword(Request $request)
 )]
 public function updateProfile(Request $request)
 {
-    \logInfo($request->all(), "updateProfile request log");
-
-    $validate = Validator::make($request->all(), [
-        'phone' => 'required|numeric|gt:0',
-        'email' => 'required|email',
-        'dob'   => 'required|date',
-    ]);
-
-    if ($validate->fails()) {
-        $ra = [
-            "status" => false,
-            "message" => $validate->errors()->all()[0]
-        ];
-
-        return response()->json($ra, 406);
-    }
-
-    $userAccunt = $request->user();
-
-    if ($userAccunt) {
-
-        if ($request->filled('profile_pic_url')) {
-            $userAccunt->profile_pic = $request->profile_pic_url;
-        }
-
-        if ($request->filled('nin')) {
-            $userAccunt->nin = $request->nin;
-        }
-
-        if ($request->filled('dob')) {
-            $userAccunt->dob = $request->dob;
-        }
-
-        if ($request->filled('signature_url')) {
-            $userAccunt->signature = $request->signature_url;
-        }
-
-        if ($request->filled('sex')) {
-            $userAccunt->sex = $request->sex;
-        }
-
-        if ($request->filled('bvn')) {
-            $userAccunt->bvn = $request->bvn;
-        }
-
-        if ($request->filled('valid_id_url')) {
-            $userAccunt->validID_file = $request->valid_id_url;
-        }
-
-        if ($request->filled('other_doc_url')) {
-            $userAccunt->otherID_file = $request->other_doc_url;
-        }
-
-        $userAccunt->save();
-
-        return response([
-            'status' => true,
-            'message' => 'Profile Updated Successfuls',
-            'data' => $userAccunt
-        ]);
-    } else {
-        return response([
-            'status' => false,
-            'message' => 'Failed to Update Profile'
-        ]);
-    }
+    return app(FinovaApiService::class)->put(
+        '/users/update-profile',
+        $request->bearerToken(),
+        $request->only([
+            'phone',
+            'email',
+            'dob',
+            'profile_pic_url',
+            'nin',
+            'signature_url',
+            'sex',
+            'bvn',
+            'valid_id_url',
+            'other_doc_url',
+        ])
+    );
 }
 
     public function resendOtp(Request $request)

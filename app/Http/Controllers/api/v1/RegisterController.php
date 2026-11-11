@@ -49,7 +49,7 @@ class RegisterController extends Controller
         // return User::all();
     }
 
-#[OA\Post(
+ #[OA\Post(
     path: "/api/v1/users/register",
     summary: "Register a new user",
     description: "Creates a new customer account under a specified company. The registration process validates the user's information, optionally verifies BVN/NIN, creates a virtual account when applicable, creates the customer's wallet, assigns the default role, and returns the newly created account details.",
@@ -430,187 +430,185 @@ public function register(Request $request)
 }
 
 
-    #[OA\Post(
-    path: "/api/v1/users/create-account",
-    summary: "Create a user account",
-    description: "Creates a new customer user record under a specified company. BVN/NIN verification and virtual account creation are not performed during registration. The customer can complete identity verification and account creation later.",
-    tags: ["User - Version 2"],
-    requestBody: new OA\RequestBody(
-        required: true,
-        content: new OA\JsonContent(
-            type: "object",
-            required: [
-                "first_name",
-                "last_name",
-                "phone",
-                "email",
-                "dob",
-                "username",
-                "company",
-                "pin",
-                "password"
-            ],
-            properties: [
-                new OA\Property(
-                    property: "first_name",
-                    type: "string",
-                    minLength: 2,
-                    maxLength: 50,
-                    example: "John",
-                    description: "Customer's first name."
-                ),
-                new OA\Property(
-                    property: "last_name",
-                    type: "string",
-                    minLength: 2,
-                    maxLength: 50,
-                    example: "Doe",
-                    description: "Customer's last name."
-                ),
-                new OA\Property(
-                    property: "phone",
-                    type: "string",
-                    example: "08012345678",
-                    description: "Customer's phone number."
-                ),
-                new OA\Property(
-                    property: "email",
-                    type: "string",
-                    format: "email",
-                    example: "john.doe@example.com",
-                    description: "Customer's email address."
-                ),
-                new OA\Property(
-                    property: "dob",
-                    type: "string",
-                    format: "date",
-                    example: "1995-08-15",
-                    description: "Customer's date of birth."
-                ),
-                new OA\Property(
-                    property: "username",
-                    type: "string",
-                    example: "johndoe",
-                    description: "Unique username for the customer."
-                ),
-                new OA\Property(
-                    property: "company",
-                    type: "string",
-                    example: "14",
-                    description: "Company ID or company reference under which the user will be registered."
-                ),
-                new OA\Property(
-                    property: "pin",
-                    type: "string",
-                    example: "1234",
-                    description: "Customer's transaction PIN."
-                ),
-                new OA\Property(
-                    property: "password",
-                    type: "string",
-                    format: "password",
-                    example: "Password@123",
-                    description: "Customer's login password."
-                ),
-                new OA\Property(
-                    property: "gender",
-                    type: "string",
-                    nullable: true,
-                    example: "Male",
-                    description: "Customer's gender."
-                ),
-                new OA\Property(
-                    property: "address",
-                    type: "string",
-                    nullable: true,
-                    example: "12 Allen Avenue, Ikeja, Lagos",
-                    description: "Customer's residential address."
-                ),
-                new OA\Property(
-                    property: "branch",
-                    type: "integer",
-                    nullable: true,
-                    example: 2,
-                    description: "Branch ID. If omitted, the company's first branch is used."
-                ),
-                new OA\Property(
-                    property: "referral",
-                    type: "string",
-                    nullable: true,
-                    example: "johndoe123",
-                    description: "Referral username or user ID."
-                )
-            ]
-        )
-    ),
-    responses: [
-        new OA\Response(
-            response: 200,
-            description: "Registration successful.",
-            content: new OA\JsonContent(
-                type: "object",
-                properties: [
-                    new OA\Property(
-                        property: "status",
-                        type: "boolean",
-                        example: true
-                    ),
-                    new OA\Property(
-                        property: "message",
-                        type: "string",
-                        example: "Registration Successful"
-                    ),
-                    new OA\Property(
-                        property: "data",
-                        type: "object",
-                        properties: [
-                            new OA\Property(
-                                property: "user_reference",
-                                type: "string",
-                                example: "1234567890"
-                            ),
-                            new OA\Property(
-                                property: "user_id",
-                                type: "integer",
-                                example: 12345
-                            ),
-                            new OA\Property(
-                                property: "phone_number",
-                                type: "string",
-                                example: "08012345678"
-                            ),
-                            new OA\Property(
-                                property: "company",
-                                type: "string",
-                                example: "14"
-                            ),
-                        ]
-                    )
-                ]
-            )
-        ),
-        new OA\Response(
-            response: 400,
-            description: "Registration failed or invalid company."
-        ),
-        new OA\Response(
-            response: 406,
-            description: "Validation failed."
-        ),
-        new OA\Response(
-            response: 409,
-            description: "Conflict. Email, phone number, or username already exists."
-        ),
-        new OA\Response(
-            response: 500,
-            description: "Internal server error."
-        )
-    ]
- )]
-
-
+// #[OA\Post(
+//     path: "/api/v1/users/create-account",
+//     summary: "Create a user account",
+//     description: "Creates a new customer user record under a specified company. BVN/NIN verification and virtual account creation are not performed during registration. The customer can complete identity verification and account creation later.",
+//     tags: ["User - Version 2"],
+//     requestBody: new OA\RequestBody(
+//         required: true,
+//         content: new OA\JsonContent(
+//             type: "object",
+//             required: [
+//                 "first_name",
+//                 "last_name",
+//                 "phone",
+//                 "email",
+//                 "dob",
+//                 "username",
+//                 "company",
+//                 "pin",
+//                 "password"
+//             ],
+//             properties: [
+//                 new OA\Property(
+//                     property: "first_name",
+//                     type: "string",
+//                     minLength: 2,
+//                     maxLength: 50,
+//                     example: "John",
+//                     description: "Customer's first name."
+//                 ),
+//                 new OA\Property(
+//                     property: "last_name",
+//                     type: "string",
+//                     minLength: 2,
+//                     maxLength: 50,
+//                     example: "Doe",
+//                     description: "Customer's last name."
+//                 ),
+//                 new OA\Property(
+//                     property: "phone",
+//                     type: "string",
+//                     example: "08012345678",
+//                     description: "Customer's phone number."
+//                 ),
+//                 new OA\Property(
+//                     property: "email",
+//                     type: "string",
+//                     format: "email",
+//                     example: "john.doe@example.com",
+//                     description: "Customer's email address."
+//                 ),
+//                 new OA\Property(
+//                     property: "dob",
+//                     type: "string",
+//                     format: "date",
+//                     example: "1995-08-15",
+//                     description: "Customer's date of birth."
+//                 ),
+//                 new OA\Property(
+//                     property: "username",
+//                     type: "string",
+//                     example: "johndoe",
+//                     description: "Unique username for the customer."
+//                 ),
+//                 new OA\Property(
+//                     property: "company",
+//                     type: "string",
+//                     example: "14",
+//                     description: "Company ID or company reference under which the user will be registered."
+//                 ),
+//                 new OA\Property(
+//                     property: "pin",
+//                     type: "string",
+//                     example: "1234",
+//                     description: "Customer's transaction PIN."
+//                 ),
+//                 new OA\Property(
+//                     property: "password",
+//                     type: "string",
+//                     format: "password",
+//                     example: "Password@123",
+//                     description: "Customer's login password."
+//                 ),
+//                 new OA\Property(
+//                     property: "gender",
+//                     type: "string",
+//                     nullable: true,
+//                     example: "Male",
+//                     description: "Customer's gender."
+//                 ),
+//                 new OA\Property(
+//                     property: "address",
+//                     type: "string",
+//                     nullable: true,
+//                     example: "12 Allen Avenue, Ikeja, Lagos",
+//                     description: "Customer's residential address."
+//                 ),
+//                 new OA\Property(
+//                     property: "branch",
+//                     type: "integer",
+//                     nullable: true,
+//                     example: 2,
+//                     description: "Branch ID. If omitted, the company's first branch is used."
+//                 ),
+//                 new OA\Property(
+//                     property: "referral",
+//                     type: "string",
+//                     nullable: true,
+//                     example: "johndoe123",
+//                     description: "Referral username or user ID."
+//                 )
+//             ]
+//         )
+//     ),
+//     responses: [
+//         new OA\Response(
+//             response: 200,
+//             description: "Registration successful.",
+//             content: new OA\JsonContent(
+//                 type: "object",
+//                 properties: [
+//                     new OA\Property(
+//                         property: "status",
+//                         type: "boolean",
+//                         example: true
+//                     ),
+//                     new OA\Property(
+//                         property: "message",
+//                         type: "string",
+//                         example: "Registration Successful"
+//                     ),
+//                     new OA\Property(
+//                         property: "data",
+//                         type: "object",
+//                         properties: [
+//                             new OA\Property(
+//                                 property: "user_reference",
+//                                 type: "string",
+//                                 example: "1234567890"
+//                             ),
+//                             new OA\Property(
+//                                 property: "user_id",
+//                                 type: "integer",
+//                                 example: 12345
+//                             ),
+//                             new OA\Property(
+//                                 property: "phone_number",
+//                                 type: "string",
+//                                 example: "08012345678"
+//                             ),
+//                             new OA\Property(
+//                                 property: "company",
+//                                 type: "string",
+//                                 example: "14"
+//                             ),
+//                         ]
+//                     )
+//                 ]
+//             )
+//         ),
+//         new OA\Response(
+//             response: 400,
+//             description: "Registration failed or invalid company."
+//         ),
+//         new OA\Response(
+//             response: 406,
+//             description: "Validation failed."
+//         ),
+//         new OA\Response(
+//             response: 409,
+//             description: "Conflict. Email, phone number, or username already exists."
+//         ),
+//         new OA\Response(
+//             response: 500,
+//             description: "Internal server error."
+//         )
+//     ]
+//  )]
  public function noBvnRegister(Request $request)
-{
+ {
     $rules = [
         'first_name' => 'required|string|max:50|min:2',
         'last_name'  => 'required|string|max:50|min:2',
@@ -1434,53 +1432,53 @@ public function register(Request $request)
     }
 
 
-#[OA\Post(
-    path: "/api/v1/users/verify-bvn-v2",
-    summary: "Verify BVN and create a virtual account",
-    description: "Requires the user's BVN and date of birth.",
-    tags: ["BVN"],
-    security: [["bearerAuth" => []]],
-    requestBody: new OA\RequestBody(
-        required: true,
-        content: new OA\JsonContent(
-            type: "object",
-            required: ["bvn", "dob"],
-            properties: [
-                new OA\Property(
-                    property: "bvn",
-                    type: "string",
-                    example: "12345678901",
-                    description: "11-digit Bank Verification Number"
-                ),
-                new OA\Property(
-                    property: "dob",
-                    type: "string",
-                    format: "date",
-                    example: "1998-04-23",
-                    description: "Date of birth in YYYY-MM-DD format"
-                )
-            ]
-        )
-    ),
-    responses: [
-        new OA\Response(
-            response: 200,
-            description: "BVN verified and virtual account created successfully"
-        ),
-        new OA\Response(
-            response: 401,
-            description: "Unauthenticated"
-        ),
-        new OA\Response(
-            response: 422,
-            description: "Validation failed"
-        ),
-        new OA\Response(
-            response: 400,
-            description: "BVN verification or account creation failed"
-        )
-    ]
-)]
+// #[OA\Post(
+//     path: "/api/v1/users/verify-bvn-v2",
+//     summary: "Verify BVN and create a virtual account",
+//     description: "Requires the user's BVN and date of birth.",
+//     tags: ["BVN"],
+//     security: [["bearerAuth" => []]],
+//     requestBody: new OA\RequestBody(
+//         required: true,
+//         content: new OA\JsonContent(
+//             type: "object",
+//             required: ["bvn", "dob"],
+//             properties: [
+//                 new OA\Property(
+//                     property: "bvn",
+//                     type: "string",
+//                     example: "12345678901",
+//                     description: "11-digit Bank Verification Number"
+//                 ),
+//                 new OA\Property(
+//                     property: "dob",
+//                     type: "string",
+//                     format: "date",
+//                     example: "1998-04-23",
+//                     description: "Date of birth in YYYY-MM-DD format"
+//                 )
+//             ]
+//         )
+//     ),
+//     responses: [
+//         new OA\Response(
+//             response: 200,
+//             description: "BVN verified and virtual account created successfully"
+//         ),
+//         new OA\Response(
+//             response: 401,
+//             description: "Unauthenticated"
+//         ),
+//         new OA\Response(
+//             response: 422,
+//             description: "Validation failed"
+//         ),
+//         new OA\Response(
+//             response: 400,
+//             description: "BVN verification or account creation failed"
+//         )
+//     ]
+// )]
 public function verifyBVN2(Request $request)
 {
     $token = $request->bearerToken();

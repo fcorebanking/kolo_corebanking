@@ -628,128 +628,128 @@ logInfo([
 
 
 
-#[OA\Post(
-    path: "/api/v1/users/login-v2",
-    summary: "User Login V2",
-    description: "Authenticates a customer using their email and password and returns a fresh access token. This endpoint does not perform phone verification, OTP verification, or any other verification step. A new access token is generated on every successful login.",
-    tags: ["User - Version 2"],
-    requestBody: new OA\RequestBody(
-        required: true,
-        content: new OA\JsonContent(
-            type: "object",
-            required: [
-                "email",
-                "password"
-            ],
-            properties: [
-                new OA\Property(
-                    property: "email",
-                    type: "string",
-                    format: "email",
-                    example: "john.doe@example.com",
-                    description: "Customer's email address."
-                ),
-                new OA\Property(
-                    property: "password",
-                    type: "string",
-                    format: "password",
-                    example: "Password\@123",
-                    description: "Customer's login password."
-                )
-            ]
-        )
-    ),
-    responses: [
-        new OA\Response(
-            response: 200,
-            description: "Login successful and a new access token has been generated.",
-            content: new OA\JsonContent(
-                type: "object",
-                properties: [
-                    new OA\Property(
-                        property: "status",
-                        type: "boolean",
-                        example: true
-                    ),
-                    new OA\Property(
-                        property: "message",
-                        type: "string",
-                        example: "Login Successful"
-                    ),
-                    new OA\Property(
-                        property: "data",
-                        type: "object",
-                        properties: [
-                            new OA\Property(
-                                property: "user",
-                                type: "object",
-                                properties: [
-                                    new OA\Property(
-                                        property: "first_name",
-                                        type: "string",
-                                        example: "John"
-                                    ),
-                                    new OA\Property(
-                                        property: "last_name",
-                                        type: "string",
-                                        example: "Doe"
-                                    ),
-                                    new OA\Property(
-                                        property: "uuid",
-                                        type: "string",
-                                        example: "CUS123456789"
-                                    ),
-                                    new OA\Property(
-                                        property: "phone",
-                                        type: "string",
-                                        example: "08012345678"
-                                    ),
-                                    new OA\Property(
-                                        property: "email",
-                                        type: "string",
-                                        format: "email",
-                                        example: "john.doe@example.com"
-                                    ),
-                                    new OA\Property(
-                                        property: "company_id",
-                                        type: "integer",
-                                        example: 46
-                                    ),
-                                    new OA\Property(
-                                        property: "status_id",
-                                        type: "integer",
-                                        example: 1
-                                    )
-                                ]
-                            ),
-                            new OA\Property(
-                                property: "access_token",
-                                type: "string",
-                                example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
-                            )
-                        ]
-                    )
-                ]
-            )
-        ),
-        new OA\Response(
-            response: 400,
-            description: "Login unavailable because the company's subscription has expired."
-        ),
-        new OA\Response(
-            response: 401,
-            description: "Authentication failed, account is blocked, company is inactive, or the account is not permitted to log in."
-        ),
-        new OA\Response(
-            response: 404,
-            description: "Invalid login credentials because the user's company has been deleted."
-        ),
-        new OA\Response(
-            response: 406,
-            description: "Validation failed. Email and password are required."
-        )
-    ]
-)]
+// #[OA\Post(
+//     path: "/api/v1/users/login-v2",
+//     summary: "User Login V2",
+//     description: "Authenticates a customer using their email and password and returns a fresh access token. This endpoint does not perform phone verification, OTP verification, or any other verification step. A new access token is generated on every successful login.",
+//     tags: ["User - Version 2"],
+//     requestBody: new OA\RequestBody(
+//         required: true,
+//         content: new OA\JsonContent(
+//             type: "object",
+//             required: [
+//                 "email",
+//                 "password"
+//             ],
+//             properties: [
+//                 new OA\Property(
+//                     property: "email",
+//                     type: "string",
+//                     format: "email",
+//                     example: "john.doe@example.com",
+//                     description: "Customer's email address."
+//                 ),
+//                 new OA\Property(
+//                     property: "password",
+//                     type: "string",
+//                     format: "password",
+//                     example: "Password\@123",
+//                     description: "Customer's login password."
+//                 )
+//             ]
+//         )
+//     ),
+//     responses: [
+//         new OA\Response(
+//             response: 200,
+//             description: "Login successful and a new access token has been generated.",
+//             content: new OA\JsonContent(
+//                 type: "object",
+//                 properties: [
+//                     new OA\Property(
+//                         property: "status",
+//                         type: "boolean",
+//                         example: true
+//                     ),
+//                     new OA\Property(
+//                         property: "message",
+//                         type: "string",
+//                         example: "Login Successful"
+//                     ),
+//                     new OA\Property(
+//                         property: "data",
+//                         type: "object",
+//                         properties: [
+//                             new OA\Property(
+//                                 property: "user",
+//                                 type: "object",
+//                                 properties: [
+//                                     new OA\Property(
+//                                         property: "first_name",
+//                                         type: "string",
+//                                         example: "John"
+//                                     ),
+//                                     new OA\Property(
+//                                         property: "last_name",
+//                                         type: "string",
+//                                         example: "Doe"
+//                                     ),
+//                                     new OA\Property(
+//                                         property: "uuid",
+//                                         type: "string",
+//                                         example: "CUS123456789"
+//                                     ),
+//                                     new OA\Property(
+//                                         property: "phone",
+//                                         type: "string",
+//                                         example: "08012345678"
+//                                     ),
+//                                     new OA\Property(
+//                                         property: "email",
+//                                         type: "string",
+//                                         format: "email",
+//                                         example: "john.doe@example.com"
+//                                     ),
+//                                     new OA\Property(
+//                                         property: "company_id",
+//                                         type: "integer",
+//                                         example: 46
+//                                     ),
+//                                     new OA\Property(
+//                                         property: "status_id",
+//                                         type: "integer",
+//                                         example: 1
+//                                     )
+//                                 ]
+//                             ),
+//                             new OA\Property(
+//                                 property: "access_token",
+//                                 type: "string",
+//                                 example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+//                             )
+//                         ]
+//                     )
+//                 ]
+//             )
+//         ),
+//         new OA\Response(
+//             response: 400,
+//             description: "Login unavailable because the company's subscription has expired."
+//         ),
+//         new OA\Response(
+//             response: 401,
+//             description: "Authentication failed, account is blocked, company is inactive, or the account is not permitted to log in."
+//         ),
+//         new OA\Response(
+//             response: 404,
+//             description: "Invalid login credentials because the user's company has been deleted."
+//         ),
+//         new OA\Response(
+//             response: 406,
+//             description: "Validation failed. Email and password are required."
+//         )
+//     ]
+// )]
 public function loginV2(Request $request)
 {
     logInfo($request->all(), "LOGIN V2 REQUEST");

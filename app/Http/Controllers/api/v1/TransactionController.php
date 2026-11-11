@@ -7106,7 +7106,7 @@ private function forwardToFinova(
     string $endpoint,
     array $payload = []
 ): JsonResponse {
-    $user = $request->user();
+    $user = $request->user('api');
 
     if (!$user) {
         return response()->json([

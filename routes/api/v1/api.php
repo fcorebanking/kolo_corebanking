@@ -53,7 +53,7 @@ Route::post('/initiate-create-safehaven-vaccount', [TransactionController::class
 Route::post('/create-safehaven-vaccount', [TransactionController::class, 'createSafehavenMaintenancAccount']);
 Route::get('/company-tos-link', [UserController::class, 'getTOSLinkCompany']);
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
+Route::get('/user', function (Request $request) {
     return $request->user();
 });
 
@@ -78,13 +78,13 @@ Route::prefix('/users')->group(function () {
     Route::post('/forgot-password-send-otp', [UserController::class, 'forgotPasswordSendOTP']);
     Route::post('/reset-password', [UserController::class, 'resetPassword']); //users/change-pin
     Route::post('/confirm-otp', [UserController::class, 'confirmOTP']);
-    Route::middleware('auth:api')->post('/add-account', [UserController::class, 'addAccount'])->middleware('log.route');
-    Route::middleware('auth:api')->get('/get-tos-link', [UserController::class, 'getTOSLink'])->middleware('log.route');
+    Route::post('/add-account', [UserController::class, 'addAccount'])->middleware('log.route');
+    Route::get('/get-tos-link', [UserController::class, 'getTOSLink'])->middleware('log.route');
 
     Route::middleware("checkApiKey")->get('/get-balance/{accountNumber}', [UserController::class, 'getAccountBalance']);
 
-    Route::middleware('auth:api')->post('/change-password', [UserController::class, 'changePassword']);
-    Route::middleware('auth:api')->post('/change-pin', [UserController::class, 'resetPin']);
+    Route::post('/change-password', [UserController::class, 'changePassword']);
+    Route::post('/change-pin', [UserController::class, 'resetPin']);
 
     //Agent Account
     Route::group(['middleware' => 'auth:api'], function () {
@@ -111,9 +111,9 @@ Route::prefix('/users')->group(function () {
     //resetPin
     Route::post('/upload-file', [UserController::class, 'uploadFile']);
     Route::post('/send-tier-notice', [UserController::class, 'sendTierNotice']);
-    Route::middleware('auth:api')->get('/get-details', [UserController::class, 'getDetails'])->withoutMiddleware([LogRoute::class]);
-    Route::middleware('auth:api')->put('/update-profile', [UserController::class, 'updateProfile']);
-    Route::middleware('auth:api')->get('/all', [UserController::class, 'index']);
+    Route::get('/get-details', [UserController::class, 'getDetails'])->withoutMiddleware([LogRoute::class]);
+    Route::put('/update-profile', [UserController::class, 'updateProfile']);
+    Route::get('/all', [UserController::class, 'index']);
 
     //New API
     Route::middleware('checkApiKey')->get('/virtual-accounts', [UserController::class, 'getVirtualAccounts']);
@@ -133,7 +133,7 @@ Route::prefix('/ussd-apis')->group(function () {
 Route::post('/verify-bank-account', [TransactionController::class, 'verifyBankAccount'])->name('v1-verify-bank-account');
 Route::post('/verify-bank-account-test', [TransactionController::class, 'verifyBankAccountTest'])->name('v1-verify-bank-account-test');
 Route::post('/verify-account-full', [TransactionController::class, 'verifyBankAccountFullname'])->name('v1-verify-account-full');
-//Route::middleware('auth:api')->post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
+//Route::post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
 Route::post('/verify-bvn', [TransactionController::class, 'verifyBVN'])->name('v1-verify-bvn');
 Route::post('/verify-bvn/otp', [TransactionController::class, 'verifyBVNOtp'])->name('verify-bvn.otp');
 Route::middleware('checkApiKey')->get('/verify-bvn/{bvn}', [TransactionController::class, 'verifyBVNAlt'])->name('verify-bvn-alt');
@@ -256,7 +256,6 @@ Route::group(['middleware' => 'auth:api'], function () {
 });
 //Transactions
 Route::prefix('/transactions')->group(function () {
-    Route::group(['middleware' => 'auth:api'], function () {
 
         Route::post('/verify-wallet-account', [TransactionController::class, 'verifyWalletAccount']);
         Route::post('/wallet-transfer', [TransactionController::class, 'walletTransfer'])->middleware('log.route');
@@ -292,7 +291,6 @@ Route::prefix('/transactions')->group(function () {
         Route::middleware('checkAccountStatus')->post('/bank-transfer', [TransactionController::class, 'transferToBankAccount'])->middleware('log.route');
         Route::middleware('checkAccountStatus')->post('/bank-transfer-test', [TransactionController::class, 'transferToBankAccountTest'])->middleware('log.route');
         Route::middleware('checkAccountStatus')->post('/process-verify-reverse-transactions', [TransactionController::class, 'processVerifyAndReverseTransaction'])->middleware('log.route');
-    });
 
     Route::middleware('checkApiKey')->get('/status/sh/{transactionReference}', [TransactionController::class, 'processSafeHavenVerifyAndReverseTransaction'])->middleware('log.route');
     Route::middleware('checkApiKey')->get('/list', [TransactionController::class, 'getAllTransactions']);
@@ -348,7 +346,6 @@ Route::prefix('/physical-cards')->group(function () {
 
 //Cards
 Route::prefix('/virtual-cards')->group(function () {
-    Route::group(['middleware' => 'auth:api'], function () {
 
         Route::get('/block-unblock', [CardController::class, 'blockUnblockCard'])->middleware('log.route');
 
@@ -363,8 +360,6 @@ Route::prefix('/virtual-cards')->group(function () {
 
         Route::get('/get-card', [CardController::class, 'getVirtualCard'])->middleware('log.route');
         Route::get('/transactions', [CardController::class, 'transactionHistory']);
-
-    });
 });
 //Cards
 Route::prefix('/loan')->group(function () {
@@ -379,7 +374,6 @@ Route::prefix('/loan')->group(function () {
     });
 });
 Route::prefix('/investment')->group(function () {
-    Route::group(['middleware' => 'auth:api'], function () {
 
         Route::get('/investment-variable', [InvestmentController::class, 'investmentVariable']);
         Route::get('/all-investment-variable', [InvestmentController::class, 'allInvestmentVariable']);
@@ -388,15 +382,12 @@ Route::prefix('/investment')->group(function () {
         Route::get('/list-investment', [InvestmentController::class, 'viewInvestment']);
         Route::get('/list-all-investment', [InvestmentController::class, 'viewInvestmentUpdate']);
         Route::post('/terminate-investment/{id}', [InvestmentController::class, 'ajax_investmentstatus']);
-
-    });
 });
 Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/transaction/get-info/{id}', [TransactionController::class, 'txnInfo']);
     Route::get('/transaction/get-info-two/{id}', [TransactionController::class, 'txnInfoTwo']);
 });
 
-Route::group(['middleware' => 'auth:api'], function () {
     Route::prefix('/savings')->group(function () {
         Route::get('list/', [CustomerSavingController::class, 'show']);
         Route::post('store/', [CustomerSavingController::class, 'store']);
@@ -407,7 +398,7 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::post('/schedule-esusu', [CustomerSavingController::class, 'postEsusuSchedule']);
         Route::get('/schedule-esusu-product', [CustomerSavingController::class, 'viewEsusuScheduleProduct']);
         Route::post('/schedule-esusu-withdraw', [CustomerSavingController::class, 'cancelEsusuSchedule']);
-    });
+
 });
 
 Route::group(['middleware' => 'auth:api'], function () {
@@ -439,9 +430,6 @@ Route::group(['middleware' => 'auth:api'], function () {
     });
 });
 
-Route::group(['middleware' => 'auth:api'], function () {
-
-    Route::prefix('/admin')->group(function () {
         Route::get('/customers', [UserController::class, 'getCustomers']);
         Route::post('/transaction/verify-bvn', [App\Http\Controllers\TransactionController::class, 'verifyBVN'])->middleware('log.route');
         Route::post('/create-account-options', [App\Http\Controllers\CustomerController::class, 'createCustomerAccountOptions']);
@@ -452,14 +440,12 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::post('/add-currency', [InternationalTransaction::class, 'add_account']);
         Route::post('/generate_end_of_day', [TransactionController::class, 'generate_end_of_day'])->middleware('log.route');
 
-    });
-});
 //
 
 Route::post('/test/gtb/create-virtual-account', [ GTBController::class, 'testCreateVirtualAccount' ]);
 Route::post('/test/kuda/create-virtual-account', [KudaController::class, 'testCreateAccount']);
 
-Route::prefix('/target-savings')->middleware('auth:api')->group(function () {
+Route::prefix('/target-savings')->group(function () {
     Route::post('/create', [TargetSavingsController::class, 'store']);
     Route::get('/list', [TargetSavingsController::class, 'index']);
     Route::get('/summary', [TargetSavingsController::class, 'summary']);
@@ -472,7 +458,7 @@ Route::prefix('/target-savings')->middleware('auth:api')->group(function () {
     Route::put('/company/settings', [TargetSavingsController::class, 'updateCompanySettings']);
 });
 
-Route::prefix('/fixed-savings')->middleware('auth:api')->group(function () {
+Route::prefix('/fixed-savings')->group(function () {
 
     Route::post('/create', [FixedSavingsController::class, 'store']);
 

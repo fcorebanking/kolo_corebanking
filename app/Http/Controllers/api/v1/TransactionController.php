@@ -5409,7 +5409,7 @@ public function buyAirtime(Request $request)
 )]
 public function buyDataBundle(Request $request)
 {
-    $token = $request->user()?->access_token;
+    $token = $request->bearerToken();
 
     return app(FinovaApiService::class)->post(
         '/transactions/buy-data-bundle',
@@ -6082,7 +6082,7 @@ if (!$checkVTPASSBalance['status']) {
 )]
 public function verifyBVN(Request $request)
 {
-    $token = $request->user()?->access_token;
+    $token = $request->bearerToken();
 
     return app(FinovaApiService::class)->post(
         '/verify-bvn',
@@ -6177,7 +6177,7 @@ public function verifyBVN(Request $request)
 )]
 public function verifyBVNOtp(Request $request)
 {
-    $token = $request->user()?->access_token;
+    $token = $request->bearerToken();
 
     $payload = [
         'identityId' => $request->input('identityId'),
@@ -7386,7 +7386,7 @@ private function forwardToFinova(
 )]
 public function getDataBundles(Request $request, $networkProvider)
 {
-    $token = $request->user()?->access_token;
+    $token = $request->bearerToken();
 
     return app(FinovaApiService::class)->get(
         '/get-data-bundles/' . rawurlencode($networkProvider),

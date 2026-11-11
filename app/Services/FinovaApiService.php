@@ -70,6 +70,7 @@ class FinovaApiService
             $response = match (strtoupper($method)) {
                 'GET' => $http->get($url, $data),
                 'POST' => $http->post($url, $data),
+                'PUT' => $http->put($url, $data),
                 default => throw new \InvalidArgumentException(
                     'Unsupported Finova HTTP method.'
                 ),
@@ -99,4 +100,12 @@ class FinovaApiService
             ], 503);
         }
     }
+
+    public function put(
+    string $path,
+    ?string $token,
+    array $payload = []
+): JsonResponse {
+    return $this->send('PUT', $path, $token, $payload);
+}
 }

@@ -16,6 +16,7 @@ use RuntimeException;
 use Throwable;
 use App\Models\AjoInvitation;
 use App\Models\User;
+use App\Services\FinovaApiService;
 
 class AjoController extends Controller
 {
@@ -73,52 +74,30 @@ class AjoController extends Controller
         ]
     )]
 public function create(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'ajo_name' => ['required', 'string', 'max:150'],
-            'description' => ['nullable', 'string'],
-            'collection_amount' => ['required', 'numeric', 'gt:0'],
-            'collection_frequency' => ['required', 'string', 'in:daily,weekly,monthly'],
-            'collection_interval' => ['nullable', 'integer', 'min:1'],
-            'collection_day' => ['nullable', 'integer', 'min:1', 'max:31'],
-            'collection_time' => ['required', 'date_format:H:i'],
-            'start_date' => ['required', 'date_format:Y-m-d'],
-            'maturity_date' => ['required', 'date_format:Y-m-d', 'after:start_date'],
-            'early_leave_penalty_type' => ['nullable', 'string', 'in:fixed,percentage'],
-            'early_leave_penalty_value' => ['nullable', 'numeric', 'min:0'],
-            'insufficient_balance_fee_type' => ['nullable', 'string', 'in:fixed,percentage'],
-            'insufficient_balance_fee_value' => ['nullable', 'numeric', 'min:0'],
-            'max_members' => ['nullable', 'integer', 'min:1'],
-            'visibility' => ['nullable', 'string', 'in:public,private'],
-            'terms' => ['nullable', 'string'],
-        ]);
-
-        if ($validator->fails()) return $this->validationResponse($validator);
-
-        try {
-            $ajo = $this->ajoService->createAjo(
-                $this->authenticatedUser(),
-                $request->only([
-                    'ajo_name', 'description', 'collection_amount', 'collection_frequency',
-                    'collection_interval', 'collection_day', 'collection_time', 'start_date',
-                    'maturity_date', 'early_leave_penalty_type', 'early_leave_penalty_value',
-                    'insufficient_balance_fee_type', 'insufficient_balance_fee_value',
-                    'max_members', 'visibility', 'terms',
-                ])
-            );
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Ajo created successfully.',
-                'data' => $ajo,
-            ], 201);
-        } catch (RuntimeException $e) {
-            return $this->businessError($e);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to create Ajo.'], 500);
-        }
-    }
+{
+    return app(FinovaApiService::class)->post(
+        '/ajo/create',
+        $request->bearerToken(),
+        $request->only([
+            'ajo_name',
+            'description',
+            'collection_amount',
+            'collection_frequency',
+            'collection_interval',
+            'collection_day',
+            'collection_time',
+            'start_date',
+            'maturity_date',
+            'early_leave_penalty_type',
+            'early_leave_penalty_value',
+            'insufficient_balance_fee_type',
+            'insufficient_balance_fee_value',
+            'max_members',
+            'visibility',
+            'terms',
+        ])
+    );
+}
 
     #[OA\Get(
         path: "/api/v1/ajo/mine",
@@ -133,109 +112,12 @@ public function create(Request $request): JsonResponse
         ]
     )]
 public function mine(Request $request): JsonResponse
-    {
-        try {
-            $user = $this->authenticatedUser();
-
-            $members = AjoMember::query()
-     ->where('user_id', $user->id)
-     ->whereIn('status', [
-        AjoMember::STATUS_ACTIVE,
-        AjoMember::STATUS_LEAVE_REQUESTED,
-        AjoMember::STATUS_MATURED,
-     ])
-     ->get();
-
-            $memberAjoIds = $members->pluck('ajo_id')->filter()->unique()->values();
-            $memberAjoMap = Ajo::query()->whereIn('id', $memberAjoIds)->get()->keyBy('id');
-
-            $memberAjos = $members->map(function (AjoMember $member) use ($memberAjoMap, $user) {
-                $ajo = $memberAjoMap->get($member->ajo_id);
-                if (!$ajo) return null;
-
-                return [
-                    'id' => $ajo->id,
-                    'role' => (int) $ajo->creator_user_id === (int) $user->id ? 'creator_member' : 'member',
-                    'membership_id' => $member->id,
-                    'is_member' => true,
-                    'membership_status' => $member->status,
-                    'ajo_name' => $ajo->ajo_name,
-                    'description' => $ajo->description,
-                    'creator_user_id' => $ajo->creator_user_id,
-                    'collection_amount' => (float) $ajo->collection_amount,
-                    'collection_frequency' => $ajo->collection_frequency,
-                    'collection_interval' => $ajo->collection_interval,
-                    'collection_day' => $ajo->collection_day,
-                    'collection_time' => $ajo->collection_time,
-                    'start_date' => $ajo->start_date,
-                    'maturity_date' => $ajo->maturity_date,
-                    'next_collection_at' => $ajo->next_collection_at,
-                    'creation_fee' => (float) $ajo->creation_fee,
-                    'maturity_fee_percentage' => (float) $ajo->maturity_fee_percentage,
-                    'early_leave_penalty_type' => $ajo->early_leave_penalty_type,
-                    'early_leave_penalty_value' => (float) $ajo->early_leave_penalty_value,
-                    'insufficient_balance_fee_type' => $ajo->insufficient_balance_fee_type,
-                    'insufficient_balance_fee_value' => (float) $ajo->insufficient_balance_fee_value,
-                    'max_members' => $ajo->max_members,
-                    'visibility' => $ajo->visibility,
-                    'terms' => $ajo->terms,
-                    'terms_version' => $ajo->terms_version,
-                    'company_fee_share_percentage' => (float) $ajo->company_fee_share_percentage,
-                    'creator_fee_share_percentage' => (float) $ajo->creator_fee_share_percentage,
-                    'status' => $ajo->status,
-                    'current_contribution_balance' => (float) $member->balance,
-                    'total_contributed' => (float) $member->total_contributed,
-                    'pending_collection_amount' => (float) ($member->pending_collection_amount ?? 0),
-                    'insufficient_balance_count' => (int) $member->insufficient_balance_count,
-                    'pending_insufficient_balance_fees' => (float) ($member->pending_insufficient_balance_fees ?? 0),
-                    'total_insufficient_balance_fees' => (float) $member->total_insufficient_balance_fees,
-                    'total_maturity_fees' => (float) $member->total_maturity_fees,
-                    'total_early_leave_penalties' => (float) $member->total_early_leave_penalties,
-                    'joined_at' => $member->joined_at,
-                    'left_at' => $member->left_at,
-                ];
-            })->filter()->values();
-
-            $createdAjos = Ajo::query()
-        ->where('creator_user_id', $user->id)
-        ->latest('id')
-        ->get()
-        ->map(function (Ajo $ajo) use ($memberAjoIds) {
-            // Being the creator does not automatically mean the user joined.
-            // is_member becomes true only if a current membership exists.
-            $ajo->setAttribute(
-                'is_member',
-                $memberAjoIds->contains((int) $ajo->id)
-            );
-
-            return $ajo;
-        })
-        ->values();
-
-            $transactions = AjoTransaction::query()
-                ->where('user_id', $user->id)
-                ->latest('id')
-                ->get();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Ajo overview retrieved successfully.',
-                'data' => [
-                    'member_ajos' => $memberAjos,
-                    'created_ajos' => $createdAjos,
-                    'transactions' => $transactions,
-                    'member_ajo_count' => $memberAjos->count(),
-                    'created_ajo_count' => $createdAjos->count(),
-                    'transaction_count' => $transactions->count(),
-                ],
-            ]);
-        } catch (RuntimeException $e) {
-            return $this->businessError($e);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to retrieve Ajo overview.'], 500);
-        }
-    }
+{
+    return app(FinovaApiService::class)->get(
+        '/ajo/mine',
+        $request->bearerToken()
+    );
+}
 
 
     #[OA\Post(
@@ -277,45 +159,13 @@ public function mine(Request $request): JsonResponse
     )]
 public function invite(Request $request, int $ajoId): JsonResponse
 {
-    $validator = Validator::make(
-        $request->all(),
-        [
-            'username' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-        ]
+    return app(FinovaApiService::class)->post(
+        "/ajo/{$ajoId}/invite",
+        $request->bearerToken(),
+        $request->only([
+            'username',
+        ])
     );
-
-    if ($validator->fails()) {
-        return $this->validationResponse($validator);
-    }
-
-    try {
-        $invitation = $this->ajoService->inviteMember(
-            $ajoId,
-            $this->authenticatedUser(),
-            $request->username
-        );
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Ajo invitation created successfully.',
-            'data' => $invitation,
-        ], 201);
-
-    } catch (RuntimeException $e) {
-        return $this->businessError($e);
-
-    } catch (Throwable $e) {
-        report($e);
-
-        return response()->json([
-            'status' => false,
-            'message' => 'Unable to create Ajo invitation.',
-        ], 500);
-    }
 }
 
     #[OA\Post(
@@ -354,20 +204,15 @@ public function invite(Request $request, int $ajoId): JsonResponse
         ]
     )]
 public function join(Request $request, int $ajoId): JsonResponse
-    {
-        $validator = Validator::make($request->all(), ['accept_terms' => ['required', 'accepted']]);
-        if ($validator->fails()) return $this->validationResponse($validator);
-
-        try {
-            $member = $this->ajoService->joinAjo($ajoId, $this->authenticatedUser(), true);
-            return response()->json(['status' => true, 'message' => 'Joined Ajo successfully.', 'data' => $member], 201);
-        } catch (RuntimeException $e) {
-            return $this->businessError($e);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to join Ajo.'], 500);
-        }
-    }
+{
+    return app(FinovaApiService::class)->post(
+        "/ajo/{$ajoId}/join",
+        $request->bearerToken(),
+        $request->only([
+            'accept_terms',
+        ])
+    );
+}
 
     #[OA\Post(
         path: "/api/v1/ajo/invitations/{invitationId}/accept",
@@ -402,20 +247,18 @@ public function join(Request $request, int $ajoId): JsonResponse
             new OA\Response(response: 500, description: "Unexpected server error"),
         ]
     )]
-public function acceptInvitation(Request $request, int $invitationId): JsonResponse
-    {
-        $validator = Validator::make($request->all(), ['accept_terms' => ['required', 'accepted']]);
-        if ($validator->fails()) return $this->validationResponse($validator);
-        try {
-            $member = $this->ajoService->acceptInvitation($invitationId, $this->authenticatedUser(), true);
-            return response()->json(['status' => true, 'message' => 'Ajo invitation accepted successfully.', 'data' => $member]);
-        } catch (RuntimeException $e) {
-            return $this->businessError($e);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to accept invitation.'], 500);
-        }
-    }
+public function acceptInvitation(
+    Request $request,
+    int $invitationId
+): JsonResponse {
+    return app(FinovaApiService::class)->post(
+        "/ajo/invitations/{$invitationId}/accept",
+        $request->bearerToken(),
+        $request->only([
+            'accept_terms',
+        ])
+    );
+}
 
     #[OA\Post(
         path: "/api/v1/ajo/invitations/{invitationId}/decline",
@@ -437,18 +280,15 @@ public function acceptInvitation(Request $request, int $invitationId): JsonRespo
             new OA\Response(response: 500, description: "Unexpected server error"),
         ]
     )]
-public function declineInvitation(Request $request, int $invitationId): JsonResponse
-    {
-        try {
-            $invitation = $this->ajoService->declineInvitation($invitationId, $this->authenticatedUser());
-            return response()->json(['status' => true, 'message' => 'Ajo invitation declined successfully.', 'data' => $invitation]);
-        } catch (RuntimeException $e) {
-            return $this->businessError($e);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to decline invitation.'], 500);
-        }
-    }
+public function declineInvitation(
+    Request $request,
+    int $invitationId
+): JsonResponse {
+    return app(FinovaApiService::class)->post(
+        "/ajo/invitations/{$invitationId}/decline",
+        $request->bearerToken()
+    );
+}
 
     #[OA\Post(
         path: "/api/v1/ajo/{ajoId}/leave/request",
@@ -483,19 +323,15 @@ public function declineInvitation(Request $request, int $invitationId): JsonResp
         ]
     )]
 public function requestEarlyLeave(Request $request, int $ajoId): JsonResponse
-    {
-        $validator = Validator::make($request->all(), ['reason' => ['nullable', 'string', 'max:1000']]);
-        if ($validator->fails()) return $this->validationResponse($validator);
-        try {
-            $member = $this->ajoService->requestEarlyLeave($ajoId, $this->authenticatedUser(), $request->filled('reason') ? $request->reason : null);
-            return response()->json(['status' => true, 'message' => 'Early-leave request submitted successfully.', 'data' => $member]);
-        } catch (RuntimeException $e) {
-            return $this->businessError($e);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to submit early-leave request.'], 500);
-        }
-    }
+{
+    return app(FinovaApiService::class)->post(
+        "/ajo/{$ajoId}/leave/request",
+        $request->bearerToken(),
+        $request->only([
+            'reason',
+        ])
+    );
+}
 
     #[OA\Post(
         path: "/api/v1/ajo/members/{ajoMemberId}/leave/approve",
@@ -519,18 +355,15 @@ public function requestEarlyLeave(Request $request, int $ajoId): JsonResponse
             new OA\Response(response: 500, description: "Unexpected server error"),
         ]
     )]
-public function approveEarlyLeave(Request $request, int $ajoMemberId): JsonResponse
-    {
-        try {
-            $result = $this->ajoService->approveEarlyLeave($ajoMemberId, $this->authenticatedUser());
-            return response()->json(['status' => true, 'message' => 'Ajo member early leave approved successfully.', 'data' => $result]);
-        } catch (RuntimeException $e) {
-            return $this->businessError($e);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to approve early leave.'], 500);
-        }
-    }
+public function approveEarlyLeave(
+    Request $request,
+    int $ajoMemberId
+): JsonResponse {
+    return app(FinovaApiService::class)->post(
+        "/ajo/members/{$ajoMemberId}/leave/approve",
+        $request->bearerToken()
+    );
+}
 
     #[OA\Post(
         path: "/api/v1/ajo/members/{ajoMemberId}/leave/reject",
@@ -565,20 +398,18 @@ public function approveEarlyLeave(Request $request, int $ajoMemberId): JsonRespo
             new OA\Response(response: 500, description: "Unexpected server error"),
         ]
     )]
-public function rejectEarlyLeave(Request $request, int $ajoMemberId): JsonResponse
-    {
-        $validator = Validator::make($request->all(), ['reason' => ['nullable', 'string', 'max:1000']]);
-        if ($validator->fails()) return $this->validationResponse($validator);
-        try {
-            $member = $this->ajoService->rejectEarlyLeave($ajoMemberId, $this->authenticatedUser(), $request->filled('reason') ? $request->reason : null);
-            return response()->json(['status' => true, 'message' => 'Ajo member early leave rejected successfully.', 'data' => $member]);
-        } catch (RuntimeException $e) {
-            return $this->businessError($e);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to reject early leave.'], 500);
-        }
-    }
+public function rejectEarlyLeave(
+    Request $request,
+    int $ajoMemberId
+): JsonResponse {
+    return app(FinovaApiService::class)->post(
+        "/ajo/members/{$ajoMemberId}/leave/reject",
+        $request->bearerToken(),
+        $request->only([
+            'reason',
+        ])
+    );
+}
 
     #[OA\Post(
         path: "/api/v1/ajo/system/process-collections",
@@ -606,18 +437,15 @@ public function rejectEarlyLeave(Request $request, int $ajoMemberId): JsonRespon
         ]
     )]
 public function processCollections(Request $request): JsonResponse
-    {
-        if (!$this->isAdmin()) return $this->forbiddenResponse();
-        $validator = Validator::make($request->all(), ['as_of' => ['nullable', 'date']]);
-        if ($validator->fails()) return $this->validationResponse($validator);
-        try {
-            $asOf = $request->filled('as_of') ? Carbon::parse($request->as_of) : null;
-            return response()->json(['status' => true, 'message' => 'Ajo scheduled collections processed successfully.', 'data' => $this->ajoService->processScheduledCollections($asOf)]);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to process Ajo scheduled collections.'], 500);
-        }
-    }
+{
+    return app(FinovaApiService::class)->post(
+        '/ajo/system/process-collections',
+        $request->bearerToken(),
+        $request->only([
+            'as_of',
+        ])
+    );
+}
 
         #[OA\Get(
         path: "/api/v1/ajo/pending-actions",
@@ -631,117 +459,13 @@ public function processCollections(Request $request): JsonResponse
             new OA\Response(response: 500, description: "Unexpected server error"),
         ]
     )]
-    public function pendingActions(Request $request): JsonResponse
-    {
-        try {
-            $user = $this->authenticatedUser();
-
-            $pendingInvitations = AjoInvitation::query()
-                ->where('invited_user_id', $user->id)
-                ->where('status', AjoInvitation::STATUS_PENDING)
-                ->latest('id')
-                ->get();
-
-            $invitationAjoIds = $pendingInvitations
-                ->pluck('ajo_id')
-                ->filter()
-                ->unique()
-                ->values();
-
-            $invitationAjos = Ajo::query()
-                ->whereIn('id', $invitationAjoIds)
-                ->get()
-                ->keyBy('id');
-
-            $inviterIds = $pendingInvitations
-                ->pluck('invited_by')
-                ->filter()
-                ->unique()
-                ->values();
-
-            $inviters = User::query()
-                ->whereIn('id', $inviterIds)
-                ->get()
-                ->keyBy('id');
-
-            $invitations = $pendingInvitations->map(function (AjoInvitation $invitation) use ($invitationAjos, $inviters) {
-                $ajo = $invitationAjos->get($invitation->ajo_id);
-                $inviter = $inviters->get($invitation->invited_by);
-
-                return [
-                    'invitation_id' => $invitation->id,
-                    'status' => $invitation->status,
-                    'ajo_id' => $ajo?->id,
-                    'ajo_name' => $ajo?->ajo_name,
-                    'ajo_description' => $ajo?->description,
-                    'creator_user_id' => $ajo?->creator_user_id,
-                    'creator_name' => $inviter?->name ?? $inviter?->username ?? 'Ajo creator',
-                    'creator_username' => $inviter?->username,
-                    'collection_amount' => $ajo ? (float) $ajo->collection_amount : 0,
-                    'collection_frequency' => $ajo?->collection_frequency,
-                    'collection_interval' => $ajo?->collection_interval,
-                    'collection_day' => $ajo?->collection_day,
-                    'collection_time' => $ajo?->collection_time,
-                    'start_date' => $ajo?->start_date,
-                    'maturity_date' => $ajo?->maturity_date,
-                    'visibility' => $ajo?->visibility,
-                    'terms_snapshot' => $invitation->terms_snapshot,
-                    'terms_version' => $invitation->terms_version,
-                    'sent_at' => $invitation->sent_at,
-                ];
-            })->values();
-
-            $leaveRequests = AjoMember::query()
-                ->where('status', AjoMember::STATUS_LEAVE_REQUESTED)
-                ->whereHas('ajo', function ($query) use ($user) {
-                    $query->where('creator_user_id', $user->id)
-                        ->where('status', Ajo::STATUS_ACTIVE);
-                })
-                ->with(['ajo', 'user'])
-                ->latest('id')
-                ->get()
-                ->map(function (AjoMember $member) {
-                    return [
-                        'ajo_member_id' => $member->id,
-                        'status' => $member->status,
-                        'ajo_id' => $member->ajo?->id,
-                        'ajo_name' => $member->ajo?->ajo_name,
-                        'creator_user_id' => $member->ajo?->creator_user_id,
-                        'member_user_id' => $member->user_id,
-                        'member_name' => $member->user?->name ?? $member->user?->username ?? 'Ajo member',
-                        'member_username' => $member->user?->username,
-                        'current_balance' => (float) $member->balance,
-                        'total_contributed' => (float) $member->total_contributed,
-                        'early_leave_penalty_type' => $member->ajo?->early_leave_penalty_type,
-                        'early_leave_penalty_value' => $member->ajo ? (float) $member->ajo->early_leave_penalty_value : 0,
-                        'early_leave_reason' => $member->early_leave_reason,
-                        'requested_at' => $member->early_leave_requested_at,
-                        'maturity_date' => $member->ajo?->maturity_date,
-                    ];
-                })
-                ->values();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Pending Ajo actions retrieved successfully.',
-                'data' => [
-                    'pending_invitations' => $invitations,
-                    'early_leave_requests' => $leaveRequests,
-                    'pending_invitation_count' => $invitations->count(),
-                    'early_leave_request_count' => $leaveRequests->count(),
-                    'total_pending_actions' => $invitations->count() + $leaveRequests->count(),
-                ],
-            ]);
-        } catch (RuntimeException $e) {
-            return $this->businessError($e);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve pending Ajo actions.',
-            ], 500);
-        }
-    }
+public function pendingActions(Request $request): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        '/ajo/pending-actions',
+        $request->bearerToken()
+    );
+}
 
     #[OA\Post(
         path: "/api/v1/ajo/system/process-maturity",
@@ -770,18 +494,15 @@ public function processCollections(Request $request): JsonResponse
         ]
     )]
 public function processMaturity(Request $request): JsonResponse
-    {
-        if (!$this->isAdmin()) return $this->forbiddenResponse();
-        $validator = Validator::make($request->all(), ['as_of' => ['nullable', 'date']]);
-        if ($validator->fails()) return $this->validationResponse($validator);
-        try {
-            $asOf = $request->filled('as_of') ? Carbon::parse($request->as_of) : null;
-            return response()->json(['status' => true, 'message' => 'Ajo maturity processing completed successfully.', 'data' => $this->ajoService->processMaturity($asOf)]);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to process Ajo maturity.'], 500);
-        }
-    }
+{
+    return app(FinovaApiService::class)->post(
+        '/ajo/system/process-maturity',
+        $request->bearerToken(),
+        $request->only([
+            'as_of',
+        ])
+    );
+}
 
     #[OA\Get(
         path: "/api/v1/ajo/{ajoId}/conditions",
@@ -805,31 +526,12 @@ public function processMaturity(Request $request): JsonResponse
         ]
     )]
 public function conditions(Request $request, int $ajoId): JsonResponse
-    {
-        try {
-            $user = $this->authenticatedUser();
-            $ajo = Ajo::query()->find($ajoId);
-            if (!$ajo) return response()->json(['status' => false, 'message' => 'Ajo not found.'], 404);
-            if (!$this->canViewAjo($ajo, $user)) return response()->json(['status' => false, 'message' => 'You do not have access to this Ajo.'], 403);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Ajo conditions retrieved successfully.',
-                'data' => [
-                    'ajo_id' => $ajo->id,
-                    'terms_version' => $ajo->terms_version,
-                    'conditions' => $this->ajoService->getConditions($ajo),
-                    'company_fee_share_percentage' => (float) $ajo->company_fee_share_percentage,
-                    'creator_fee_share_percentage' => (float) $ajo->creator_fee_share_percentage,
-                ],
-            ]);
-        } catch (RuntimeException $e) {
-            return $this->businessError($e);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to retrieve Ajo conditions.'], 500);
-        }
-    }
+{
+    return app(FinovaApiService::class)->get(
+        "/ajo/{$ajoId}/conditions",
+        $request->bearerToken()
+    );
+}
 
     #[OA\Post(
         path: "/api/v1/ajo/{ajoId}/fee-split",
@@ -869,20 +571,13 @@ public function conditions(Request $request, int $ajoId): JsonResponse
         ]
     )]
 public function feeSplit(Request $request, int $ajoId): JsonResponse
-    {
-        $validator = Validator::make($request->all(), ['amount' => ['required', 'numeric', 'min:0']]);
-        if ($validator->fails()) return $this->validationResponse($validator);
-        try {
-            $user = $this->authenticatedUser();
-            $ajo = Ajo::query()->find($ajoId);
-            if (!$ajo) return response()->json(['status' => false, 'message' => 'Ajo not found.'], 404);
-            if (!$this->canViewAjo($ajo, $user)) return response()->json(['status' => false, 'message' => 'You do not have access to this Ajo.'], 403);
-            return response()->json(['status' => true, 'message' => 'Ajo fee split calculated successfully.', 'data' => $this->ajoService->calculateFeeSplit($ajo, (float)$request->amount)]);
-        } catch (Throwable $e) {
-            report($e);
-            return response()->json(['status' => false, 'message' => 'Unable to calculate Ajo fee split.'], 500);
-        }
-    }
+{
+    return app(FinovaApiService::class)->post(
+        "/ajo/{$ajoId}/fee-split",
+        $request->bearerToken(),
+        $request->only(['amount'])
+    );
+}
 
     protected function authenticatedUser()
     {
@@ -955,33 +650,10 @@ public function feeSplit(Request $request, int $ajoId): JsonResponse
 )]
 public function pendingInvitations(Request $request): JsonResponse
 {
-    try {
-        $user = $this->authenticatedUser();
-
-        $invitations = $this->ajoService->getPendingInvitations($user);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Pending Ajo invitations retrieved successfully.',
-            'data' => [
-                'invitations' => $invitations,
-                'invitation_count' => $invitations->count(),
-            ],
-        ]);
-
-    } catch (RuntimeException $e) {
-
-        return $this->businessError($e);
-
-    } catch (Throwable $e) {
-
-        report($e);
-
-        return response()->json([
-            'status' => false,
-            'message' => 'Unable to retrieve pending Ajo invitations.',
-        ], 500);
-    }
+    return app(FinovaApiService::class)->get(
+        '/ajo/invitations/pending',
+        $request->bearerToken()
+    );
 }
 
 #[OA\Get(
@@ -1008,131 +680,110 @@ public function pendingInvitations(Request $request): JsonResponse
     /**
      * Read the authenticated user's company's current Ajo creation fee.
      */
-    public function creationFee(Request $request)
-    {
-        $user = auth('api')->user();
-
-        if (!$user) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
-
-        $settings = $user->company?->setting;
-
-        if (!$settings) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Company Ajo settings could not be found.',
-            ], 422);
-        }
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Ajo creation fee retrieved successfully.',
-            'data' => [
-                'creation_fee' => round((float) ($settings->ajo_creation_fee ?? 0), 2),
-            ],
-        ]);
-    }
-
-
-/**
- * Update the authenticated user's company's Ajo creation fee.
- *
- * Access is controlled by Core's apiCando() staff-permission helper.
- */
-public function updateCreationFee(Request $request)
+public function creationFee(Request $request): JsonResponse
 {
-    $user = auth('api')->user();
-
-    if (!$user) {
-        // Logging authentication failure reason
-        logInfo('Ajo creation fee update failed: Unauthenticated user attempt.');
-        return response()->json([
-            'status' => false,
-            'message' => 'Unauthenticated.',
-        ], 401);
-    }
-
-    // Use Core's staff-permission system.
-    if (!apiCando('admin|root')) {
-        // Logging permission failure reason
-        logInfo('Ajo creation fee update failed: Unauthorized permission attempt.', [
-            'user_id' => $user->id,
-        ]);
-        return response()->json([
-            'status' => false,
-            'message' => 'Administrator access required.',
-        ], 403);
-    }
-
-    $validated = $request->validate([
-        'creation_fee' => [
-            'required',
-            'numeric',
-            'min:0',
-            'max:1000000000',
-        ],
-    ]);
-
-    try {
-        $settings = $user->company?->setting;
-
-        if (!$settings) {
-            // Logging application logic failure reason
-            logInfo('Ajo creation fee update failed: Company settings missing.', [
-                'user_id' => $user->id,
-                'company_id' => $user->company_id,
-            ]);
-            return response()->json([
-                'status' => false,
-                'message' => 'Company Ajo settings could not be found.',
-            ], 422);
-        }
-
-        $settings->ajo_creation_fee = round(
-            (float) $validated['creation_fee'],
-            2
-        );
-
-        $settings->save();
-
-        $settings->refresh();
-
-        logInfo('Ajo creation fee updated successfully', [
-          'user_id' => $user->id,
-          'company_id' => $user->company_id,
-          'settings_id' => $settings->id,
-          'saved_creation_fee' => $settings->ajo_creation_fee,
-        ]);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Ajo creation fee updated successfully.',
-            'data' => [
-                'creation_fee' => (float) $settings->ajo_creation_fee,
-            ],
-        ]);
-
-    } catch (\Exception $e) {
-        // Logging unexpected database/system failures with exception details
-        logInfo('Ajo creation fee update failed: System Exception thrown.', [
-            'user_id' => $user->id,
-            'company_id' => $user->company_id ?? null,
-            'error_message' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-        ]);
-
-        return response()->json([
-            'status' => false,
-            'message' => 'An error occurred while updating the creation fee.',
-            'error' => config('app.debug') ? $e->getMessage() : 'Server Error',
-        ], 500);
-    }
+    return app(FinovaApiService::class)->get(
+        '/ajo/settings/creation-fee',
+        $request->bearerToken()
+    );
 }
+
+
+// /**
+//  * Update the authenticated user's company's Ajo creation fee.
+//  *
+//  * Access is controlled by Core's apiCando() staff-permission helper.
+//  */
+// public function updateCreationFee(Request $request)
+// {
+//     $user = auth('api')->user();
+
+//     if (!$user) {
+//         // Logging authentication failure reason
+//         logInfo('Ajo creation fee update failed: Unauthenticated user attempt.');
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'Unauthenticated.',
+//         ], 401);
+//     }
+
+//     // Use Core's staff-permission system.
+//     if (!apiCando('admin|root')) {
+//         // Logging permission failure reason
+//         logInfo('Ajo creation fee update failed: Unauthorized permission attempt.', [
+//             'user_id' => $user->id,
+//         ]);
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'Administrator access required.',
+//         ], 403);
+//     }
+
+//     $validated = $request->validate([
+//         'creation_fee' => [
+//             'required',
+//             'numeric',
+//             'min:0',
+//             'max:1000000000',
+//         ],
+//     ]);
+
+//     try {
+//         $settings = $user->company?->setting;
+
+//         if (!$settings) {
+//             // Logging application logic failure reason
+//             logInfo('Ajo creation fee update failed: Company settings missing.', [
+//                 'user_id' => $user->id,
+//                 'company_id' => $user->company_id,
+//             ]);
+//             return response()->json([
+//                 'status' => false,
+//                 'message' => 'Company Ajo settings could not be found.',
+//             ], 422);
+//         }
+
+//         $settings->ajo_creation_fee = round(
+//             (float) $validated['creation_fee'],
+//             2
+//         );
+
+//         $settings->save();
+
+//         $settings->refresh();
+
+//         logInfo('Ajo creation fee updated successfully', [
+//           'user_id' => $user->id,
+//           'company_id' => $user->company_id,
+//           'settings_id' => $settings->id,
+//           'saved_creation_fee' => $settings->ajo_creation_fee,
+//         ]);
+
+//         return response()->json([
+//             'status' => true,
+//             'message' => 'Ajo creation fee updated successfully.',
+//             'data' => [
+//                 'creation_fee' => (float) $settings->ajo_creation_fee,
+//             ],
+//         ]);
+
+//     } catch (\Exception $e) {
+//         // Logging unexpected database/system failures with exception details
+//         logInfo('Ajo creation fee update failed: System Exception thrown.', [
+//             'user_id' => $user->id,
+//             'company_id' => $user->company_id ?? null,
+//             'error_message' => $e->getMessage(),
+//             'file' => $e->getFile(),
+//             'line' => $e->getLine(),
+//         ]);
+
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'An error occurred while updating the creation fee.',
+//             'error' => config('app.debug') ? $e->getMessage() : 'Server Error',
+//         ], 500);
+//     }
+// }
 
 
 #[OA\Get(
@@ -1216,84 +867,10 @@ public function updateCreationFee(Request $request)
 )]
 public function members(Request $request, int $ajoId): JsonResponse
 {
-    try {
-        $user = $this->authenticatedUser();
-
-        // Find the requested Ajo group.
-        $ajo = Ajo::query()->find($ajoId);
-
-        if (!$ajo) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Ajo not found.',
-            ], 404);
-        }
-
-
-/*
- * The Ajo creator and Core administrators can view
- * the complete membership list.
- */
-$isCreator = (int) $ajo->creator_user_id === (int) $user->id;
-$isAdmin = $this->isAdmin(); // Uses Core's existing apiCando('root|admin') check.
-
-if (!$isCreator && !$isAdmin) {
-    return response()->json([
-        'status' => false,
-        'message' => 'Only the Ajo creator or an administrator can view all members.',
-    ], 403);
-}
-
-
-        // Return all membership records that still exist for this Ajo.
-        // This includes members with different membership statuses.
-        $members = AjoMember::query()
-            ->where('ajo_id', $ajo->id)
-            ->with('user:id,first_name,last_name,username')
-            ->orderBy('id')
-            ->get()
-            ->map(function (AjoMember $member) {
-                return [
-                    'membership_id' => $member->id,
-                    'user_id' => $member->user_id,
-                    'first_name' => $member->user?->first_name,
-                    'last_name' => $member->user?->last_name,
-                    'username' => $member->user?->username,
-                    'status' => $member->status,
-                    'balance' => (float) $member->balance,
-                    'total_contributed' => (float) $member->total_contributed,
-                    'pending_collection_amount' => (float) ($member->pending_collection_amount ?? 0),
-                    'insufficient_balance_count' => (int) $member->insufficient_balance_count,
-                    'pending_insufficient_balance_fees' => (float) ($member->pending_insufficient_balance_fees ?? 0),
-                    'total_insufficient_balance_fees' => (float) $member->total_insufficient_balance_fees,
-                    'total_maturity_fees' => (float) $member->total_maturity_fees,
-                    'total_early_leave_penalties' => (float) $member->total_early_leave_penalties,
-                    'joined_at' => $member->joined_at,
-                    'left_at' => $member->left_at,
-                ];
-            })
-            ->values();
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Ajo members retrieved successfully.',
-            'data' => [
-                'ajo_id' => $ajo->id,
-                'ajo_name' => $ajo->ajo_name,
-                'member_count' => $members->count(),
-                'members' => $members,
-            ],
-        ]);
-    } catch (RuntimeException $e) {
-        return $this->businessError($e);
-    } catch (Throwable $e) {
-        report($e);
-
-        return response()->json([
-            'status' => false,
-            'message' => 'Unable to retrieve Ajo members.',
-        ], 500);
-    }
+    return app(FinovaApiService::class)->get(
+        "/ajo/{$ajoId}/members",
+        $request->bearerToken()
+    );
 }
 
 
@@ -1364,80 +941,10 @@ if (!$isCreator && !$isAdmin) {
 )]
 public function myMemberships(Request $request): JsonResponse
 {
-    try {
-        $user = $this->authenticatedUser();
-
-        $memberships = AjoMember::query()
-            ->where('user_id', $user->id)
-            ->whereIn('status', [
-                AjoMember::STATUS_ACTIVE,
-                AjoMember::STATUS_LEAVE_REQUESTED,
-                AjoMember::STATUS_MATURED,
-            ])
-            ->with('ajo')
-            ->latest('id')
-            ->get()
-            ->filter(fn (AjoMember $member) => $member->ajo !== null)
-            ->map(function (AjoMember $member) use ($user) {
-                $ajo = $member->ajo;
-
-                return [
-                    'ajo_id' => $ajo->id,
-                    'ajo_name' => $ajo->ajo_name,
-                    'description' => $ajo->description,
-                    'creator_user_id' => $ajo->creator_user_id,
-
-                    'role' => (int) $ajo->creator_user_id === (int) $user->id
-                        ? 'creator_member'
-                        : 'member',
-
-                    'membership_id' => $member->id,
-                    'membership_status' => $member->status,
-
-                    'collection_amount' => (float) $ajo->collection_amount,
-                    'collection_frequency' => $ajo->collection_frequency,
-                    'collection_interval' => $ajo->collection_interval,
-                    'collection_day' => $ajo->collection_day,
-                    'collection_time' => $ajo->collection_time,
-                    'start_date' => $ajo->start_date,
-                    'maturity_date' => $ajo->maturity_date,
-                    'next_collection_at' => $ajo->next_collection_at,
-                    'ajo_status' => $ajo->status,
-
-                    'current_contribution_balance' => (float) $member->balance,
-                    'total_contributed' => (float) $member->total_contributed,
-                    'pending_collection_amount' => (float) ($member->pending_collection_amount ?? 0),
-
-                    'insufficient_balance_count' => (int) $member->insufficient_balance_count,
-                    'pending_insufficient_balance_fees' => (float) ($member->pending_insufficient_balance_fees ?? 0),
-                    'total_insufficient_balance_fees' => (float) $member->total_insufficient_balance_fees,
-                    'total_maturity_fees' => (float) $member->total_maturity_fees,
-                    'total_early_leave_penalties' => (float) $member->total_early_leave_penalties,
-
-                    'joined_at' => $member->joined_at,
-                    'left_at' => $member->left_at,
-                ];
-            })
-            ->values();
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Your Ajo memberships were retrieved successfully.',
-            'data' => [
-                'membership_count' => $memberships->count(),
-                'memberships' => $memberships,
-            ],
-        ]);
-    } catch (RuntimeException $e) {
-        return $this->businessError($e);
-    } catch (Throwable $e) {
-        report($e);
-
-        return response()->json([
-            'status' => false,
-            'message' => 'Unable to retrieve your Ajo memberships.',
-        ], 500);
-    }
+    return app(FinovaApiService::class)->get(
+        '/ajo/my-memberships',
+        $request->bearerToken()
+    );
 }
 
 }

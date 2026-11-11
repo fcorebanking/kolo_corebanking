@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 use Throwable;
 use Illuminate\Support\Facades\DB;
+use App\Services\FinovaApiService;
 
 class TargetSavingsController extends Controller
 {
@@ -100,91 +101,21 @@ class TargetSavingsController extends Controller
             )
         ]
     )]
-    public function store(Request $request): JsonResponse
-    {
-        try {
-
-            $validator = Validator::make($request->all(), [
-                'target_name' => [
-                    'required',
-                    'string',
-                    'max:255',
-                ],
-
-                'target_amount' => [
-                    'required',
-                    'numeric',
-                    'gt:0',
-                ],
-
-                'withdrawal_date' => [
-                    'required',
-                    'date',
-                    'after:today',
-                ],
-
-                'auto_deposit_amount' => [
-                    'required',
-                    'numeric',
-                    'gt:0',
-                    'lte:target_amount',
-                ],
-
-                'auto_deposit_frequency' => [
-                    'required',
-                    'string',
-                    'in:daily,weekly,monthly',
-                ],
-
-                'first_deposit_at' => [
-                    'required',
-                    'date',
-                ],
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation failed.',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            $targetSavings = $this->targetSavingsService->createTarget(
-                $user,
-                $request->target_name,
-                (float) $request->target_amount,
-                $request->withdrawal_date,
-                (float) $request->auto_deposit_amount,
-                $request->auto_deposit_frequency,
-                $request->first_deposit_at
-            );
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Target Savings created successfully.',
-                'data' => $targetSavings,
-            ], 201);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ], 400);
-        }
-    }
+public function store(Request $request): JsonResponse
+{
+    return app(FinovaApiService::class)->post(
+        '/target-savings/create',
+        $request->bearerToken(),
+        $request->only([
+            'target_name',
+            'target_amount',
+            'withdrawal_date',
+            'auto_deposit_amount',
+            'auto_deposit_frequency',
+            'first_deposit_at',
+        ])
+    );
+}
 
     /**
      * Get the authenticated user's Target Savings.
@@ -222,52 +153,14 @@ class TargetSavingsController extends Controller
             )
         ]
     )]
-    public function index(Request $request): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            $query = TargetSaving::query()
-                ->with('schedule')
-                ->where('user_id', $user->id)
-                ->orderByDesc('id');
-
-            /*
-             * Optional status filter.
-             */
-            if ($request->filled('status')) {
-                $query->where(
-                    'status',
-                    $request->status
-                );
-            }
-
-            $targets = $query->get();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Target Savings retrieved successfully.',
-                'data' => $targets,
-            ]);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve Target Savings.',
-            ], 500);
-        }
-    }
+public function index(Request $request): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        '/target-savings/list',
+        $request->bearerToken(),
+        $request->only(['status'])
+    );
+}
 
         /**
      * Get authenticated user's Target Savings summary.
@@ -298,72 +191,13 @@ class TargetSavingsController extends Controller
             )
         ]
     )]
-    public function summary(Request $request): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            /*
-             * Get all Target Savings belonging to
-             * the authenticated user.
-             */
-            $query = TargetSaving::query()
-                ->where('user_id', $user->id);
-
-            /*
-             * Total number of Target Savings created.
-             */
-            $targetSavingsCount = (clone $query)->count();
-
-            /*
-             * Combined target amount across
-             * all Target Savings.
-             */
-            $totalTargetAmount = (float) (
-                (clone $query)->sum('target_amount')
-            );
-
-            /*
-             * Cumulative amount actually deposited
-             * across all Target Savings.
-             *
-             * We use total_deposited rather than current_balance
-             * because current_balance can become zero after withdrawal,
-             * while total_deposited represents the cumulative
-             * amount deposited into each target.
-             */
-            $totalAmountDeposited = (float) (
-                (clone $query)->sum('total_deposited')
-            );
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Target Savings summary retrieved successfully.',
-                'data' => [
-                    'target_savings_count' => $targetSavingsCount,
-                    'total_target_amount' => round($totalTargetAmount, 2),
-                    'total_amount_deposited' => round($totalAmountDeposited, 2),
-                ],
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve Target Savings summary.',
-            ], 500);
-        }
-    }
+public function summary(Request $request): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        '/target-savings/summary',
+        $request->bearerToken()
+    );
+}
 
     /**
      * Get one Target Savings.
@@ -405,54 +239,13 @@ class TargetSavingsController extends Controller
             )
         ]
     )]
-    public function show(Request $request, $id): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            $targetSavings = TargetSaving::query()
-                ->with(['schedule', 'transactions'])
-                ->where('id', $id)
-                ->where('user_id', $user->id)
-                ->first();
-
-            if (!$targetSavings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Target Savings not found.',
-                ], 404);
-            }
-
-            $targetSavings->load([
-                'transactions' => function ($query) {
-                    $query->latest();
-                },
-            ]);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Target Savings retrieved successfully.',
-                'data' => $targetSavings,
-            ]);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve Target Savings.',
-            ], 500);
-        }
-    }
+public function show(Request $request, $id): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        "/target-savings/details/{$id}",
+        $request->bearerToken()
+    );
+}
 
     /**
      * Deposit money into Target Savings.
@@ -512,72 +305,14 @@ class TargetSavingsController extends Controller
             )
         ]
     )]
-    public function deposit(Request $request, $id): JsonResponse
-    {
-        try {
-
-            $validator = Validator::make($request->all(), [
-                'amount' => [
-                    'required',
-                    'numeric',
-                    'gt:0',
-                ],
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation failed.',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            /*
-             * Make sure this target belongs to the authenticated user.
-             */
-            $targetSavings = TargetSaving::query()
-                ->where('id', $id)
-                ->where('user_id', $user->id)
-                ->first();
-
-            if (!$targetSavings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Target Savings not found.',
-                ], 404);
-            }
-
-            $result = $this->targetSavingsService->deposit(
-                $targetSavings->id,
-                $user,
-                (float) $request->amount
-            );
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Target Savings deposit successful.',
-                'data' => $result,
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ], 400);
-        }
-    }
+public function deposit(Request $request, $id): JsonResponse
+{
+    return app(FinovaApiService::class)->post(
+        "/target-savings/deposit/{$id}",
+        $request->bearerToken(),
+        $request->only(['amount'])
+    );
+}
 
     /**
      * Withdraw from Target Savings.
@@ -622,52 +357,13 @@ class TargetSavingsController extends Controller
             )
         ]
     )]
-    public function withdraw(Request $request, $id): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            $targetSavings = TargetSaving::query()
-                ->where('id', $id)
-                ->where('user_id', $user->id)
-                ->first();
-
-            if (!$targetSavings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Target Savings not found.',
-                ], 404);
-            }
-
-            $result = $this->targetSavingsService->withdraw(
-                $targetSavings->id,
-                $user
-            );
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Target Savings withdrawal successful.',
-                'data' => $result,
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ], 400);
-        }
-    }
+public function withdraw(Request $request, $id): JsonResponse
+{
+    return app(FinovaApiService::class)->post(
+        "/target-savings/withdraw/{$id}",
+        $request->bearerToken()
+    );
+}
 
     /**
      * Get Target Savings transaction history.
@@ -709,52 +405,13 @@ class TargetSavingsController extends Controller
             )
         ]
     )]
-    public function transactions(Request $request, $id): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            $targetSavings = TargetSaving::query()
-                ->where('id', $id)
-                ->where('user_id', $user->id)
-                ->first();
-
-            if (!$targetSavings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Target Savings not found.',
-                ], 404);
-            }
-
-            $query = $targetSavings->transactions()
-                ->latest();
-
-            $transactions = $query->get();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Target Savings transactions retrieved successfully.',
-                'data' => $transactions,
-            ]);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve Target Savings transactions.',
-            ], 500);
-        }
-    }
+public function transactions(Request $request, $id): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        "/target-savings/transactions/{$id}",
+        $request->bearerToken()
+    );
+}
 
         /**
      * Get all Target Savings belonging to users in the
@@ -809,80 +466,17 @@ class TargetSavingsController extends Controller
             )
         ]
     )]
-    public function companyIndex(Request $request): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            /*
-             * Only administrators/root users should be able
-             * to view Target Savings belonging to the entire company.
-             *
-             * Adjust these permission names if your application's
-             * actual admin permissions use different names.
-             */
-            if (!apiCando('root|admin')) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Administrator access required.',
-                ], 403);
-            }
-
-            if (empty($user->company_id)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Your account is not linked to a company.',
-                ], 400);
-            }
-
-            $query = TargetSaving::with([
-      'user:id,uuid,first_name,last_name,username,email,phone'
-             ])
-       ->where('company_id', $user->company_id)
-       ->orderByDesc('id');
-
-            /*
-             * Optional status filter.
-             */
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
-
-            /*
-             * Prevent excessively large API responses.
-             */
-            $perPage = min(
-                max((int) $request->get('per_page', 20), 1),
-                100
-            );
-
-            $targets = $query->paginate($perPage);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Company Target Savings retrieved successfully.',
-                'company_id' => $user->company_id,
-                'data' => $targets,
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve company Target Savings.',
-            ], 500);
-        }
-    }
+public function companyIndex(Request $request): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        '/target-savings/company/list',
+        $request->bearerToken(),
+        $request->only([
+            'status',
+            'per_page',
+        ])
+    );
+}
 
         /**
      * Get the authenticated company's Target Savings settings.
@@ -916,235 +510,86 @@ class TargetSavingsController extends Controller
             )
         ]
     )]
-    public function companySettings(Request $request): JsonResponse
-    {
-        try {
+public function companySettings(Request $request): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        '/target-savings/company/settings',
+        $request->bearerToken()
+    );
+}
 
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            if (!apiCando('root|admin')) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Administrator access required.',
-                ], 403);
-            }
-
-            if (empty($user->company_id)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Your account is not linked to a company.',
-                ], 400);
-            }
-
-            $settings = DB::table('company_settings')
-                ->where('company_id', $user->company_id)
-                ->first([
-                    'company_id',
-                    'target_savings_interest_rate',
-                    'target_savings_early_withdrawal_fee_percentage',
-                ]);
-
-            if (!$settings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Company settings not found.',
-                ], 404);
-            }
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Target Savings settings retrieved successfully.',
-                'data' => $settings,
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve Target Savings settings.',
-            ], 500);
-        }
-    }
-
-        /**
-     * Get or update the authenticated company's Target Savings settings.
-     */
-    #[OA\Put(
-        path: "/api/v1/target-savings/company/settings",
-        summary: "Update company Target Savings settings",
-        description: "Updates the Target Savings annual interest rate and early withdrawal fee percentage for the authenticated administrator's company.",
-        tags: ["Target Savings - Admin"],
-        security: [["bearerAuth" => []]],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: [
-                    "target_savings_interest_rate",
-                    "target_savings_early_withdrawal_fee_percentage"
-                ],
-                properties: [
-                    new OA\Property(
-                        property: "target_savings_interest_rate",
-                        type: "number",
-                        format: "float",
-                        minimum: 0,
-                        maximum: 100,
-                        example: 12
-                    ),
-                    new OA\Property(
-                        property: "target_savings_early_withdrawal_fee_percentage",
-                        type: "number",
-                        format: "float",
-                        minimum: 0,
-                        maximum: 100,
-                        example: 5
-                    )
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: "Target Savings settings updated successfully"
-            ),
-            new OA\Response(
-                response: 401,
-                description: "Unauthenticated"
-            ),
-            new OA\Response(
-                response: 403,
-                description: "Administrator access required"
-            ),
-            new OA\Response(
-                response: 422,
-                description: "Validation failed"
-            ),
-            new OA\Response(
-                response: 404,
-                description: "Company settings not found"
-            ),
-            new OA\Response(
-                response: 500,
-                description: "Unable to update Target Savings settings"
-            )
-        ]
-    )]
-    public function updateCompanySettings(Request $request): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            /*
-             * Only administrators/root users can change
-             * company Target Savings settings.
-             */
-            if (!apiCando('root|admin')) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Administrator access required.',
-                ], 403);
-            }
-
-            if (empty($user->company_id)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Your account is not linked to a company.',
-                ], 400);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'target_savings_interest_rate' => [
-                    'required',
-                    'numeric',
-                    'min:0',
-                    'max:100',
-                ],
-
-                'target_savings_early_withdrawal_fee_percentage' => [
-                    'required',
-                    'numeric',
-                    'min:0',
-                    'max:100',
-                ],
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation failed.',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            /*
-             * Find the existing settings row belonging to
-             * the authenticated administrator's company.
-             *
-             * We deliberately DO NOT accept company_id from
-             * the request.
-             */
-            $companySettings = DB::table('company_settings')
-                ->where('company_id', $user->company_id)
-                ->first();
-
-            if (!$companySettings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Company settings not found.',
-                ], 404);
-            }
-
-            DB::table('company_settings')
-                ->where('company_id', $user->company_id)
-                ->update([
-                    'target_savings_interest_rate' => $request->target_savings_interest_rate,
-                    'target_savings_early_withdrawal_fee_percentage' => $request->target_savings_early_withdrawal_fee_percentage,
-                    'updated_at' => now(),
-                ]);
-
-            /*
-             * Read the values back from the database so the API
-             * returns exactly what was actually stored.
-             */
-            $updatedSettings = DB::table('company_settings')
-                ->where('company_id', $user->company_id)
-                ->first([
-                    'company_id',
-                    'target_savings_interest_rate',
-                    'target_savings_early_withdrawal_fee_percentage',
-                ]);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Target Savings settings updated successfully.',
-                'data' => $updatedSettings,
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to update Target Savings settings.',
-            ], 500);
-        }
-    }
+//     /**
+//      * Get or update the authenticated company's Target Savings settings.
+//      */
+//     #[OA\Put(
+//         path: "/api/v1/target-savings/company/settings",
+//         summary: "Update company Target Savings settings",
+//         description: "Updates the Target Savings annual interest rate and early withdrawal fee percentage for the authenticated administrator's company.",
+//         tags: ["Target Savings - Admin"],
+//         security: [["bearerAuth" => []]],
+//         requestBody: new OA\RequestBody(
+//             required: true,
+//             content: new OA\JsonContent(
+//                 required: [
+//                     "target_savings_interest_rate",
+//                     "target_savings_early_withdrawal_fee_percentage"
+//                 ],
+//                 properties: [
+//                     new OA\Property(
+//                         property: "target_savings_interest_rate",
+//                         type: "number",
+//                         format: "float",
+//                         minimum: 0,
+//                         maximum: 100,
+//                         example: 12
+//                     ),
+//                     new OA\Property(
+//                         property: "target_savings_early_withdrawal_fee_percentage",
+//                         type: "number",
+//                         format: "float",
+//                         minimum: 0,
+//                         maximum: 100,
+//                         example: 5
+//                     )
+//                 ]
+//             )
+//         ),
+//         responses: [
+//             new OA\Response(
+//                 response: 200,
+//                 description: "Target Savings settings updated successfully"
+//             ),
+//             new OA\Response(
+//                 response: 401,
+//                 description: "Unauthenticated"
+//             ),
+//             new OA\Response(
+//                 response: 403,
+//                 description: "Administrator access required"
+//             ),
+//             new OA\Response(
+//                 response: 422,
+//                 description: "Validation failed"
+//             ),
+//             new OA\Response(
+//                 response: 404,
+//                 description: "Company settings not found"
+//             ),
+//             new OA\Response(
+//                 response: 500,
+//                 description: "Unable to update Target Savings settings"
+//             )
+//         ]
+//     )]
+// public function updateCompanySettings(Request $request): JsonResponse
+// {
+//     return app(FinovaApiService::class)->put(
+//         '/target-savings/company/settings',
+//         $request->bearerToken(),
+//         $request->only([
+//             'target_savings_interest_rate',
+//             'target_savings_early_withdrawal_fee_percentage',
+//         ])
+//     );
+// }
 }

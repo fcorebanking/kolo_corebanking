@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 use Throwable;
 use Illuminate\Support\Facades\DB;
+use App\Services\FinovaApiService;
 
 class FixedSavingsController extends Controller
 {
@@ -74,70 +75,21 @@ class FixedSavingsController extends Controller
             )
         ]
     )]
-    public function store(Request $request): JsonResponse
-    {
-        try {
-
-            $validator = Validator::make($request->all(), [
-                'fixed_name' => [
-                    'required',
-                    'string',
-                    'max:255',
-                ],
-
-                'fixed_amount' => [
-                    'required',
-                    'numeric',
-                    'gt:0',
-                ],
-
-                'withdrawal_date' => [
-                    'required',
-                    'date',
-                    'after:today',
-                ],
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation failed.',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            $fixedSavings = $this->fixedSavingsService->createFixed(
-                $user,
-                $request->fixed_name,
-                (float) $request->fixed_amount,
-                $request->withdrawal_date
-            );
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Fixed Savings created successfully.',
-                'data' => $fixedSavings,
-            ], 201);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ], 400);
-        }
-    }
+public function store(Request $request): JsonResponse
+{
+    return app(FinovaApiService::class)->post(
+        '/fixed-savings/create',
+        $request->bearerToken(),
+        $request->only([
+            'fixed_name',
+            'fixed_amount',
+            'withdrawal_date',
+            'auto_deposit_amount',
+            'auto_deposit_frequency',
+            'first_deposit_at',
+        ])
+    );
+}
 
     /**
      * Get the authenticated user's Fixed Savings.
@@ -175,51 +127,14 @@ class FixedSavingsController extends Controller
             )
         ]
     )]
-    public function index(Request $request): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            $query = FixedSaving::query()
-                ->where('user_id', $user->id)
-                ->orderByDesc('id');
-
-            /*
-             * Optional status filter.
-             */
-            if ($request->filled('status')) {
-                $query->where(
-                    'status',
-                    $request->status
-                );
-            }
-
-            $fixeds = $query->get();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Fixed Savings retrieved successfully.',
-                'data' => $fixeds,
-            ]);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve Fixed Savings.',
-            ], 500);
-        }
-    }
+public function index(Request $request): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        '/fixed-savings/list',
+        $request->bearerToken(),
+        $request->only(['status'])
+    );
+}
 
         /**
      * Get authenticated user's Fixed Savings summary.
@@ -250,72 +165,13 @@ class FixedSavingsController extends Controller
             )
         ]
     )]
-    public function summary(Request $request): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            /*
-             * Get all Fixed Savings belonging to
-             * the authenticated user.
-             */
-            $query = FixedSaving::query()
-                ->where('user_id', $user->id);
-
-            /*
-             * Total number of Fixed Savings created.
-             */
-            $fixedSavingsCount = (clone $query)->count();
-
-            /*
-             * Combined fixed amount across
-             * all Fixed Savings.
-             */
-            $totalFixedAmount = (float) (
-                (clone $query)->sum('fixed_amount')
-            );
-
-            /*
-             * Cumulative amount actually deposited
-             * across all Fixed Savings.
-             *
-             * We use total_deposited rather than current_balance
-             * because current_balance can become zero after withdrawal,
-             * while total_deposited represents the cumulative
-             * amount deposited into each fixed.
-             */
-            $totalAmountDeposited = (float) (
-                (clone $query)->sum('total_deposited')
-            );
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Fixed Savings summary retrieved successfully.',
-                'data' => [
-                    'fixed_savings_count' => $fixedSavingsCount,
-                    'total_fixed_amount' => round($totalFixedAmount, 2),
-                    'total_amount_deposited' => round($totalAmountDeposited, 2),
-                ],
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve Fixed Savings summary.',
-            ], 500);
-        }
-    }
+public function summary(Request $request): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        '/fixed-savings/summary',
+        $request->bearerToken()
+    );
+}
 
     /**
      * Get one Fixed Savings.
@@ -357,53 +213,13 @@ class FixedSavingsController extends Controller
             )
         ]
     )]
-    public function show(Request $request, $id): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            $fixedSavings = FixedSaving::query()
-                ->where('id', $id)
-                ->where('user_id', $user->id)
-                ->first();
-
-            if (!$fixedSavings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Fixed Savings not found.',
-                ], 404);
-            }
-
-            $fixedSavings->load([
-                'transactions' => function ($query) {
-                    $query->latest();
-                },
-            ]);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Fixed Savings retrieved successfully.',
-                'data' => $fixedSavings,
-            ]);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve Fixed Savings.',
-            ], 500);
-        }
-    }
+public function show(Request $request, $id): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        "/fixed-savings/details/{$id}",
+        $request->bearerToken()
+    );
+}
 
     /**
      * Deposit money into Fixed Savings.
@@ -463,72 +279,14 @@ class FixedSavingsController extends Controller
             )
         ]
     )]
-    public function deposit(Request $request, $id): JsonResponse
-    {
-        try {
-
-            $validator = Validator::make($request->all(), [
-                'amount' => [
-                    'required',
-                    'numeric',
-                    'gt:0',
-                ],
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation failed.',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            /*
-             * Make sure this fixed belongs to the authenticated user.
-             */
-            $fixedSavings = FixedSaving::query()
-                ->where('id', $id)
-                ->where('user_id', $user->id)
-                ->first();
-
-            if (!$fixedSavings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Fixed Savings not found.',
-                ], 404);
-            }
-
-            $result = $this->fixedSavingsService->deposit(
-                $fixedSavings->id,
-                $user,
-                (float) $request->amount
-            );
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Fixed Savings deposit successful.',
-                'data' => $result,
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ], 400);
-        }
-    }
+public function deposit(Request $request, $id): JsonResponse
+{
+    return app(FinovaApiService::class)->post(
+        "/fixed-savings/deposit/{$id}",
+        $request->bearerToken(),
+        $request->only(['amount'])
+    );
+}
 
     /**
      * Withdraw from Fixed Savings.
@@ -573,52 +331,13 @@ class FixedSavingsController extends Controller
             )
         ]
     )]
-    public function withdraw(Request $request, $id): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            $fixedSavings = FixedSaving::query()
-                ->where('id', $id)
-                ->where('user_id', $user->id)
-                ->first();
-
-            if (!$fixedSavings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Fixed Savings not found.',
-                ], 404);
-            }
-
-            $result = $this->fixedSavingsService->withdraw(
-                $fixedSavings->id,
-                $user
-            );
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Fixed Savings withdrawal successful.',
-                'data' => $result,
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ], 400);
-        }
-    }
+public function withdraw(Request $request, $id): JsonResponse
+{
+    return app(FinovaApiService::class)->post(
+        "/fixed-savings/withdraw/{$id}",
+        $request->bearerToken()
+    );
+}
 
     /**
      * Get Fixed Savings transaction history.
@@ -660,52 +379,13 @@ class FixedSavingsController extends Controller
             )
         ]
     )]
-    public function transactions(Request $request, $id): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            $fixedSavings = FixedSaving::query()
-                ->where('id', $id)
-                ->where('user_id', $user->id)
-                ->first();
-
-            if (!$fixedSavings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Fixed Savings not found.',
-                ], 404);
-            }
-
-            $query = $fixedSavings->transactions()
-                ->latest();
-
-            $transactions = $query->get();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Fixed Savings transactions retrieved successfully.',
-                'data' => $transactions,
-            ]);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve Fixed Savings transactions.',
-            ], 500);
-        }
-    }
+public function transactions(Request $request, $id): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        "/fixed-savings/transactions/{$id}",
+        $request->bearerToken()
+    );
+}
 
         /**
      * Get all Fixed Savings belonging to users in the
@@ -760,80 +440,17 @@ class FixedSavingsController extends Controller
             )
         ]
     )]
-    public function companyIndex(Request $request): JsonResponse
-    {
-        try {
-
-            $user = auth('api')->user();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
-
-            /*
-             * Only administrators/root users should be able
-             * to view Fixed Savings belonging to the entire company.
-             *
-             * Adjust these permission names if your application's
-             * actual admin permissions use different names.
-             */
-            if (!apiCando('root|admin')) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Administrator access required.',
-                ], 403);
-            }
-
-            if (empty($user->company_id)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Your account is not linked to a company.',
-                ], 400);
-            }
-
-            $query = FixedSaving::with([
-      'user:id,uuid,first_name,last_name,username,email,phone'
-             ])
-       ->where('company_id', $user->company_id)
-       ->orderByDesc('id');
-
-            /*
-             * Optional status filter.
-             */
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
-
-            /*
-             * Prevent excessively large API responses.
-             */
-            $perPage = min(
-                max((int) $request->get('per_page', 20), 1),
-                100
-            );
-
-            $fixeds = $query->paginate($perPage);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Company Fixed Savings retrieved successfully.',
-                'company_id' => $user->company_id,
-                'data' => $fixeds,
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve company Fixed Savings.',
-            ], 500);
-        }
-    }
+public function companyIndex(Request $request): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        '/fixed-savings/company/list',
+        $request->bearerToken(),
+        $request->only([
+            'status',
+            'per_page',
+        ])
+    );
+}
 
         /**
      * Get the authenticated company's Fixed Savings settings.
@@ -867,235 +484,184 @@ class FixedSavingsController extends Controller
             )
         ]
     )]
-    public function companySettings(Request $request): JsonResponse
-    {
-        try {
+public function companySettings(Request $request): JsonResponse
+{
+    return app(FinovaApiService::class)->get(
+        '/fixed-savings/company/settings',
+        $request->bearerToken()
+    );
+}
 
-            $user = auth('api')->user();
+    //     /**
+    //  * Get or update the authenticated company's Fixed Savings settings.
+    //  */
+    // #[OA\Put(
+    //     path: "/api/v1/fixed-savings/company/settings",
+    //     summary: "Update company Fixed Savings settings",
+    //     description: "Updates the Fixed Savings annual interest rate and early withdrawal fee percentage for the authenticated administrator's company.",
+    //     tags: ["Fixed Savings - Admin"],
+    //     security: [["bearerAuth" => []]],
+    //     requestBody: new OA\RequestBody(
+    //         required: true,
+    //         content: new OA\JsonContent(
+    //             required: [
+    //                 "fixed_savings_interest_rate",
+    //                 "fixed_savings_early_withdrawal_fee_percentage"
+    //             ],
+    //             properties: [
+    //                 new OA\Property(
+    //                     property: "fixed_savings_interest_rate",
+    //                     type: "number",
+    //                     format: "float",
+    //                     minimum: 0,
+    //                     maximum: 100,
+    //                     example: 12
+    //                 ),
+    //                 new OA\Property(
+    //                     property: "fixed_savings_early_withdrawal_fee_percentage",
+    //                     type: "number",
+    //                     format: "float",
+    //                     minimum: 0,
+    //                     maximum: 100,
+    //                     example: 5
+    //                 )
+    //             ]
+    //         )
+    //     ),
+    //     responses: [
+    //         new OA\Response(
+    //             response: 200,
+    //             description: "Fixed Savings settings updated successfully"
+    //         ),
+    //         new OA\Response(
+    //             response: 401,
+    //             description: "Unauthenticated"
+    //         ),
+    //         new OA\Response(
+    //             response: 403,
+    //             description: "Administrator access required"
+    //         ),
+    //         new OA\Response(
+    //             response: 422,
+    //             description: "Validation failed"
+    //         ),
+    //         new OA\Response(
+    //             response: 404,
+    //             description: "Company settings not found"
+    //         ),
+    //         new OA\Response(
+    //             response: 500,
+    //             description: "Unable to update Fixed Savings settings"
+    //         )
+    //     ]
+    // )]
+    // public function updateCompanySettings(Request $request): JsonResponse
+    // {
+    //     try {
 
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
+    //         $user = auth('api')->user();
 
-            if (!apiCando('root|admin')) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Administrator access required.',
-                ], 403);
-            }
+    //         if (!$user) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Unauthenticated.',
+    //             ], 401);
+    //         }
 
-            if (empty($user->company_id)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Your account is not linked to a company.',
-                ], 400);
-            }
+    //         /*
+    //          * Only administrators/root users can change
+    //          * company Fixed Savings settings.
+    //          */
+    //         if (!apiCando('root|admin')) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Administrator access required.',
+    //             ], 403);
+    //         }
 
-            $settings = DB::table('company_settings')
-                ->where('company_id', $user->company_id)
-                ->first([
-                    'company_id',
-                    'fixed_savings_interest_rate',
-                    'fixed_savings_early_withdrawal_fee_percentage',
-                ]);
+    //         if (empty($user->company_id)) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Your account is not linked to a company.',
+    //             ], 400);
+    //         }
 
-            if (!$settings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Company settings not found.',
-                ], 404);
-            }
+    //         $validator = Validator::make($request->all(), [
+    //             'fixed_savings_interest_rate' => [
+    //                 'required',
+    //                 'numeric',
+    //                 'min:0',
+    //                 'max:100',
+    //             ],
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Fixed Savings settings retrieved successfully.',
-                'data' => $settings,
-            ], 200);
+    //             'fixed_savings_early_withdrawal_fee_percentage' => [
+    //                 'required',
+    //                 'numeric',
+    //                 'min:0',
+    //                 'max:100',
+    //             ],
+    //         ]);
 
-        } catch (Throwable $e) {
+    //         if ($validator->fails()) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Validation failed.',
+    //                 'errors' => $validator->errors(),
+    //             ], 422);
+    //         }
 
-            report($e);
+    //         /*
+    //          * Find the existing settings row belonging to
+    //          * the authenticated administrator's company.
+    //          *
+    //          * We deliberately DO NOT accept company_id from
+    //          * the request.
+    //          */
+    //         $companySettings = DB::table('company_settings')
+    //             ->where('company_id', $user->company_id)
+    //             ->first();
 
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to retrieve Fixed Savings settings.',
-            ], 500);
-        }
-    }
+    //         if (!$companySettings) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Company settings not found.',
+    //             ], 404);
+    //         }
 
-        /**
-     * Get or update the authenticated company's Fixed Savings settings.
-     */
-    #[OA\Put(
-        path: "/api/v1/fixed-savings/company/settings",
-        summary: "Update company Fixed Savings settings",
-        description: "Updates the Fixed Savings annual interest rate and early withdrawal fee percentage for the authenticated administrator's company.",
-        tags: ["Fixed Savings - Admin"],
-        security: [["bearerAuth" => []]],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: [
-                    "fixed_savings_interest_rate",
-                    "fixed_savings_early_withdrawal_fee_percentage"
-                ],
-                properties: [
-                    new OA\Property(
-                        property: "fixed_savings_interest_rate",
-                        type: "number",
-                        format: "float",
-                        minimum: 0,
-                        maximum: 100,
-                        example: 12
-                    ),
-                    new OA\Property(
-                        property: "fixed_savings_early_withdrawal_fee_percentage",
-                        type: "number",
-                        format: "float",
-                        minimum: 0,
-                        maximum: 100,
-                        example: 5
-                    )
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: "Fixed Savings settings updated successfully"
-            ),
-            new OA\Response(
-                response: 401,
-                description: "Unauthenticated"
-            ),
-            new OA\Response(
-                response: 403,
-                description: "Administrator access required"
-            ),
-            new OA\Response(
-                response: 422,
-                description: "Validation failed"
-            ),
-            new OA\Response(
-                response: 404,
-                description: "Company settings not found"
-            ),
-            new OA\Response(
-                response: 500,
-                description: "Unable to update Fixed Savings settings"
-            )
-        ]
-    )]
-    public function updateCompanySettings(Request $request): JsonResponse
-    {
-        try {
+    //         DB::table('company_settings')
+    //             ->where('company_id', $user->company_id)
+    //             ->update([
+    //                 'fixed_savings_interest_rate' => $request->fixed_savings_interest_rate,
+    //                 'fixed_savings_early_withdrawal_fee_percentage' => $request->fixed_savings_early_withdrawal_fee_percentage,
+    //                 'updated_at' => now(),
+    //             ]);
 
-            $user = auth('api')->user();
+    //         /*
+    //          * Read the values back from the database so the API
+    //          * returns exactly what was actually stored.
+    //          */
+    //         $updatedSettings = DB::table('company_settings')
+    //             ->where('company_id', $user->company_id)
+    //             ->first([
+    //                 'company_id',
+    //                 'fixed_savings_interest_rate',
+    //                 'fixed_savings_early_withdrawal_fee_percentage',
+    //             ]);
 
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'Fixed Savings settings updated successfully.',
+    //             'data' => $updatedSettings,
+    //         ], 200);
 
-            /*
-             * Only administrators/root users can change
-             * company Fixed Savings settings.
-             */
-            if (!apiCando('root|admin')) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Administrator access required.',
-                ], 403);
-            }
+    //     } catch (Throwable $e) {
 
-            if (empty($user->company_id)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Your account is not linked to a company.',
-                ], 400);
-            }
+    //         report($e);
 
-            $validator = Validator::make($request->all(), [
-                'fixed_savings_interest_rate' => [
-                    'required',
-                    'numeric',
-                    'min:0',
-                    'max:100',
-                ],
-
-                'fixed_savings_early_withdrawal_fee_percentage' => [
-                    'required',
-                    'numeric',
-                    'min:0',
-                    'max:100',
-                ],
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation failed.',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            /*
-             * Find the existing settings row belonging to
-             * the authenticated administrator's company.
-             *
-             * We deliberately DO NOT accept company_id from
-             * the request.
-             */
-            $companySettings = DB::table('company_settings')
-                ->where('company_id', $user->company_id)
-                ->first();
-
-            if (!$companySettings) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Company settings not found.',
-                ], 404);
-            }
-
-            DB::table('company_settings')
-                ->where('company_id', $user->company_id)
-                ->update([
-                    'fixed_savings_interest_rate' => $request->fixed_savings_interest_rate,
-                    'fixed_savings_early_withdrawal_fee_percentage' => $request->fixed_savings_early_withdrawal_fee_percentage,
-                    'updated_at' => now(),
-                ]);
-
-            /*
-             * Read the values back from the database so the API
-             * returns exactly what was actually stored.
-             */
-            $updatedSettings = DB::table('company_settings')
-                ->where('company_id', $user->company_id)
-                ->first([
-                    'company_id',
-                    'fixed_savings_interest_rate',
-                    'fixed_savings_early_withdrawal_fee_percentage',
-                ]);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Fixed Savings settings updated successfully.',
-                'data' => $updatedSettings,
-            ], 200);
-
-        } catch (Throwable $e) {
-
-            report($e);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to update Fixed Savings settings.',
-            ], 500);
-        }
-    }
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Unable to update Fixed Savings settings.',
+    //         ], 500);
+    //     }
+    // }
 }

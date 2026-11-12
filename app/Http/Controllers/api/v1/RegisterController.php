@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\ConnectionException;
 use Throwable;
 use App\Services\FinovaApiService;
+use Illuminate\Support\Str;
 
 class RegisterController extends Controller
 {
@@ -289,9 +290,14 @@ class RegisterController extends Controller
 public function register(Request $request)
 {
     try {
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDATE REGISTRATION REQUEST
+        |--------------------------------------------------------------------------
+        */
 
-        // Validate the incoming customer information.
         $rules = [
+            'company_id' => 'required|integer',
             'first_name' => 'required|string|max:50|min:2',
             'last_name'  => 'required|string|max:50|min:2',
             'phone'      => 'required|string',
@@ -316,19 +322,67 @@ public function register(Request $request)
             return response()->json([
                 'status'  => false,
                 'message' => $validator->errors()->first(),
+                'data'    => [],
             ], 406);
         }
 
         /*
         |--------------------------------------------------------------------------
-        | PREPARE CUSTOMER REGISTRATION PAYLOAD
+        | CAPTURE KOLOPAY COMPANY ID
         |--------------------------------------------------------------------------
         |
-        | All customer registration and banking operations are handled
-        | by Finova Core Banking.
+        | This is the local company the new customer belongs to.
+        | It must not be replaced with Finova's company ID.
         |
-        | KoloPay company ID is always forced to 111.
-        |
+        */
+
+        $localCompanyId = (int) $request->company_id;
+
+        /*
+        |--------------------------------------------------------------------------
+        | CHECK LOCAL DUPLICATES
+        |--------------------------------------------------------------------------
+        */
+
+        $existingEmail = User::where('company_id', $localCompanyId)
+            ->where('email', $request->email)
+            ->exists();
+
+        if ($existingEmail) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Email already exists.',
+                'data'    => [],
+            ], 409);
+        }
+
+        $existingPhone = User::where('company_id', $localCompanyId)
+            ->where('phone', $request->phone)
+            ->exists();
+
+        if ($existingPhone) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Phone number already exists.',
+                'data'    => [],
+            ], 409);
+        }
+
+        $existingUsername = User::where('username', $request->username)
+            ->exists();
+
+        if ($existingUsername) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Username already exists.',
+                'data'    => [],
+            ], 409);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | PREPARE FINOVA REGISTRATION PAYLOAD
+        |--------------------------------------------------------------------------
         */
 
         $payload = $request->only([
@@ -356,68 +410,212 @@ public function register(Request $request)
             'otp',
         ]);
 
-        // Core registration expects the field "company".
-        // Never accept the company value supplied by the caller.
+        // Finova registration is always under company 111.
         $payload['company'] = '111';
 
-        // Log only safe request information.
-        logInfo([
+        // Deliberately do not send local company_id to Finova.
+
+        \logInfo([
             'endpoint' => '/api/v1/users/register',
-            'company_id' => 111,
+            'finova_company_id' => 111,
+            'local_company_id' => $localCompanyId,
             'email' => $request->email,
             'phone' => $request->phone,
             'request_fields' => array_keys($payload),
-        ], 'KOLO REGISTRATION - FORWARDING TO FINOVA CORE');
+        ], 'KOLO REGISTRATION - FINOVA REQUEST');
 
         /*
         |--------------------------------------------------------------------------
-        | FORWARD REQUEST TO FINOVA CORE
+        | REGISTER CUSTOMER WITH FINOVA
         |--------------------------------------------------------------------------
         */
 
+        $baseUrl = rtrim(config('services.finova.base_url'), '/');
+
         $coreResponse = Http::acceptJson()
             ->asJson()
-            ->timeout(60)
+            ->connectTimeout(15)
+            ->timeout(90)
             ->post(
-                rtrim(config('services.finova.base_url'), '/') .
-                '/users/register',
+                $baseUrl . '/users/register',
                 $payload
             );
 
         $responseData = $coreResponse->json();
 
-        logInfo([
-            'company_id' => 111,
+        \logInfo([
+            'finova_company_id' => 111,
+            'local_company_id' => $localCompanyId,
             'http_status' => $coreResponse->status(),
-            'response_status' => $responseData['status'] ?? null,
-            'response_message' => $responseData['message'] ?? null,
-        ], 'KOLO REGISTRATION - FINOVA CORE RESPONSE');
+            'registration_status' => $responseData['status'] ?? false,
+            'registration_message' => $responseData['message'] ?? null,
+        ], 'KOLO REGISTRATION - FINOVA RESPONSE');
 
-        // Return Core's actual response and HTTP status.
-        return response()->json(
-            $responseData ?? [
+        /*
+        |--------------------------------------------------------------------------
+        | CHECK FINOVA REGISTRATION RESULT
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !$coreResponse->successful() ||
+            !is_array($responseData) ||
+            ($responseData['status'] ?? false) !== true
+        ) {
+            return response()->json(
+                $responseData ?? [
+                    'status' => false,
+                    'message' => 'Invalid response received from Finova Core Banking.',
+                    'data' => [],
+                ],
+                $coreResponse->status() ?: 502
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | EXTRACT FINOVA ACCOUNT DETAILS
+        |--------------------------------------------------------------------------
+        */
+
+        $finovaData = $responseData['data'] ?? [];
+
+        $accountNumber = $finovaData['account_number'] ?? null;
+        $accountReference = $finovaData['user_reference'] ?? null;
+
+        if (empty($accountNumber) || empty($accountReference)) {
+            \logInfo([
+                'local_company_id' => $localCompanyId,
+                'response_fields' => array_keys($finovaData),
+                'reason' => 'Finova registration succeeded but account details were incomplete.',
+            ], 'KOLO REGISTRATION - INCOMPLETE FINOVA RESPONSE');
+
+            return response()->json([
                 'status' => false,
-                'message' => 'Invalid response received from Finova Core Banking',
-            ],
-            $coreResponse->status()
-        );
+                'message' => 'Finova registration succeeded, but the returned account details were incomplete. Please contact support before retrying.',
+                'data' => [],
+            ], 502);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE LOCAL KOLOPAY USER
+        |--------------------------------------------------------------------------
+        |
+        | Finova does not return the complete user record.
+        | Profile details are taken from the original request.
+        | Account details are taken from Finova's response.
+        |
+        */
+
+        DB::beginTransaction();
+
+        try {
+            $user = User::create([
+                'uuid' => (string) Str::uuid(),
+
+                // Local KoloPay company ID, NOT Finova's 111.
+                'company_id' => $localCompanyId,
+
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'username' => $request->username,
+
+                'password' => Hash::make($request->password),
+
+                // Do not store transaction PINs in plaintext locally.
+                // Finova remains authoritative for the transaction PIN.
+                'pin' => null,
+
+                'dob' => $request->dob,
+                'gender' => $request->gender ?? null,
+                'address' => $request->address ?? null,
+
+                'bvn' => $request->bvn ?? null,
+                'nin' => $request->nin ?? null,
+
+                // Finova's returned account details.
+                'virtual_account' => $accountNumber,
+                'account_reference' => $accountReference,
+
+                // No local mapping has been established for these.
+                'bank_id' => 126,
+                'branch_id' => 182,
+                'account_officer_id' => 1199,
+
+                // Other optional fields.
+                'profile_pic' => $request->profile_pic ?? null,
+                'signature' => $request->signature ?? null,
+                'status_id' => $request->status_id ?? null,
+                'bvn_status' => $request->bvn_status ?? null,
+                'kyc_level_id' => $request->kyc_level_id ?? null,
+                'phone_verification_status_id' => null,
+                'user_type_id' => 1,
+
+                // Finova does not return these during registration.
+                'otp' => null,
+                'access_token' => null,
+            ]);
+
+            if (!$user) {
+                throw new \RuntimeException(
+                    'Unable to create the local KoloPay user.'
+                );
+            }
+
+            DB::commit();
+
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            \logInfo([
+                'local_company_id' => $localCompanyId,
+                'finova_account_reference' => $accountReference,
+                'error' => $e->getMessage(),
+            ], 'KOLO REGISTRATION - LOCAL USER SYNC FAILED');
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Your Finova account was created successfully, but we could not synchronize your KoloPay profile. Please contact support. Do not retry registration.',
+                'data' => [
+                    'user_reference' => $accountReference,
+                    'account_number' => $accountNumber,
+                ],
+            ], 500);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | RETURN FINOVA REGISTRATION RESPONSE
+        |--------------------------------------------------------------------------
+        */
+
+        \logInfo([
+            'local_user_id' => $user->id,
+            'local_company_id' => $user->company_id,
+            'finova_account_reference' => $accountReference,
+            'status' => 'successful',
+        ], 'KOLO REGISTRATION - LOCAL USER CREATED');
+
+        return response()->json($responseData, $coreResponse->status());
 
     } catch (ConnectionException $e) {
 
-        logInfo([
-            'company_id' => 111,
+        \logInfo([
             'error' => $e->getMessage(),
         ], 'KOLO REGISTRATION - FINOVA CONNECTION ERROR');
 
         return response()->json([
             'status' => false,
             'message' => 'Unable to connect to Finova Core Banking. Please try again later.',
+            'data' => [],
         ], 503);
 
     } catch (Throwable $e) {
 
-        logInfo([
-            'company_id' => 111,
+        \logInfo([
             'error' => $e->getMessage(),
             'line' => $e->getLine(),
         ], 'KOLO REGISTRATION - ERROR');
@@ -425,6 +623,7 @@ public function register(Request $request)
         return response()->json([
             'status' => false,
             'message' => 'An error occurred while processing registration.',
+            'data' => [],
         ], 500);
     }
 }

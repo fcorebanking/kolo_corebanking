@@ -9,115 +9,454 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Http\Client\ConnectionException;
+use Throwable;
 
 class UserController extends Controller
 {
-    public function  registration(Request $request)
-    {
-        $validation = Validator::make($request->all(), [
-            "name" => 'required',
-            "email" => 'required',
-            "password" => 'required'
+    public function registration(Request $request)
+{
+    $validation = Validator::make($request->all(), [
+        'first_name' => 'required|string|max:255',
+        'last_name'  => 'required|string|max:255',
+        'phone'      => 'required|string|max:20',
+        'email'      => 'required|email|max:255',
+        'dob'        => 'required|date',
+        'username'   => 'required|string|max:255',
+        'pin'        => 'required|string',
+        'password'   => 'required|string|min:6',
+        'companyid'  => 'required|integer',
+    ]);
 
-        ]);
-        if ($validation->fails()) {
-            $ra = array("status" => false, "message" => "All fields are required");
-            return response()->json($ra, 406);
+    if ($validation->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Please provide all required registration details.',
+            'errors' => $validation->errors(),
+            'data' => null,
+        ], 422);
+    }
+
+    $email = strtolower(trim($request->email));
+    $username = trim($request->username);
+    $phone = trim($request->phone);
+
+    // This is the KoloPay company ID, not Finova's company ID.
+    $localCompanyId = (int) $request->companyid;
+
+    // Prevent duplicate local registrations before calling Finova.
+    $existingUser = User::where('email', $email)
+        ->orWhere('username', $username)
+        ->orWhere('phone', $phone)
+        ->first();
+
+    if ($existingUser) {
+        return response()->json([
+            'status' => false,
+            'message' => 'User already exists.',
+            'data' => null,
+        ], 409);
+    }
+
+    $payload = $request->only([
+        'first_name',
+        'last_name',
+        'phone',
+        'email',
+        'dob',
+        'username',
+        'pin',
+        'password',
+        'gender',
+        'address',
+        'bvn',
+        'nin',
+        'account_type',
+        'selected_product',
+        'referral',
+        'account_bank',
+        'identityNumber',
+    ]);
+
+    // Always register KoloPay customers under Finova company 111.
+    $payload['company'] = '111';
+
+    try {
+        $baseUrl = rtrim(config('services.finova.base_url'), '/');
+
+        $response = Http::acceptJson()
+            ->asJson()
+            ->connectTimeout(15)
+            ->timeout(90)
+            ->post($baseUrl . '/users/register', $payload);
+
+        $responseData = $response->json();
+
+        if (
+            !$response->successful() ||
+            !is_array($responseData) ||
+            ($responseData['status'] ?? false) !== true
+        ) {
+            return response()->json(
+                is_array($responseData) ? $responseData : [
+                    'status' => false,
+                    'message' => 'Finova registration failed.',
+                    'data' => null,
+                ],
+                $response->status() >= 400 ? $response->status() : 422
+            );
         }
-        $email = htmlentities($request->get('email'));
-        $userstate = User::whereEmail($email)->first();
-        if ($userstate) {
-            $resArr['status'] = false;
-            $resArr['message'] = "User already exists";
-            $resArr['data'] = null;
 
-            return response()->json($resArr, 409);
-        } else {
+        $finovaData = $responseData['data'] ?? [];
 
-            $allData = $request->all();
-            $password = bcrypt($allData['password']);
+        $accountNumber = $finovaData['account_number'] ?? null;
+        $userReference = $finovaData['user_reference'] ?? null;
 
-            $user = User::create([
-                'name' => $request->get('name'),
-                'email' => $request->get('email'),
-                'companyid' => $request->get('companyid'),
-                'first_name' => $request->get('first_name'),
-                'last_name' => $request->get('last_name'),
-                'phone' => $request->get('phone'),
-                'profile_pic' => $request->get('profile_pic'),
-                'username' => $request->get('username'),
-                'pin' => $request->get('pin'),
-                'status_id' => $request->get('status_id'),
-                'bvn' => $request->get('bvn'),
-                'bvn_status' => $request->get('bvn_status'),
-                'nin' => $request->get('nin'),
-                'signature' => $request->get('signature'),
-                'session_user' => $request->get('session_user'),
-                'address' => $request->get('address'),
-                'gender' => $request->get('gender'),
-                'branch' => $request->get('branch'),
-                'role_id' => $request->get('role_id'),
-                'email_verified_at' => $request->get('email_verified_at'),
-                'password' => $password
+        if (!$accountNumber || !$userReference) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Finova accepted the registration, but the account details required for local synchronization were not returned. Please contact support before retrying.',
+                'data' => [
+                    'user_reference' => $userReference,
+                    'account_number' => $accountNumber,
+                ],
+            ], 502);
+        }
+
+        try {
+            $user = DB::transaction(function () use (
+                $request,
+                $email,
+                $username,
+                $phone,
+                $localCompanyId,
+                $accountNumber,
+                $userReference
+            ) {
+                return User::create([
+                    'uuid' => (string) Str::uuid(),
+                    'name' => trim($request->first_name . ' ' . $request->last_name),
+                    'company_id' => $localCompanyId,
+
+                    'first_name' => $request->first_name,
+                    'last_name' => $request->last_name,
+                    'email' => $email,
+                    'phone' => $phone,
+                    'username' => $username,
+                    'dob' => $request->dob,
+                    'gender' => $request->gender,
+                    'address' => $request->address,
+
+                    'bvn' => $request->bvn,
+                    'nin' => $request->nin,
+
+                    // Store a local password hash for local account compatibility.
+                    'password' => Hash::make($request->password),
+
+                    // Finova remains authoritative for the transaction PIN.
+                    'pin' => null,
+
+                    // These values come from Finova's successful response.
+                    'virtual_account' => $accountNumber,
+                    'account_reference' => $userReference,
+
+                    // Remote Finova IDs are not local KoloPay IDs.
+                    'bank_id' => 126,
+                    'branch_id' => 182,
+                    'account_officer_id' => 1199,
+
+                    'profile_pic' => $request->profile_pic,
+                    'signature' => $request->signature,
+                    'status_id' => $request->status_id,
+                    'bvn_status' => $request->bvn_status,
+                    'kyc_level_id' => $request->kyc_level_id,
+
+                    'user_type_id' => 1,
+                    'phone_verification_status_id' => null,
+                    'otp' => null,
+                    'access_token' => null,
+                ]);
+            });
+        } catch (Throwable $e) {
+            report($e);
+
+            // Finova has already created the customer. Do not automatically
+            // retry registration because that could create a duplicate account.
+            return response()->json([
+                'status' => false,
+                'message' => 'Your Finova account was created, but KoloPay could not synchronize your local profile. Please contact support. Do not register again.',
+                'data' => [
+                    'user_reference' => $userReference,
+                    'account_number' => $accountNumber,
+                ],
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => $responseData['message'] ?? 'Registration Successful',
+            'data' => [
+                'name' => $user->name,
+                'user_reference' => $userReference,
+                'account_number' => $accountNumber,
+                'bank' => $finovaData['bank'] ?? null,
+                'phone_number' => $finovaData['phone_number'] ?? $phone,
+                'otp_code' => $finovaData['otp_code'] ?? null,
+            ],
+        ], 200);
+
+    } catch (ConnectionException $e) {
+        report($e);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to connect to Finova. Please try again later.',
+            'data' => null,
+        ], 503);
+    }
+}
+
+public function login(Request $request)
+{
+    $validation = Validator::make($request->all(), [
+        'email' => 'required|string',
+        'password' => 'required|string',
+    ]);
+
+    if ($validation->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Email/username and password are required.',
+            'errors' => $validation->errors(),
+            'data' => null,
+        ], 422);
+    }
+
+    $loginIdentifier = trim($request->email);
+
+    try {
+        $baseUrl = rtrim(config('services.finova.base_url'), '/');
+
+        $response = Http::acceptJson()
+            ->asJson()
+            ->connectTimeout(15)
+            ->timeout(90)
+            ->post($baseUrl . '/users/login', [
+                'username' => $loginIdentifier,
+                'password' => $request->password,
+                'company_id' => 111,
             ]);
 
-            // $user = User::create([
-            //     'name' => $request->get('name'),
-            //     'email' => htmlentities($request->get('email')),
-            //     'password' =>  $password
-            // ]);
+        $responseData = $response->json();
 
-            $resArr = [];
-            $data = [];
-            //$resArr['token'] = $request->create('/oauth/token', 'POST', $request->all());
-
-
-            $resArr['status'] = true;
-            $resArr['message'] = "Registration Successful";
-            $resArr['data'] = array('name' => $user->name, 'token' => $user->createToken('api-application')->accessToken);
-            return response()->json($resArr, 200);
+        if (
+            !$response->successful() ||
+            !is_array($responseData) ||
+            ($responseData['status'] ?? false) !== true
+        ) {
+            return response()->json(
+                is_array($responseData) ? $responseData : [
+                    'status' => false,
+                    'message' => 'Invalid Login Credentials.',
+                    'data' => null,
+                ],
+                $response->status() >= 400 ? $response->status() : 401
+            );
         }
-    }
-    public function  login(Request $request)
-    {
 
-        // die(print_r($request));
-        $auth = Auth::attempt([
-            'email' => htmlentities($request['email']),
-            'password' => $request['password']
-        ]);
-        if ($auth) {
-            $user = Auth::user();
+        $finovaData = $responseData['data'] ?? [];
+        $finovaUser = $finovaData['user'] ?? [];
+        $finovaToken = $finovaData['access_token'] ?? null;
 
-            $resArr = [];
-            // $resArr['token'] = $user->createToken('api-application')->accessToken;
-            // $resArr['name'] = $user->name;
+        if (!$finovaToken || !is_array($finovaUser)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Finova login succeeded, but the authentication details were incomplete.',
+                'data' => null,
+            ], 502);
+        }
 
-            $resArr['status'] = true;
-            $resArr['message'] = "Login Successful";
-            $resArr['data'] = array('name' => $user->name, 'token' => $user->createToken('api-application')->accessToken);
+        // Ensure the authenticated Finova account belongs to KoloPay.
+        if ((int) ($finovaUser['company_id'] ?? 0) !== 111) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This account is not registered under KoloPay.',
+                'data' => null,
+            ], 403);
+        }
 
+        $email = $finovaUser['email'] ?? null;
+        $username = $finovaUser['username'] ?? $loginIdentifier;
+        $phone = $finovaUser['phone'] ?? null;
 
-            return response()->json($resArr, 200);
+        $user = User::where('email', $email)
+            ->when($email === null, function ($query) use ($username) {
+                $query->where('username', $username);
+            })
+            ->first();
+
+        // A local company ID must never be replaced with Finova's company_id 111.
+        $localCompanyId = $user?->company_id ?? $request->input('companyid');
+
+        $localData = [
+            'name' => trim(
+                ($finovaUser['first_name'] ?? '') . ' ' .
+                ($finovaUser['last_name'] ?? '')
+            ),
+            'first_name' => $finovaUser['first_name'] ?? $user?->first_name,
+            'last_name' => $finovaUser['last_name'] ?? $user?->last_name,
+            'email' => $email ?? $user?->email,
+            'username' => $username,
+            'phone' => $phone ?? $user?->phone,
+            'dob' => $finovaUser['dob'] ?? $user?->dob,
+            'gender' => $finovaUser['gender'] ?? $user?->gender,
+            'address' => $finovaUser['address'] ?? $user?->address,
+            'bvn' => $finovaUser['bvn'] ?? $user?->bvn,
+            'nin' => $finovaUser['nin'] ?? $user?->nin,
+
+            // Keep the local company mapping.
+            'company_id' => $localCompanyId,
+
+            // Save the actual Finova token for subsequent proxy requests.
+            'access_token' => $finovaToken,
+        ];
+
+        if (!$user) {
+            $localData['uuid'] = (string) Str::uuid();
+            $localData['password'] = Hash::make(Str::random(40));
+            $localData['user_type_id'] = 1;
+            $localData['pin'] = null;
+            $localData['virtual_account'] = $finovaUser['virtual_account'] ?? null;
+            $localData['account_reference'] = $finovaUser['account_reference'] ?? null;
+            $localData['bank_id'] = null;
+            $localData['branch_id'] = null;
+            $localData['account_officer_id'] = null;
+
+            $user = User::create($localData);
         } else {
-            $resArr['status'] = false;
-            $resArr['message'] = "Invalid Login Credentials";
-            $resArr['data'] = null;
-
-            return response()->json($resArr, 401);
+            $user->update($localData);
         }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Login Successful',
+            'data' => [
+                'name' => $user->name,
+                'token' => $finovaToken,
+            ],
+        ], 200);
+
+    } catch (ConnectionException $e) {
+        report($e);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to connect to Finova. Please try again later.',
+            'data' => null,
+        ], 503);
+    } catch (Throwable $e) {
+        report($e);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'An error occurred while synchronizing your account.',
+            'data' => null,
+        ], 500);
     }
+}
 
-    function getCustomerBalance($company, $customer_id)
-    {
-
+public function getCustomerBalance($company, $customer_id)
+{
+    try {
         $customer = User::where('uuid', $customer_id)->first();
 
         if (!$customer) {
-            return response()->json(["status" => 0, 'message' => "Invalid User Id $customer_id"]);
+            return response()->json([
+                'status' => false,
+                'message' => "Invalid User Id {$customer_id}",
+                'data' => [],
+            ], 404);
         }
-        return response()->json(["status" => 1, 'message' => "Balance fetched successfully", 'data' => ['balance' => $customer->wb_account_details[0]->user_wallet->balance]]);
+
+        if (empty($customer->access_token)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Customer has no Finova authentication token. The customer may need to log in again.',
+                'data' => [],
+            ], 401);
+        }
+
+        $baseUrl = rtrim(config('services.finova.base_url'), '/');
+
+        $coreResponse = Http::acceptJson()
+            ->withToken($customer->access_token)
+            ->connectTimeout(15)
+            ->timeout(60)
+            ->get($baseUrl . '/users/get-details');
+
+        $responseData = $coreResponse->json();
+
+        if (
+            !$coreResponse->successful() ||
+            !is_array($responseData) ||
+            ($responseData['status'] ?? false) !== true
+        ) {
+            return response()->json([
+                'status' => false,
+                'message' => $responseData['message'] ?? 'Unable to fetch customer balance from Finova.',
+                'data' => [],
+            ], $coreResponse->status() ?: 502);
+        }
+
+        $totalWalletBalance = $responseData['data']['total_wallet_balance'] ?? null;
+
+        if ($totalWalletBalance === null) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Finova did not return the customer total wallet balance.',
+                'data' => [],
+            ], 502);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Balance fetched successfully.',
+            'data' => [
+                'balance' => $totalWalletBalance,
+                'total_wallet_balance' => $totalWalletBalance,
+            ],
+        ]);
+
+    } catch (ConnectionException $e) {
+
+        \logInfo([
+            'error' => $e->getMessage(),
+        ], 'KOLO CUSTOMER BALANCE - FINOVA CONNECTION ERROR');
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to connect to Finova Core Banking.',
+            'data' => [],
+        ], 503);
+
+    } catch (Throwable $e) {
+
+        \logInfo([
+            'error' => $e->getMessage(),
+            'line' => $e->getLine(),
+        ], 'KOLO CUSTOMER BALANCE - ERROR');
+
+        return response()->json([
+            'status' => false,
+            'message' => 'An error occurred while fetching the customer balance.',
+            'data' => [],
+        ], 500);
     }
+}
 
     function getCustomerProfile($company, $customer_id)
     {

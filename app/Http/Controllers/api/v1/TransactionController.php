@@ -7308,7 +7308,7 @@ private function forwardToFinova(
     }
 
 #[OA\Get(
-    path: "/api/v1/get-data-bundles/{networkProvider}",
+    path: "/api/v1/transactions/get-data-bundles/{networkProvider}",
     summary: "Get Data Bundles",
     description: "Returns the available data bundles for the specified network provider. The network provider is passed as a path parameter and the bundles are fetched through the VTpass service.",
     tags: ["Data"],
